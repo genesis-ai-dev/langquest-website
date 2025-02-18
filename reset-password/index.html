@@ -1,40 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Redirecting to LangQuest</title>
+  <title>Reset Password - LangQuest</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <style>
+    .desktop-form {
+      max-width: 400px;
+      margin: 40px auto;
+      padding: 20px;
+      display: none;
+    }
+    .password-input {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+    }
+    .submit-button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 16px;
+    }
+    #message {
+      text-align: center;
+      margin: 20px;
+    }
+  </style>
   <script>
-    function redirect() {
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anon_key);
+
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    async function handlePasswordReset() {
       const urlParams = new URLSearchParams(window.location.search);
-      
-      // Try both search and hash parameters
       const token = urlParams.get('token');
       const refresh_token = urlParams.get('refresh_token');
       const type = urlParams.get('type');
       
-      // Include all tokens in the deep link
-      const deepLink = `langquest://reset-password?token=${token}&refresh_token=${refresh_token}&type=${type}`;
-      const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
-      
-      console.log('Redirecting to:', deepLink); // For debugging
-      
-      // Try to open the app
-      const now = Date.now();
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = deepLink;
-      document.body.appendChild(iframe);
+      if (isMobile()) {
+        // Mobile deep linking logic
+        const deepLink = `langquest://reset-password?token=${token}&refresh_token=${refresh_token}&type=${type}`;
+        const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
+        
+        const now = Date.now();
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = deepLink;
+        document.body.appendChild(iframe);
 
-      setTimeout(function() {
-        if (Date.now() - now < 3000) {
-          window.location.href = playStoreUrl;
-        }
-      }, 2000);
+        setTimeout(function() {
+          if (Date.now() - now < 3000) {
+            window.location.href = playStoreUrl;
+          }
+        }, 2000);
 
-      window.location.href = deepLink;
+        window.location.href = deepLink;
+      } else {
+        // Show desktop form
+        document.getElementById('desktop-form').style.display = 'block';
+        document.getElementById('message').style.display = 'none';
+      }
+    }
+
+    async function submitNewPassword(event) {
+      event.preventDefault();
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const password = document.getElementById('password').value;
+
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: password
+        });
+
+        if (error) throw error;
+        
+        document.getElementById('message').innerHTML = 'Password successfully updated! You can now close this window and log in to the app.';
+        document.getElementById('message').style.display = 'block';
+        document.getElementById('desktop-form').style.display = 'none';
+      } catch (error) {
+        document.getElementById('error-message').innerHTML = error.message;
+      }
     }
   </script>
 </head>
-<body onload="redirect()">
-  <p>Redirecting to LangQuest app...</p>
+<body onload="handlePasswordReset()">
+  <div id="message">Redirecting to LangQuest app...</div>
+  
+  <form id="desktop-form" class="desktop-form" onsubmit="submitNewPassword(event)">
+    <h2>Reset Your Password</h2>
+    <input type="password" id="password" class="password-input" placeholder="Enter new password" required>
+    <button type="submit" class="submit-button">Reset Password</button>
+    <div id="error-message" style="color: red; margin-top: 10px;"></div>
+  </form>
 </body>
 </html> 
