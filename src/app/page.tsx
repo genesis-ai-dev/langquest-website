@@ -18,7 +18,7 @@ export default function Home() {
       
       <div>
         <h1 className="text-5xl font-light mb-5">
-          Future home of something quite cool.
+          Future home of something quite cool, in next.js.
         </h1>
         <p className="text-xl font-light mb-5">
           If you&apos;re the <strong>site owner</strong>, <a href="/cpanel" className="text-blue-500">log in</a> to launch this site
