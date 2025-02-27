@@ -1,7 +1,10 @@
-"use client";
-
 import { DatabaseViewer } from "@/components/database-viewer";
+import { Suspense } from "react";
 
 export default function Database() {
-  return <DatabaseViewer />;
+  return (
+    <Suspense>
+      <DatabaseViewer />
+    </Suspense>
+  );
 }
