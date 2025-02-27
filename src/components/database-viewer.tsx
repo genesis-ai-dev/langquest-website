@@ -4,6 +4,7 @@ import { AudioButton } from "@/components/ui/audio-button";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -56,12 +57,15 @@ import {
   Filter,
   List,
   Plus,
-  X
+  X,
+  Download
 } from "lucide-react";
 import { parseAsInteger, parseAsJson, useQueryState, createParser } from "nuqs";
 import * as React from "react";
 import { z } from "zod";
 import { Spinner } from "./spinner";
+import { env } from "@/lib/env";
+import JSZip from "jszip";
 
 // Define base types
 type ColumnType = "string" | "number" | "boolean" | "timestamp" | "uuid";
@@ -224,8 +228,8 @@ const convertColumnFiltersToColumnFilterState = (
 
 // Add API fetching functions
 const fetchTableSchemas = async () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anon) {
     throw new Error("Missing API configuration");
@@ -354,7 +358,7 @@ function useTransformedColumns({
               <div className="flex w-30 justify-center">
                 {imageSources.map((item, index) => {
                   const source = supabase.storage
-                    .from(process.env.NEXT_PUBLIC_SUPABASE_BUCKET!)
+                    .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                     .getPublicUrl(item).data.publicUrl;
 
                   return (
@@ -392,7 +396,7 @@ function useTransformedColumns({
                     key={item}
                     src={
                       supabase.storage
-                        .from(process.env.NEXT_PUBLIC_SUPABASE_BUCKET!)
+                        .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                         .getPublicUrl(item).data.publicUrl
                     }
                   />
@@ -505,7 +509,7 @@ function PreviewTable({
   if (!data?.length) {
     return (
       <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
-        No matching records found
+        No matching records found.
       </div>
     );
   }
@@ -550,7 +554,6 @@ const parseAsSorting = createParser({
         return null;
       }
     };
-    console.log(parseB(queryValue), queryValue, "parseB");
     return parseB(queryValue);
   },
   serialize(value) {
@@ -564,6 +567,246 @@ const parseAsSorting = createParser({
     return a.length === b.length;
   }
 });
+
+// Add export functions
+const downloadAsFile = (
+  content: string,
+  fileName: string,
+  contentType: string
+) => {
+  const a = document.createElement("a");
+  const file = new Blob([content], { type: contentType });
+  a.href = URL.createObjectURL(file);
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+const downloadAsZip = async (
+  content: string,
+  attachments: { path: string; url: string }[],
+  fileName: string,
+  contentType: string
+) => {
+  const zip = new JSZip();
+
+  // Add the main data file
+  zip.file(
+    contentType === "application/json" ? "data.json" : "data.csv",
+    content
+  );
+
+  // Create attachments folder and add files
+  if (attachments.length > 0) {
+    const attachmentsFolder = zip.folder("attachments");
+    if (attachmentsFolder) {
+      for (const { path, url } of attachments) {
+        try {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          attachmentsFolder.file(path, blob);
+        } catch (error) {
+          console.error(`Error downloading attachment ${path}:`, error);
+        }
+      }
+    }
+  }
+
+  // Generate and download the zip
+  const blob = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName.replace(/\.(json|csv)$/, ".zip");
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+const processAttachments = async (
+  data: any[],
+  includeAttachments: boolean
+): Promise<{
+  transformedData: any[];
+  attachments: { path: string; url: string }[];
+}> => {
+  const attachments: { path: string; url: string }[] = [];
+
+  if (!includeAttachments) {
+    return { transformedData: data, attachments };
+  }
+
+  const transformedData = await Promise.all(
+    data.map(async (row) => {
+      const transformedRow = { ...row };
+      for (const [key, value] of Object.entries(row)) {
+        if (typeof value === "string") {
+          if (key.includes("image") || key.includes("audio")) {
+            try {
+              const fileExtension = key.includes("image") ? "jpg" : "m4a";
+              let sources = [];
+              try {
+                sources = JSON.parse(value);
+              } catch {
+                sources = [value];
+              }
+
+              // Store original paths in data
+              transformedRow[key] = sources.map(
+                (source: string) => `attachments/${source}.${fileExtension}`
+              );
+
+              // Collect attachments for download
+              sources.forEach((source: string) => {
+                const url = supabase.storage
+                  .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                  .getPublicUrl(source).data.publicUrl;
+                attachments.push({ path: `${source}.${fileExtension}`, url });
+              });
+            } catch (error) {
+              console.error(`Error processing attachment for ${key}:`, error);
+            }
+          }
+        }
+      }
+      return transformedRow;
+    })
+  );
+
+  return { transformedData, attachments };
+};
+
+const exportAllTables = async (
+  format: "json" | "csv",
+  includeAttachments: boolean,
+  tables: string[],
+  onProgress?: (tableName: string) => void
+) => {
+  const zip = new JSZip();
+  const allAttachments = new Map<string, { path: string; url: string }>();
+
+  for (const tableName of tables) {
+    onProgress?.(tableName);
+    const { data } = await supabase.from(tableName).select("*");
+    if (!data) continue;
+
+    const { transformedData, attachments } = await processAttachments(
+      data,
+      includeAttachments
+    );
+
+    // Add table data to zip
+    const content =
+      format === "json"
+        ? JSON.stringify(transformedData, null, 2)
+        : [
+            Object.keys(transformedData[0] || {}).join(","),
+            ...transformedData.map((row) =>
+              Object.values(row)
+                .map((cell) => {
+                  if (cell === null) return "";
+                  if (typeof cell === "string" && cell.includes(",")) {
+                    return `"${cell.replace(/"/g, '""')}"`;
+                  }
+                  return cell;
+                })
+                .join(",")
+            )
+          ].join("\n");
+
+    zip.file(`tables/${tableName}.${format}`, content);
+
+    // Collect unique attachments
+    attachments.forEach((attachment) => {
+      allAttachments.set(attachment.path, attachment);
+    });
+  }
+
+  // Add all attachments to zip
+  if (includeAttachments && allAttachments.size > 0) {
+    const attachmentsFolder = zip.folder("attachments");
+    if (attachmentsFolder) {
+      for (const { path, url } of allAttachments.values()) {
+        try {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          attachmentsFolder.file(path, blob);
+        } catch (error) {
+          console.error(`Error downloading attachment ${path}:`, error);
+        }
+      }
+    }
+  }
+
+  // Generate and download the zip
+  const blob = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `database_export.zip`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+const exportToJson = async (
+  data: any[],
+  includeAttachments: boolean,
+  tableName: string
+) => {
+  const { transformedData, attachments } = await processAttachments(
+    data,
+    includeAttachments
+  );
+  const jsonStr = JSON.stringify(transformedData, null, 2);
+
+  if (includeAttachments) {
+    await downloadAsZip(
+      jsonStr,
+      attachments,
+      `${tableName}_export.json`,
+      "application/json"
+    );
+  } else {
+    downloadAsFile(jsonStr, `${tableName}_export.json`, "application/json");
+  }
+};
+
+const exportToCsv = async (
+  data: any[],
+  includeAttachments: boolean,
+  tableName: string
+) => {
+  if (!data.length) return;
+
+  const { transformedData, attachments } = await processAttachments(
+    data,
+    includeAttachments
+  );
+  const headers = Object.keys(transformedData[0]);
+  const csvContent = [
+    headers.join(","),
+    ...transformedData.map((row) =>
+      headers
+        .map((header) => {
+          const cell = row[header];
+          if (cell === null) return "";
+          if (typeof cell === "string" && cell.includes(",")) {
+            return `"${cell.replace(/"/g, '""')}"`;
+          }
+          return cell;
+        })
+        .join(",")
+    )
+  ].join("\n");
+
+  if (includeAttachments) {
+    await downloadAsZip(
+      csvContent,
+      attachments,
+      `${tableName}_export.csv`,
+      "text/csv"
+    );
+  } else {
+    downloadAsFile(csvContent, `${tableName}_export.csv`, "text/csv");
+  }
+};
 
 export function DatabaseViewer() {
   // Fetch table schemas
@@ -617,6 +860,15 @@ export function DatabaseViewer() {
 
   const [targetForeignKey, setTargetForeignKey] =
     React.useState<ForeignKeyTarget | null>(null);
+
+  const [includeAttachments, setIncludeAttachments] = React.useState(false);
+
+  const [exportProgress, setExportProgress] = React.useState<string | null>(
+    null
+  );
+  const [exportMode, setExportMode] = React.useState<"current" | "all">(
+    "current"
+  );
 
   React.useEffect(() => {
     if (!selectedTable || !columnVisibility[selectedTable]) return;
@@ -724,11 +976,6 @@ export function DatabaseViewer() {
             case "IS NULL":
               return rowValue === null;
             default:
-              console.log(
-                `"${rowValue}" ${getJavascriptEvaluationOperator(
-                  filter.operator
-                )} "${filterValue}"`
-              );
               return Boolean(
                 eval(
                   `"${rowValue}" ${getJavascriptEvaluationOperator(
@@ -838,29 +1085,6 @@ export function DatabaseViewer() {
         !pendingSorting.some((sort) => sort.id === column.id)
     );
 
-  const rowCount =
-    table.getFilteredRowModel().rows.length ?? table.getRowCount();
-
-  // // Add effect to scroll to target row when data loads
-  // React.useEffect(() => {
-  //   if (targetForeignKey && currentData?.data) {
-  //     const targetRow = currentData.data.find(
-  //       (row) => row[targetForeignKey.column!] === targetForeignKey.value
-  //     );
-  //     if (targetRow) {
-  //       const rowElement = document.querySelector(
-  //         `[data-row-key="${targetForeignKey.value}"]`
-  //       );
-  //       if (rowElement) {
-  //         rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
-  //         setTargetForeignKey(null);
-  //       }
-  //     }
-  //   }
-  // }, [targetForeignKey, currentData]);
-
-  console.log(targetForeignKey, "targetForeignKey");
-
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -909,6 +1133,129 @@ export function DatabaseViewer() {
                 {toProperCase(selectedTable)}
               </h2>
               <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Download className="size-4 mr-2" />
+                      Export
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px]" align="end">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm flex items-center gap-2 flex-1">
+                          <div className="text-muted-foreground flex items-center gap-2">
+                            Include attachments
+                          </div>
+                        </div>
+                        <Checkbox
+                          checked={includeAttachments}
+                          onCheckedChange={(checked) =>
+                            setIncludeAttachments(!!checked)
+                          }
+                          className="translate-y-[1px]"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <RadioGroup
+                          value={exportMode}
+                          onValueChange={(value) =>
+                            setExportMode(value as "current" | "all")
+                          }
+                          className="gap-3"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="current" id="current" />
+                            <label
+                              htmlFor="current"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Current Table
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="all"
+                              id="all"
+                              disabled={!tableSchemas || !!exportProgress}
+                            />
+                            <label
+                              htmlFor="all"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              All Tables
+                            </label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      <div className="pt-2 border-t border-border space-y-2">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1"
+                            onClick={() => {
+                              if (exportMode === "all") {
+                                if (!tableSchemas) return;
+                                exportAllTables(
+                                  "json",
+                                  includeAttachments,
+                                  Object.keys(tableSchemas),
+                                  setExportProgress
+                                ).finally(() => setExportProgress(null));
+                              } else {
+                                exportToJson(
+                                  table
+                                    .getFilteredRowModel()
+                                    .rows.map((row) => row.original),
+                                  includeAttachments,
+                                  selectedTable
+                                );
+                              }
+                            }}
+                            disabled={!tableSchemas || !!exportProgress}
+                          >
+                            JSON
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1"
+                            onClick={() => {
+                              if (exportMode === "all") {
+                                if (!tableSchemas) return;
+                                exportAllTables(
+                                  "csv",
+                                  includeAttachments,
+                                  Object.keys(tableSchemas),
+                                  setExportProgress
+                                ).finally(() => setExportProgress(null));
+                              } else {
+                                exportToCsv(
+                                  table
+                                    .getFilteredRowModel()
+                                    .rows.map((row) => row.original),
+                                  includeAttachments,
+                                  selectedTable
+                                );
+                              }
+                            }}
+                            disabled={!tableSchemas || !!exportProgress}
+                          >
+                            CSV
+                          </Button>
+                        </div>
+                        {exportProgress && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            Exporting {exportProgress}...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
