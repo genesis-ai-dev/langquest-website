@@ -90,6 +90,15 @@ interface TableSchema {
       table: string;
       column: string;
     };
+    isVirtual?: boolean;
+    reverseRelationship?: {
+      sourceTable: string;
+      sourceColumn: string;
+      isLinkTable?: boolean;
+      throughTable?: string;
+      throughSourceColumn?: string;
+      throughTargetColumn?: string;
+    };
   }[];
 }
 
@@ -261,7 +270,135 @@ const fetchTableSchemas = async () => {
     }
   );
 
+  // Add reverse relationship columns
+  addReverseRelationships(convertedSchemas);
+
   return convertedSchemas;
+};
+
+// Function to add reverse relationship columns to schemas
+const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
+  // First pass: find all foreign keys
+  const reverseRelationships: Record<
+    string,
+    Array<{
+      targetTable: string;
+      targetColumn: string;
+      sourceTable: string;
+      sourceColumn: string;
+    }>
+  > = {};
+
+  // Collect all foreign keys
+  Object.values(schemas).forEach((schema) => {
+    schema.columns.forEach((column) => {
+      if (column.foreignKey) {
+        const targetTable = column.foreignKey.table;
+        const targetColumn = column.foreignKey.column;
+
+        if (!reverseRelationships[targetTable]) {
+          reverseRelationships[targetTable] = [];
+        }
+
+        reverseRelationships[targetTable].push({
+          targetTable,
+          targetColumn,
+          sourceTable: schema.name,
+          sourceColumn: column.key
+        });
+      }
+    });
+  });
+
+  // Identify link tables (tables with multiple foreign keys and few other columns)
+  const linkTables = new Map<
+    string,
+    {
+      foreignKeys: Array<{
+        key: string;
+        foreignKey: { table: string; column: string };
+      }>;
+      isLinkTable: boolean;
+    }
+  >();
+
+  Object.entries(schemas).forEach(([tableName, schema]) => {
+    const foreignKeyColumns = schema.columns.filter((col) => col.foreignKey);
+    const nonForeignKeyColumns = schema.columns.filter(
+      (col) =>
+        !col.foreignKey && !["id", "created_at", "updated_at"].includes(col.key)
+    );
+
+    // A table is a link table if it has at least 2 foreign keys and few other columns
+    const isLinkTable =
+      foreignKeyColumns.length >= 2 && nonForeignKeyColumns.length <= 2;
+
+    linkTables.set(tableName, {
+      foreignKeys: foreignKeyColumns.map((col) => ({
+        key: col.key,
+        foreignKey: col.foreignKey!
+      })),
+      isLinkTable
+    });
+  });
+
+  // Second pass: add virtual columns for reverse relationships
+  Object.entries(reverseRelationships).forEach(
+    ([targetTable, relationships]) => {
+      relationships.forEach((rel) => {
+        const sourceSchema = schemas[rel.sourceTable];
+        const linkTableInfo = linkTables.get(rel.sourceTable);
+        const isLinkTable = linkTableInfo?.isLinkTable || false;
+
+        // Skip if the column already exists
+        const existingColumn = schemas[targetTable].columns.find(
+          (col) => col.key === `${rel.sourceTable}s`
+        );
+        if (existingColumn) return;
+
+        // For link tables, find the other foreign keys
+        let throughInfo = undefined;
+        if (isLinkTable) {
+          const otherForeignKeys = linkTableInfo?.foreignKeys.filter(
+            (fk) =>
+              fk.foreignKey.table !== targetTable && fk.key !== rel.sourceColumn
+          );
+
+          if (otherForeignKeys && otherForeignKeys.length > 0) {
+            // For simplicity, we'll use the first "other" foreign key
+            // In a more complex implementation, we might want to create multiple columns
+            const otherForeignKey = otherForeignKeys[0];
+
+            throughInfo = {
+              throughTable: rel.sourceTable,
+              throughSourceColumn: rel.sourceColumn,
+              throughTargetColumn: otherForeignKey.key,
+              targetTable: otherForeignKey.foreignKey.table
+            };
+          }
+        }
+
+        // Add virtual column for reverse relationship
+        schemas[targetTable].columns.push({
+          key: `${rel.sourceTable}s`,
+          header: `${toProperCase(rel.sourceTable)} References`,
+          type: "string",
+          required: false,
+          isVirtual: true,
+          reverseRelationship: {
+            sourceTable: rel.sourceTable,
+            sourceColumn: rel.sourceColumn,
+            isLinkTable,
+            ...(throughInfo && {
+              throughTable: throughInfo.throughTable,
+              throughSourceColumn: throughInfo.throughSourceColumn,
+              throughTargetColumn: throughInfo.throughTargetColumn
+            })
+          }
+        });
+      });
+    }
+  );
 };
 
 const fetchTableData = async (
@@ -287,6 +424,40 @@ interface ForeignKeyTarget {
   sourceTable?: string;
   sourceColumn?: string;
   sourceValue?: string;
+}
+
+// Add a component to fetch and display the count of related records
+function RelatedRecordsCount({
+  tableName,
+  columnName,
+  recordId,
+  isLinkTable = false
+}: {
+  tableName: string;
+  columnName: string;
+  recordId: string;
+  isLinkTable?: boolean;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["relatedRecordsCount", tableName, columnName, recordId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from(tableName)
+        .select("*", { count: "exact", head: true })
+        .eq(columnName, recordId);
+
+      if (error) throw error;
+      return count || 0;
+    }
+  });
+
+  if (isLoading) return <span className="text-muted-foreground">...</span>;
+
+  return (
+    <span className="text-muted-foreground">
+      {data} {data === 1 ? "record" : "records"}
+    </span>
+  );
 }
 
 function useTransformedColumns({
@@ -336,6 +507,74 @@ function useTransformedColumns({
         accessorKey: col.key,
         header: col.key,
         cell: ({ row }: { row: any }) => {
+          // For virtual reverse relationship columns
+          if (col.isVirtual && col.reverseRelationship) {
+            const recordId = row.getValue("id");
+            if (!recordId) return "N/A";
+
+            return (
+              <div className="flex items-center gap-2">
+                <RelatedRecordsCount
+                  tableName={col.reverseRelationship.sourceTable}
+                  columnName={col.reverseRelationship.sourceColumn}
+                  recordId={String(recordId)}
+                  isLinkTable={col.reverseRelationship.isLinkTable}
+                />
+                {!isPreview && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="size-6">
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-100 p-0 flex flex-col"
+                      align="end"
+                    >
+                      <div className="p-2 border-b border-border text-sm">
+                        <span className="text-muted-foreground">
+                          {col.reverseRelationship.isLinkTable
+                            ? "Related records via"
+                            : "Records referencing this"}
+                        </span>{" "}
+                        {col.reverseRelationship.sourceTable}
+                      </div>
+                      <ReverseRelationshipPreview
+                        tableName={col.reverseRelationship.sourceTable}
+                        columnName={col.reverseRelationship.sourceColumn}
+                        recordId={String(recordId)}
+                        isLinkTable={col.reverseRelationship.isLinkTable}
+                        throughTable={col.reverseRelationship.throughTable}
+                        throughSourceColumn={
+                          col.reverseRelationship.throughSourceColumn
+                        }
+                        throughTargetColumn={
+                          col.reverseRelationship.throughTargetColumn
+                        }
+                      />
+                      <div className="flex justify-end p-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-sm"
+                          onClick={() => {
+                            onForeignKeySelect?.({
+                              table: col.reverseRelationship!.sourceTable,
+                              column: col.reverseRelationship!.sourceColumn,
+                              value: String(recordId)
+                            });
+                          }}
+                        >
+                          Open table
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+            );
+          }
+
           const value = row.getValue(col.key);
           if (value === null || value === undefined) return "NULL";
           if (col.type === "timestamp") {
@@ -456,6 +695,9 @@ function useTransformedColumns({
                 </Popover>
               </div>
             );
+          } else if (col.foreignKey && isPreview) {
+            // For foreign keys in preview mode, just show the value without the popover button
+            return <span className="truncate">{String(value)}</span>;
           }
           return String(value);
         }
@@ -808,6 +1050,192 @@ const exportToCsv = async (
   }
 };
 
+// Add a component to display reverse relationships
+function ReverseRelationshipPreview({
+  tableName,
+  columnName,
+  recordId,
+  isLinkTable = false,
+  throughTable,
+  throughSourceColumn,
+  throughTargetColumn
+}: {
+  tableName: string;
+  columnName: string;
+  recordId: string;
+  isLinkTable?: boolean;
+  throughTable?: string;
+  throughSourceColumn?: string;
+  throughTargetColumn?: string;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: [
+      "reverseRelationship",
+      tableName,
+      columnName,
+      recordId,
+      isLinkTable
+    ],
+    queryFn: async () => {
+      if (
+        isLinkTable &&
+        throughTable &&
+        throughSourceColumn &&
+        throughTargetColumn
+      ) {
+        // For link tables, we need to join through to the target table
+        // First, get the foreign key table that the throughTargetColumn points to
+        const { data: schemaData } = await supabase
+          .from("_metadata")
+          .select("*");
+        const foreignKeyTable = schemaData?.find(
+          (table: any) =>
+            table.table === throughTable && table.column === throughTargetColumn
+        )?.foreign_table;
+
+        if (foreignKeyTable) {
+          // Use a join to get the related records
+          const { data: linkData, error: linkError } = await supabase
+            .from(throughTable)
+            .select(`*, ${foreignKeyTable}(*)`)
+            .eq(throughSourceColumn, recordId);
+
+          if (linkError) throw linkError;
+          return { linkData, foreignKeyTable };
+        } else {
+          // Fallback to just getting the link table records
+          const { data: linkData, error: linkError } = await supabase
+            .from(throughTable)
+            .select("*")
+            .eq(throughSourceColumn, recordId);
+
+          if (linkError) throw linkError;
+          return { linkData, foreignKeyTable: null };
+        }
+      } else {
+        // For direct relationships
+        const { data, error } = await supabase
+          .from(tableName)
+          .select("*")
+          .eq(columnName, recordId);
+
+        if (error) throw error;
+        return { linkData: data, foreignKeyTable: null };
+      }
+    }
+  });
+
+  const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
+    queryKey: ["tableSchemas"],
+    queryFn: fetchTableSchemas
+  });
+
+  // Determine which table's schema to use for displaying the data
+  const targetTable = React.useMemo(() => {
+    if (isLinkTable && throughTargetColumn && data?.foreignKeyTable) {
+      return data.foreignKeyTable;
+    } else if (isLinkTable && throughTargetColumn) {
+      // Try to find the target table from the schema
+      return (
+        tableSchemas?.[tableName]?.columns.find(
+          (col) => col.key === throughTargetColumn
+        )?.foreignKey?.table || tableName
+      );
+    }
+    return tableName;
+  }, [isLinkTable, throughTargetColumn, data, tableSchemas, tableName]);
+
+  const schema = tableSchemas?.[targetTable];
+
+  // Process the data based on whether it's from a link table or direct relationship
+  const displayData = React.useMemo(() => {
+    if (!data?.linkData) return null;
+
+    if (isLinkTable && data.foreignKeyTable) {
+      // Extract the nested data from the link table response
+      return data.linkData
+        .map((item: any) => {
+          // The nested data is in a property named after the foreign key table
+          return item[data.foreignKeyTable];
+        })
+        .filter(Boolean);
+    } else if (isLinkTable && throughTargetColumn) {
+      // Just return the link table data
+      return data.linkData;
+    }
+
+    return data.linkData;
+  }, [data, isLinkTable, throughTargetColumn]);
+
+  const columns = schema
+    ? useTransformedColumns({
+        schema: schema,
+        tableName: targetTable,
+        isPreview: true
+      })
+    : [];
+
+  if (isLoading) {
+    return (
+      <div className="h-20 flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!data?.linkData?.length) {
+    return (
+      <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
+        No related records found.
+      </div>
+    );
+  }
+
+  if (!displayData || !columns.length) {
+    return (
+      <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
+        Unable to display related records.
+      </div>
+    );
+  }
+
+  // Limit to 5 records for display
+  const MAX_DISPLAY_RECORDS = 4;
+  const totalRecords = displayData.length;
+  const limitedData = displayData.slice(0, MAX_DISPLAY_RECORDS);
+  const hasMoreRecords = totalRecords > MAX_DISPLAY_RECORDS;
+
+  return (
+    <div className="flex flex-col">
+      <Table containerClassName="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+        <TableHeader>
+          <TableRow>
+            {columns.map((col) => (
+              <TableHead key={col.accessorKey}>{col.accessorKey}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {limitedData.map((row: any, i: number) => (
+            <TableRow key={i}>
+              {columns.map((col) => (
+                <TableCell key={col.accessorKey} className="truncate">
+                  {col.cell({ row: { getValue: (key: string) => row[key] } })}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {hasMoreRecords && (
+        <div className="p-2 text-sm text-right text-muted-foreground border-t border-border">
+          <span>{totalRecords - MAX_DISPLAY_RECORDS} more records...</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DatabaseViewer() {
   // Fetch table schemas
   const {
@@ -857,9 +1285,6 @@ export function DatabaseViewer() {
     "visible",
     parseAsJson(z.record(visibilityStateSchema).parse).withDefault({})
   );
-
-  const [targetForeignKey, setTargetForeignKey] =
-    React.useState<ForeignKeyTarget | null>(null);
 
   const [includeAttachments, setIncludeAttachments] = React.useState(false);
 
@@ -916,12 +1341,18 @@ export function DatabaseViewer() {
   // Convert table schemas to table info list
   const tables = React.useMemo(() => {
     if (!tableSchemas) return [];
-    return Object.keys(tableSchemas).map((name) => ({
-      name,
-      rowCount:
-        queryClient.getQueryData<TableData>(["tableData", name, page, pageSize])
-          ?.count ?? 0
-    }));
+    return Object.keys(tableSchemas)
+      .map((name) => ({
+        name,
+        rowCount:
+          queryClient.getQueryData<TableData>([
+            "tableData",
+            name,
+            page,
+            pageSize
+          ])?.count ?? 0
+      }))
+      .filter((t) => t.rowCount > 0);
   }, [tableSchemas, currentData]);
 
   // Get the schema for the selected table

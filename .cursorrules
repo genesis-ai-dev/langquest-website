@@ -1,1 +1,2 @@
+Assume the app is always running, don't suggest commands to start the app.
 This repo uses pnpm as the package manager and script runner.
