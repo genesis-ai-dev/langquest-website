@@ -23,5 +23,7 @@ To learn more about Next.js, take a look at the following resources:
 
 ## Future Development (Possibilities)
 
+### Database Viewer
+
 - Move to a local first approach, and sync with Supabase database
-  - then do SQL queries and such for filtering rather than JavaScript.
+  - then do SQL queries and such for filtering rather than JavaScript (save bandwidth).
