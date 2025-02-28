@@ -1,2 +1,3 @@
-Assume the app is always running, don't suggest commands to start the app.
-This repo uses pnpm as the package manager and script runner.
+Assume the app is always running, don't suggest terminal commands to start the app.
+Refer to the `package.json` for the `packageManager` key, or the lock file, to determine the package manager to run scripts with.
+Add shadcn components using this command: pnpm dlx shadcn@canary add <component>
