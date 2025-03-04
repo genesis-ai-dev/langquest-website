@@ -13,18 +13,16 @@ export function AudioButton({
   const [isPlaying, setIsPlaying] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (!audioRef.current) {
       // Create audio element on first play
       audioRef.current = new Audio(src);
       audioRef.current.addEventListener("ended", () => setIsPlaying(false));
     }
 
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
+    if (isPlaying) audioRef.current.pause();
+    else await audioRef.current.play();
+
     setIsPlaying(!isPlaying);
   };
 

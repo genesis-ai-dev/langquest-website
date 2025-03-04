@@ -318,7 +318,7 @@ export function DataView() {
                   className="flex gap-2 items-center"
                 >
                   <span>
-                    <span className="hidden sm:block">{path}: </span>
+                    <span className="hidden sm:inline">{path}: </span>
                     {value}
                   </span>
                   <Button
@@ -613,7 +613,7 @@ export function DataView() {
                             </span>
                           </div>
                           <div className="flex flex-col gap-4">
-                            <div>
+                            <div className="flex flex-col gap-1">
                               <div className="flex gap-2">
                                 <span className="font-semibold w-20">
                                   Description
