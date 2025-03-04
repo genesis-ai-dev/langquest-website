@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient, AuthError } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
 import { env } from "@/lib/env";
+import { isMobile } from "@/lib/utils";
 
 // This is the main page component (server component)
 export default function ResetPasswordPage() {
@@ -27,13 +28,6 @@ function ResetPasswordForm() {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
-
-  const isMobile = () => {
-    if (typeof window === "undefined") return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-  };
 
   const handlePasswordReset = useCallback(async () => {
     // Get tokens from URL and hash

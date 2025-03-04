@@ -53,9 +53,12 @@ export default function Home() {
           </a>{" "}
           to launch this site
         </p>
-        <p className="text-xl font-light">
+        <p className="text-xl font-light flex flex-col">
           <Link href="/database" className="text-blue-500">
             View all of our data
+          </Link>
+          <Link href="/data-view" className="text-blue-500">
+            View our user friendly data
           </Link>
         </p>
       </div>

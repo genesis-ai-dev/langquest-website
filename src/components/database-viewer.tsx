@@ -1,5 +1,6 @@
 "use client";
 
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { AudioButton } from "@/components/ui/audio-button";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -34,7 +35,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
-import { cn, toProperCase } from "@/lib/utils";
+import { cn, isMobile, toProperCase } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ColumnDef,
@@ -65,7 +66,8 @@ import {
   ArrowRight,
   Braces,
   FileJson,
-  FileSpreadsheet
+  FileSpreadsheet,
+  PanelLeft
 } from "lucide-react";
 import { parseAsInteger, parseAsJson, useQueryState, createParser } from "nuqs";
 import * as React from "react";
@@ -76,6 +78,15 @@ import JSZip from "jszip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { parseAsBoolean } from "nuqs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from "./ui/sheet";
+import { Database } from "../../database.types";
 
 // Define base types
 type ColumnType = "string" | "number" | "boolean" | "timestamp" | "uuid";
@@ -97,15 +108,15 @@ interface TableSchema {
     type: ColumnType;
     required: boolean;
     foreignKey?: {
-      table: string;
+      table: keyof Database["public"]["Tables"];
       column: string;
     };
     isVirtual?: boolean;
     reverseRelationship?: {
-      sourceTable: string;
+      sourceTable: keyof Database["public"]["Tables"];
       sourceColumn: string;
       isLinkTable?: boolean;
-      throughTable?: string;
+      throughTable?: keyof Database["public"]["Tables"];
       throughSourceColumn?: string;
       throughTargetColumn?: string;
     };
@@ -119,7 +130,7 @@ interface TableData {
 
 // Convert the JSON schema to our table schema format
 const convertJsonSchemaToTableSchema = (
-  name: string,
+  name: keyof Database["public"]["Tables"],
   schema: any
 ): TableSchema => {
   const columns = Object.entries(schema.properties).map(
@@ -132,7 +143,9 @@ const convertJsonSchemaToTableSchema = (
       else if (value.type === "number") type = "number";
 
       const description = value.description?.toString() ?? "";
-      let foreignKey: { table: string; column: string } | undefined;
+      let foreignKey:
+        | { table: keyof Database["public"]["Tables"]; column: string }
+        | undefined;
       if (description) {
         const match = description.match(
           /<fk table='([^']+)' column='([^']+)'\/>/
@@ -274,7 +287,7 @@ const fetchTableSchemas = async () => {
   Object.entries(data.definitions).forEach(
     ([tableName, schema]: [string, any]) => {
       convertedSchemas[tableName] = convertJsonSchemaToTableSchema(
-        tableName,
+        tableName as keyof Database["public"]["Tables"],
         schema
       );
     }
@@ -292,9 +305,9 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
   const reverseRelationships: Record<
     string,
     Array<{
-      targetTable: string;
+      targetTable: keyof Database["public"]["Tables"];
       targetColumn: string;
-      sourceTable: string;
+      sourceTable: keyof Database["public"]["Tables"];
       sourceColumn: string;
     }>
   > = {};
@@ -313,7 +326,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
         reverseRelationships[targetTable].push({
           targetTable,
           targetColumn,
-          sourceTable: schema.name,
+          sourceTable: schema.name as keyof Database["public"]["Tables"],
           sourceColumn: column.key
         });
       }
@@ -463,7 +476,7 @@ const fetchTableData = async (
   pageSize: number
 ) => {
   const { data, error, count } = await supabase
-    .from(tableName)
+    .from(tableName as keyof Database["public"]["Tables"])
     .select("*", { count: "exact" })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -489,7 +502,7 @@ function RelatedRecordsCount({
   recordId,
   isLinkTable = false
 }: {
-  tableName: string;
+  tableName: keyof Database["public"]["Tables"];
   columnName: string;
   recordId: string;
   isLinkTable?: boolean;
@@ -613,7 +626,7 @@ function useTransformedColumns({
                         <span className="text-muted-foreground">
                           {col.reverseRelationship.isLinkTable
                             ? "Related records from"
-                            : "Records referencing this"}
+                            : "Referencing records from"}
                         </span>{" "}
                         {(() => {
                           if (
@@ -845,7 +858,7 @@ function PreviewTable({
   filterColumn,
   filterValue
 }: {
-  tableName: string;
+  tableName: keyof Database["public"]["Tables"];
   filterColumn: string;
   filterValue: string;
 }) {
@@ -905,7 +918,11 @@ function PreviewTable({
           <TableRow key={i}>
             {columns.map((col) => (
               <TableCell key={col.accessorKey} className="truncate">
-                {col.cell({ row: { getValue: (key: string) => row[key] } })}
+                {col.cell({
+                  row: {
+                    getValue: (key: string) => row[key as keyof typeof row]
+                  }
+                })}
               </TableCell>
             ))}
           </TableRow>
@@ -1062,7 +1079,9 @@ const exportAllTables = async (
 
   for (const tableName of tables) {
     onProgress?.(tableName);
-    const { data } = await supabase.from(tableName).select("*");
+    const { data } = await supabase
+      .from(tableName as keyof Database["public"]["Tables"])
+      .select("*");
     if (!data) continue;
 
     const { transformedData, attachments } = await processAttachments(
@@ -1195,11 +1214,11 @@ function ReverseRelationshipPreview({
   throughSourceColumn,
   throughTargetColumn
 }: {
-  tableName: string;
+  tableName: keyof Database["public"]["Tables"];
   columnName: string;
   recordId: string;
   isLinkTable?: boolean;
-  throughTable?: string;
+  throughTable?: keyof Database["public"]["Tables"];
   throughSourceColumn?: string;
   throughTargetColumn?: string;
 }) {
@@ -1224,11 +1243,14 @@ function ReverseRelationshipPreview({
         // For link tables, we need to join through to the target table
         // First, get the foreign key table that the throughTargetColumn points to
         const { data: schemaData } = await supabase
+          // @ts-expect-error metadata is not typed
           .from("_metadata")
           .select("*");
+
         const foreignKeyTable = schemaData?.find(
           (table: any) =>
             table.table === throughTable && table.column === throughTargetColumn
+          // @ts-expect-error metadata is not typed
         )?.foreign_table;
 
         if (foreignKeyTable) {
@@ -1483,6 +1505,8 @@ export function DatabaseViewer() {
     "current"
   );
 
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
   React.useEffect(() => {
     if (!selectedTable || !columnVisibility[selectedTable]) return;
     // if all columns are visible, clear the column visibility state (shows all columns)
@@ -1701,46 +1725,48 @@ export function DatabaseViewer() {
         !pendingSorting.some((sort) => sort.id === column.id)
     );
 
+  const Tables = ({ className }: { className?: string }) => (
+    <ScrollArea className={cn("flex flex-col gap-2 p-2 flex-1", className)}>
+      {tables.map((t) => (
+        <button
+          key={t.name}
+          onClick={() => {
+            setSelectedTable(t.name);
+            setIsSheetOpen(false);
+          }}
+          className={cn(
+            "w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent",
+            t.isLinkTable && "text-muted-foreground"
+          )}
+          disabled={schemasLoading || dataLoading}
+        >
+          <span className="">{toProperCase(t.name)}</span>
+          <span className="text-muted-foreground">{t.rowCount}</span>
+        </button>
+      ))}
+    </ScrollArea>
+  );
+
+  const LinkTablesFooter = () => (
+    <div className="p-3 border-t border-border">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="show-link-tables" className="text-sm cursor-pointer">
+          Show link tables
+        </Label>
+        <Switch
+          id="show-link-tables"
+          checked={showLinkTables}
+          onCheckedChange={setShowLinkTables}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-64 border-r bg-background flex flex-col">
-        <ScrollArea className="flex-1">
-          <div className="space-y-1 p-2">
-            {tables.map((t) => (
-              <button
-                key={t.name}
-                onClick={() => setSelectedTable(t.name)}
-                className={`w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent ${
-                  selectedTable === t.name
-                    ? "bg-accent outline-2 outline-border"
-                    : ""
-                } ${t.isLinkTable ? "text-muted-foreground" : ""}`}
-                disabled={schemasLoading || dataLoading}
-              >
-                <span className="truncate">{toProperCase(t.name)}</span>
-                <span className="ml-2 text-muted-foreground">{t.rowCount}</span>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
-
-        {/* Link tables toggle */}
-        <div className="p-3 border-t border-border">
-          <div className="flex items-center justify-between">
-            <Label
-              htmlFor="show-link-tables"
-              className="text-sm cursor-pointer"
-            >
-              Show link tables
-            </Label>
-            <Switch
-              id="show-link-tables"
-              checked={showLinkTables}
-              onCheckedChange={setShowLinkTables}
-            />
-          </div>
-        </div>
+      <div className="w-64 border-r bg-background flex-col hidden md:flex">
+        <Tables />
+        <LinkTablesFooter />
       </div>
 
       {/* Main content */}
@@ -1766,6 +1792,22 @@ export function DatabaseViewer() {
                 {toProperCase(selectedTable)}
               </h2>
               <div className="flex items-center gap-2">
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                  <SheetTrigger asChild className="md:hidden">
+                    <Button variant="ghost" size="sm" className="px-0 w-auto">
+                      <PanelLeft className="size-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left">
+                    <SheetHeader>
+                      <VisuallyHidden>
+                        <SheetTitle>Tables</SheetTitle>
+                      </VisuallyHidden>
+                    </SheetHeader>
+                    <Tables />
+                    <LinkTablesFooter />
+                  </SheetContent>
+                </Sheet>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="sm">
@@ -2361,7 +2403,7 @@ export function DatabaseViewer() {
                     ))}
                   </SelectContent>
                 </Select>
-                <span>
+                <span className="hidden sm:block">
                   {table.getFilteredSelectedRowModel().rows.length} of{" "}
                   {table.getFilteredRowModel().rows.length} row(s) selected.
                 </span>
