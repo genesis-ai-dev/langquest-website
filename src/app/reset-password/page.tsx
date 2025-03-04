@@ -26,7 +26,7 @@ function ResetPasswordForm() {
   // Initialize Supabase client
   const supabaseClient = createClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 
   const handlePasswordReset = useCallback(async () => {
@@ -64,7 +64,7 @@ function ResetPasswordForm() {
       try {
         const { error: sessionError } = await supabaseClient.auth.setSession({
           access_token: access_token!,
-          refresh_token: refresh_token!
+          refresh_token: refresh_token!,
         });
 
         if (sessionError) throw sessionError;
@@ -74,7 +74,7 @@ function ResetPasswordForm() {
       } catch (error: unknown) {
         console.error("Error setting session:", error);
         setMessage(
-          "Error: Invalid or expired reset link. Please request a new password reset."
+          "Error: Invalid or expired reset link. Please request a new password reset.",
         );
         setError("red");
       }
@@ -93,13 +93,13 @@ function ResetPasswordForm() {
 
     try {
       const { error } = await supabaseClient.auth.updateUser({
-        password: password
+        password: password,
       });
 
       if (error) throw error;
 
       setMessage(
-        "Password successfully updated! You can now close this window and log in to the app."
+        "Password successfully updated! You can now close this window and log in to the app.",
       );
       setShowForm(false);
     } catch (error: unknown) {

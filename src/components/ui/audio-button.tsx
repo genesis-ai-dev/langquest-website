@@ -32,7 +32,7 @@ export function AudioButton({
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeEventListener("ended", () =>
-          setIsPlaying(false)
+          setIsPlaying(false),
         );
       }
     };
@@ -43,7 +43,7 @@ export function AudioButton({
       onClick={togglePlay}
       className={cn(
         "size-8 flex items-center justify-center rounded-md border bg-background hover:bg-accent transition-colors",
-        className
+        className,
       )}
       {...props}
     >

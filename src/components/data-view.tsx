@@ -40,9 +40,52 @@ import {
   SelectTrigger,
   SelectValue
 } from "./ui/select";
+import { parseAsInteger, useQueryState, createParser } from "nuqs";
+
+const pathMap = {
+  Name: "name",
+  // Text: "translations.text",
+  // Votes: "translations.votes.polarity",
+  // Tags: "tags.name",
+  Tags: "tags.tag.name",
+  Quests: "quests.quest.name",
+  Project: "quests.quest.project.name",
+  "Source Language": "quests.quest.project.source_language.english_name",
+  "Target Language": "quests.quest.project.target_language.english_name"
+};
+
+const parseAsSorting = createParser({
+  parse(queryValue) {
+    if (!queryValue) return [];
+    try {
+      return queryValue.split(",").map((part) => {
+        const [path, direction] = part.split(":");
+        return {
+          path: path as keyof typeof pathMap,
+          sort: direction as "asc" | "desc"
+        };
+      });
+    } catch (error) {
+      return [];
+    }
+  },
+  serialize(value) {
+    if (!value?.length) return "";
+    return value
+      .map((sort) => `${sort.path.toLowerCase()}:${sort.sort}`)
+      .join(",");
+  },
+  eq(a, b) {
+    return a.length === b.length;
+  }
+});
+
 export function DataView() {
-  const [pageSize, setPageSize] = useState(50);
-  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useQueryState(
+    "size",
+    parseAsInteger.withDefault(50)
+  );
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(0));
 
   const {
     data: assets,
@@ -78,26 +121,15 @@ export function DataView() {
     }
   });
 
-  const pathMap = {
-    Name: "name",
-    // Text: "translations.text",
-    // Votes: "translations.votes.polarity",
-    // Tags: "tags.name",
-    Tags: "tags.tag.name",
-    Quests: "quests.quest.name",
-    Project: "quests.quest.project.name",
-    "Source Language": "quests.quest.project.source_language.english_name",
-    "Target Language": "quests.quest.project.target_language.english_name"
-  };
-
   const [filter, setFilter] = useState<
     { path: keyof typeof pathMap; value: string }[]
   >([]);
-  const [sort, setSort] = useState<
+  const [sort, setSort] = useQueryState<
     { path: keyof typeof pathMap; sort: "asc" | "desc" }[]
-  >([]);
+  >("sort", parseAsSorting.withDefault([]));
 
   const [selectedFilter, setSelectedFilter] = useState<keyof typeof pathMap>();
+
   const [selectedFilterPathResults, setSelectedFilterPathResults] = useState<
     string[]
   >([]);
@@ -703,7 +735,9 @@ export function DataView() {
                               "text-muted-foreground italic truncate"
                           )}
                         >
-                          {!!translation.text ? translation.text : "[No text]"}{" "}
+                          {!!translation.text
+                            ? translation.text
+                            : "[No text]"}{" "}
                         </span>
                         <div className="flex gap-4 items-center">
                           <span className="text-muted-foreground text-nowrap">

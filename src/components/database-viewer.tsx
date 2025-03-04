@@ -10,13 +10,13 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -24,7 +24,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -32,7 +32,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
 import { cn, isMobile, toProperCase } from "@/lib/utils";
@@ -47,7 +47,7 @@ import {
   getSortedRowModel,
   RowModel,
   SortingState,
-  useReactTable
+  useReactTable,
 } from "@tanstack/react-table";
 import { format } from "date-fns";
 import {
@@ -67,7 +67,7 @@ import {
   Braces,
   FileJson,
   FileSpreadsheet,
-  PanelLeft
+  PanelLeft,
 } from "lucide-react";
 import { parseAsInteger, parseAsJson, useQueryState, createParser } from "nuqs";
 import * as React from "react";
@@ -84,7 +84,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger
+  SheetTrigger,
 } from "./ui/sheet";
 import { Database } from "../../database.types";
 
@@ -95,7 +95,7 @@ type ColumnType = "string" | "number" | "boolean" | "timestamp" | "uuid";
 const filterConditionSchema = z.object({
   column: z.string(),
   operator: z.string(),
-  value: z.string()
+  value: z.string(),
 });
 
 const visibilityStateSchema = z.record(z.boolean());
@@ -131,7 +131,7 @@ interface TableData {
 // Convert the JSON schema to our table schema format
 const convertJsonSchemaToTableSchema = (
   name: keyof Database["public"]["Tables"],
-  schema: any
+  schema: any,
 ): TableSchema => {
   const columns = Object.entries(schema.properties).map(
     ([key, value]: [string, any]) => {
@@ -148,12 +148,12 @@ const convertJsonSchemaToTableSchema = (
         | undefined;
       if (description) {
         const match = description.match(
-          /<fk table='([^']+)' column='([^']+)'\/>/
+          /<fk table='([^']+)' column='([^']+)'\/>/,
         );
         if (match) {
           foreignKey = {
             table: match[1],
-            column: match[2]
+            column: match[2],
           };
         }
       }
@@ -163,13 +163,13 @@ const convertJsonSchemaToTableSchema = (
         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
         type,
         required: schema.required.includes(key),
-        foreignKey
+        foreignKey,
       };
-    }
+    },
   );
   return {
     name,
-    columns
+    columns,
   };
 };
 
@@ -188,40 +188,40 @@ interface Operator {
 const OPERATORS: Operator[] = [
   {
     value: "=",
-    label: "equals"
+    label: "equals",
   },
   {
     value: "<>",
-    label: "not equal"
+    label: "not equal",
   },
   {
     value: ">",
-    label: "greater than"
+    label: "greater than",
   },
   {
     value: "<",
-    label: "less than"
+    label: "less than",
   },
   {
     value: ">=",
-    label: "greater than or equal"
+    label: "greater than or equal",
   },
   {
     value: "<=",
-    label: "less than or equal"
+    label: "less than or equal",
   },
   {
     value: "LIKE",
-    label: "like operator"
+    label: "like operator",
   },
   {
     value: "ILIKE",
-    label: "ilike operator"
+    label: "ilike operator",
   },
   {
     value: "IN",
-    label: "one of a list of values"
-  }
+    label: "one of a list of values",
+  },
 ];
 
 // Add helper function to compute symbol
@@ -250,11 +250,11 @@ const getJavascriptEvaluationOperator = (operator: string) => {
 };
 
 const convertColumnFiltersToColumnFilterState = (
-  columnFilters: z.infer<typeof filterConditionSchema>[]
+  columnFilters: z.infer<typeof filterConditionSchema>[],
 ): ColumnFiltersState => {
   return columnFilters.map((filter) => ({
     id: filter.column,
-    value: filter.value
+    value: filter.value,
   }));
 };
 
@@ -288,9 +288,9 @@ const fetchTableSchemas = async () => {
     ([tableName, schema]: [string, any]) => {
       convertedSchemas[tableName] = convertJsonSchemaToTableSchema(
         tableName as keyof Database["public"]["Tables"],
-        schema
+        schema,
       );
-    }
+    },
   );
 
   // Add reverse relationship columns
@@ -327,7 +327,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
           targetTable,
           targetColumn,
           sourceTable: schema.name as keyof Database["public"]["Tables"],
-          sourceColumn: column.key
+          sourceColumn: column.key,
         });
       }
     });
@@ -349,7 +349,8 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
     const foreignKeyColumns = schema.columns.filter((col) => col.foreignKey);
     const nonForeignKeyColumns = schema.columns.filter(
       (col) =>
-        !col.foreignKey && !["id", "created_at", "updated_at"].includes(col.key)
+        !col.foreignKey &&
+        !["id", "created_at", "updated_at"].includes(col.key),
     );
 
     // A table is a link table if it has at least 2 foreign keys and few other columns
@@ -359,9 +360,9 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
     linkTables.set(tableName, {
       foreignKeys: foreignKeyColumns.map((col) => ({
         key: col.key,
-        foreignKey: col.foreignKey!
+        foreignKey: col.foreignKey!,
       })),
-      isLinkTable
+      isLinkTable,
     });
   });
 
@@ -401,7 +402,8 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
           // If we have throughInfo, we can get an even better name
           const otherForeignKeys = linkTableInfo?.foreignKeys.filter(
             (fk) =>
-              fk.foreignKey.table !== targetTable && fk.key !== rel.sourceColumn
+              fk.foreignKey.table !== targetTable &&
+              fk.key !== rel.sourceColumn,
           );
 
           if (otherForeignKeys && otherForeignKeys.length > 0) {
@@ -421,7 +423,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
 
         // Skip if the column already exists
         const existingColumn = schemas[targetTable].columns.find(
-          (col) => col.key === columnKey
+          (col) => col.key === columnKey,
         );
         if (existingColumn) return;
 
@@ -430,7 +432,8 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
         if (isLinkTable) {
           const otherForeignKeys = linkTableInfo?.foreignKeys.filter(
             (fk) =>
-              fk.foreignKey.table !== targetTable && fk.key !== rel.sourceColumn
+              fk.foreignKey.table !== targetTable &&
+              fk.key !== rel.sourceColumn,
           );
 
           if (otherForeignKeys && otherForeignKeys.length > 0) {
@@ -442,7 +445,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
               throughTable: rel.sourceTable,
               throughSourceColumn: rel.sourceColumn,
               throughTargetColumn: otherForeignKey.key,
-              targetTable: otherForeignKey.foreignKey.table
+              targetTable: otherForeignKey.foreignKey.table,
             };
           }
         }
@@ -461,19 +464,19 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
             ...(throughInfo && {
               throughTable: throughInfo.throughTable,
               throughSourceColumn: throughInfo.throughSourceColumn,
-              throughTargetColumn: throughInfo.throughTargetColumn
-            })
-          }
+              throughTargetColumn: throughInfo.throughTargetColumn,
+            }),
+          },
         });
       });
-    }
+    },
   );
 };
 
 const fetchTableData = async (
   tableName: string,
   page: number,
-  pageSize: number
+  pageSize: number,
 ) => {
   const { data, error, count } = await supabase
     .from(tableName as keyof Database["public"]["Tables"])
@@ -500,7 +503,7 @@ function RelatedRecordsCount({
   tableName,
   columnName,
   recordId,
-  isLinkTable = false
+  isLinkTable = false,
 }: {
   tableName: keyof Database["public"]["Tables"];
   columnName: string;
@@ -517,7 +520,7 @@ function RelatedRecordsCount({
 
       if (error) throw error;
       return count || 0;
-    }
+    },
   });
 
   if (isLoading) return <span className="text-muted-foreground">...</span>;
@@ -534,7 +537,7 @@ function useTransformedColumns({
   tableName,
   onForeignKeySelect,
   isPreview = false,
-  tableSchemas
+  tableSchemas,
 }: {
   schema: TableSchema;
   tableName: string;
@@ -571,8 +574,8 @@ function useTransformedColumns({
               ),
               enableSorting: false,
               enableHiding: false,
-              enableColumnFilter: false
-            }
+              enableColumnFilter: false,
+            },
           ]),
       ...schema.columns.map((col) => ({
         accessorKey: col.key,
@@ -587,7 +590,7 @@ function useTransformedColumns({
                 const throughTargetColumn =
                   col.reverseRelationship.throughTargetColumn!;
                 const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-                  (c) => c.key === throughTargetColumn
+                  (c) => c.key === throughTargetColumn,
                 )?.foreignKey;
 
                 if (foreignKeyInfo) {
@@ -643,7 +646,7 @@ function useTransformedColumns({
                             const foreignKeyInfo = tableSchemas[
                               throughTable
                             ]?.columns.find(
-                              (c) => c.key === throughTargetColumn
+                              (c) => c.key === throughTargetColumn,
                             )?.foreignKey;
 
                             if (foreignKeyInfo) {
@@ -690,7 +693,7 @@ function useTransformedColumns({
                               const foreignKeyInfo = tableSchemas[
                                 throughTable
                               ]?.columns.find(
-                                (c) => c.key === throughTargetColumn
+                                (c) => c.key === throughTargetColumn,
                               )?.foreignKey;
 
                               if (foreignKeyInfo) {
@@ -698,7 +701,7 @@ function useTransformedColumns({
                                 onForeignKeySelect?.({
                                   table: foreignKeyInfo.table,
                                   column: foreignKeyInfo.column,
-                                  value: "" // We don't have a specific value to filter by
+                                  value: "", // We don't have a specific value to filter by
                                 });
                                 return;
                               }
@@ -708,7 +711,7 @@ function useTransformedColumns({
                             onForeignKeySelect?.({
                               table: col.reverseRelationship!.sourceTable,
                               column: col.reverseRelationship!.sourceColumn,
-                              value: String(recordId)
+                              value: String(recordId),
                             });
                           }}
                         >
@@ -831,7 +834,7 @@ function useTransformedColumns({
                             value: String(value),
                             sourceTable: col.foreignKey!.table,
                             sourceColumn: col.key,
-                            sourceValue: String(value)
+                            sourceValue: String(value),
                           });
                         }}
                       >
@@ -847,8 +850,8 @@ function useTransformedColumns({
             return <span className="truncate">{String(value)}</span>;
           }
           return String(value);
-        }
-      }))
+        },
+      })),
     ];
   }, [schema, onForeignKeySelect, isPreview, tableSchemas]);
 }
@@ -856,7 +859,7 @@ function useTransformedColumns({
 function PreviewTable({
   tableName,
   filterColumn,
-  filterValue
+  filterValue,
 }: {
   tableName: keyof Database["public"]["Tables"];
   filterColumn: string;
@@ -864,7 +867,7 @@ function PreviewTable({
 }) {
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ["tableSchemas"],
-    queryFn: fetchTableSchemas
+    queryFn: fetchTableSchemas,
   });
 
   const { data, isLoading } = useQuery({
@@ -877,7 +880,7 @@ function PreviewTable({
 
       if (error) throw error;
       return data;
-    }
+    },
   });
 
   const schema = tableSchemas?.[tableName];
@@ -885,7 +888,7 @@ function PreviewTable({
     schema: schema!,
     tableName: tableName,
     isPreview: true,
-    tableSchemas
+    tableSchemas,
   });
 
   if (!schema || isLoading) {
@@ -920,8 +923,8 @@ function PreviewTable({
               <TableCell key={col.accessorKey} className="truncate">
                 {col.cell({
                   row: {
-                    getValue: (key: string) => row[key as keyof typeof row]
-                  }
+                    getValue: (key: string) => row[key as keyof typeof row],
+                  },
                 })}
               </TableCell>
             ))}
@@ -941,7 +944,7 @@ const parseAsSorting = createParser({
           const [id, direction] = part.split(":");
           return {
             id,
-            desc: direction === "desc"
+            desc: direction === "desc",
           };
         });
       } catch (error) {
@@ -959,14 +962,14 @@ const parseAsSorting = createParser({
   eq(a, b) {
     // simpler check to clearOnDefault
     return a.length === b.length;
-  }
+  },
 });
 
 // Add export functions
 const downloadAsFile = (
   content: string,
   fileName: string,
-  contentType: string
+  contentType: string,
 ) => {
   const a = document.createElement("a");
   const file = new Blob([content], { type: contentType });
@@ -980,14 +983,14 @@ const downloadAsZip = async (
   content: string,
   attachments: { path: string; url: string }[],
   fileName: string,
-  contentType: string
+  contentType: string,
 ) => {
   const zip = new JSZip();
 
   // Add the main data file
   zip.file(
     contentType === "application/json" ? "data.json" : "data.csv",
-    content
+    content,
   );
 
   // Create attachments folder and add files
@@ -1017,7 +1020,7 @@ const downloadAsZip = async (
 
 const processAttachments = async (
   data: any[],
-  includeAttachments: boolean
+  includeAttachments: boolean,
 ): Promise<{
   transformedData: any[];
   attachments: { path: string; url: string }[];
@@ -1045,7 +1048,7 @@ const processAttachments = async (
 
               // Store original paths in data
               transformedRow[key] = sources.map(
-                (source: string) => `attachments/${source}.${fileExtension}`
+                (source: string) => `attachments/${source}.${fileExtension}`,
               );
 
               // Collect attachments for download
@@ -1062,7 +1065,7 @@ const processAttachments = async (
         }
       }
       return transformedRow;
-    })
+    }),
   );
 
   return { transformedData, attachments };
@@ -1072,7 +1075,7 @@ const exportAllTables = async (
   format: "json" | "csv",
   includeAttachments: boolean,
   tables: string[],
-  onProgress?: (tableName: string) => void
+  onProgress?: (tableName: string) => void,
 ) => {
   const zip = new JSZip();
   const allAttachments = new Map<string, { path: string; url: string }>();
@@ -1086,7 +1089,7 @@ const exportAllTables = async (
 
     const { transformedData, attachments } = await processAttachments(
       data,
-      includeAttachments
+      includeAttachments,
     );
 
     // Add table data to zip
@@ -1104,8 +1107,8 @@ const exportAllTables = async (
                   }
                   return cell;
                 })
-                .join(",")
-            )
+                .join(","),
+            ),
           ].join("\n");
 
     zip.file(`tables/${tableName}.${format}`, content);
@@ -1144,11 +1147,11 @@ const exportAllTables = async (
 const exportToJson = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string
+  tableName: string,
 ) => {
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments
+    includeAttachments,
   );
   const jsonStr = JSON.stringify(transformedData, null, 2);
 
@@ -1157,7 +1160,7 @@ const exportToJson = async (
       jsonStr,
       attachments,
       `${tableName}_export.json`,
-      "application/json"
+      "application/json",
     );
   } else {
     downloadAsFile(jsonStr, `${tableName}_export.json`, "application/json");
@@ -1167,13 +1170,13 @@ const exportToJson = async (
 const exportToCsv = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string
+  tableName: string,
 ) => {
   if (!data.length) return;
 
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments
+    includeAttachments,
   );
   const headers = Object.keys(transformedData[0]);
   const csvContent = [
@@ -1188,8 +1191,8 @@ const exportToCsv = async (
           }
           return cell;
         })
-        .join(",")
-    )
+        .join(","),
+    ),
   ].join("\n");
 
   if (includeAttachments) {
@@ -1197,7 +1200,7 @@ const exportToCsv = async (
       csvContent,
       attachments,
       `${tableName}_export.csv`,
-      "text/csv"
+      "text/csv",
     );
   } else {
     downloadAsFile(csvContent, `${tableName}_export.csv`, "text/csv");
@@ -1212,7 +1215,7 @@ function ReverseRelationshipPreview({
   isLinkTable = false,
   throughTable,
   throughSourceColumn,
-  throughTargetColumn
+  throughTargetColumn,
 }: {
   tableName: keyof Database["public"]["Tables"];
   columnName: string;
@@ -1231,7 +1234,7 @@ function ReverseRelationshipPreview({
       isLinkTable,
       throughTable,
       throughSourceColumn,
-      throughTargetColumn
+      throughTargetColumn,
     ],
     queryFn: async () => {
       if (
@@ -1249,7 +1252,8 @@ function ReverseRelationshipPreview({
 
         const foreignKeyTable = schemaData?.find(
           (table: any) =>
-            table.table === throughTable && table.column === throughTargetColumn
+            table.table === throughTable &&
+            table.column === throughTargetColumn,
           // @ts-expect-error metadata is not typed
         )?.foreign_table;
 
@@ -1282,12 +1286,12 @@ function ReverseRelationshipPreview({
         if (error) throw error;
         return { linkData: data, foreignKeyTable: null };
       }
-    }
+    },
   });
 
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ["tableSchemas"],
-    queryFn: fetchTableSchemas
+    queryFn: fetchTableSchemas,
   });
 
   // Determine which table's schema to use for displaying the data
@@ -1302,7 +1306,7 @@ function ReverseRelationshipPreview({
     ) {
       // Try to find the target table from the schema
       const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-        (col) => col.key === throughTargetColumn
+        (col) => col.key === throughTargetColumn,
       )?.foreignKey;
 
       if (foreignKeyInfo) {
@@ -1311,7 +1315,7 @@ function ReverseRelationshipPreview({
 
       return (
         tableSchemas?.[tableName]?.columns.find(
-          (col) => col.key === throughTargetColumn
+          (col) => col.key === throughTargetColumn,
         )?.foreignKey?.table || tableName
       );
     }
@@ -1322,7 +1326,7 @@ function ReverseRelationshipPreview({
     data,
     tableSchemas,
     tableName,
-    throughTable
+    throughTable,
   ]);
 
   const schema = tableSchemas?.[targetTable];
@@ -1352,7 +1356,7 @@ function ReverseRelationshipPreview({
         schema: schema,
         tableName: targetTable,
         isPreview: true,
-        tableSchemas
+        tableSchemas,
       })
     : [];
 
@@ -1361,20 +1365,20 @@ function ReverseRelationshipPreview({
     if (isLinkTable && throughTable && throughTargetColumn && tableSchemas) {
       // Find the foreign key that this column points to
       const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-        (c) => c.key === throughTargetColumn
+        (c) => c.key === throughTargetColumn,
       )?.foreignKey;
 
       if (foreignKeyInfo) {
         return {
           table: foreignKeyInfo.table,
-          column: foreignKeyInfo.column
+          column: foreignKeyInfo.column,
         };
       }
     }
 
     return {
       table: tableName,
-      column: columnName
+      column: columnName,
     };
   }, [
     isLinkTable,
@@ -1382,7 +1386,7 @@ function ReverseRelationshipPreview({
     throughTargetColumn,
     tableSchemas,
     tableName,
-    columnName
+    columnName,
   ]);
 
   if (isLoading) {
@@ -1451,35 +1455,35 @@ export function DatabaseViewer() {
   const {
     data: tableSchemas,
     isLoading: schemasLoading,
-    error: schemasError
+    error: schemasError,
   } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ["tableSchemas"],
-    queryFn: fetchTableSchemas
+    queryFn: fetchTableSchemas,
   });
 
   const [selectedTable, setSelectedTable] = useQueryState("table", {
-    defaultValue: tableSchemas ? Object.keys(tableSchemas)[0] : ""
+    defaultValue: tableSchemas ? Object.keys(tableSchemas)[0] : "",
   });
 
   // Add state for showing link tables
   const [showLinkTables, setShowLinkTables] = useQueryState(
     "showLinks",
-    parseAsBoolean.withDefault(false)
+    parseAsBoolean.withDefault(false),
   );
 
   // Add pagination state
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(0));
   const [pageSize, setPageSize] = useQueryState(
     "size",
-    parseAsInteger.withDefault(50)
+    parseAsInteger.withDefault(50),
   );
 
   const [sorting, setSorting] = useQueryState(
     "sort",
-    parseAsSorting.withDefault([])
+    parseAsSorting.withDefault([]),
   );
   const [pendingSorting, setPendingSorting] = React.useState<SortingState>(
-    sorting || []
+    sorting || [],
   );
 
   // Replace URL state with normal React state for filters
@@ -1493,16 +1497,16 @@ export function DatabaseViewer() {
 
   const [columnVisibility, setColumnVisibility] = useQueryState(
     "visible",
-    parseAsJson(z.record(visibilityStateSchema).parse).withDefault({})
+    parseAsJson(z.record(visibilityStateSchema).parse).withDefault({}),
   );
 
   const [includeAttachments, setIncludeAttachments] = React.useState(false);
 
   const [exportProgress, setExportProgress] = React.useState<string | null>(
-    null
+    null,
   );
   const [exportMode, setExportMode] = React.useState<"current" | "all">(
-    "current"
+    "current",
   );
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -1511,14 +1515,14 @@ export function DatabaseViewer() {
     if (!selectedTable || !columnVisibility[selectedTable]) return;
     // if all columns are visible, clear the column visibility state (shows all columns)
     const invisibleColumns = Object.values(
-      columnVisibility[selectedTable]
+      columnVisibility[selectedTable],
     ).filter((visibility) => !visibility);
 
     if (invisibleColumns.length === 0)
       setColumnVisibility((prev) =>
         Object.fromEntries(
-          Object.entries(prev).filter(([key]) => key !== selectedTable)
-        )
+          Object.entries(prev).filter(([key]) => key !== selectedTable),
+        ),
       );
   }, [columnVisibility, selectedTable]);
 
@@ -1526,11 +1530,11 @@ export function DatabaseViewer() {
   const {
     data: currentData,
     isLoading: dataLoading,
-    error: dataError
+    error: dataError,
   } = useQuery<TableData, Error>({
     queryKey: ["tableData", selectedTable, page, pageSize],
     queryFn: () => fetchTableData(selectedTable, page, pageSize),
-    enabled: !!selectedTable && !!tableSchemas
+    enabled: !!selectedTable && !!tableSchemas,
   });
 
   const queryClient = useQueryClient();
@@ -1545,7 +1549,7 @@ export function DatabaseViewer() {
       const foreignKeyColumns = schema.columns.filter(
         (col) =>
           col.foreignKey ||
-          (tableName === "asset_content_link" && col.key === "audio_id")
+          (tableName === "asset_content_link" && col.key === "audio_id"),
       );
 
       if (schema.name.includes("_link") || schema.name.includes("_download"))
@@ -1562,15 +1566,15 @@ export function DatabaseViewer() {
             "tableData",
             name,
             page,
-            pageSize
-          ])?.count ?? 0
+            pageSize,
+          ])?.count ?? 0,
       }));
   }, [tableSchemas, showLinkTables, queryClient, page, pageSize, currentData]);
 
   // Get the schema for the selected table
   const currentSchema = React.useMemo(
     () => tableSchemas?.[selectedTable],
-    [tableSchemas, selectedTable]
+    [tableSchemas, selectedTable],
   );
 
   // Generate columns based on the schema
@@ -1583,24 +1587,24 @@ export function DatabaseViewer() {
       value,
       sourceTable,
       sourceColumn,
-      sourceValue
+      sourceValue,
     }) => {
       setSelectedTable(targetTable);
       setFilters((prev) => ({
         ...prev,
-        [targetTable]: [{ column, operator: "=", value }]
+        [targetTable]: [{ column, operator: "=", value }],
       }));
       setTimeout(() => {
         table.getColumn(column)?.setFilterValue(value);
       }, 0);
     },
-    tableSchemas
+    tableSchemas,
   });
 
   const columnsWithFilters = React.useMemo(() => {
     return columns.map((col) => {
       const filter = filters[selectedTable]?.find(
-        (filter) => filter.column === col.accessorKey
+        (filter) => filter.column === col.accessorKey,
       );
       return {
         ...col,
@@ -1623,12 +1627,12 @@ export function DatabaseViewer() {
               return Boolean(
                 eval(
                   `"${rowValue}" ${getJavascriptEvaluationOperator(
-                    filter.operator
-                  )} "${filterValue}"`
-                )
+                    filter.operator,
+                  )} "${filterValue}"`,
+                ),
               );
           }
-        }
+        },
       } satisfies ColumnDef<any>;
     });
   }, [columns, filters, selectedTable]);
@@ -1646,13 +1650,13 @@ export function DatabaseViewer() {
         setColumnVisibility((prev) => {
           return {
             ...prev,
-            [selectedTable]: updater(prev[selectedTable] ?? {})
+            [selectedTable]: updater(prev[selectedTable] ?? {}),
           };
         });
       } else {
         setColumnVisibility((prev) => ({
           ...prev,
-          [selectedTable]: updater
+          [selectedTable]: updater,
         }));
       }
     },
@@ -1665,19 +1669,19 @@ export function DatabaseViewer() {
       rowSelection,
       pagination: {
         pageIndex: page || 0,
-        pageSize: pageSize || 10
-      }
+        pageSize: pageSize || 10,
+      },
     },
     onColumnFiltersChange: (updater) => {
       if (typeof updater === "function") {
         setColumnFilters((prev) => ({
           ...prev,
-          [selectedTable]: updater(prev[selectedTable] ?? [])
+          [selectedTable]: updater(prev[selectedTable] ?? []),
         }));
       } else {
         setColumnFilters((prev) => ({
           ...prev,
-          [selectedTable]: updater
+          [selectedTable]: updater,
         }));
       }
     },
@@ -1685,7 +1689,7 @@ export function DatabaseViewer() {
       if (typeof updater === "function") {
         const newState = updater({
           pageIndex: page || 0,
-          pageSize: pageSize || 10
+          pageSize: pageSize || 10,
         });
         setPage(newState.pageIndex);
         setPageSize(newState.pageSize);
@@ -1694,7 +1698,7 @@ export function DatabaseViewer() {
         setPageSize(updater.pageSize);
       }
     },
-    manualPagination: true
+    manualPagination: true,
   });
 
   // Find the first filterable column for the current table
@@ -1702,14 +1706,14 @@ export function DatabaseViewer() {
     return currentSchema?.columns.find(
       (col) =>
         table.getColumn(col.key)?.getIsVisible() &&
-        table.getColumn(col.key)?.getCanFilter()
+        table.getColumn(col.key)?.getCanFilter(),
     )?.key;
   }, [currentSchema]);
 
   const handleRemoveFilter = (index: number) => {
     setFilters({
       ...filters,
-      [selectedTable]: filters[selectedTable].filter((_, i) => i !== index)
+      [selectedTable]: filters[selectedTable].filter((_, i) => i !== index),
     });
   };
 
@@ -1722,7 +1726,7 @@ export function DatabaseViewer() {
     .filter(
       (column) =>
         column.getCanSort() &&
-        !pendingSorting.some((sort) => sort.id === column.id)
+        !pendingSorting.some((sort) => sort.id === column.id),
     );
 
   const Tables = ({ className }: { className?: string }) => (
@@ -1736,7 +1740,7 @@ export function DatabaseViewer() {
           }}
           className={cn(
             "w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent",
-            t.isLinkTable && "text-muted-foreground"
+            t.isLinkTable && "text-muted-foreground",
           )}
           disabled={schemasLoading || dataLoading}
         >
@@ -1777,8 +1781,8 @@ export function DatabaseViewer() {
               {schemasError instanceof Error
                 ? schemasError.message
                 : dataError instanceof Error
-                ? dataError.message
-                : "An error occurred"}
+                  ? dataError.message
+                  : "An error occurred"}
             </div>
           </div>
         ) : schemasLoading || dataLoading ? (
@@ -1871,7 +1875,7 @@ export function DatabaseViewer() {
                                 "json",
                                 includeAttachments,
                                 Object.keys(tableSchemas),
-                                setExportProgress
+                                setExportProgress,
                               ).finally(() => setExportProgress(null));
                             } else {
                               exportToJson(
@@ -1879,7 +1883,7 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable
+                                selectedTable,
                               );
                             }
                           }}
@@ -1898,7 +1902,7 @@ export function DatabaseViewer() {
                                 "csv",
                                 includeAttachments,
                                 Object.keys(tableSchemas),
-                                setExportProgress
+                                setExportProgress,
                               ).finally(() => setExportProgress(null));
                             } else {
                               exportToCsv(
@@ -1906,7 +1910,7 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable
+                                selectedTable,
                               );
                             }
                           }}
@@ -1930,7 +1934,7 @@ export function DatabaseViewer() {
                       size="sm"
                       className={cn(
                         sorting?.length > 0 &&
-                          "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100"
+                          "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100",
                       )}
                     >
                       <List className="size-4" />
@@ -1992,7 +1996,7 @@ export function DatabaseViewer() {
                               if (column) {
                                 setPendingSorting([
                                   ...pendingSorting,
-                                  { id: value, desc: false }
+                                  { id: value, desc: false },
                                 ]);
                               }
                             }}
@@ -2034,7 +2038,7 @@ export function DatabaseViewer() {
                       size="sm"
                       className={cn(
                         columnFilters[selectedTable]?.length > 0 &&
-                          "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100"
+                          "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100",
                       )}
                     >
                       <Filter className="size-4" />
@@ -2064,15 +2068,15 @@ export function DatabaseViewer() {
                               defaultValue={filterableColumn}
                               onValueChange={(value) => {
                                 const newFilters = [
-                                  ...(filters[selectedTable] ?? [])
+                                  ...(filters[selectedTable] ?? []),
                                 ];
                                 newFilters[index] = {
                                   ...filter,
-                                  column: value
+                                  column: value,
                                 };
                                 setFilters({
                                   ...filters,
-                                  [selectedTable]: newFilters
+                                  [selectedTable]: newFilters,
                                 });
                               }}
                             >
@@ -2099,15 +2103,15 @@ export function DatabaseViewer() {
                               value={filter.operator}
                               onValueChange={(value) => {
                                 const newFilters = [
-                                  ...(filters[selectedTable] ?? [])
+                                  ...(filters[selectedTable] ?? []),
                                 ];
                                 newFilters[index] = {
                                   ...filter,
-                                  operator: value
+                                  operator: value,
                                 };
                                 setFilters({
                                   ...filters,
-                                  [selectedTable]: newFilters
+                                  [selectedTable]: newFilters,
                                 });
                               }}
                             >
@@ -2131,7 +2135,7 @@ export function DatabaseViewer() {
                             </Select>
 
                             {currentSchema?.columns.find(
-                              (col) => col.key === filter.column
+                              (col) => col.key === filter.column,
                             )?.type === "timestamp" ? (
                               <Popover>
                                 <PopoverTrigger asChild>
@@ -2139,7 +2143,7 @@ export function DatabaseViewer() {
                                     variant="outline"
                                     className={cn(
                                       "w-[240px] justify-start text-left font-normal h-8",
-                                      !filter.value && "text-muted-foreground"
+                                      !filter.value && "text-muted-foreground",
                                     )}
                                   >
                                     <CalendarIcon className="size-4 mr-2" />
@@ -2163,15 +2167,15 @@ export function DatabaseViewer() {
                                     }
                                     onSelect={(date) => {
                                       const newFilters = [
-                                        ...(filters[selectedTable] ?? [])
+                                        ...(filters[selectedTable] ?? []),
                                       ];
                                       newFilters[index] = {
                                         ...filter,
-                                        value: date ? date.toISOString() : ""
+                                        value: date ? date.toISOString() : "",
                                       };
                                       setFilters({
                                         ...filters,
-                                        [selectedTable]: newFilters
+                                        [selectedTable]: newFilters,
                                       });
                                     }}
                                     initialFocus
@@ -2183,15 +2187,15 @@ export function DatabaseViewer() {
                                 value={filter.value}
                                 onChange={(e) => {
                                   const newFilters = [
-                                    ...(filters[selectedTable] ?? [])
+                                    ...(filters[selectedTable] ?? []),
                                   ];
                                   newFilters[index] = {
                                     ...filter,
-                                    value: e.target.value
+                                    value: e.target.value,
                                   };
                                   setFilters({
                                     ...filters,
-                                    [selectedTable]: newFilters
+                                    [selectedTable]: newFilters,
                                   });
                                 }}
                                 placeholder="Enter a value"
@@ -2208,7 +2212,7 @@ export function DatabaseViewer() {
                               <X className="size-4" />
                             </Button>
                           </div>
-                        )
+                        ),
                       )}
 
                       <div className="flex gap-2 border-t border-border pt-3">
@@ -2223,9 +2227,9 @@ export function DatabaseViewer() {
                                 {
                                   column: filterableColumn ?? "",
                                   operator: OPERATORS[0].value,
-                                  value: ""
-                                }
-                              ]
+                                  value: "",
+                                },
+                              ],
                             });
                           }}
                         >
@@ -2250,8 +2254,8 @@ export function DatabaseViewer() {
                                 (columnFilter) =>
                                   !filters[selectedTable]?.some(
                                     (filter) =>
-                                      filter.column === columnFilter.id
-                                  )
+                                      filter.column === columnFilter.id,
+                                  ),
                               );
 
                               removedFilters?.forEach((filter) => {
@@ -2317,7 +2321,7 @@ export function DatabaseViewer() {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                       </TableHead>
                     ))}
@@ -2335,7 +2339,7 @@ export function DatabaseViewer() {
                         <TableCell key={cell.id} className="truncate">
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext()
+                            cell.getContext(),
                           )}
                         </TableCell>
                       ))}
