@@ -1,6 +1,5 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
 import {
   Accordion,
   AccordionContent,
@@ -14,12 +13,11 @@ import {
   CarouselNext,
   CarouselPrevious
 } from "@/components/ui/carousel";
-import { useQuery } from "@tanstack/react-query";
-import { Spinner } from "./spinner";
-import { cn } from "@/lib/utils";
-import { AudioButton } from "./ui/audio-button";
 import { env } from "@/lib/env";
-import { Badge } from "./ui/badge";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import jsonata from "jsonata";
 import {
   ArrowDownWideNarrowIcon,
   ArrowUpWideNarrowIcon,
@@ -29,10 +27,13 @@ import {
   ThumbsUpIcon,
   XIcon
 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { createParser, parseAsInteger, useQueryState } from "nuqs";
+import { useEffect, useState } from "react";
+import { Spinner } from "./spinner";
+import { AudioButton } from "./ui/audio-button";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { useEffect, useMemo, useState } from "react";
-import jsonata from "jsonata";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "./ui/select";
-import { parseAsInteger, useQueryState, createParser } from "nuqs";
 
 const pathMap = {
   Name: "name",
