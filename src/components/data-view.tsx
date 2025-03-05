@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/carousel';
 import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
-import { cn } from '@/lib/utils';
+import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import jsonata from 'jsonata';
 import {
@@ -45,15 +45,15 @@ import {
 } from './ui/select';
 
 const pathMap = {
-  Name: 'name',
+  name: 'name',
   // Text: "translations.text",
   // Votes: "translations.votes.polarity",
   // Tags: "tags.name",
-  Tags: 'tags.tag.name',
-  Quests: 'quests.quest.name',
-  Project: 'quests.quest.project.name',
-  'Source Language': 'quests.quest.project.source_language.english_name',
-  'Target Language': 'quests.quest.project.target_language.english_name'
+  tags: 'tags.tag.name',
+  quests: 'quests.quest.name',
+  projects: 'quests.quest.project.name',
+  sourceLanguage: 'quests.quest.project.source_language.english_name',
+  targetLanguage: 'quests.quest.project.target_language.english_name'
 };
 
 const parseAsSorting = createParser({
@@ -134,14 +134,13 @@ export function DataView() {
   >('sort', parseAsSorting.withDefault([]));
 
   const [selectedFilter, setSelectedFilter] = useState<keyof typeof pathMap>();
+  const [selectedSort, setSelectedSort] = useState<keyof typeof pathMap>();
 
   const [selectedFilterPathResults, setSelectedFilterPathResults] = useState<
     string[]
   >([]);
   const [selectedTagResults, setSelectedTagResults] = useState<string[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<typeof assets>();
-
-  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedFilter || !assets) return;
@@ -158,13 +157,15 @@ export function DataView() {
     toFilter: typeof filter,
     toSort: typeof sort
   ) => {
+    const copiedSort = [...toSort];
     const computedPath = `$[${toFilter.reduce((acc, { path, value }) => {
       return `${acc ? `${acc} and ` : ''}${
-        path === 'Tags'
+        path === 'tags'
           ? `"${value}" in ${pathMap[path]}`
           : `${pathMap[path]} = "${value}"`
       }`;
-    }, '')}]${toSort
+    }, '')}]${copiedSort
+      .reverse()
       .map(
         ({ path, sort }) =>
           `${sort === 'asc' ? `^(${pathMap[path]})` : `^(>$.${pathMap[path]})`}`
@@ -176,6 +177,7 @@ export function DataView() {
         } & typeof assetsToFilter)
       | undefined;
     if (result) delete (result as Partial<typeof result>).sequence;
+    console.log(computedPath);
     return result;
   };
 
@@ -195,8 +197,11 @@ export function DataView() {
     else filterAndSortAssets(assets, newFilter, sort).then(setFilteredAssets);
   };
 
-  const addSort = (path: keyof typeof pathMap) => {
-    const newSort = [...sort, { path, sort: 'asc' as const }];
+  const addSort = (path: keyof typeof pathMap, direction: 'asc' | 'desc') => {
+    const newSort = [
+      ...sort.filter((s) => s.path !== path),
+      { path, sort: direction }
+    ];
     setSort(newSort);
     filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
   };
@@ -206,6 +211,17 @@ export function DataView() {
     setSort(newSort);
     if (!newSort.length && !filter.length) setFilteredAssets(undefined);
     else filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
+  };
+
+  const toggleSortDirection = (path: keyof typeof pathMap) => {
+    const newSort = sort.map((f) =>
+      f.path === path
+        ? ({ ...f, sort: f.sort === 'asc' ? 'desc' : 'asc' } as const)
+        : f
+    );
+    console.log(newSort);
+    setSort(newSort);
+    filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
   };
 
   if (isLoading)
@@ -219,221 +235,229 @@ export function DataView() {
 
   return (
     <div className="whitespace-pre-wrap px-8 py-4 max-w-200 mx-auto flex flex-col">
-      {(!!filter.length || !!sort.length) && (
-        <h1 className="font-semibold">Assets</h1>
-      )}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b py-4">
-        <div className="flex gap-8 items-top justify-between">
-          {!filter.length && !sort.length && (
+        <div className="flex gap-2 items-top flex-col">
+          <div className="flex gap-2 items-center">
             <h1 className="font-semibold">Assets</h1>
-          )}
-          {!!(filter.length || sort.length) && (
-            <div className="flex gap-2 flex-wrap justify-start">
-              {filter.map(({ path, value }) => (
-                <Badge
-                  variant="outline"
-                  key={`${path.toLowerCase()}-${value.toLowerCase()}`}
-                  className="flex gap-2 items-center"
-                >
-                  <span>
-                    <span className="hidden sm:inline">{path}: </span>
-                    {value}
-                  </span>
+            <div className="flex flex-1 justify-end gap-2">
+              <Popover
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setSelectedFilter(undefined);
+                    setSelectedFilterPathResults([]);
+                    setSelectedTagResults([]);
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    onClick={() => removeFilter(path)}
-                    className="size-5 rounded-sm"
+                    size="sm"
+                    className={cn(
+                      filter?.length > 0 &&
+                        'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                    )}
                   >
-                    <XIcon className="size-4" />
+                    <FilterIcon className="size-4" />
+                    <span className="hidden sm:block">
+                      {filter.length > 0
+                        ? `Filtered by ${filter.length} rule(s)`
+                        : 'Filter'}
+                    </span>
                   </Button>
-                </Badge>
-              ))}
-              {sort.map((s) => (
-                <Badge
-                  variant="secondary"
-                  key={`${s.path.toLowerCase()}-${s.sort.toLowerCase()}`}
-                  className="flex gap-2 items-center"
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="flex gap-2 flex-wrap w-72 justify-end"
                 >
-                  {s.path}:{' '}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      setSort(
-                        sort.map((f) =>
-                          f.path === s.path
-                            ? { ...f, sort: f.sort === 'asc' ? 'desc' : 'asc' }
-                            : f
+                  {!selectedFilter &&
+                    Object.keys(pathMap)
+                      .filter((key) => key !== 'name')
+                      .sort()
+                      .map((key) => (
+                        <Button
+                          variant="outline"
+                          key={key}
+                          onClick={() =>
+                            setSelectedFilter(key as keyof typeof pathMap)
+                          }
+                        >
+                          {camelToProperCase(key)}
+                        </Button>
+                      ))}
+                  {selectedFilter &&
+                    !selectedTagResults.length &&
+                    Array.from(
+                      new Set(
+                        selectedFilterPathResults.map((value) =>
+                          selectedFilter === 'tags'
+                            ? value.split(':')[0]
+                            : value
                         )
                       )
-                    }
-                    className="size-5 rounded-sm"
-                  >
-                    {s.sort === 'asc' ? (
-                      <ArrowDownWideNarrowIcon className="size-4" />
-                    ) : (
-                      <ArrowUpWideNarrowIcon className="size-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeSort(s.path)}
-                    className="size-5 rounded-sm"
-                  >
-                    <XIcon className="size-4" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 flex-1 justify-end">
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => setPageSize(Number(value))}
-            >
-              <SelectTrigger className="h-8 w-fit *:data-[slot=select-value]:gap-0">
-                <SelectValue className="flex space-x-0">
-                  {pageSize} <span className="hidden sm:block">rows</span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {[20, 50, 100].map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size} rows
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Popover
-              open={popoverOpen}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setSelectedFilter(undefined);
-                  setSelectedFilterPathResults([]);
-                  setSelectedTagResults([]);
-                }
-                setPopoverOpen(open);
-              }}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    filter?.length > 0 &&
-                      'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                  )}
-                >
-                  <FilterIcon className="size-4" />
-                  <span className="hidden sm:block">
-                    {filter.length > 0
-                      ? `Filtered by ${filter.length} rule(s)`
-                      : 'Filter'}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="end"
-                className="flex gap-2 flex-wrap w-85 justify-end"
-              >
-                {!selectedFilter &&
-                  Object.keys(pathMap)
-                    .sort()
-                    .reverse()
-                    .map((key) => (
+                    ).map((value, index) => (
                       <Button
                         variant="outline"
-                        key={key}
-                        onClick={() =>
-                          setSelectedFilter(key as keyof typeof pathMap)
-                        }
-                      >
-                        {key}
-                      </Button>
-                    ))}
-                {selectedFilter &&
-                  !selectedTagResults.length &&
-                  Array.from(
-                    new Set(
-                      selectedFilterPathResults.map(
-                        (value) => value.split(':')[0]
-                      )
-                    )
-                  ).map((value, index) => (
-                    <Button
-                      variant="outline"
-                      key={index}
-                      onClick={() => {
-                        if (selectedFilter === 'Tags') {
-                          setSelectedTagResults(
-                            Array.from(
-                              new Set(
-                                selectedFilterPathResults.filter((v) =>
-                                  v.startsWith(value)
+                        key={index}
+                        onClick={() => {
+                          if (selectedFilter === 'tags') {
+                            setSelectedTagResults(
+                              Array.from(
+                                new Set(
+                                  selectedFilterPathResults.filter((v) =>
+                                    v.startsWith(value)
+                                  )
                                 )
                               )
-                            )
-                          );
-                        } else {
-                          addFilter(selectedFilter, value);
-                        }
-                      }}
-                    >
-                      {value}
-                    </Button>
-                  ))}
-                {selectedFilter &&
-                  selectedTagResults.map((value, index) => (
-                    <Button
-                      variant="outline"
-                      key={index}
-                      onClick={() => addFilter(selectedFilter, value)}
-                    >
-                      {value.split(':')[1]}
-                    </Button>
-                  ))}
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    sort?.length > 0 &&
-                      'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                  )}
-                >
-                  <ListIcon className="size-4" />
-                  <span className="hidden sm:block">
-                    {sort.length > 0
-                      ? `Sorted by ${sort.length} rule(s)`
-                      : 'Sort'}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="end"
-                className="flex gap-2 flex-wrap w-85 justify-end"
-              >
-                {!selectedFilter &&
-                  Object.keys(pathMap)
-                    .filter((key) => key !== 'Tags')
-                    .sort()
-                    .reverse()
-                    .map((key) => (
-                      <Button
-                        variant="outline"
-                        key={key}
-                        onClick={() => addSort(key as keyof typeof pathMap)}
+                            );
+                          } else addFilter(selectedFilter, value);
+                        }}
                       >
-                        {key}
+                        {value}
                       </Button>
                     ))}
-              </PopoverContent>
-            </Popover>
+                  {selectedFilter &&
+                    selectedTagResults.map((value, index) => (
+                      <Button
+                        variant="outline"
+                        key={index}
+                        onClick={() => addFilter(selectedFilter, value)}
+                      >
+                        {value.split(':')[1]}
+                      </Button>
+                    ))}
+                </PopoverContent>
+              </Popover>
+              <Popover
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setSelectedSort(undefined);
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      sort?.length > 0 &&
+                        'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                    )}
+                  >
+                    <ListIcon className="size-4" />
+                    <span className="hidden sm:block">
+                      {sort.length > 0
+                        ? `Sorted by ${sort.length} rule(s)`
+                        : 'Sort'}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="flex gap-2 flex-wrap w-72 justify-end"
+                >
+                  {!selectedSort &&
+                    Object.keys(pathMap)
+                      .filter((key) => key !== 'tags')
+                      .sort()
+                      .reverse()
+                      .map((key) => (
+                        <Button
+                          variant="outline"
+                          key={key}
+                          onClick={() =>
+                            setSelectedSort(key as keyof typeof pathMap)
+                          }
+                        >
+                          {camelToProperCase(key)}
+                        </Button>
+                      ))}
+                  {selectedSort && (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => addSort(selectedSort, 'asc')}
+                      >
+                        Ascending
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => addSort(selectedSort, 'desc')}
+                      >
+                        Descending
+                      </Button>
+                    </>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {!!filter.length && (
+              <div className="flex gap-4 flex-1 items-center">
+                <FilterIcon className="size-4 text-muted-foreground flex-shrink-0" />
+                <div className="overflow-x-auto flex gap-2 scrollbar-none">
+                  {filter.map(({ path, value }) => (
+                    <Badge
+                      variant="outline"
+                      key={`${path.toLowerCase()}-${value.toLowerCase()}`}
+                      className="flex gap-2 items-center"
+                    >
+                      <span>
+                        <span className="hidden sm:inline">
+                          {camelToProperCase(path)}:{' '}
+                        </span>
+                        {value}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFilter(path)}
+                        className="size-5 rounded-sm"
+                      >
+                        <XIcon className="size-4" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!!sort.length && (
+              <div className="flex gap-4 flex-1 items-center">
+                <ListIcon className="size-4 text-muted-foreground flex-shrink-0" />
+                <div className="overflow-x-auto flex gap-2 scrollbar-none">
+                  {sort.map((s) => (
+                    <Badge
+                      variant="secondary"
+                      key={`${s.path.toLowerCase()}-${s.sort.toLowerCase()}`}
+                      className="flex gap-1 items-center"
+                    >
+                      {camelToProperCase(s.path)}{' '}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleSortDirection(s.path)}
+                        className="size-5 rounded-sm outline-1"
+                      >
+                        {s.sort === 'desc' ? (
+                          <ArrowDownWideNarrowIcon className="size-4" />
+                        ) : (
+                          <ArrowUpWideNarrowIcon className="size-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSort(s.path)}
+                        className="size-5 rounded-sm"
+                      >
+                        <XIcon className="size-4" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -599,7 +623,7 @@ export function DataView() {
                             Translations ({asset.translations?.length})
                           </h3>
                         </AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-2 pb-4 px-2">
+                        <AccordionContent className="flex flex-col gap-2 pb-4 px-4">
                           {asset.translations?.map((translation) => (
                             <div
                               key={translation.id}
@@ -661,6 +685,23 @@ export function DataView() {
         ))}
       </Accordion>
       <div className="flex justify-end p-4 gap-2">
+        <Select
+          value={pageSize.toString()}
+          onValueChange={(value) => setPageSize(Number(value))}
+        >
+          <SelectTrigger className="h-9 w-fit *:data-[slot=select-value]:gap-0">
+            <SelectValue className="flex space-x-0">
+              {pageSize} <span className="hidden sm:block">rows</span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {[20, 50, 100].map((size) => (
+              <SelectItem key={size} value={size.toString()}>
+                {size} rows
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           size="icon"
@@ -672,7 +713,7 @@ export function DataView() {
         <Button
           variant="outline"
           size="icon"
-          disabled={count === (page + 1) * pageSize}
+          disabled={!((count ?? 0) > (page + 1) * pageSize)}
           onClick={() => setPage(page + 1)}
         >
           <ArrowRightIcon className="size-4" />
