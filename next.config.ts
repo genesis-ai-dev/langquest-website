@@ -1,11 +1,11 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+
+import '@/lib/env';
 
 const nextConfig: NextConfig = {
-  output: 'export',  // Creates a static export
-  images: {
-    unoptimized: true, // Required for static export
-  },
-  trailingSlash: true, // Adds trailing slashes to URLs
+  /** We already do linting and typechecking as separate tasks in CI */
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true }
 };
 
 export default nextConfig;

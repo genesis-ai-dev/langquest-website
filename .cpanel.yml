@@ -1,7 +1,0 @@
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/db14i2am7550/public_html/
-    - /bin/cp .htaccess $DEPLOYPATH
-    - /bin/cp -R out/* $DEPLOYPATH
-
