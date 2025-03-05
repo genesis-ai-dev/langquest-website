@@ -589,62 +589,71 @@ export function DataView() {
                 </div>
                 <div className="flex flex-col gap-2">
                   {asset.translations?.length > 0 && (
-                    <h3 className="text-md font-bold">
-                      Translations ({asset.translations?.length})
-                    </h3>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    {asset.translations?.map((translation) => (
-                      <div
-                        key={translation.id}
-                        className="flex justify-between w-full gap-2 px-2 items-center h-10 bg-secondary/30 rounded-md"
+                    <Accordion type="single" collapsible>
+                      <AccordionItem
+                        value={asset.id}
+                        className="bg-secondary/30 border-none rounded-lg"
                       >
-                        <span
-                          className={cn(
-                            !translation.text &&
-                              'text-muted-foreground italic truncate'
-                          )}
-                        >
-                          {!!translation.text
-                            ? translation.text
-                            : '[No text]'}{' '}
-                        </span>
-                        <div className="flex gap-4 items-center">
-                          <span className="text-muted-foreground text-nowrap">
-                            {translation.target_language.english_name}
-                          </span>
-                          {translation.audio && (
-                            <AudioButton
-                              src={
-                                supabase.storage
-                                  .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-                                  .getPublicUrl(translation.audio).data
-                                  .publicUrl
-                              }
-                            />
-                          )}
-                          <div className="flex gap-4 items-center">
-                            <div className="flex gap-1 items-center tabular-nums">
-                              <ThumbsUpIcon className="size-4" />
-                              {
-                                translation.votes.filter(
-                                  (vote) => vote.polarity === 'up'
-                                ).length
-                              }
+                        <AccordionTrigger>
+                          <h3 className="text-md font-bold">
+                            Translations ({asset.translations?.length})
+                          </h3>
+                        </AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-2 pb-4 px-2">
+                          {asset.translations?.map((translation) => (
+                            <div
+                              key={translation.id}
+                              className="flex justify-between w-full gap-2 px-2 items-center h-10 bg-secondary/50 rounded-md"
+                            >
+                              <span
+                                className={cn(
+                                  !translation.text &&
+                                    'text-muted-foreground italic truncate'
+                                )}
+                              >
+                                {!!translation.text
+                                  ? translation.text
+                                  : '[No text]'}{' '}
+                              </span>
+                              <div className="flex gap-4 items-center">
+                                <span className="text-muted-foreground text-nowrap">
+                                  {translation.target_language.english_name}
+                                </span>
+                                {translation.audio && (
+                                  <AudioButton
+                                    src={
+                                      supabase.storage
+                                        .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                                        .getPublicUrl(translation.audio).data
+                                        .publicUrl
+                                    }
+                                  />
+                                )}
+                                <div className="flex gap-4 items-center">
+                                  <div className="flex gap-1 items-center tabular-nums">
+                                    <ThumbsUpIcon className="size-4" />
+                                    {
+                                      translation.votes.filter(
+                                        (vote) => vote.polarity === 'up'
+                                      ).length
+                                    }
+                                  </div>
+                                  <div className="flex gap-1 items-center tabular-nums">
+                                    <ThumbsDownIcon className="size-4" />
+                                    {
+                                      translation.votes.filter(
+                                        (vote) => vote.polarity === 'down'
+                                      ).length
+                                    }
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex gap-1 items-center tabular-nums">
-                              <ThumbsDownIcon className="size-4" />
-                              {
-                                translation.votes.filter(
-                                  (vote) => vote.polarity === 'down'
-                                ).length
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                          ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
                 </div>
               </div>
             </AccordionContent>
