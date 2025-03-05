@@ -1,79 +1,81 @@
-"use client";
+'use client';
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger
-} from "@/components/ui/accordion";
+} from '@/components/ui/accordion';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious
-} from "@/components/ui/carousel";
-import { env } from "@/lib/env";
-import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import jsonata from "jsonata";
+} from '@/components/ui/carousel';
+import { env } from '@/lib/env';
+import { supabase } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import jsonata from 'jsonata';
 import {
   ArrowDownWideNarrowIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
   ArrowUpWideNarrowIcon,
   FilterIcon,
   ListIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
   XIcon
-} from "lucide-react";
-import { createParser, parseAsInteger, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
-import { Spinner } from "./spinner";
-import { AudioButton } from "./ui/audio-button";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+} from 'lucide-react';
+import { createParser, parseAsInteger, useQueryState } from 'nuqs';
+import { useEffect, useState } from 'react';
+import { Spinner } from './spinner';
+import { AudioButton } from './ui/audio-button';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from "./ui/select";
+} from './ui/select';
 
 const pathMap = {
-  Name: "name",
+  Name: 'name',
   // Text: "translations.text",
   // Votes: "translations.votes.polarity",
   // Tags: "tags.name",
-  Tags: "tags.tag.name",
-  Quests: "quests.quest.name",
-  Project: "quests.quest.project.name",
-  "Source Language": "quests.quest.project.source_language.english_name",
-  "Target Language": "quests.quest.project.target_language.english_name"
+  Tags: 'tags.tag.name',
+  Quests: 'quests.quest.name',
+  Project: 'quests.quest.project.name',
+  'Source Language': 'quests.quest.project.source_language.english_name',
+  'Target Language': 'quests.quest.project.target_language.english_name'
 };
 
 const parseAsSorting = createParser({
   parse(queryValue) {
     if (!queryValue) return [];
     try {
-      return queryValue.split(",").map((part) => {
-        const [path, direction] = part.split(":");
+      return queryValue.split(',').map((part) => {
+        const [path, direction] = part.split(':');
         return {
           path: path as keyof typeof pathMap,
-          sort: direction as "asc" | "desc"
+          sort: direction as 'asc' | 'desc'
         };
       });
-    } catch (error) {
+    } catch {
       return [];
     }
   },
   serialize(value) {
-    if (!value?.length) return "";
+    if (!value?.length) return '';
     return value
       .map((sort) => `${sort.path.toLowerCase()}:${sort.sort}`)
-      .join(",");
+      .join(',');
   },
   eq(a, b) {
     return a.length === b.length;
@@ -82,20 +84,16 @@ const parseAsSorting = createParser({
 
 export function DataView() {
   const [pageSize, setPageSize] = useQueryState(
-    "size",
-    parseAsInteger.withDefault(50)
+    'size',
+    parseAsInteger.withDefault(20)
   );
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(0));
+  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(0));
 
-  const {
-    data: assets,
-    isLoading,
-    error
-  } = useQuery({
-    queryKey: ["assets", page, pageSize],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['assets', page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("asset")
+      const { data, error, count } = await supabase
+        .from('asset')
         .select(
           `
           id, 
@@ -108,25 +106,32 @@ export function DataView() {
             project(id, name, description, source_language:language!source_language_id(id, english_name), target_language:language!target_language_id(id, english_name)),
             tags:quest_tag_link(tag(id, name))
           ))
-        `
+        `,
+          { count: 'exact' }
         )
         .range(page * pageSize, (page + 1) * pageSize - 1);
       if (error) throw error;
-      return data.map((asset) => ({
-        ...asset,
-        images: asset.images
-          ? (JSON.parse(asset.images) as string[])
-          : undefined
-      }));
+      return {
+        assets: data.map((asset) => ({
+          ...asset,
+          images: asset.images
+            ? (JSON.parse(asset.images) as string[])
+            : undefined
+        })),
+        count
+      };
     }
   });
+
+  const assets = data?.assets;
+  const count = data?.count;
 
   const [filter, setFilter] = useState<
     { path: keyof typeof pathMap; value: string }[]
   >([]);
   const [sort, setSort] = useQueryState<
-    { path: keyof typeof pathMap; sort: "asc" | "desc" }[]
-  >("sort", parseAsSorting.withDefault([]));
+    { path: keyof typeof pathMap; sort: 'asc' | 'desc' }[]
+  >('sort', parseAsSorting.withDefault([]));
 
   const [selectedFilter, setSelectedFilter] = useState<keyof typeof pathMap>();
 
@@ -134,9 +139,12 @@ export function DataView() {
     string[]
   >([]);
   const [selectedTagResults, setSelectedTagResults] = useState<string[]>([]);
+  const [filteredAssets, setFilteredAssets] = useState<typeof assets>();
+
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
-    if (!selectedFilter) return;
+    if (!selectedFilter || !assets) return;
     jsonata(pathMap[selectedFilter])
       .evaluate(assets)
       .then((result) => {
@@ -145,182 +153,60 @@ export function DataView() {
       });
   }, [selectedFilter, assets]);
 
-  const filterAssets = async () => {
-    if (!assets) return [];
-    if (!filter.length && !sort.length) return assets;
-    const computedPath = `$[${filter.reduce((acc, { path, value }) => {
-      return `${acc ? `${acc} and ` : ""}${
-        path === "Tags"
+  const filterAndSortAssets = async (
+    assetsToFilter: typeof assets,
+    toFilter: typeof filter,
+    toSort: typeof sort
+  ) => {
+    const computedPath = `$[${toFilter.reduce((acc, { path, value }) => {
+      return `${acc ? `${acc} and ` : ''}${
+        path === 'Tags'
           ? `"${value}" in ${pathMap[path]}`
           : `${pathMap[path]} = "${value}"`
       }`;
-    }, "")}]${sort
+    }, '')}]${toSort
       .map(
         ({ path, sort }) =>
-          `${sort === "asc" ? `^(${pathMap[path]})` : `^(>$.${pathMap[path]})`}`
+          `${sort === 'asc' ? `^(${pathMap[path]})` : `^(>$.${pathMap[path]})`}`
       )
-      .join("")}`;
-    console.log(computedPath);
-    const result = (await jsonata(computedPath).evaluate(assets)) as
+      .join('')}`;
+    const result = (await jsonata(computedPath).evaluate(assetsToFilter)) as
       | ({
           sequence: number;
-        } & typeof assets)
+        } & typeof assetsToFilter)
       | undefined;
     if (result) delete (result as Partial<typeof result>).sequence;
-    console.log(result);
     return result;
   };
 
-  const [filteredAssets, setFilteredAssets] = useState<typeof assets>([]);
+  const addFilter = (path: keyof typeof pathMap, value: string) => {
+    const newFilter = [
+      ...filter.filter((f) => f.path !== path),
+      { path, value }
+    ];
+    setFilter(newFilter);
+    filterAndSortAssets(assets, newFilter, sort).then(setFilteredAssets);
+  };
 
-  useEffect(() => {
-    filterAssets().then((result) => {
-      setFilteredAssets(typeof result === "object" ? result : []);
-    });
-  }, [filter, sort, assets]);
+  const removeFilter = (path: keyof typeof pathMap) => {
+    const newFilter = filter.filter((f) => f.path !== path);
+    setFilter(newFilter);
+    if (!newFilter.length && !sort.length) setFilteredAssets(undefined);
+    else filterAndSortAssets(assets, newFilter, sort).then(setFilteredAssets);
+  };
 
-  /*
-    {
-    "id": "17f6f122-e655-48fe-b02f-f09723a17d59",
-    "name": "Lucas 1:2 (Zapoteco)",
-    "images": null,
-    "translations": [
-        {
-            "id": "38003a13-ec16-99cf-1973-c6bf864f63a8",
-            "text": "Randall's translation",
-            "audio": null,
-            "votes": []
-        },
-        {
-            "id": "d1ffcd12-9925-1f1b-98e4-8f0adb664bc3",
-            "text": "Caleb's translation",
-            "audio": null,
-            "votes": []
-        },
-        {
-            "id": "dcfeb818-0dd8-5648-c60d-936401a04113",
-            "text": "Milhouse's translation",
-            "audio": null,
-            "votes": [
-                {
-                    "id": "102a2706-b365-1070-8abc-49a5eaef2dc4",
-                    "polarity": "up"
-                },
-                {
-                    "id": "f4e12b53-c293-7a4b-cae9-ffd469c1230f",
-                    "polarity": "down"
-                }
-            ]
-        },
-        {
-            "id": "40d0e9ea-5a54-9788-ac2d-4ec2591fb25c",
-            "text": "Test audio recording - two parts with pause between",
-            "audio": "d7659e4c-b00e-4ebc-870d-1ffcd10ac041",
-            "votes": []
-        },
-        {
-            "id": "da0085b7-55f1-b0e1-3107-784086e49fd3",
-            "text": "Keean",
-            "audio": "d1cac465-4884-4cfc-9381-e5b171875a8e",
-            "votes": []
-        },
-        {
-            "id": "3061b4b0-cc57-1592-bbc5-6e7eadfa8e76",
-            "text": "Pause test",
-            "audio": "6f1dcec7-50a5-40dc-aad6-8a291b3a6b86",
-            "votes": [
-                {
-                    "id": "ef2cb471-3763-4da6-a1b7-bf7aa7ab82fc",
-                    "polarity": "up"
-                },
-                {
-                    "id": "2f359fb4-2a9d-b450-7993-4b0e46949343",
-                    "polarity": "down"
-                },
-                {
-                    "id": "e21209a8-e126-f157-f6dd-a9e350a55da9",
-                    "polarity": "up"
-                }
-            ]
-        },
-        {
-            "id": "d0700730-bc1d-d6f9-6520-514982f81fb5",
-            "text": "RLS test",
-            "audio": "05ca2661-fa46-4203-b096-e7bdf77e07e6",
-            "votes": []
-        },
-        {
-            "id": "32385bec-9f14-4241-9229-4ce4420b020c",
-            "text": "No audio test with RLS active",
-            "audio": null,
-            "votes": []
-        },
-        {
-            "id": "3552fdfd-bd79-1295-ee07-386e4a961734",
-            "text": "",
-            "audio": "f4c304a6-e0c1-4c91-bbd6-073c2d6c7ec7",
-            "votes": []
-        },
-        {
-            "id": "edf5d415-b64a-16dd-d32d-96686202a2da",
-            "text": "",
-            "audio": "432012bd-87f4-43db-be4e-8a7512b800a4",
-            "votes": []
-        }
-    ],
-    "asset_content_link": [
-        {
-            "id": "d81273c4-35d6-422b-93bb-df3e2439270e",
-            "text": "Tal como nos lo transmitieron por aquellos que lo vieron desde el principio y fueron predicadores de la palabra, (BES)",
-            "audio_id": "ec4737e7-b417-4205-8b9d-ada2622dcb56_LUK_1_2_BES"
-        }
-    ],
-    "asset_tag_link": [
-        {
-            "tag": {
-                "id": "683e00e2-7136-4431-9e55-021234b8b6e9",
-                "name": "Libro:Lucas"
-            }
-        },
-        {
-            "tag": {
-                "id": "85e2355b-7d57-47b5-bdfb-8fe46e8b1f41",
-                "name": "Capítulo:1"
-            }
-        },
-        {
-            "tag": {
-                "id": "62397bd8-d56e-4c29-8388-2d399f7cd000",
-                "name": "Versículo:2"
-            }
-        }
-    ],
-    "quest_asset_link": [
-        {
-            "quest": {
-                "id": "97d398d9-4737-44f1-a9da-fe3f988e193a",
-                "name": "Lucas 1:1-5 (Zapoteco)",
-                "quest_tag_link": [
-                    {
-                        "tag": {
-                            "id": "683e00e2-7136-4431-9e55-021234b8b6e9",
-                            "name": "Libro:Lucas"
-                        }
-                    },
-                    {
-                        "tag": {
-                            "id": "85e2355b-7d57-47b5-bdfb-8fe46e8b1f41",
-                            "name": "Capítulo:1"
-                        }
-                    }
-                ]
-            }
-        }
-    ]
-}
-  */
+  const addSort = (path: keyof typeof pathMap) => {
+    const newSort = [...sort, { path, sort: 'asc' as const }];
+    setSort(newSort);
+    filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
+  };
 
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const removeSort = (path: keyof typeof pathMap) => {
+    const newSort = sort.filter((s) => s.path !== path);
+    setSort(newSort);
+    if (!newSort.length && !filter.length) setFilteredAssets(undefined);
+    else filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
+  };
 
   if (isLoading)
     return (
@@ -356,9 +242,7 @@ export function DataView() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() =>
-                      setFilter(filter.filter((f) => f.path !== path))
-                    }
+                    onClick={() => removeFilter(path)}
                     className="size-5 rounded-sm"
                   >
                     <XIcon className="size-4" />
@@ -371,7 +255,7 @@ export function DataView() {
                   key={`${s.path.toLowerCase()}-${s.sort.toLowerCase()}`}
                   className="flex gap-2 items-center"
                 >
-                  {s.path}:{" "}
+                  {s.path}:{' '}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -379,14 +263,14 @@ export function DataView() {
                       setSort(
                         sort.map((f) =>
                           f.path === s.path
-                            ? { ...f, sort: f.sort === "asc" ? "desc" : "asc" }
+                            ? { ...f, sort: f.sort === 'asc' ? 'desc' : 'asc' }
                             : f
                         )
                       )
                     }
                     className="size-5 rounded-sm"
                   >
-                    {s.sort === "asc" ? (
+                    {s.sort === 'asc' ? (
                       <ArrowDownWideNarrowIcon className="size-4" />
                     ) : (
                       <ArrowUpWideNarrowIcon className="size-4" />
@@ -395,9 +279,7 @@ export function DataView() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() =>
-                      setSort(sort.filter((f) => f.path !== s.path))
-                    }
+                    onClick={() => removeSort(s.path)}
                     className="size-5 rounded-sm"
                   >
                     <XIcon className="size-4" />
@@ -417,7 +299,7 @@ export function DataView() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {[50, 100, 200].map((size) => (
+                {[20, 50, 100].map((size) => (
                   <SelectItem key={size} value={size.toString()}>
                     {size} rows
                   </SelectItem>
@@ -441,14 +323,14 @@ export function DataView() {
                   size="sm"
                   className={cn(
                     filter?.length > 0 &&
-                      "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100"
+                      'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
                   )}
                 >
                   <FilterIcon className="size-4" />
                   <span className="hidden sm:block">
                     {filter.length > 0
                       ? `Filtered by ${filter.length} rule(s)`
-                      : "Filter"}
+                      : 'Filter'}
                   </span>
                 </Button>
               </PopoverTrigger>
@@ -476,7 +358,7 @@ export function DataView() {
                   Array.from(
                     new Set(
                       selectedFilterPathResults.map(
-                        (value) => value.split(":")[0]
+                        (value) => value.split(':')[0]
                       )
                     )
                   ).map((value, index) => (
@@ -484,7 +366,7 @@ export function DataView() {
                       variant="outline"
                       key={index}
                       onClick={() => {
-                        if (selectedFilter === "Tags") {
+                        if (selectedFilter === 'Tags') {
                           setSelectedTagResults(
                             Array.from(
                               new Set(
@@ -495,12 +377,7 @@ export function DataView() {
                             )
                           );
                         } else {
-                          setFilter([
-                            ...filter.filter((f) => f.path !== selectedFilter),
-                            { path: selectedFilter, value }
-                          ]);
-                          setSelectedFilter(undefined);
-                          setSelectedFilterPathResults([]);
+                          addFilter(selectedFilter, value);
                         }
                       }}
                     >
@@ -512,11 +389,9 @@ export function DataView() {
                     <Button
                       variant="outline"
                       key={index}
-                      onClick={() => {
-                        setFilter([...filter, { path: selectedFilter, value }]);
-                      }}
+                      onClick={() => addFilter(selectedFilter, value)}
                     >
-                      {value.split(":")[1]}
+                      {value.split(':')[1]}
                     </Button>
                   ))}
               </PopoverContent>
@@ -528,14 +403,14 @@ export function DataView() {
                   size="sm"
                   className={cn(
                     sort?.length > 0 &&
-                      "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100"
+                      'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
                   )}
                 >
                   <ListIcon className="size-4" />
                   <span className="hidden sm:block">
                     {sort.length > 0
                       ? `Sorted by ${sort.length} rule(s)`
-                      : "Sort"}
+                      : 'Sort'}
                   </span>
                 </Button>
               </PopoverTrigger>
@@ -545,19 +420,14 @@ export function DataView() {
               >
                 {!selectedFilter &&
                   Object.keys(pathMap)
-                    .filter((key) => key !== "Tags")
+                    .filter((key) => key !== 'Tags')
                     .sort()
                     .reverse()
                     .map((key) => (
                       <Button
                         variant="outline"
                         key={key}
-                        onClick={() =>
-                          setSort([
-                            ...sort.filter((s) => s.path !== key),
-                            { path: key as keyof typeof pathMap, sort: "asc" }
-                          ])
-                        }
+                        onClick={() => addSort(key as keyof typeof pathMap)}
                       >
                         {key}
                       </Button>
@@ -568,7 +438,7 @@ export function DataView() {
         </div>
       </div>
       <Accordion type="single" collapsible>
-        {filteredAssets?.map((asset, index) => (
+        {(filteredAssets ?? assets)?.map((asset, index) => (
           <AccordionItem
             key={`${asset.id}-${index}`}
             value={asset.id}
@@ -629,7 +499,7 @@ export function DataView() {
                     {asset.quests?.map((quest) => (
                       <div
                         className={`flex flex-col gap-2 bg-secondary/30 p-4 rounded-md w-full ${
-                          asset.quests?.length === 1 && "col-span-2"
+                          asset.quests?.length === 1 && 'col-span-2'
                         }`}
                         key={`${quest.quest.id}-${asset.id}`}
                       >
@@ -639,8 +509,8 @@ export function DataView() {
                               {quest.quest.name}
                             </span>
                             <span className="text-secondary-foreground">
-                              {quest.quest.project.source_language.english_name}{" "}
-                              →{" "}
+                              {quest.quest.project.source_language.english_name}{' '}
+                              →{' '}
                               {quest.quest.project.target_language.english_name}
                             </span>
                           </div>
@@ -649,7 +519,7 @@ export function DataView() {
                               <div className="flex gap-2">
                                 <span className="font-semibold w-20">
                                   Description
-                                </span>{" "}
+                                </span>{' '}
                                 <span className="text-muted-foreground">
                                   {quest.quest.description}
                                 </span>
@@ -666,11 +536,11 @@ export function DataView() {
                               </div>
                             </div>
 
-                            <div>
+                            <div className="flex flex-col gap-1">
                               <div className="flex gap-2">
                                 <span className="font-semibold w-20">
                                   Project
-                                </span>{" "}
+                                </span>{' '}
                                 <span className="text-muted-foreground">
                                   {quest.quest.project.name}
                                 </span>
@@ -678,7 +548,7 @@ export function DataView() {
                               <div className="flex gap-2">
                                 <span className="font-semibold w-20">
                                   Description
-                                </span>{" "}
+                                </span>{' '}
                                 <span className="text-muted-foreground">
                                   {quest.quest.project.description}
                                 </span>
@@ -698,7 +568,7 @@ export function DataView() {
                     {asset.content?.map((content) => (
                       <div
                         className={`flex gap-2 bg-secondary/30 p-4 rounded-md w-full ${
-                          asset.content?.length === 1 && "col-span-2"
+                          asset.content?.length === 1 && 'col-span-2'
                         }`}
                         key={content.id}
                       >
@@ -732,12 +602,12 @@ export function DataView() {
                         <span
                           className={cn(
                             !translation.text &&
-                              "text-muted-foreground italic truncate"
+                              'text-muted-foreground italic truncate'
                           )}
                         >
                           {!!translation.text
                             ? translation.text
-                            : "[No text]"}{" "}
+                            : '[No text]'}{' '}
                         </span>
                         <div className="flex gap-4 items-center">
                           <span className="text-muted-foreground text-nowrap">
@@ -758,7 +628,7 @@ export function DataView() {
                               <ThumbsUpIcon className="size-4" />
                               {
                                 translation.votes.filter(
-                                  (vote) => vote.polarity === "up"
+                                  (vote) => vote.polarity === 'up'
                                 ).length
                               }
                             </div>
@@ -766,7 +636,7 @@ export function DataView() {
                               <ThumbsDownIcon className="size-4" />
                               {
                                 translation.votes.filter(
-                                  (vote) => vote.polarity === "down"
+                                  (vote) => vote.polarity === 'down'
                                 ).length
                               }
                             </div>
@@ -781,6 +651,24 @@ export function DataView() {
           </AccordionItem>
         ))}
       </Accordion>
+      <div className="flex justify-end p-4 gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={page === 0}
+          onClick={() => setPage(page - 1)}
+        >
+          <ArrowLeftIcon className="size-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={count === (page + 1) * pageSize}
+          onClick={() => setPage(page + 1)}
+        >
+          <ArrowRightIcon className="size-4" />
+        </Button>
+      </div>
     </div>
   );
 }

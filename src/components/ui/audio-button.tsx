@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Play, Pause } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ComponentProps } from "react";
+import * as React from 'react';
+import { Play, Pause } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ComponentProps } from 'react';
 
 export function AudioButton({
   src,
   className,
   ...props
-}: ComponentProps<"button"> & { src: string }) {
+}: ComponentProps<'button'> & { src: string }) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
@@ -17,7 +17,7 @@ export function AudioButton({
     if (!audioRef.current) {
       // Create audio element on first play
       audioRef.current = new Audio(src);
-      audioRef.current.addEventListener("ended", () => setIsPlaying(false));
+      audioRef.current.addEventListener('ended', () => setIsPlaying(false));
     }
 
     if (isPlaying) audioRef.current.pause();
@@ -31,8 +31,8 @@ export function AudioButton({
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.removeEventListener("ended", () =>
-          setIsPlaying(false),
+        audioRef.current.removeEventListener('ended', () =>
+          setIsPlaying(false)
         );
       }
     };
@@ -42,8 +42,8 @@ export function AudioButton({
     <button
       onClick={togglePlay}
       className={cn(
-        "size-8 flex items-center justify-center rounded-md border bg-background hover:bg-accent transition-colors",
-        className,
+        'size-8 flex items-center justify-center rounded-md border bg-background hover:bg-accent transition-colors',
+        className
       )}
       {...props}
     >

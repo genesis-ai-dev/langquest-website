@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
+import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import { ChevronRightIcon } from 'lucide-react';
+import * as React from 'react';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 function Accordion({
   ...props
@@ -19,7 +19,7 @@ function AccordionItem({
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn("border-b first:border-t", className)}
+      className={cn('border-b first:border-t', className)}
       {...props}
     />
   );
@@ -35,8 +35,8 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start gap-4 rounded-md p-4 text-left text-sm font-medium transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-90 cursor-pointer",
-          className,
+          'focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start gap-4 rounded-md p-4 text-left text-sm font-medium transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-90 cursor-pointer',
+          className
         )}
         {...props}
       >
@@ -63,4 +63,4 @@ function AccordionContent({
   );
 }
 
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
+export { Accordion, AccordionContent, AccordionItem, AccordionTrigger };

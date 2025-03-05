@@ -39,12 +39,12 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "assets_source_language_id_fkey";
-            columns: ["source_language_id"];
+            foreignKeyName: 'assets_source_language_id_fkey';
+            columns: ['source_language_id'];
             isOneToOne: false;
-            referencedRelation: "language";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'language';
+            referencedColumns: ['id'];
+          }
         ];
       };
       asset_content_link: {
@@ -77,12 +77,12 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "asset_content_link_asset_id_fkey";
-            columns: ["asset_id"];
+            foreignKeyName: 'asset_content_link_asset_id_fkey';
+            columns: ['asset_id'];
             isOneToOne: false;
-            referencedRelation: "asset";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'asset';
+            referencedColumns: ['id'];
+          }
         ];
       };
       asset_download: {
@@ -109,19 +109,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "asset_download_asset_id_fkey";
-            columns: ["asset_id"];
+            foreignKeyName: 'asset_download_asset_id_fkey';
+            columns: ['asset_id'];
             isOneToOne: false;
-            referencedRelation: "asset";
-            referencedColumns: ["id"];
+            referencedRelation: 'asset';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "asset_download_profile_id_fkey";
-            columns: ["profile_id"];
+            foreignKeyName: 'asset_download_profile_id_fkey';
+            columns: ['profile_id'];
             isOneToOne: false;
-            referencedRelation: "profile";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
         ];
       };
       asset_tag_link: {
@@ -148,19 +148,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "asset_tags_asset_id_fkey";
-            columns: ["asset_id"];
+            foreignKeyName: 'asset_tags_asset_id_fkey';
+            columns: ['asset_id'];
             isOneToOne: false;
-            referencedRelation: "asset";
-            referencedColumns: ["id"];
+            referencedRelation: 'asset';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "asset_tags_tag_id_fkey";
-            columns: ["tag_id"];
+            foreignKeyName: 'asset_tags_tag_id_fkey';
+            columns: ['tag_id'];
             isOneToOne: false;
-            referencedRelation: "tag";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'tag';
+            referencedColumns: ['id'];
+          }
         ];
       };
       language: {
@@ -199,12 +199,12 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "languages_creator_id_fkey";
-            columns: ["creator_id"];
+            foreignKeyName: 'languages_creator_id_fkey';
+            columns: ['creator_id'];
             isOneToOne: false;
-            referencedRelation: "profile";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
         ];
       };
       profile: {
@@ -237,12 +237,12 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "users_ui_language_id_fkey";
-            columns: ["ui_language_id"];
+            foreignKeyName: 'users_ui_language_id_fkey';
+            columns: ['ui_language_id'];
             isOneToOne: false;
-            referencedRelation: "language";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'language';
+            referencedColumns: ['id'];
+          }
         ];
       };
       project: {
@@ -278,19 +278,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "projects_source_language_id_fkey";
-            columns: ["source_language_id"];
+            foreignKeyName: 'projects_source_language_id_fkey';
+            columns: ['source_language_id'];
             isOneToOne: false;
-            referencedRelation: "language";
-            referencedColumns: ["id"];
+            referencedRelation: 'language';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "projects_target_language_id_fkey";
-            columns: ["target_language_id"];
+            foreignKeyName: 'projects_target_language_id_fkey';
+            columns: ['target_language_id'];
             isOneToOne: false;
-            referencedRelation: "language";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'language';
+            referencedColumns: ['id'];
+          }
         ];
       };
       project_download: {
@@ -317,19 +317,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "project_download_profile_id_fkey";
-            columns: ["profile_id"];
+            foreignKeyName: 'project_download_profile_id_fkey';
+            columns: ['profile_id'];
             isOneToOne: false;
-            referencedRelation: "profile";
-            referencedColumns: ["id"];
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "project_download_project_id_fkey";
-            columns: ["project_id"];
+            foreignKeyName: 'project_download_project_id_fkey';
+            columns: ['project_id'];
             isOneToOne: false;
-            referencedRelation: "project";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'project';
+            referencedColumns: ['id'];
+          }
         ];
       };
       quest: {
@@ -362,12 +362,12 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "quests_project_id_fkey";
-            columns: ["project_id"];
+            foreignKeyName: 'quests_project_id_fkey';
+            columns: ['project_id'];
             isOneToOne: false;
-            referencedRelation: "project";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'project';
+            referencedColumns: ['id'];
+          }
         ];
       };
       quest_asset_link: {
@@ -394,19 +394,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "quest_assets_asset_id_fkey";
-            columns: ["asset_id"];
+            foreignKeyName: 'quest_assets_asset_id_fkey';
+            columns: ['asset_id'];
             isOneToOne: false;
-            referencedRelation: "asset";
-            referencedColumns: ["id"];
+            referencedRelation: 'asset';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "quest_assets_quest_id_fkey";
-            columns: ["quest_id"];
+            foreignKeyName: 'quest_assets_quest_id_fkey';
+            columns: ['quest_id'];
             isOneToOne: false;
-            referencedRelation: "quest";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'quest';
+            referencedColumns: ['id'];
+          }
         ];
       };
       quest_download: {
@@ -433,19 +433,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "quest_download_profile_id_fkey";
-            columns: ["profile_id"];
+            foreignKeyName: 'quest_download_profile_id_fkey';
+            columns: ['profile_id'];
             isOneToOne: false;
-            referencedRelation: "profile";
-            referencedColumns: ["id"];
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "quest_download_quest_id_fkey";
-            columns: ["quest_id"];
+            foreignKeyName: 'quest_download_quest_id_fkey';
+            columns: ['quest_id'];
             isOneToOne: false;
-            referencedRelation: "quest";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'quest';
+            referencedColumns: ['id'];
+          }
         ];
       };
       quest_tag_link: {
@@ -472,19 +472,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "quest_tags_quest_id_fkey";
-            columns: ["quest_id"];
+            foreignKeyName: 'quest_tags_quest_id_fkey';
+            columns: ['quest_id'];
             isOneToOne: false;
-            referencedRelation: "quest";
-            referencedColumns: ["id"];
+            referencedRelation: 'quest';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "quest_tags_tag_id_fkey";
-            columns: ["tag_id"];
+            foreignKeyName: 'quest_tags_tag_id_fkey';
+            columns: ['tag_id'];
             isOneToOne: false;
-            referencedRelation: "tag";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'tag';
+            referencedColumns: ['id'];
+          }
         ];
       };
       tag: {
@@ -547,26 +547,26 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "translations_asset_id_fkey";
-            columns: ["asset_id"];
+            foreignKeyName: 'translations_asset_id_fkey';
+            columns: ['asset_id'];
             isOneToOne: false;
-            referencedRelation: "asset";
-            referencedColumns: ["id"];
+            referencedRelation: 'asset';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "translations_creator_id_fkey";
-            columns: ["creator_id"];
+            foreignKeyName: 'translations_creator_id_fkey';
+            columns: ['creator_id'];
             isOneToOne: false;
-            referencedRelation: "profile";
-            referencedColumns: ["id"];
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "translations_target_language_id_fkey";
-            columns: ["target_language_id"];
+            foreignKeyName: 'translations_target_language_id_fkey';
+            columns: ['target_language_id'];
             isOneToOne: false;
-            referencedRelation: "language";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'language';
+            referencedColumns: ['id'];
+          }
         ];
       };
       vote: {
@@ -602,19 +602,19 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "votes_creator_id_fkey";
-            columns: ["creator_id"];
+            foreignKeyName: 'votes_creator_id_fkey';
+            columns: ['creator_id'];
             isOneToOne: false;
-            referencedRelation: "profile";
-            referencedColumns: ["id"];
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "votes_translation_id_fkey";
-            columns: ["translation_id"];
+            foreignKeyName: 'votes_translation_id_fkey';
+            columns: ['translation_id'];
             isOneToOne: false;
-            referencedRelation: "translation";
-            referencedColumns: ["id"];
-          },
+            referencedRelation: 'translation';
+            referencedColumns: ['id'];
+          }
         ];
       };
     };
@@ -633,27 +633,27 @@ export type Database = {
   };
 };
 
-type PublicSchema = Database[Extract<keyof Database, "public">];
+type PublicSchema = Database[Extract<keyof Database, 'public'>];
 
 export type Tables<
   PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+    | keyof (PublicSchema['Tables'] & PublicSchema['Views'])
     | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    ? keyof (Database[PublicTableNameOrOptions['schema']]['Tables'] &
+        Database[PublicTableNameOrOptions['schema']]['Views'])
+    : never = never
 > = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (Database[PublicTableNameOrOptions['schema']]['Tables'] &
+      Database[PublicTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R;
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof (PublicSchema['Tables'] &
+        PublicSchema['Views'])
+    ? (PublicSchema['Tables'] &
+        PublicSchema['Views'])[PublicTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -662,19 +662,19 @@ export type Tables<
 
 export type TablesInsert<
   PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+    | keyof PublicSchema['Tables']
     | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
+    : never = never
 > = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I;
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof PublicSchema['Tables']
+    ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
         Insert: infer I;
       }
       ? I
@@ -683,19 +683,19 @@ export type TablesInsert<
 
 export type TablesUpdate<
   PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+    | keyof PublicSchema['Tables']
     | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
+    : never = never
 > = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U;
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof PublicSchema['Tables']
+    ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
         Update: infer U;
       }
       ? U
@@ -704,28 +704,28 @@ export type TablesUpdate<
 
 export type Enums<
   PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+    | keyof PublicSchema['Enums']
     | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    ? keyof Database[PublicEnumNameOrOptions['schema']]['Enums']
+    : never = never
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+  ? Database[PublicEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : PublicEnumNameOrOptions extends keyof PublicSchema['Enums']
+    ? PublicSchema['Enums'][PublicEnumNameOrOptions]
     : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof PublicSchema['CompositeTypes']
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database;
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    ? keyof Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    : never = never
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema['CompositeTypes']
+    ? PublicSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never;

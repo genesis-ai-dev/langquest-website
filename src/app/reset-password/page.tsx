@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import { useEffect, useState, useCallback } from "react";
-import { createClient, AuthError } from "@supabase/supabase-js";
-import { useSearchParams } from "next/navigation";
-import { env } from "@/lib/env";
-import { isMobile } from "@/lib/utils";
+import { Suspense } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { createClient, AuthError } from '@supabase/supabase-js';
+import { useSearchParams } from 'next/navigation';
+import { env } from '@/lib/env';
+import { isMobile } from '@/lib/utils';
 
 // This is the main page component (server component)
 export default function ResetPasswordPage() {
@@ -18,38 +18,38 @@ export default function ResetPasswordPage() {
 
 // This is the client component with all our existing logic
 function ResetPasswordForm() {
-  const [message, setMessage] = useState("Redirecting to LangQuest app...");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState('Redirecting to LangQuest app...');
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
 
   // Initialize Supabase client
   const supabaseClient = createClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
   const handlePasswordReset = useCallback(async () => {
     // Get tokens from URL and hash
     const access_token =
-      searchParams.get("access_token") ||
+      searchParams.get('access_token') ||
       window.location.hash.match(/access_token=([^&]*)/)?.[1];
     const refresh_token =
-      searchParams.get("refresh_token") ||
+      searchParams.get('refresh_token') ||
       window.location.hash.match(/refresh_token=([^&]*)/)?.[1];
     const type =
-      searchParams.get("type") ||
+      searchParams.get('type') ||
       window.location.hash.match(/type=([^&]*)/)?.[1];
 
     if (isMobile()) {
       // Mobile deep linking
       const deepLink = `langquest://reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=${type}`;
       const playStoreUrl =
-        "https://play.google.com/store/apps/details?id=com.etengenesis.langquest";
+        'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
       const now = Date.now();
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
       iframe.src = deepLink;
       document.body.appendChild(iframe);
 
@@ -64,19 +64,19 @@ function ResetPasswordForm() {
       try {
         const { error: sessionError } = await supabaseClient.auth.setSession({
           access_token: access_token!,
-          refresh_token: refresh_token!,
+          refresh_token: refresh_token!
         });
 
         if (sessionError) throw sessionError;
 
         setShowForm(true);
-        setMessage("");
+        setMessage('');
       } catch (error: unknown) {
-        console.error("Error setting session:", error);
+        console.error('Error setting session:', error);
         setMessage(
-          "Error: Invalid or expired reset link. Please request a new password reset.",
+          'Error: Invalid or expired reset link. Please request a new password reset.'
         );
-        setError("red");
+        setError('red');
       }
     }
   }, [searchParams, supabaseClient]);
@@ -88,26 +88,26 @@ function ResetPasswordForm() {
   const submitNewPassword = async (event: React.FormEvent) => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
-    const password = (form.elements.namedItem("password") as HTMLInputElement)
+    const password = (form.elements.namedItem('password') as HTMLInputElement)
       .value;
 
     try {
       const { error } = await supabaseClient.auth.updateUser({
-        password: password,
+        password: password
       });
 
       if (error) throw error;
 
       setMessage(
-        "Password successfully updated! You can now close this window and log in to the app.",
+        'Password successfully updated! You can now close this window and log in to the app.'
       );
       setShowForm(false);
     } catch (error: unknown) {
-      console.error("Error updating password:", error);
+      console.error('Error updating password:', error);
       if (error instanceof Error || error instanceof AuthError) {
         setError(error.message);
       } else {
-        setError("An unexpected error occurred");
+        setError('An unexpected error occurred');
       }
     }
   };
@@ -117,7 +117,7 @@ function ResetPasswordForm() {
       {message && (
         <div
           id="message"
-          className={`text-center my-5 ${error ? "text-red-500" : ""}`}
+          className={`text-center my-5 ${error ? 'text-red-500' : ''}`}
         >
           {message}
         </div>

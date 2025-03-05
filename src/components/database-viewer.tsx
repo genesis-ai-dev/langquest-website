@@ -1,42 +1,45 @@
-"use client";
+'use client';
 
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { AudioButton } from "@/components/ui/audio-button";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { AudioButton } from '@/components/ui/audio-button';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  PopoverTrigger
+} from '@/components/ui/popover';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { supabase } from "@/lib/supabase";
-import { cn, isMobile, toProperCase } from "@/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+  TableRow
+} from '@/components/ui/table';
+import { env } from '@/lib/env';
+import { supabase } from '@/lib/supabase';
+import { cn, toProperCase } from '@/lib/utils';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -45,58 +48,49 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  RowModel,
   SortingState,
-  useReactTable,
-} from "@tanstack/react-table";
-import { format } from "date-fns";
+  useReactTable
+} from '@tanstack/react-table';
+import { format } from 'date-fns';
+import JSZip from 'jszip';
 import {
   AlignJustify,
+  ArrowLeft,
+  ArrowRight,
   CalendarIcon,
   ChevronDown,
   ChevronRight,
-  Filter,
-  List,
-  Plus,
-  X,
-  Download,
   Columns3,
-  ChevronLeft,
-  ArrowLeft,
-  ArrowRight,
-  Braces,
+  Download,
   FileJson,
   FileSpreadsheet,
+  Filter,
+  List,
   PanelLeft,
-} from "lucide-react";
-import { parseAsInteger, parseAsJson, useQueryState, createParser } from "nuqs";
-import * as React from "react";
-import { z } from "zod";
-import { Spinner } from "./spinner";
-import { env } from "@/lib/env";
-import JSZip from "jszip";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { parseAsBoolean } from "nuqs";
+  Plus,
+  X
+} from 'lucide-react';
+import {
+  createParser,
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsJson,
+  useQueryState
+} from 'nuqs';
+import * as React from 'react';
+import { z } from 'zod';
+import { Database } from '../../database.types';
+import { Spinner } from './spinner';
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
-} from "./ui/sheet";
-import { Database } from "../../database.types";
+  SheetTrigger
+} from './ui/sheet';
 
 // Define base types
-type ColumnType = "string" | "number" | "boolean" | "timestamp" | "uuid";
-
-// Define Zod schemas for validation
-const filterConditionSchema = z.object({
-  column: z.string(),
-  operator: z.string(),
-  value: z.string(),
-});
+type ColumnType = 'string' | 'number' | 'boolean' | 'timestamp' | 'uuid';
 
 const visibilityStateSchema = z.record(z.boolean());
 
@@ -108,15 +102,15 @@ interface TableSchema {
     type: ColumnType;
     required: boolean;
     foreignKey?: {
-      table: keyof Database["public"]["Tables"];
+      table: keyof Database['public']['Tables'];
       column: string;
     };
     isVirtual?: boolean;
     reverseRelationship?: {
-      sourceTable: keyof Database["public"]["Tables"];
+      sourceTable: keyof Database['public']['Tables'];
       sourceColumn: string;
       isLinkTable?: boolean;
-      throughTable?: keyof Database["public"]["Tables"];
+      throughTable?: keyof Database['public']['Tables'];
       throughSourceColumn?: string;
       throughTargetColumn?: string;
     };
@@ -130,46 +124,46 @@ interface TableData {
 
 // Convert the JSON schema to our table schema format
 const convertJsonSchemaToTableSchema = (
-  name: keyof Database["public"]["Tables"],
-  schema: any,
+  name: keyof Database['public']['Tables'],
+  schema: any
 ): TableSchema => {
   const columns = Object.entries(schema.properties).map(
     ([key, value]: [string, any]) => {
-      let type: ColumnType = "string";
+      let type: ColumnType = 'string';
 
-      if (value.format === "uuid") type = "uuid";
-      else if (value.format === "timestamp with time zone") type = "timestamp";
-      else if (value.format === "boolean") type = "boolean";
-      else if (value.type === "number") type = "number";
+      if (value.format === 'uuid') type = 'uuid';
+      else if (value.format === 'timestamp with time zone') type = 'timestamp';
+      else if (value.format === 'boolean') type = 'boolean';
+      else if (value.type === 'number') type = 'number';
 
-      const description = value.description?.toString() ?? "";
+      const description = value.description?.toString() ?? '';
       let foreignKey:
-        | { table: keyof Database["public"]["Tables"]; column: string }
+        | { table: keyof Database['public']['Tables']; column: string }
         | undefined;
       if (description) {
         const match = description.match(
-          /<fk table='([^']+)' column='([^']+)'\/>/,
+          /<fk table='([^']+)' column='([^']+)'\/>/
         );
         if (match) {
           foreignKey = {
             table: match[1],
-            column: match[2],
+            column: match[2]
           };
         }
       }
 
       return {
         key,
-        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
+        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
         type,
         required: schema.required.includes(key),
-        foreignKey,
+        foreignKey
       };
-    },
+    }
   );
   return {
     name,
-    columns,
+    columns
   };
 };
 
@@ -187,52 +181,52 @@ interface Operator {
 
 const OPERATORS: Operator[] = [
   {
-    value: "=",
-    label: "equals",
+    value: '=',
+    label: 'equals'
   },
   {
-    value: "<>",
-    label: "not equal",
+    value: '<>',
+    label: 'not equal'
   },
   {
-    value: ">",
-    label: "greater than",
+    value: '>',
+    label: 'greater than'
   },
   {
-    value: "<",
-    label: "less than",
+    value: '<',
+    label: 'less than'
   },
   {
-    value: ">=",
-    label: "greater than or equal",
+    value: '>=',
+    label: 'greater than or equal'
   },
   {
-    value: "<=",
-    label: "less than or equal",
+    value: '<=',
+    label: 'less than or equal'
   },
   {
-    value: "LIKE",
-    label: "like operator",
+    value: 'LIKE',
+    label: 'like operator'
   },
   {
-    value: "ILIKE",
-    label: "ilike operator",
+    value: 'ILIKE',
+    label: 'ilike operator'
   },
   {
-    value: "IN",
-    label: "one of a list of values",
-  },
+    value: 'IN',
+    label: 'one of a list of values'
+  }
 ];
 
 // Add helper function to compute symbol
 const getOperatorSymbol = (value: string) => {
   switch (value) {
-    case "LIKE":
-      return "[~~]";
-    case "ILIKE":
-      return "[~~*]";
-    case "IN":
-      return "[in]";
+    case 'LIKE':
+      return '[~~]';
+    case 'ILIKE':
+      return '[~~*]';
+    case 'IN':
+      return '[in]';
     default:
       return `[${value}]`;
   }
@@ -240,22 +234,13 @@ const getOperatorSymbol = (value: string) => {
 
 const getJavascriptEvaluationOperator = (operator: string) => {
   switch (operator) {
-    case "=":
-      return "==";
-    case "<>":
-      return "!=";
+    case '=':
+      return '==';
+    case '<>':
+      return '!=';
     default:
       return operator;
   }
-};
-
-const convertColumnFiltersToColumnFilterState = (
-  columnFilters: z.infer<typeof filterConditionSchema>[],
-): ColumnFiltersState => {
-  return columnFilters.map((filter) => ({
-    id: filter.column,
-    value: filter.value,
-  }));
 };
 
 // Add API fetching functions
@@ -264,22 +249,22 @@ const fetchTableSchemas = async () => {
   const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anon) {
-    throw new Error("Missing API configuration");
+    throw new Error('Missing API configuration');
   }
 
   const response = await fetch(`${url}/rest/v1/?apikey=${anon}`);
   if (!response.ok) {
-    throw new Error("Failed to fetch schemas");
+    throw new Error('Failed to fetch schemas');
   }
 
-  const contentType = response.headers.get("content-type");
-  if (!contentType?.includes("application/openapi+json")) {
-    throw new Error("Invalid content type");
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/openapi+json')) {
+    throw new Error('Invalid content type');
   }
 
   const data = await response.json();
   if (!data.definitions) {
-    throw new Error("Invalid schema format");
+    throw new Error('Invalid schema format');
   }
 
   // Convert schemas to our format
@@ -287,10 +272,10 @@ const fetchTableSchemas = async () => {
   Object.entries(data.definitions).forEach(
     ([tableName, schema]: [string, any]) => {
       convertedSchemas[tableName] = convertJsonSchemaToTableSchema(
-        tableName as keyof Database["public"]["Tables"],
-        schema,
+        tableName as keyof Database['public']['Tables'],
+        schema
       );
-    },
+    }
   );
 
   // Add reverse relationship columns
@@ -305,9 +290,9 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
   const reverseRelationships: Record<
     string,
     Array<{
-      targetTable: keyof Database["public"]["Tables"];
+      targetTable: keyof Database['public']['Tables'];
       targetColumn: string;
-      sourceTable: keyof Database["public"]["Tables"];
+      sourceTable: keyof Database['public']['Tables'];
       sourceColumn: string;
     }>
   > = {};
@@ -326,8 +311,8 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
         reverseRelationships[targetTable].push({
           targetTable,
           targetColumn,
-          sourceTable: schema.name as keyof Database["public"]["Tables"],
-          sourceColumn: column.key,
+          sourceTable: schema.name as keyof Database['public']['Tables'],
+          sourceColumn: column.key
         });
       }
     });
@@ -349,8 +334,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
     const foreignKeyColumns = schema.columns.filter((col) => col.foreignKey);
     const nonForeignKeyColumns = schema.columns.filter(
       (col) =>
-        !col.foreignKey &&
-        !["id", "created_at", "updated_at"].includes(col.key),
+        !col.foreignKey && !['id', 'created_at', 'updated_at'].includes(col.key)
     );
 
     // A table is a link table if it has at least 2 foreign keys and few other columns
@@ -360,9 +344,9 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
     linkTables.set(tableName, {
       foreignKeys: foreignKeyColumns.map((col) => ({
         key: col.key,
-        foreignKey: col.foreignKey!,
+        foreignKey: col.foreignKey!
       })),
-      isLinkTable,
+      isLinkTable
     });
   });
 
@@ -370,7 +354,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
   Object.entries(reverseRelationships).forEach(
     ([targetTable, relationships]) => {
       relationships.forEach((rel) => {
-        const sourceSchema = schemas[rel.sourceTable];
+        // const sourceSchema = schemas[rel.sourceTable];
         const linkTableInfo = linkTables.get(rel.sourceTable);
         const isLinkTable = linkTableInfo?.isLinkTable || false;
 
@@ -380,17 +364,17 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
         // For link tables, use a more intuitive name based on the target table
         if (isLinkTable) {
           // Extract the name from the link table (e.g., "asset_tag_link" -> "tags")
-          const tableParts = rel.sourceTable.split("_");
+          const tableParts = rel.sourceTable.split('_');
           if (
             tableParts.length >= 3 &&
-            (tableParts[tableParts.length - 1] === "link" ||
-              tableParts[tableParts.length - 1] === "links")
+            (tableParts[tableParts.length - 1] === 'link' ||
+              tableParts[tableParts.length - 1] === 'links')
           ) {
             // Find the part that's not the current table and not "link"
             for (const part of tableParts) {
               if (
-                part !== "link" &&
-                part !== "links" &&
+                part !== 'link' &&
+                part !== 'links' &&
                 !targetTable.includes(part)
               ) {
                 columnKey = `${part}s`;
@@ -402,8 +386,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
           // If we have throughInfo, we can get an even better name
           const otherForeignKeys = linkTableInfo?.foreignKeys.filter(
             (fk) =>
-              fk.foreignKey.table !== targetTable &&
-              fk.key !== rel.sourceColumn,
+              fk.foreignKey.table !== targetTable && fk.key !== rel.sourceColumn
           );
 
           if (otherForeignKeys && otherForeignKeys.length > 0) {
@@ -413,7 +396,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
             // Use the other table's name for the column
             if (otherTable) {
               // Remove trailing 's' if it exists and add it back to make it plural
-              const baseName = otherTable.endsWith("s")
+              const baseName = otherTable.endsWith('s')
                 ? otherTable.slice(0, -1)
                 : otherTable;
               columnKey = `${baseName}s`;
@@ -423,7 +406,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
 
         // Skip if the column already exists
         const existingColumn = schemas[targetTable].columns.find(
-          (col) => col.key === columnKey,
+          (col) => col.key === columnKey
         );
         if (existingColumn) return;
 
@@ -432,8 +415,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
         if (isLinkTable) {
           const otherForeignKeys = linkTableInfo?.foreignKeys.filter(
             (fk) =>
-              fk.foreignKey.table !== targetTable &&
-              fk.key !== rel.sourceColumn,
+              fk.foreignKey.table !== targetTable && fk.key !== rel.sourceColumn
           );
 
           if (otherForeignKeys && otherForeignKeys.length > 0) {
@@ -445,7 +427,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
               throughTable: rel.sourceTable,
               throughSourceColumn: rel.sourceColumn,
               throughTargetColumn: otherForeignKey.key,
-              targetTable: otherForeignKey.foreignKey.table,
+              targetTable: otherForeignKey.foreignKey.table
             };
           }
         }
@@ -454,7 +436,7 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
         schemas[targetTable].columns.push({
           key: columnKey,
           header: columnKey,
-          type: "string",
+          type: 'string',
           required: false,
           isVirtual: true,
           reverseRelationship: {
@@ -464,23 +446,23 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
             ...(throughInfo && {
               throughTable: throughInfo.throughTable,
               throughSourceColumn: throughInfo.throughSourceColumn,
-              throughTargetColumn: throughInfo.throughTargetColumn,
-            }),
-          },
+              throughTargetColumn: throughInfo.throughTargetColumn
+            })
+          }
         });
       });
-    },
+    }
   );
 };
 
 const fetchTableData = async (
   tableName: string,
   page: number,
-  pageSize: number,
+  pageSize: number
 ) => {
   const { data, error, count } = await supabase
-    .from(tableName as keyof Database["public"]["Tables"])
-    .select("*", { count: "exact" })
+    .from(tableName as keyof Database['public']['Tables'])
+    .select('*', { count: 'exact' })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
   if (error) {
@@ -502,44 +484,42 @@ interface ForeignKeyTarget {
 function RelatedRecordsCount({
   tableName,
   columnName,
-  recordId,
-  isLinkTable = false,
+  recordId
 }: {
-  tableName: keyof Database["public"]["Tables"];
+  tableName: keyof Database['public']['Tables'];
   columnName: string;
   recordId: string;
   isLinkTable?: boolean;
 }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["relatedRecordsCount", tableName, columnName, recordId],
+    queryKey: ['relatedRecordsCount', tableName, columnName, recordId],
     queryFn: async () => {
       const { count, error } = await supabase
         .from(tableName)
-        .select("*", { count: "exact", head: true })
+        .select('*', { count: 'exact', head: true })
         .eq(columnName, recordId);
 
       if (error) throw error;
       return count || 0;
-    },
+    }
   });
 
   if (isLoading) return <span className="text-muted-foreground">...</span>;
 
   return (
     <span className="text-muted-foreground">
-      {data} {data === 1 ? "record" : "records"}
+      {data} {data === 1 ? 'record' : 'records'}
     </span>
   );
 }
 
 function useTransformedColumns({
   schema,
-  tableName,
   onForeignKeySelect,
   isPreview = false,
-  tableSchemas,
+  tableSchemas
 }: {
-  schema: TableSchema;
+  schema?: TableSchema;
   tableName: string;
   onForeignKeySelect?: (target: ForeignKeyTarget) => void;
   isPreview?: boolean;
@@ -552,12 +532,12 @@ function useTransformedColumns({
         ? []
         : [
             {
-              accessorKey: "select",
+              accessorKey: 'select',
               header: ({ table }: { table: any }) => (
                 <Checkbox
                   checked={
                     table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && "indeterminate")
+                    (table.getIsSomePageRowsSelected() && 'indeterminate')
                   }
                   onCheckedChange={(value) =>
                     table.toggleAllPageRowsSelected(!!value)
@@ -574,8 +554,8 @@ function useTransformedColumns({
               ),
               enableSorting: false,
               enableHiding: false,
-              enableColumnFilter: false,
-            },
+              enableColumnFilter: false
+            }
           ]),
       ...schema.columns.map((col) => ({
         accessorKey: col.key,
@@ -590,7 +570,7 @@ function useTransformedColumns({
                 const throughTargetColumn =
                   col.reverseRelationship.throughTargetColumn!;
                 const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-                  (c) => c.key === throughTargetColumn,
+                  (c) => c.key === throughTargetColumn
                 )?.foreignKey;
 
                 if (foreignKeyInfo) {
@@ -603,8 +583,8 @@ function useTransformedColumns({
         cell: ({ row }: { row: any }) => {
           // For virtual reverse relationship columns
           if (col.isVirtual && col.reverseRelationship) {
-            const recordId = row.getValue("id");
-            if (!recordId) return "N/A";
+            const recordId = row.getValue('id');
+            if (!recordId) return 'N/A';
 
             return (
               <div className="flex items-center gap-2">
@@ -628,9 +608,9 @@ function useTransformedColumns({
                       <div className="p-2 border-b border-border text-sm">
                         <span className="text-muted-foreground">
                           {col.reverseRelationship.isLinkTable
-                            ? "Related records from"
-                            : "Referencing records from"}
-                        </span>{" "}
+                            ? 'Related records from'
+                            : 'Referencing records from'}
+                        </span>{' '}
                         {(() => {
                           if (
                             col.reverseRelationship.isLinkTable &&
@@ -646,7 +626,7 @@ function useTransformedColumns({
                             const foreignKeyInfo = tableSchemas[
                               throughTable
                             ]?.columns.find(
-                              (c) => c.key === throughTargetColumn,
+                              (c) => c.key === throughTargetColumn
                             )?.foreignKey;
 
                             if (foreignKeyInfo) {
@@ -693,7 +673,7 @@ function useTransformedColumns({
                               const foreignKeyInfo = tableSchemas[
                                 throughTable
                               ]?.columns.find(
-                                (c) => c.key === throughTargetColumn,
+                                (c) => c.key === throughTargetColumn
                               )?.foreignKey;
 
                               if (foreignKeyInfo) {
@@ -701,7 +681,7 @@ function useTransformedColumns({
                                 onForeignKeySelect?.({
                                   table: foreignKeyInfo.table,
                                   column: foreignKeyInfo.column,
-                                  value: "", // We don't have a specific value to filter by
+                                  value: '' // We don't have a specific value to filter by
                                 });
                                 return;
                               }
@@ -711,7 +691,7 @@ function useTransformedColumns({
                             onForeignKeySelect?.({
                               table: col.reverseRelationship!.sourceTable,
                               column: col.reverseRelationship!.sourceColumn,
-                              value: String(recordId),
+                              value: String(recordId)
                             });
                           }}
                         >
@@ -726,21 +706,21 @@ function useTransformedColumns({
           }
 
           const value = row.getValue(col.key);
-          if (value === null || value === undefined) return "NULL";
-          if (col.type === "timestamp") {
+          if (value === null || value === undefined) return 'NULL';
+          if (col.type === 'timestamp') {
             return new Date(value as string).toLocaleString();
           }
-          if (col.type === "boolean")
+          if (col.type === 'boolean')
             return <Checkbox checked={value} disabled />;
-          if (col.key.includes("image")) {
+          if (col.key.includes('image')) {
             let imageSources: string[] = [];
             try {
               const json = JSON.parse(value as string);
               if (Array.isArray(json)) {
                 imageSources = json;
               }
-            } catch (error) {
-              if (!value.includes("[")) imageSources = [value as string];
+            } catch {
+              if (!value.includes('[')) imageSources = [value as string];
             }
 
             return (
@@ -768,15 +748,15 @@ function useTransformedColumns({
               </div>
             );
           }
-          if (col.key.includes("audio")) {
+          if (col.key.includes('audio')) {
             let audioSources: string[] = [];
             try {
               const json = JSON.parse(value as string);
               if (Array.isArray(json)) {
                 audioSources = json;
               }
-            } catch (error) {
-              if (!value.includes("[")) audioSources = [value as string];
+            } catch {
+              if (!value.includes('[')) audioSources = [value as string];
             }
             return (
               <div className="flex gap-2">
@@ -814,7 +794,7 @@ function useTransformedColumns({
                     <div className="p-2 border-b border-border text-sm">
                       <span className="text-muted-foreground">
                         Referencing record from
-                      </span>{" "}
+                      </span>{' '}
                       {col.foreignKey.table}:
                     </div>
                     <PreviewTable
@@ -834,7 +814,7 @@ function useTransformedColumns({
                             value: String(value),
                             sourceTable: col.foreignKey!.table,
                             sourceColumn: col.key,
-                            sourceValue: String(value),
+                            sourceValue: String(value)
                           });
                         }}
                       >
@@ -850,8 +830,8 @@ function useTransformedColumns({
             return <span className="truncate">{String(value)}</span>;
           }
           return String(value);
-        },
-      })),
+        }
+      }))
     ];
   }, [schema, onForeignKeySelect, isPreview, tableSchemas]);
 }
@@ -859,28 +839,28 @@ function useTransformedColumns({
 function PreviewTable({
   tableName,
   filterColumn,
-  filterValue,
+  filterValue
 }: {
-  tableName: keyof Database["public"]["Tables"];
+  tableName: keyof Database['public']['Tables'];
   filterColumn: string;
   filterValue: string;
 }) {
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
-    queryKey: ["tableSchemas"],
-    queryFn: fetchTableSchemas,
+    queryKey: ['tableSchemas'],
+    queryFn: fetchTableSchemas
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["previewData", tableName, filterColumn, filterValue],
+    queryKey: ['previewData', tableName, filterColumn, filterValue],
     queryFn: async () => {
       const { data, error } = await supabase
         .from(tableName)
-        .select("*")
+        .select('*')
         .eq(filterColumn, filterValue);
 
       if (error) throw error;
       return data;
-    },
+    }
   });
 
   const schema = tableSchemas?.[tableName];
@@ -888,7 +868,7 @@ function PreviewTable({
     schema: schema!,
     tableName: tableName,
     isPreview: true,
-    tableSchemas,
+    tableSchemas
   });
 
   if (!schema || isLoading) {
@@ -923,8 +903,8 @@ function PreviewTable({
               <TableCell key={col.accessorKey} className="truncate">
                 {col.cell({
                   row: {
-                    getValue: (key: string) => row[key as keyof typeof row],
-                  },
+                    getValue: (key: string) => row[key as keyof typeof row]
+                  }
                 })}
               </TableCell>
             ))}
@@ -940,38 +920,38 @@ const parseAsSorting = createParser({
     const parseB = (queryValue: string | null) => {
       if (!queryValue) return [];
       try {
-        return queryValue.split(",").map((part) => {
-          const [id, direction] = part.split(":");
+        return queryValue.split(',').map((part) => {
+          const [id, direction] = part.split(':');
           return {
             id,
-            desc: direction === "desc",
+            desc: direction === 'desc'
           };
         });
-      } catch (error) {
+      } catch {
         return null;
       }
     };
     return parseB(queryValue);
   },
   serialize(value) {
-    if (!value?.length) return "";
+    if (!value?.length) return '';
     return value
-      .map((sort) => `${sort.id}:${sort.desc ? "desc" : "asc"}`)
-      .join(",");
+      .map((sort) => `${sort.id}:${sort.desc ? 'desc' : 'asc'}`)
+      .join(',');
   },
   eq(a, b) {
     // simpler check to clearOnDefault
     return a.length === b.length;
-  },
+  }
 });
 
 // Add export functions
 const downloadAsFile = (
   content: string,
   fileName: string,
-  contentType: string,
+  contentType: string
 ) => {
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   const file = new Blob([content], { type: contentType });
   a.href = URL.createObjectURL(file);
   a.download = fileName;
@@ -983,19 +963,19 @@ const downloadAsZip = async (
   content: string,
   attachments: { path: string; url: string }[],
   fileName: string,
-  contentType: string,
+  contentType: string
 ) => {
   const zip = new JSZip();
 
   // Add the main data file
   zip.file(
-    contentType === "application/json" ? "data.json" : "data.csv",
-    content,
+    contentType === 'application/json' ? 'data.json' : 'data.csv',
+    content
   );
 
   // Create attachments folder and add files
   if (attachments.length > 0) {
-    const attachmentsFolder = zip.folder("attachments");
+    const attachmentsFolder = zip.folder('attachments');
     if (attachmentsFolder) {
       for (const { path, url } of attachments) {
         try {
@@ -1010,17 +990,17 @@ const downloadAsZip = async (
   }
 
   // Generate and download the zip
-  const blob = await zip.generateAsync({ type: "blob" });
-  const a = document.createElement("a");
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = fileName.replace(/\.(json|csv)$/, ".zip");
+  a.download = fileName.replace(/\.(json|csv)$/, '.zip');
   a.click();
   URL.revokeObjectURL(a.href);
 };
 
 const processAttachments = async (
   data: any[],
-  includeAttachments: boolean,
+  includeAttachments: boolean
 ): Promise<{
   transformedData: any[];
   attachments: { path: string; url: string }[];
@@ -1035,10 +1015,10 @@ const processAttachments = async (
     data.map(async (row) => {
       const transformedRow = { ...row };
       for (const [key, value] of Object.entries(row)) {
-        if (typeof value === "string") {
-          if (key.includes("image") || key.includes("audio")) {
+        if (typeof value === 'string') {
+          if (key.includes('image') || key.includes('audio')) {
             try {
-              const fileExtension = key.includes("image") ? "jpg" : "m4a";
+              const fileExtension = key.includes('image') ? 'jpg' : 'm4a';
               let sources = [];
               try {
                 sources = JSON.parse(value);
@@ -1048,7 +1028,7 @@ const processAttachments = async (
 
               // Store original paths in data
               transformedRow[key] = sources.map(
-                (source: string) => `attachments/${source}.${fileExtension}`,
+                (source: string) => `attachments/${source}.${fileExtension}`
               );
 
               // Collect attachments for download
@@ -1065,17 +1045,17 @@ const processAttachments = async (
         }
       }
       return transformedRow;
-    }),
+    })
   );
 
   return { transformedData, attachments };
 };
 
 const exportAllTables = async (
-  format: "json" | "csv",
+  format: 'json' | 'csv',
   includeAttachments: boolean,
   tables: string[],
-  onProgress?: (tableName: string) => void,
+  onProgress?: (tableName: string) => void
 ) => {
   const zip = new JSZip();
   const allAttachments = new Map<string, { path: string; url: string }>();
@@ -1083,33 +1063,33 @@ const exportAllTables = async (
   for (const tableName of tables) {
     onProgress?.(tableName);
     const { data } = await supabase
-      .from(tableName as keyof Database["public"]["Tables"])
-      .select("*");
+      .from(tableName as keyof Database['public']['Tables'])
+      .select('*');
     if (!data) continue;
 
     const { transformedData, attachments } = await processAttachments(
       data,
-      includeAttachments,
+      includeAttachments
     );
 
     // Add table data to zip
     const content =
-      format === "json"
+      format === 'json'
         ? JSON.stringify(transformedData, null, 2)
         : [
-            Object.keys(transformedData[0] || {}).join(","),
+            Object.keys(transformedData[0] || {}).join(','),
             ...transformedData.map((row) =>
               Object.values(row)
                 .map((cell) => {
-                  if (cell === null) return "";
-                  if (typeof cell === "string" && cell.includes(",")) {
+                  if (cell === null) return '';
+                  if (typeof cell === 'string' && cell.includes(',')) {
                     return `"${cell.replace(/"/g, '""')}"`;
                   }
                   return cell;
                 })
-                .join(","),
-            ),
-          ].join("\n");
+                .join(',')
+            )
+          ].join('\n');
 
     zip.file(`tables/${tableName}.${format}`, content);
 
@@ -1121,7 +1101,7 @@ const exportAllTables = async (
 
   // Add all attachments to zip
   if (includeAttachments && allAttachments.size > 0) {
-    const attachmentsFolder = zip.folder("attachments");
+    const attachmentsFolder = zip.folder('attachments');
     if (attachmentsFolder) {
       for (const { path, url } of allAttachments.values()) {
         try {
@@ -1136,8 +1116,8 @@ const exportAllTables = async (
   }
 
   // Generate and download the zip
-  const blob = await zip.generateAsync({ type: "blob" });
-  const a = document.createElement("a");
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `database_export.zip`;
   a.click();
@@ -1147,11 +1127,11 @@ const exportAllTables = async (
 const exportToJson = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string,
+  tableName: string
 ) => {
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments,
+    includeAttachments
   );
   const jsonStr = JSON.stringify(transformedData, null, 2);
 
@@ -1160,50 +1140,50 @@ const exportToJson = async (
       jsonStr,
       attachments,
       `${tableName}_export.json`,
-      "application/json",
+      'application/json'
     );
   } else {
-    downloadAsFile(jsonStr, `${tableName}_export.json`, "application/json");
+    downloadAsFile(jsonStr, `${tableName}_export.json`, 'application/json');
   }
 };
 
 const exportToCsv = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string,
+  tableName: string
 ) => {
   if (!data.length) return;
 
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments,
+    includeAttachments
   );
   const headers = Object.keys(transformedData[0]);
   const csvContent = [
-    headers.join(","),
+    headers.join(','),
     ...transformedData.map((row) =>
       headers
         .map((header) => {
           const cell = row[header];
-          if (cell === null) return "";
-          if (typeof cell === "string" && cell.includes(",")) {
+          if (cell === null) return '';
+          if (typeof cell === 'string' && cell.includes(',')) {
             return `"${cell.replace(/"/g, '""')}"`;
           }
           return cell;
         })
-        .join(","),
-    ),
-  ].join("\n");
+        .join(',')
+    )
+  ].join('\n');
 
   if (includeAttachments) {
     await downloadAsZip(
       csvContent,
       attachments,
       `${tableName}_export.csv`,
-      "text/csv",
+      'text/csv'
     );
   } else {
-    downloadAsFile(csvContent, `${tableName}_export.csv`, "text/csv");
+    downloadAsFile(csvContent, `${tableName}_export.csv`, 'text/csv');
   }
 };
 
@@ -1215,26 +1195,26 @@ function ReverseRelationshipPreview({
   isLinkTable = false,
   throughTable,
   throughSourceColumn,
-  throughTargetColumn,
+  throughTargetColumn
 }: {
-  tableName: keyof Database["public"]["Tables"];
+  tableName: keyof Database['public']['Tables'];
   columnName: string;
   recordId: string;
   isLinkTable?: boolean;
-  throughTable?: keyof Database["public"]["Tables"];
+  throughTable?: keyof Database['public']['Tables'];
   throughSourceColumn?: string;
   throughTargetColumn?: string;
 }) {
   const { data, isLoading } = useQuery({
     queryKey: [
-      "reverseRelationship",
+      'reverseRelationship',
       tableName,
       columnName,
       recordId,
       isLinkTable,
       throughTable,
       throughSourceColumn,
-      throughTargetColumn,
+      throughTargetColumn
     ],
     queryFn: async () => {
       if (
@@ -1247,13 +1227,12 @@ function ReverseRelationshipPreview({
         // First, get the foreign key table that the throughTargetColumn points to
         const { data: schemaData } = await supabase
           // @ts-expect-error metadata is not typed
-          .from("_metadata")
-          .select("*");
+          .from('_metadata')
+          .select('*');
 
         const foreignKeyTable = schemaData?.find(
           (table: any) =>
-            table.table === throughTable &&
-            table.column === throughTargetColumn,
+            table.table === throughTable && table.column === throughTargetColumn
           // @ts-expect-error metadata is not typed
         )?.foreign_table;
 
@@ -1270,7 +1249,7 @@ function ReverseRelationshipPreview({
           // Fallback to just getting the link table records
           const { data: linkData, error: linkError } = await supabase
             .from(throughTable)
-            .select("*")
+            .select('*')
             .eq(throughSourceColumn, recordId);
 
           if (linkError) throw linkError;
@@ -1280,18 +1259,18 @@ function ReverseRelationshipPreview({
         // For direct relationships
         const { data, error } = await supabase
           .from(tableName)
-          .select("*")
+          .select('*')
           .eq(columnName, recordId);
 
         if (error) throw error;
         return { linkData: data, foreignKeyTable: null };
       }
-    },
+    }
   });
 
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
-    queryKey: ["tableSchemas"],
-    queryFn: fetchTableSchemas,
+    queryKey: ['tableSchemas'],
+    queryFn: fetchTableSchemas
   });
 
   // Determine which table's schema to use for displaying the data
@@ -1306,7 +1285,7 @@ function ReverseRelationshipPreview({
     ) {
       // Try to find the target table from the schema
       const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-        (col) => col.key === throughTargetColumn,
+        (col) => col.key === throughTargetColumn
       )?.foreignKey;
 
       if (foreignKeyInfo) {
@@ -1315,7 +1294,7 @@ function ReverseRelationshipPreview({
 
       return (
         tableSchemas?.[tableName]?.columns.find(
-          (col) => col.key === throughTargetColumn,
+          (col) => col.key === throughTargetColumn
         )?.foreignKey?.table || tableName
       );
     }
@@ -1326,7 +1305,7 @@ function ReverseRelationshipPreview({
     data,
     tableSchemas,
     tableName,
-    throughTable,
+    throughTable
   ]);
 
   const schema = tableSchemas?.[targetTable];
@@ -1338,9 +1317,9 @@ function ReverseRelationshipPreview({
     if (isLinkTable && data.foreignKeyTable) {
       // Extract the nested data from the link table response
       return data.linkData
-        .map((item: any) => {
+        .map((item) => {
           // The nested data is in a property named after the foreign key table
-          return item[data.foreignKeyTable];
+          return item[data.foreignKeyTable as keyof typeof item];
         })
         .filter(Boolean);
     } else if (isLinkTable && throughTargetColumn) {
@@ -1351,43 +1330,41 @@ function ReverseRelationshipPreview({
     return data.linkData;
   }, [data, isLinkTable, throughTargetColumn]);
 
-  const columns = schema
-    ? useTransformedColumns({
-        schema: schema,
-        tableName: targetTable,
-        isPreview: true,
-        tableSchemas,
-      })
-    : [];
+  const columns = useTransformedColumns({
+    schema: schema,
+    tableName: targetTable,
+    isPreview: true,
+    tableSchemas
+  });
 
   // Get the actual related table for the "Open table" button
-  const relatedTableInfo = React.useMemo(() => {
-    if (isLinkTable && throughTable && throughTargetColumn && tableSchemas) {
-      // Find the foreign key that this column points to
-      const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-        (c) => c.key === throughTargetColumn,
-      )?.foreignKey;
+  // const relatedTableInfo = React.useMemo(() => {
+  //   if (isLinkTable && throughTable && throughTargetColumn && tableSchemas) {
+  //     // Find the foreign key that this column points to
+  //     const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
+  //       (c) => c.key === throughTargetColumn
+  //     )?.foreignKey;
 
-      if (foreignKeyInfo) {
-        return {
-          table: foreignKeyInfo.table,
-          column: foreignKeyInfo.column,
-        };
-      }
-    }
+  //     if (foreignKeyInfo) {
+  //       return {
+  //         table: foreignKeyInfo.table,
+  //         column: foreignKeyInfo.column
+  //       };
+  //     }
+  //   }
 
-    return {
-      table: tableName,
-      column: columnName,
-    };
-  }, [
-    isLinkTable,
-    throughTable,
-    throughTargetColumn,
-    tableSchemas,
-    tableName,
-    columnName,
-  ]);
+  //   return {
+  //     table: tableName,
+  //     column: columnName
+  //   };
+  // }, [
+  //   isLinkTable,
+  //   throughTable,
+  //   throughTargetColumn,
+  //   tableSchemas,
+  //   tableName,
+  //   columnName
+  // ]);
 
   if (isLoading) {
     return (
@@ -1430,11 +1407,15 @@ function ReverseRelationshipPreview({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {limitedData.map((row: any, i: number) => (
+          {limitedData.map((row, i: number) => (
             <TableRow key={i}>
               {columns.map((col) => (
                 <TableCell key={col.accessorKey} className="truncate">
-                  {col.cell({ row: { getValue: (key: string) => row[key] } })}
+                  {col.cell({
+                    row: {
+                      getValue: (key: string) => row[key as keyof typeof row]
+                    }
+                  })}
                 </TableCell>
               ))}
             </TableRow>
@@ -1455,35 +1436,35 @@ export function DatabaseViewer() {
   const {
     data: tableSchemas,
     isLoading: schemasLoading,
-    error: schemasError,
+    error: schemasError
   } = useQuery<Record<string, TableSchema>, Error>({
-    queryKey: ["tableSchemas"],
-    queryFn: fetchTableSchemas,
+    queryKey: ['tableSchemas'],
+    queryFn: fetchTableSchemas
   });
 
-  const [selectedTable, setSelectedTable] = useQueryState("table", {
-    defaultValue: tableSchemas ? Object.keys(tableSchemas)[0] : "",
+  const [selectedTable, setSelectedTable] = useQueryState('table', {
+    defaultValue: tableSchemas ? Object.keys(tableSchemas)[0] : ''
   });
 
   // Add state for showing link tables
   const [showLinkTables, setShowLinkTables] = useQueryState(
-    "showLinks",
-    parseAsBoolean.withDefault(false),
+    'showLinks',
+    parseAsBoolean.withDefault(false)
   );
 
   // Add pagination state
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(0));
+  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(0));
   const [pageSize, setPageSize] = useQueryState(
-    "size",
-    parseAsInteger.withDefault(50),
+    'size',
+    parseAsInteger.withDefault(50)
   );
 
   const [sorting, setSorting] = useQueryState(
-    "sort",
-    parseAsSorting.withDefault([]),
+    'sort',
+    parseAsSorting.withDefault([])
   );
   const [pendingSorting, setPendingSorting] = React.useState<SortingState>(
-    sorting || [],
+    sorting || []
   );
 
   // Replace URL state with normal React state for filters
@@ -1496,17 +1477,17 @@ export function DatabaseViewer() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   const [columnVisibility, setColumnVisibility] = useQueryState(
-    "visible",
-    parseAsJson(z.record(visibilityStateSchema).parse).withDefault({}),
+    'visible',
+    parseAsJson(z.record(visibilityStateSchema).parse).withDefault({})
   );
 
   const [includeAttachments, setIncludeAttachments] = React.useState(false);
 
   const [exportProgress, setExportProgress] = React.useState<string | null>(
-    null,
+    null
   );
-  const [exportMode, setExportMode] = React.useState<"current" | "all">(
-    "current",
+  const [exportMode, setExportMode] = React.useState<'current' | 'all'>(
+    'current'
   );
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -1515,26 +1496,26 @@ export function DatabaseViewer() {
     if (!selectedTable || !columnVisibility[selectedTable]) return;
     // if all columns are visible, clear the column visibility state (shows all columns)
     const invisibleColumns = Object.values(
-      columnVisibility[selectedTable],
+      columnVisibility[selectedTable]
     ).filter((visibility) => !visibility);
 
     if (invisibleColumns.length === 0)
       setColumnVisibility((prev) =>
         Object.fromEntries(
-          Object.entries(prev).filter(([key]) => key !== selectedTable),
-        ),
+          Object.entries(prev).filter(([key]) => key !== selectedTable)
+        )
       );
-  }, [columnVisibility, selectedTable]);
+  }, [columnVisibility, selectedTable, setColumnVisibility]);
 
   // Fetch table data with pagination
   const {
     data: currentData,
     isLoading: dataLoading,
-    error: dataError,
+    error: dataError
   } = useQuery<TableData, Error>({
-    queryKey: ["tableData", selectedTable, page, pageSize],
+    queryKey: ['tableData', selectedTable, page, pageSize],
     queryFn: () => fetchTableData(selectedTable, page, pageSize),
-    enabled: !!selectedTable && !!tableSchemas,
+    enabled: !!selectedTable && !!tableSchemas
   });
 
   const queryClient = useQueryClient();
@@ -1546,13 +1527,13 @@ export function DatabaseViewer() {
     // Identify link tables
     const linkTablesSet = new Set<string>();
     Object.entries(tableSchemas).forEach(([tableName, schema]) => {
-      const foreignKeyColumns = schema.columns.filter(
-        (col) =>
-          col.foreignKey ||
-          (tableName === "asset_content_link" && col.key === "audio_id"),
-      );
+      // const foreignKeyColumns = schema.columns.filter(
+      //   (col) =>
+      //     col.foreignKey ||
+      //     (tableName === 'asset_content_link' && col.key === 'audio_id')
+      // );
 
-      if (schema.name.includes("_link") || schema.name.includes("_download"))
+      if (schema.name.includes('_link') || schema.name.includes('_download'))
         linkTablesSet.add(tableName);
     });
 
@@ -1563,48 +1544,41 @@ export function DatabaseViewer() {
         isLinkTable: linkTablesSet.has(name),
         rowCount:
           queryClient.getQueryData<TableData>([
-            "tableData",
+            'tableData',
             name,
             page,
-            pageSize,
-          ])?.count ?? 0,
+            pageSize
+          ])?.count ?? 0
       }));
-  }, [tableSchemas, showLinkTables, queryClient, page, pageSize, currentData]);
+  }, [tableSchemas, showLinkTables, queryClient, page, pageSize]);
 
   // Get the schema for the selected table
   const currentSchema = React.useMemo(
     () => tableSchemas?.[selectedTable],
-    [tableSchemas, selectedTable],
+    [tableSchemas, selectedTable]
   );
 
   // Generate columns based on the schema
   const columns = useTransformedColumns({
     schema: currentSchema!,
     tableName: selectedTable,
-    onForeignKeySelect: ({
-      table: targetTable,
-      column,
-      value,
-      sourceTable,
-      sourceColumn,
-      sourceValue,
-    }) => {
+    onForeignKeySelect: ({ table: targetTable, column, value }) => {
       setSelectedTable(targetTable);
       setFilters((prev) => ({
         ...prev,
-        [targetTable]: [{ column, operator: "=", value }],
+        [targetTable]: [{ column, operator: '=', value }]
       }));
       setTimeout(() => {
         table.getColumn(column)?.setFilterValue(value);
       }, 0);
     },
-    tableSchemas,
+    tableSchemas
   });
 
   const columnsWithFilters = React.useMemo(() => {
     return columns.map((col) => {
       const filter = filters[selectedTable]?.find(
-        (filter) => filter.column === col.accessorKey,
+        (filter) => filter.column === col.accessorKey
       );
       return {
         ...col,
@@ -1612,27 +1586,27 @@ export function DatabaseViewer() {
           if (!filter) return true;
           const rowValue = row.getValue(columnId)!;
           switch (filter?.operator) {
-            case "LIKE":
+            case 'LIKE':
               return rowValue.toString().includes(filterValue);
-            case "ILIKE":
+            case 'ILIKE':
               return rowValue
                 .toString()
                 .toLowerCase()
                 .includes(filterValue.toLowerCase());
-            case "IN":
+            case 'IN':
               return rowValue.toString().includes(filterValue);
-            case "IS NULL":
+            case 'IS NULL':
               return rowValue === null;
             default:
               return Boolean(
                 eval(
                   `"${rowValue}" ${getJavascriptEvaluationOperator(
-                    filter.operator,
-                  )} "${filterValue}"`,
-                ),
+                    filter.operator
+                  )} "${filterValue}"`
+                )
               );
           }
-        },
+        }
       } satisfies ColumnDef<any>;
     });
   }, [columns, filters, selectedTable]);
@@ -1646,17 +1620,17 @@ export function DatabaseViewer() {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: (updater) => {
-      if (typeof updater === "function") {
+      if (typeof updater === 'function') {
         setColumnVisibility((prev) => {
           return {
             ...prev,
-            [selectedTable]: updater(prev[selectedTable] ?? {}),
+            [selectedTable]: updater(prev[selectedTable] ?? {})
           };
         });
       } else {
         setColumnVisibility((prev) => ({
           ...prev,
-          [selectedTable]: updater,
+          [selectedTable]: updater
         }));
       }
     },
@@ -1669,27 +1643,27 @@ export function DatabaseViewer() {
       rowSelection,
       pagination: {
         pageIndex: page || 0,
-        pageSize: pageSize || 10,
-      },
+        pageSize: pageSize || 10
+      }
     },
     onColumnFiltersChange: (updater) => {
-      if (typeof updater === "function") {
+      if (typeof updater === 'function') {
         setColumnFilters((prev) => ({
           ...prev,
-          [selectedTable]: updater(prev[selectedTable] ?? []),
+          [selectedTable]: updater(prev[selectedTable] ?? [])
         }));
       } else {
         setColumnFilters((prev) => ({
           ...prev,
-          [selectedTable]: updater,
+          [selectedTable]: updater
         }));
       }
     },
     onPaginationChange: (updater) => {
-      if (typeof updater === "function") {
+      if (typeof updater === 'function') {
         const newState = updater({
           pageIndex: page || 0,
-          pageSize: pageSize || 10,
+          pageSize: pageSize || 10
         });
         setPage(newState.pageIndex);
         setPageSize(newState.pageSize);
@@ -1698,7 +1672,7 @@ export function DatabaseViewer() {
         setPageSize(updater.pageSize);
       }
     },
-    manualPagination: true,
+    manualPagination: true
   });
 
   // Find the first filterable column for the current table
@@ -1706,14 +1680,14 @@ export function DatabaseViewer() {
     return currentSchema?.columns.find(
       (col) =>
         table.getColumn(col.key)?.getIsVisible() &&
-        table.getColumn(col.key)?.getCanFilter(),
+        table.getColumn(col.key)?.getCanFilter()
     )?.key;
-  }, [currentSchema]);
+  }, [currentSchema, table]);
 
   const handleRemoveFilter = (index: number) => {
     setFilters({
       ...filters,
-      [selectedTable]: filters[selectedTable].filter((_, i) => i !== index),
+      [selectedTable]: filters[selectedTable].filter((_, i) => i !== index)
     });
   };
 
@@ -1726,11 +1700,11 @@ export function DatabaseViewer() {
     .filter(
       (column) =>
         column.getCanSort() &&
-        !pendingSorting.some((sort) => sort.id === column.id),
+        !pendingSorting.some((sort) => sort.id === column.id)
     );
 
   const Tables = ({ className }: { className?: string }) => (
-    <ScrollArea className={cn("flex flex-col gap-2 p-2 flex-1", className)}>
+    <ScrollArea className={cn('flex flex-col gap-2 p-2 flex-1', className)}>
       {tables.map((t) => (
         <button
           key={t.name}
@@ -1739,8 +1713,8 @@ export function DatabaseViewer() {
             setIsSheetOpen(false);
           }}
           className={cn(
-            "w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent",
-            t.isLinkTable && "text-muted-foreground",
+            'w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent',
+            t.isLinkTable && 'text-muted-foreground'
           )}
           disabled={schemasLoading || dataLoading}
         >
@@ -1782,7 +1756,7 @@ export function DatabaseViewer() {
                 ? schemasError.message
                 : dataError instanceof Error
                   ? dataError.message
-                  : "An error occurred"}
+                  : 'An error occurred'}
             </div>
           </div>
         ) : schemasLoading || dataLoading ? (
@@ -1825,7 +1799,7 @@ export function DatabaseViewer() {
                         <RadioGroup
                           value={exportMode}
                           onValueChange={(value) =>
-                            setExportMode(value as "current" | "all")
+                            setExportMode(value as 'current' | 'all')
                           }
                           className="gap-3"
                         >
@@ -1869,13 +1843,13 @@ export function DatabaseViewer() {
                           size="lg"
                           className="flex-1"
                           onClick={() => {
-                            if (exportMode === "all") {
+                            if (exportMode === 'all') {
                               if (!tableSchemas) return;
                               exportAllTables(
-                                "json",
+                                'json',
                                 includeAttachments,
                                 Object.keys(tableSchemas),
-                                setExportProgress,
+                                setExportProgress
                               ).finally(() => setExportProgress(null));
                             } else {
                               exportToJson(
@@ -1883,7 +1857,7 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable,
+                                selectedTable
                               );
                             }
                           }}
@@ -1896,13 +1870,13 @@ export function DatabaseViewer() {
                           size="lg"
                           className="flex-1"
                           onClick={() => {
-                            if (exportMode === "all") {
+                            if (exportMode === 'all') {
                               if (!tableSchemas) return;
                               exportAllTables(
-                                "csv",
+                                'csv',
                                 includeAttachments,
                                 Object.keys(tableSchemas),
-                                setExportProgress,
+                                setExportProgress
                               ).finally(() => setExportProgress(null));
                             } else {
                               exportToCsv(
@@ -1910,7 +1884,7 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable,
+                                selectedTable
                               );
                             }
                           }}
@@ -1934,14 +1908,14 @@ export function DatabaseViewer() {
                       size="sm"
                       className={cn(
                         sorting?.length > 0 &&
-                          "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100",
+                          'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
                       )}
                     >
                       <List className="size-4" />
                       <span className="hidden sm:block">
                         {sorting?.length > 0
                           ? `Sorted by ${sorting.length} rule(s)`
-                          : "Sort"}
+                          : 'Sort'}
                       </span>
                     </Button>
                   </PopoverTrigger>
@@ -1957,8 +1931,8 @@ export function DatabaseViewer() {
                           <div className="text-sm flex items-center gap-2 flex-1">
                             <div className="text-muted-foreground flex items-center gap-2">
                               <AlignJustify className="size-4" />
-                              {index === 0 ? "sort by" : "then by"}
-                            </div>{" "}
+                              {index === 0 ? 'sort by' : 'then by'}
+                            </div>{' '}
                             {sort.id}
                           </div>
                           <div className="flex items-center gap-2">
@@ -1996,7 +1970,7 @@ export function DatabaseViewer() {
                               if (column) {
                                 setPendingSorting([
                                   ...pendingSorting,
-                                  { id: value, desc: false },
+                                  { id: value, desc: false }
                                 ]);
                               }
                             }}
@@ -2038,14 +2012,14 @@ export function DatabaseViewer() {
                       size="sm"
                       className={cn(
                         columnFilters[selectedTable]?.length > 0 &&
-                          "dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100",
+                          'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
                       )}
                     >
                       <Filter className="size-4" />
                       <span className="hidden sm:block">
                         {columnFilters[selectedTable]?.length > 0
                           ? `Filtered by ${columnFilters[selectedTable]?.length} rule(s)`
-                          : "Filter"}
+                          : 'Filter'}
                       </span>
                     </Button>
                   </PopoverTrigger>
@@ -2068,15 +2042,15 @@ export function DatabaseViewer() {
                               defaultValue={filterableColumn}
                               onValueChange={(value) => {
                                 const newFilters = [
-                                  ...(filters[selectedTable] ?? []),
+                                  ...(filters[selectedTable] ?? [])
                                 ];
                                 newFilters[index] = {
                                   ...filter,
-                                  column: value,
+                                  column: value
                                 };
                                 setFilters({
                                   ...filters,
-                                  [selectedTable]: newFilters,
+                                  [selectedTable]: newFilters
                                 });
                               }}
                             >
@@ -2103,15 +2077,15 @@ export function DatabaseViewer() {
                               value={filter.operator}
                               onValueChange={(value) => {
                                 const newFilters = [
-                                  ...(filters[selectedTable] ?? []),
+                                  ...(filters[selectedTable] ?? [])
                                 ];
                                 newFilters[index] = {
                                   ...filter,
-                                  operator: value,
+                                  operator: value
                                 };
                                 setFilters({
                                   ...filters,
-                                  [selectedTable]: newFilters,
+                                  [selectedTable]: newFilters
                                 });
                               }}
                             >
@@ -2135,20 +2109,20 @@ export function DatabaseViewer() {
                             </Select>
 
                             {currentSchema?.columns.find(
-                              (col) => col.key === filter.column,
-                            )?.type === "timestamp" ? (
+                              (col) => col.key === filter.column
+                            )?.type === 'timestamp' ? (
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button
                                     variant="outline"
                                     className={cn(
-                                      "w-[240px] justify-start text-left font-normal h-8",
-                                      !filter.value && "text-muted-foreground",
+                                      'w-[240px] justify-start text-left font-normal h-8',
+                                      !filter.value && 'text-muted-foreground'
                                     )}
                                   >
                                     <CalendarIcon className="size-4 mr-2" />
                                     {filter.value ? (
-                                      format(new Date(filter.value), "PP")
+                                      format(new Date(filter.value), 'PP')
                                     ) : (
                                       <span>Pick a date</span>
                                     )}
@@ -2167,15 +2141,15 @@ export function DatabaseViewer() {
                                     }
                                     onSelect={(date) => {
                                       const newFilters = [
-                                        ...(filters[selectedTable] ?? []),
+                                        ...(filters[selectedTable] ?? [])
                                       ];
                                       newFilters[index] = {
                                         ...filter,
-                                        value: date ? date.toISOString() : "",
+                                        value: date ? date.toISOString() : ''
                                       };
                                       setFilters({
                                         ...filters,
-                                        [selectedTable]: newFilters,
+                                        [selectedTable]: newFilters
                                       });
                                     }}
                                     initialFocus
@@ -2187,15 +2161,15 @@ export function DatabaseViewer() {
                                 value={filter.value}
                                 onChange={(e) => {
                                   const newFilters = [
-                                    ...(filters[selectedTable] ?? []),
+                                    ...(filters[selectedTable] ?? [])
                                   ];
                                   newFilters[index] = {
                                     ...filter,
-                                    value: e.target.value,
+                                    value: e.target.value
                                   };
                                   setFilters({
                                     ...filters,
-                                    [selectedTable]: newFilters,
+                                    [selectedTable]: newFilters
                                   });
                                 }}
                                 placeholder="Enter a value"
@@ -2212,7 +2186,7 @@ export function DatabaseViewer() {
                               <X className="size-4" />
                             </Button>
                           </div>
-                        ),
+                        )
                       )}
 
                       <div className="flex gap-2 border-t border-border pt-3">
@@ -2225,11 +2199,11 @@ export function DatabaseViewer() {
                               [selectedTable]: [
                                 ...(filters[selectedTable] ?? []),
                                 {
-                                  column: filterableColumn ?? "",
+                                  column: filterableColumn ?? '',
                                   operator: OPERATORS[0].value,
-                                  value: "",
-                                },
-                              ],
+                                  value: ''
+                                }
+                              ]
                             });
                           }}
                         >
@@ -2254,8 +2228,8 @@ export function DatabaseViewer() {
                                 (columnFilter) =>
                                   !filters[selectedTable]?.some(
                                     (filter) =>
-                                      filter.column === columnFilter.id,
-                                  ),
+                                      filter.column === columnFilter.id
+                                  )
                               );
 
                               removedFilters?.forEach((filter) => {
@@ -2282,7 +2256,7 @@ export function DatabaseViewer() {
                       <Columns3 className="size-4" />
                       <span className="hidden sm:block select-none">
                         Columns
-                      </span>{" "}
+                      </span>{' '}
                       <ChevronDown className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -2321,7 +2295,7 @@ export function DatabaseViewer() {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext(),
+                              header.getContext()
                             )}
                       </TableHead>
                     ))}
@@ -2333,13 +2307,13 @@ export function DatabaseViewer() {
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
+                      data-state={row.getIsSelected() && 'selected'}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id} className="truncate">
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext(),
+                            cell.getContext()
                           )}
                         </TableCell>
                       ))}
@@ -2408,7 +2382,7 @@ export function DatabaseViewer() {
                   </SelectContent>
                 </Select>
                 <span className="hidden sm:block">
-                  {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                  {table.getFilteredSelectedRowModel().rows.length} of{' '}
                   {table.getFilteredRowModel().rows.length} row(s) selected.
                 </span>
               </div>

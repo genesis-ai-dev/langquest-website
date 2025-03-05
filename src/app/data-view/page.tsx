@@ -1,5 +1,5 @@
-import { DataView } from "@/components/data-view";
-import { Suspense } from "react";
+import { DataView } from '@/components/data-view';
+import { Suspense } from 'react';
 
 export default function DataViewPage() {
   return (

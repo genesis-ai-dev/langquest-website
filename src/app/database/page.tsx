@@ -1,5 +1,5 @@
-import { DatabaseViewer } from "@/components/database-viewer";
-import { Suspense } from "react";
+import { DatabaseViewer } from '@/components/database-viewer';
+import { Suspense } from 'react';
 
 export default function Database() {
   return (
