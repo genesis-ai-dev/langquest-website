@@ -208,6 +208,16 @@ export function DataView() {
     else filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
   };
 
+  const toggleSortDirection = (path: keyof typeof pathMap) => {
+    const newSort = sort.map((f) =>
+      f.path === path
+        ? ({ ...f, sort: f.sort === 'asc' ? 'desc' : 'asc' } as const)
+        : f
+    );
+    setSort(newSort);
+    filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
+  };
+
   if (isLoading)
     return (
       <div className="flex w-full h-full items-center justify-center">
@@ -259,15 +269,7 @@ export function DataView() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() =>
-                      setSort(
-                        sort.map((f) =>
-                          f.path === s.path
-                            ? { ...f, sort: f.sort === 'asc' ? 'desc' : 'asc' }
-                            : f
-                        )
-                      )
-                    }
+                    onClick={() => toggleSortDirection(s.path)}
                     className="size-5 rounded-sm"
                   >
                     {s.sort === 'asc' ? (
