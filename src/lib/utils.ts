@@ -12,6 +12,12 @@ export function toProperCase(str: string) {
     .join(' ')
     .replace('Id', 'ID');
 }
+export function camelToProperCase(str: string) {
+  return str
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (firstChar) => firstChar.toUpperCase())
+    .trim();
+}
 
 export function isMobile() {
   if (typeof window === 'undefined') return false;
