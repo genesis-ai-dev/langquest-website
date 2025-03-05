@@ -1541,14 +1541,7 @@ export function DatabaseViewer() {
       .filter((name) => showLinkTables || !linkTablesSet.has(name))
       .map((name) => ({
         name,
-        isLinkTable: linkTablesSet.has(name),
-        rowCount:
-          queryClient.getQueryData<TableData>([
-            'tableData',
-            name,
-            page,
-            pageSize
-          ])?.count ?? 0
+        isLinkTable: linkTablesSet.has(name)
       }));
   }, [tableSchemas, showLinkTables, queryClient, page, pageSize]);
 
@@ -1719,7 +1712,14 @@ export function DatabaseViewer() {
           disabled={schemasLoading || dataLoading}
         >
           <span className="">{toProperCase(t.name)}</span>
-          <span className="text-muted-foreground">{t.rowCount}</span>
+          <span className="text-muted-foreground">
+            {queryClient.getQueryData<TableData>([
+              'tableData',
+              t.name,
+              page,
+              pageSize
+            ])?.count ?? 0}
+          </span>
         </button>
       ))}
     </ScrollArea>
