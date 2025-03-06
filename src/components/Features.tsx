@@ -38,7 +38,7 @@ export default function Features() {
       <div className="container mx-auto px-4 relative z-10">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12 relative">
           Key Features
-          <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-green-600 rounded-full"></span>
+          <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-cosmic-starlight rounded-full"></span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
@@ -48,12 +48,12 @@ export default function Features() {
               style={{ transitionDelay: `${index * 150}ms` }}
             >
               <Card className="bg-white hover:shadow-xl transition-all duration-300 border-none group overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-600/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-cosmic-starlight/5 to-cosmic-blue/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <CardHeader className="text-center relative z-10">
-                  <div className="mx-auto mb-2 w-16 h-16 flex items-center justify-center rounded-full bg-green-600/10 group-hover:bg-green-600/20 transition-colors duration-300">
-                    <feature.icon className="text-4xl text-green-600" />
+                  <div className="mx-auto mb-2 w-16 h-16 flex items-center justify-center rounded-full bg-cosmic-starlight/10 group-hover:bg-cosmic-starlight/20 transition-colors duration-300">
+                    <feature.icon className="text-4xl text-cosmic-starlight" />
                   </div>
-                  <CardTitle className="text-xl font-semibold group-hover:text-green-700 transition-colors duration-300">
+                  <CardTitle className="text-xl font-semibold group-hover:text-cosmic-indigo transition-colors duration-300">
                     {feature.title}
                   </CardTitle>
                 </CardHeader>

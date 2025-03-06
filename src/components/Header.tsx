@@ -32,10 +32,12 @@ export default function Header() {
   return (
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-green-700/95 backdrop-blur-sm shadow-lg' : 'bg-green-700'
+        scrolled
+          ? 'bg-cosmic-indigo/95 backdrop-blur-sm shadow-lg'
+          : 'bg-cosmic-indigo'
       }`}
     >
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-600/0 via-green-500/50 to-green-600/0"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cosmic-starlight/0 via-cosmic-starlight/50 to-cosmic-starlight/0"></div>
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <span className="text-2xl font-bold text-white flex items-center">
@@ -48,7 +50,7 @@ export default function Header() {
             variant="ghost"
             size="icon"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-white hover:bg-green-600/50"
+            className="text-white hover:bg-cosmic-starlight/50"
           >
             {isMenuOpen ? (
               <X className="h-6 w-6" />
@@ -72,7 +74,7 @@ export default function Header() {
         </div>
       </div>
       {isMenuOpen && (
-        <div className="md:hidden bg-green-600 p-4 animate-in slide-in-from-top-5 duration-300">
+        <div className="md:hidden bg-cosmic-starlight p-4 animate-in slide-in-from-top-5 duration-300">
           <Select>
             <SelectTrigger className="w-full bg-white/10 text-white border-white/20 mb-4">
               <SelectValue placeholder="Select Language" />

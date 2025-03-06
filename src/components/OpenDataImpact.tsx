@@ -32,7 +32,7 @@ export default function OpenDataImpact() {
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 relative inline-block">
           Contribute to Global Language AI
-          <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-green-600 rounded-full"></span>
+          <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-cosmic-starlight rounded-full"></span>
         </h2>
         <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
           Your translations help train AI models for low-resource languages,
@@ -43,13 +43,13 @@ export default function OpenDataImpact() {
             isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
           }`}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 to-blue-500/20 rounded-lg"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-cosmic-starlight/20 to-cosmic-blue/20 rounded-lg"></div>
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg"></div>
           <div className="relative z-10">
             <div className="h-48 flex items-center justify-center">
               <div className="relative">
-                <div className="w-16 h-16 bg-green-600 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-20 animate-ping"></div>
-                <div className="w-24 h-24 bg-blue-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-10 animate-pulse"></div>
+                <div className="w-16 h-16 bg-cosmic-starlight rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-20 animate-ping"></div>
+                <div className="w-24 h-24 bg-cosmic-blue rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-10 animate-pulse"></div>
                 <div className="relative z-10 text-3xl">🌐</div>
                 <div className="mt-4 text-gray-800 font-semibold">
                   Global Language AI

@@ -46,7 +46,7 @@ export default function HowItWorks() {
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12 relative">
           How It Works
-          <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-green-600 rounded-full"></span>
+          <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-cosmic-starlight rounded-full"></span>
         </h2>
         <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-16">
           {steps.map((step, index) => (
@@ -62,17 +62,17 @@ export default function HowItWorks() {
               <div
                 className={`relative mb-4 w-20 h-20 mx-auto rounded-full flex items-center justify-center ${
                   activeStep === index
-                    ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
+                    ? 'bg-cosmic-starlight text-white shadow-lg shadow-cosmic-starlight/30'
                     : 'bg-gray-100 text-gray-800'
                 } transition-all duration-300`}
               >
                 <span className="text-2xl font-bold">{step.step}</span>
                 {activeStep === index && (
-                  <div className="absolute -inset-2 bg-green-600/20 rounded-full animate-pulse"></div>
+                  <div className="absolute -inset-2 bg-cosmic-starlight/20 rounded-full animate-pulse"></div>
                 )}
               </div>
               <h3
-                className={`text-xl font-semibold mb-2 ${activeStep === index ? 'text-green-700' : 'text-gray-800'} transition-colors duration-300`}
+                className={`text-xl font-semibold mb-2 ${activeStep === index ? 'text-cosmic-indigo' : 'text-gray-800'} transition-colors duration-300`}
               >
                 {step.title}
               </h3>
@@ -83,7 +83,7 @@ export default function HowItWorks() {
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-12 transition-all duration-500 transform hover:shadow-xl">
           <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="w-2 h-8 bg-green-600 rounded-full mr-3"></span>
+            <span className="w-2 h-8 bg-cosmic-starlight rounded-full mr-3"></span>
             Project Role Permissions
           </h3>
           <div className="overflow-x-auto">
@@ -101,15 +101,15 @@ export default function HowItWorks() {
                   <TableCell className="font-medium">
                     View Project Content
                   </TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-gray-50">
                   <TableCell className="font-medium">
                     Create/Edit Content
                   </TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
                   <TableCell className="text-red-500">✘</TableCell>
                   <TableCell className="text-red-500">✘</TableCell>
                 </TableRow>
@@ -117,16 +117,16 @@ export default function HowItWorks() {
                   <TableCell className="font-medium">
                     Add Translations
                   </TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
                   <TableCell className="text-red-500">✘</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-gray-50">
                   <TableCell className="font-medium">
                     Vote on Translations
                   </TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
-                  <TableCell className="text-green-600">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
+                  <TableCell className="text-cosmic-starlight">✓</TableCell>
                   <TableCell className="text-red-500">✘</TableCell>
                 </TableRow>
               </TableBody>
@@ -136,7 +136,7 @@ export default function HowItWorks() {
 
         <div className="bg-white rounded-lg shadow-lg p-6 transition-all duration-500 transform hover:shadow-xl">
           <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="w-2 h-8 bg-green-600 rounded-full mr-3"></span>
+            <span className="w-2 h-8 bg-cosmic-starlight rounded-full mr-3"></span>
             Project Status Flags
           </h3>
           <div className="overflow-x-auto">
