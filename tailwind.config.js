@@ -18,16 +18,25 @@ module.exports = {
         extend: {
             colors: {
                 green: {
-                    600: "#679b08",
-                    700: "#5a8807",
+                    600: "#4F46E5", // Changed to indigo
+                    700: "#4338CA", // Changed to darker indigo
                 },
                 beige: {
-                    50: "#f5e8c7",
-                    100: "#f0e0b8",
+                    50: "#EEF2FF", // Changed to indigo-50
+                    100: "#E0E7FF", // Changed to indigo-100
                 },
                 gray: {
-                    800: "#2a2a2a",
-                    900: "#1a1a1a",
+                    800: "#1E1B4B", // Changed to indigo-950
+                    900: "#0F0F1A", // Changed to deep space color
+                },
+                // Galactic/sci-fi colors
+                cosmic: {
+                    blue: "#0C4A6E", // Deep space blue
+                    purple: "#581C87", // Deep purple
+                    indigo: "#3730A3", // Deep indigo
+                    cyan: "#0E7490", // Sci-fi cyan
+                    nebula: "#7E22CE", // Nebula purple
+                    starlight: "#6366F1", // Star light indigo
                 },
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
