@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LangQuest - Translate, Preserve, Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom animation for fade-in */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-in-up {
+        animation: fadeInUp 1s ease-out forwards;
+      }
+      /* Smooth scroll behavior */
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 font-sans text-gray-800">
+    <!-- Hero Section -->
+    <section
+      class="relative bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-20"
+    >
+      <div class="container mx-auto px-6 text-center">
+        <h1 class="text-5xl md:text-6xl font-bold mb-4 fade-in-up">
+          Translate, Preserve, Connect with LangQuest
+        </h1>
+        <p
+          class="text-xl md:text-2xl mb-8 fade-in-up"
+          style="animation-delay: 0.2s"
+        >
+          The offline-tolerant, AI-assisted translation app for low-resource
+          languages.
+        </p>
+        <a
+          href="#signup"
+          class="inline-block bg-white text-indigo-600 font-semibold py-3 px-6 rounded-lg shadow-lg hover:bg-indigo-100 transition fade-in-up"
+          style="animation-delay: 0.4s"
+          >Sign Up for Updates</a
+        >
+      </div>
+      <div
+        class="absolute bottom-0 left-0 right-0 h-24 bg-[url('https://via.placeholder.com/1920x100?text=Remote+Community')] bg-cover bg-center opacity-20"
+      ></div>
+    </section>
+
+    <!-- Key Features Section -->
+    <section id="features" class="py-16 bg-white">
+      <div class="container mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center mb-12">Why LangQuest?</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div
+            class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition transform hover:-translate-y-2"
+          >
+            <div class="text-indigo-600 text-4xl mb-4">📴</div>
+            <h3 class="text-xl font-semibold mb-2">Offline Tolerance</h3>
+            <p>
+              Work without internet for weeks, syncing when you can—no data
+              lost.
+            </p>
+          </div>
+          <div
+            class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition transform hover:-translate-y-2"
+          >
+            <div class="text-indigo-600 text-4xl mb-4">🤖</div>
+            <h3 class="text-xl font-semibold mb-2">AI Assistance</h3>
+            <p>
+              Get instant translation suggestions, refined by community votes.
+            </p>
+          </div>
+          <div
+            class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition transform hover:-translate-y-2"
+          >
+            <div class="text-indigo-600 text-4xl mb-4">🎮</div>
+            <h3 class="text-xl font-semibold mb-2">Gamification</h3>
+            <p>Leaderboards and rewards make translating fun and engaging.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-16 bg-gray-100">
+      <div class="container mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center mb-12">How It Works</h2>
+        <div class="space-y-8 md:flex md:space-y-0 md:space-x-8">
+          <div class="flex-1 text-center">
+            <div
+              class="bg-indigo-600 text-white w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl font-bold"
+            >
+              1
+            </div>
+            <h3 class="text-xl font-semibold mt-4 mb-2">Create a Project</h3>
+            <p>
+              Set up your translation project, public or private, with ease.
+            </p>
+          </div>
+          <div class="flex-1 text-center">
+            <div
+              class="bg-indigo-600 text-white w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl font-bold"
+            >
+              2
+            </div>
+            <h3 class="text-xl font-semibold mt-4 mb-2">Contribute & Vote</h3>
+            <p>Add translations offline and vote on AI suggestions.</p>
+          </div>
+          <div class="flex-1 text-center">
+            <div
+              class="bg-indigo-600 text-white w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl font-bold"
+            >
+              3
+            </div>
+            <h3 class="text-xl font-semibold mt-4 mb-2">Preserve & Share</h3>
+            <p>Validated work joins an open database for all to use.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Open Data Impact Section -->
+    <section id="impact" class="py-16 bg-white">
+      <div class="container mx-auto px-6 text-center">
+        <h2 class="text-4xl font-bold mb-8">Your Impact</h2>
+        <p class="text-lg mb-6">
+          Every translation you contribute trains AI to support low-resource
+          languages worldwide.
+        </p>
+        <div class="max-w-md mx-auto">
+          <svg class="w-full h-32" viewBox="0 0 100 50">
+            <path
+              d="M10 40 Q 50 10 90 40"
+              fill="none"
+              stroke="#4f46e5"
+              stroke-width="2"
+            />
+            <circle cx="10" cy="40" r="3" fill="#4f46e5" />
+            <circle cx="90" cy="40" r="3" fill="#4f46e5" />
+            <text x="45" y="5" fill="#4f46e5" font-size="8">AI Growth</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Future Roadmap Section -->
+    <section id="roadmap" class="py-16 bg-gray-100">
+      <div class="container mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center mb-12">What’s Next</h2>
+        <div class="max-w-2xl mx-auto space-y-6">
+          <div class="flex items-start">
+            <div
+              class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0"
+            >
+              1
+            </div>
+            <div class="ml-4">
+              <h3 class="text-xl font-semibold">P2P Connectivity</h3>
+              <p>
+                Share translations directly between devices, no internet
+                needed—coming soon!
+              </p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <div
+              class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0"
+            >
+              2
+            </div>
+            <div class="ml-4">
+              <h3 class="text-xl font-semibold">Community Input</h3>
+              <p>Help shape LangQuest by suggesting features you need.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sign-Up Section -->
+    <section id="signup" class="py-16 bg-indigo-600 text-white">
+      <div class="container mx-auto px-6 text-center">
+        <h2 class="text-4xl font-bold mb-6">Be the First to Try LangQuest</h2>
+        <p class="text-lg mb-8">
+          Sign up for updates and join the mission to preserve every language.
+        </p>
+        <form
+          class="max-w-md mx-auto flex"
+          onsubmit="alert('Thanks for signing up! We’ll keep you posted.'); return false;"
+        >
+          <input
+            type="email"
+            placeholder="Enter your email"
+            class="flex-1 p-3 rounded-l-lg text-gray-800 focus:outline-none"
+            required
+          />
+          <button
+            type="submit"
+            class="bg-white text-indigo-600 font-semibold p-3 rounded-r-lg hover:bg-indigo-100 transition"
+          >
+            Submit
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+      <div class="container mx-auto px-6 text-center">
+        <p>&copy; 2025 LangQuest. All rights reserved.</p>
+        <div class="mt-4 flex justify-center space-x-4">
+          <a href="#" class="hover:text-indigo-400">Twitter</a>
+          <a href="#" class="hover:text-indigo-400">Email</a>
+          <a href="#" class="hover:text-indigo-400">GitHub</a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Inline JavaScript for Scroll Animations -->
+    <script>
+      // Fade-in elements when they come into view
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('fade-in-up');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      document
+        .querySelectorAll('h2, .bg-gray-50, .flex-1, form')
+        .forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>

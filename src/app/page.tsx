@@ -1,65 +1,26 @@
-import Link from 'next/link';
+import Header from '@/components/Header';
+import Hero from '@/components/Hero';
+import Features from '@/components/Features';
+import HowItWorks from '@/components/HowItWorks';
+import WhyLangQuest from '@/components/WhyLangQuest';
+import OpenDataImpact from '@/components/OpenDataImpact';
+import FutureRoadmap from '@/components/FutureRoadmap';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   return (
-    <main className="container mx-auto mt-44 px-4 text-center bg-background">
-      <svg height="100" width="100" className="mx-auto">
-        <circle
-          cx="50"
-          cy="50"
-          r="31"
-          stroke="#679b08"
-          strokeWidth="9.5"
-          fill="none"
-        />
-        <circle
-          cx="50"
-          cy="50"
-          r="6"
-          stroke="#679b08"
-          strokeWidth="1"
-          fill="#679b08"
-        />
-        <line
-          x1="50"
-          y1="50"
-          x2="35"
-          y2="50"
-          stroke="#679b08"
-          strokeWidth="6"
-        />
-        <line
-          x1="65"
-          y1="35"
-          x2="50"
-          y2="50"
-          stroke="#679b08"
-          strokeWidth="6"
-        />
-        <path d="M59 65 L83 65 L75 87 Z" fill="#679b08" />
-        <rect width="20" height="9" x="70" y="56" fill="#eee" strokeWidth="0" />
-      </svg>
-
-      <div>
-        <h1 className="text-5xl font-light mb-5">
-          Future home of something quite cool, in next.js.
-        </h1>
-        <p className="text-xl font-light mb-5">
-          If you&apos;re the <strong>site owner</strong>,{' '}
-          <a href="/cpanel" className="text-blue-500">
-            log in
-          </a>{' '}
-          to launch this site
-        </p>
-        <p className="text-xl font-light flex flex-col">
-          <Link href="/database" className="text-blue-500">
-            View all of our data
-          </Link>
-          <Link href="/data-view" className="text-blue-500">
-            View our user friendly data
-          </Link>
-        </p>
-      </div>
-    </main>
+    <div className="min-h-screen font-sans text-gray-800 bg-gradient-to-br from-beige-50 via-white to-beige-100 overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-600/10 via-transparent to-transparent pointer-events-none"></div>
+      <Header />
+      <main className="relative">
+        <Hero />
+        <Features />
+        <HowItWorks />
+        <WhyLangQuest />
+        <OpenDataImpact />
+        <FutureRoadmap />
+      </main>
+      <Footer />
+    </div>
   );
 }
