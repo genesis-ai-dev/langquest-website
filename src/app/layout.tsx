@@ -25,19 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="h-full w-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full w-full`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
       >
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.classList.add('dark')
-              }
-            `,
-          }}
-        />
         <Providers>{children}</Providers>
       </body>
     </html>

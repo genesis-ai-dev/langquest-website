@@ -387,7 +387,7 @@ function LensFlares() {
 }
 
 // Utility function to safely interpolate vectors
-function safeLerpVectors(
+export function safeLerpVectors(
   v1: THREE.Vector3 | undefined,
   v2: THREE.Vector3 | undefined,
   alpha: number

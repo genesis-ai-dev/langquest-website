@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Hero from '@/components/Hero';
+import PeerToPeerVisualization from '@/components/PeerToPeerVisualization';
 
 export default function LandingPage() {
   return (
@@ -417,11 +418,7 @@ export default function LandingPage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex items-center justify-center">
                 <div className="relative h-[300px] w-full md:h-[400px] overflow-hidden rounded-lg border bg-background p-2">
-                  <img
-                    src="/placeholder.svg?height=400&width=600"
-                    alt="Two people sharing translation data via peer-to-peer connection"
-                    className="object-cover w-full h-full rounded-md"
-                  />
+                  <PeerToPeerVisualization />
                 </div>
               </div>
               <div className="flex flex-col justify-center space-y-4">

@@ -174,3 +174,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+.node {
+  transition: transform 0.3s ease;
+}
+
+.node.source,
+.node.target {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.node-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: white;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
