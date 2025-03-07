@@ -21,6 +21,8 @@ import {
   Smartphone,
   Zap
 } from 'lucide-react';
+import Link from 'next/link';
+import Hero from '@/components/Hero';
 
 export default function LandingPage() {
   return (
@@ -28,62 +30,63 @@ export default function LandingPage() {
       {/* Navigation */}
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between">
-          <div className="flex gap-2 items-center text-accent1">
-            <Globe className="h-6 w-6" />
+          <div className="flex gap-2 items-center">
+            <Globe className="h-6 w-6 text-accent1" />
             <span className="font-bold text-xl">LangQuest</span>
           </div>
           <div className="flex items-center space-x-4">
             <nav className="flex items-center space-x-2">
-              <Button variant="outline" className="text-accent2">
-                Log In
-              </Button>
-              <Button className="bg-accent1 hover:bg-accent1-hover">Sign Up</Button>
+              <Link href="/database">
+                <Button variant="outline">Full Database</Button>
+              </Link>
+              <Link href="/data-view">
+                <Button className="bg-accent1 hover:bg-accent1-hover text-white">
+                  User-Friendly Database
+                </Button>
+              </Link>
             </nav>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <Badge className="inline-flex mb-2" variant="outline">
-                    Coming Soon
-                  </Badge>
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Translate, Preserve, and Connect
-                  </h1>
-                  <p className="max-w-[600px] text-neutral1 md:text-xl">
-                    LangQuest is an app for translating and preserving
-                    low-resource languages, especially in remote areas with
-                    limited internet connectivity.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button size="lg" className="gap-1 bg-accent4">
-                    <Zap className="h-4 w-4" />
-                    Get Early Access
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-accent2">
-                    Learn More
-                  </Button>
-                </div>
+        {/* Hero Section with Three.js Globe */}
+        <Hero>
+          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
+            <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50">
+              <div className="space-y-2">
+                <Badge className="inline-flex mb-2" variant="outline">
+                  Coming Soon
+                </Badge>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                  Translate, Preserve, and Connect
+                </h1>
+                <p className="max-w-[600px] md:text-xl">
+                  Translate and preserve endangered languages anywhere, even
+                  offline.
+                </p>
               </div>
-              <div className="flex items-center justify-center">
-                <div className="relative h-[350px] w-full md:h-[450px] lg:h-[500px] overflow-hidden rounded-lg border bg-background p-2">
-                  <img
-                    src="/placeholder.svg?height=500&width=400"
-                    alt="LangQuest app interface showing translation in progress"
-                    className="object-cover w-full h-full rounded-md"
-                  />
-                </div>
+              <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <Button
+                  size="lg"
+                  className="gap-1 bg-accent4 text-white hover:bg-accent4/90"
+                >
+                  <Zap className="h-4 w-4" />
+                  Get Notified
+                </Button>
+                <Link href="/database">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className=" hover:bg-white/20 hover:text-white"
+                  >
+                    View the Database
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
-        </section>
+        </Hero>
 
         {/* Key Features */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
@@ -93,7 +96,7 @@ export default function LandingPage() {
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                   Designed for Remote Translation
                 </h2>
-                <p className="max-w-[900px] text-neutral1 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   LangQuest makes translation possible even in the most
                   challenging environments.
                 </p>
@@ -110,7 +113,7 @@ export default function LandingPage() {
                   <CardTitle>Offline Tolerance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-neutral1">
+                  <p className="text-sm text-muted-foreground">
                     Work without internet for extended periods. Your data is
                     safely stored locally until you can sync.
                   </p>
@@ -126,7 +129,7 @@ export default function LandingPage() {
                   <CardTitle>AI-Assisted Translation</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-neutral1">
+                  <p className="text-sm text-muted-foreground">
                     Use AI to generate initial translations, which users can
                     review and vote on, speeding up the process.
                   </p>
@@ -142,7 +145,7 @@ export default function LandingPage() {
                   <CardTitle>Gamification</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-neutral1">
+                  <p className="text-sm text-muted-foreground">
                     Features like leaderboards and rewards make translation fun
                     and encourage participation.
                   </p>
@@ -158,7 +161,7 @@ export default function LandingPage() {
                   <CardTitle>Open Data</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-neutral1">
+                  <p className="text-sm text-muted-foreground">
                     All validated translations become part of an openly licensed
                     database, helping train future AI models.
                   </p>
@@ -176,7 +179,7 @@ export default function LandingPage() {
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                   How LangQuest Works
                 </h2>
-                <p className="max-w-[900px] text-neutral1 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Organize translations into projects, quests, and assets for
                   efficient management.
                 </p>
@@ -184,31 +187,31 @@ export default function LandingPage() {
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 mt-12">
               <div className="flex flex-col items-center space-y-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-neutral2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-white">
                   <BookOpen className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold">Create Projects</h3>
-                <p className="text-sm text-neutral1">
+                <p className="text-sm text-muted-foreground">
                   Organize your translation work into projects, like translating
                   the Bible or important cultural texts.
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-neutral2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-white">
                   <Users className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold">Collaborate</h3>
-                <p className="text-sm text-neutral1">
+                <p className="text-sm text-muted-foreground">
                   Invite community members to contribute translations and vote
                   on each other's work.
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-neutral2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-white">
                   <CheckCircle className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold">Validate & Share</h3>
-                <p className="text-sm text-neutral1">
+                <p className="text-sm text-muted-foreground">
                   Validate translations through community voting and share them
                   with the world.
                 </p>
@@ -225,7 +228,7 @@ export default function LandingPage() {
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                   Perfect For
                 </h2>
-                <p className="max-w-[900px] text-neutral1 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   LangQuest is designed for a variety of translation needs.
                 </p>
               </div>
@@ -233,13 +236,9 @@ export default function LandingPage() {
             <div className="mx-auto mt-12">
               <Tabs defaultValue="bible" className="max-w-3xl mx-auto">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="bible" className="text-accent2">
-                    Bible Translation
-                  </TabsTrigger>
-                  <TabsTrigger value="cultural" className="text-accent2">
-                    Cultural Texts
-                  </TabsTrigger>
-                  <TabsTrigger value="education" className="text-accent2">
+                  <TabsTrigger value="bible">Bible Translation</TabsTrigger>
+                  <TabsTrigger value="cultural">Cultural Texts</TabsTrigger>
+                  <TabsTrigger value="education">
                     Educational Materials
                   </TabsTrigger>
                 </TabsList>
@@ -261,7 +260,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Chapter-by-Chapter Organization
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Easily organize translation work by books, chapters,
                             and verses.
                           </p>
@@ -275,7 +274,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Cross-Reference Support
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Link related passages and maintain consistency
                             across the translation.
                           </p>
@@ -289,7 +288,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Community Review
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Enable community members to review and validate
                             translations.
                           </p>
@@ -316,7 +315,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Multimedia Support
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Include audio recordings alongside text to preserve
                             pronunciation.
                           </p>
@@ -330,7 +329,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Cultural Context Notes
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Add explanatory notes to provide cultural context
                             for translations.
                           </p>
@@ -344,7 +343,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Intergenerational Collaboration
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Connect elders with youth to pass down language and
                             cultural knowledge.
                           </p>
@@ -370,7 +369,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Curriculum Translation
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Translate educational materials for schools and
                             community programs.
                           </p>
@@ -384,7 +383,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Vocabulary Building
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Create dictionaries and vocabulary lists for
                             language learners.
                           </p>
@@ -398,7 +397,7 @@ export default function LandingPage() {
                           <h4 className="text-sm font-medium">
                             Interactive Learning
                           </h4>
-                          <p className="text-sm text-neutral1">
+                          <p className="text-sm text-muted-foreground">
                             Develop interactive language learning materials for
                             all ages.
                           </p>
@@ -433,7 +432,7 @@ export default function LandingPage() {
                   <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                     Future: Peer-to-Peer Connectivity
                   </h2>
-                  <p className="max-w-[600px] text-neutral1 md:text-xl">
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     We're actively researching solutions to enable direct
                     device-to-device sharing of translation data without
                     internet.
@@ -480,7 +479,7 @@ export default function LandingPage() {
               <div className="w-full max-w-sm space-y-2">
                 <form className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
                   <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Enter your email"
                     type="email"
                   />
@@ -492,7 +491,7 @@ export default function LandingPage() {
                     Get Early Access
                   </Button>
                 </form>
-                <p className="text-xs text-neutral2-hover">
+                <p className="text-xs text-muted-foreground">
                   We'll notify you when LangQuest is ready for beta testing.
                 </p>
               </div>
@@ -504,21 +503,30 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="w-full py-6 md:py-0 border-t">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <div className="flex gap-2 items-center text-accent1">
-            <Globe className="h-5 w-5" />
+          <div className="flex gap-2 items-center">
+            <Globe className="h-5 w-5 text-accent1" />
             <span className="font-semibold">LangQuest</span>
           </div>
-          <p className="text-center text-sm leading-loose text-neutral1 md:text-left">
+          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
             © 2025 LangQuest. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <a href="#" className="text-sm text-neutral1 hover:text-neutral2">
+            <a
+              href="#"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               Privacy
             </a>
-            <a href="#" className="text-sm text-neutral1 hover:text-neutral2">
+            <a
+              href="#"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               Terms
             </a>
-            <a href="#" className="text-sm text-neutral1 hover:text-neutral2">
+            <a
+              href="#"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
               Contact
             </a>
           </div>

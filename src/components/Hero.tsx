@@ -386,11 +386,24 @@ function LensFlares() {
   );
 }
 
+// Utility function to safely interpolate vectors
+function safeLerpVectors(
+  v1: THREE.Vector3 | undefined,
+  v2: THREE.Vector3 | undefined,
+  alpha: number
+): THREE.Vector3 {
+  if (!v1 || !v2) {
+    console.warn('Attempted to lerpVectors with undefined vectors', { v1, v2 });
+    return new THREE.Vector3(); // Return a default vector to avoid breaking the render
+  }
+  return new THREE.Vector3().lerpVectors(v1, v2, alpha);
+}
+
 function Connections() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const linesRef = useRef<THREE.Group>(null);
   const earthCenter = useMemo(() => new THREE.Vector3(2, -1, 0), []);
-  const earthRadius = 1.5;
+  const earthRadius = 1.1;
 
   // Use a ref to keep track of the next connection ID
   const nextConnectionIdRef = useRef(1);
@@ -455,7 +468,7 @@ function Connections() {
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       cleanupGeometries();
-    }, 30000); // Clean up every 30 seconds
+    }, 5000); // Clean up every 5 seconds
 
     return () => {
       clearInterval(cleanupInterval);
@@ -473,9 +486,12 @@ function Connections() {
     const theta = 2 * Math.PI * u;
     const phi = Math.acos(2 * v - 1);
 
-    const x = centerPos.x + radius * Math.sin(phi) * Math.cos(theta);
-    const y = centerPos.y + radius * Math.sin(phi) * Math.sin(theta);
-    const z = centerPos.z + radius * Math.cos(phi);
+    // Increase the radius significantly to ensure connections are visible above the Earth's surface
+    const actualRadius = radius * 1.2; // Increased from 1.05 to 1.2
+
+    const x = centerPos.x + actualRadius * Math.sin(phi) * Math.cos(theta);
+    const y = centerPos.y + actualRadius * Math.sin(phi) * Math.sin(theta);
+    const z = centerPos.z + actualRadius * Math.cos(phi);
 
     return new THREE.Vector3(x, y, z);
   };
@@ -500,14 +516,15 @@ function Connections() {
     const midPointDir = midPoint.clone().sub(earthCenter).normalize();
 
     // Calculate the arc height based on the distance between start and end
-    const arcHeight = start.distanceTo(end) * 0.3;
+    // Significantly increase the arc height to make connections more visible
+    const arcHeight = start.distanceTo(end) * 0.5; // Increased from 0.5 to 0.8
 
     // For points that are far apart, make the arc higher
     const distanceFactor = Math.min(
       start.distanceTo(end) / (earthRadius * 2),
       1
     );
-    const adjustedArcHeight = arcHeight * (0.5 + distanceFactor * 0.5);
+    const adjustedArcHeight = arcHeight * (1.0 + distanceFactor * 1.0); // Increased factors
 
     // Adjust the midpoint outward to create an arc
     midPoint
@@ -550,71 +567,58 @@ function Connections() {
     const startPoint = getRandomPointOnSphere();
     const endPoint = getRandomPointOnSphere();
 
-    // Ensure points are not too close to each other
-    if (startPoint.distanceTo(endPoint) < earthRadius * 0.5) {
-      return; // Skip this connection and try again
+    if (startPoint.distanceTo(endPoint) < earthRadius * 0.8) {
+      return;
     }
 
-    // Calculate path points
     const pathPoints = calculateArcPath(startPoint, endPoint);
 
-    // Get random cosmic color with increased brightness
     const colorKeys = Object.keys(cosmicColors) as CosmicColorKey[];
     const baseColor =
       cosmicColors[colorKeys[Math.floor(Math.random() * colorKeys.length)]];
-    // Make the color brighter
-    const randomColor = new THREE.Color(
-      Math.min(baseColor.r * 1.5, 1),
-      Math.min(baseColor.g * 1.5, 1),
-      Math.min(baseColor.b * 1.5, 1)
-    );
+    // Multiply and manually clamp RGB values between 0 and 1
+    const randomColor = baseColor.clone().multiplyScalar(4);
+    randomColor.r = Math.min(1, Math.max(0, randomColor.r));
+    randomColor.g = Math.min(1, Math.max(0, randomColor.g));
+    randomColor.b = Math.min(1, Math.max(0, randomColor.b));
 
-    // Create data packets that will travel along the path
     const packets = [];
-    const numPackets = 1 + Math.floor(Math.random() * 3); // 1-3 packets per connection
+    const numPackets = 2; // Fixed number of packets for consistency
+    const packetSpacing = 1 / numPackets;
 
     for (let i = 0; i < numPackets; i++) {
       packets.push({
-        progress: -i * 0.3, // Stagger the starting positions (negative means waiting to start)
-        speed: 0.4 + Math.random() * 0.6,
-        size: 0.025 + Math.random() * 0.015, // Increased size
-        trail: [] // Empty trail initially
+        progress: i * -packetSpacing, // Evenly spaced negative start for smooth entry
+        speed: 0.5, // Fixed speed for smooth, predictable movement
+        size: 0.01, // Fixed size
+        trail: []
       });
     }
 
-    // Generate a unique ID for this connection
-    const connectionId = nextConnectionIdRef.current++;
-
     const newConnection: Connection = {
-      id: connectionId,
+      id: nextConnectionIdRef.current++,
       startPoint,
       endPoint,
       progress: 0,
-      speed: 0.2 + Math.random(), // Slower overall progress for the connection
+      speed: 0.5, // Fixed speed for smoothness
       life: 0,
-      maxLife: 4 + Math.random() * 3, // Longer lifetime
+      maxLife: 2, // Consistent lifetime
       active: true,
       color: randomColor,
-      pulseSpeed: 1 + Math.random() * 2,
-      pulsePhase: Math.random() * Math.PI * 2,
+      pulseSpeed: 0.5,
+      pulsePhase: 0,
       pathPoints,
       packets
     };
 
-    setConnections((prev) => {
-      const newConnections = [...prev, newConnection];
-      setDebugInfo((current) => ({
-        created: current.created + 1,
-        active: newConnections.length
-      }));
-      return newConnections;
-    });
+    setConnections((prev) => [...prev, newConnection]);
   };
 
   // Force create some initial connections
   useEffect(() => {
-    // Create 5 connections immediately
+    // Create more initial connections
     for (let i = 0; i < 5; i++) {
+      // Increased from 5 to 10
       createConnection();
     }
   }, []);
@@ -622,128 +626,78 @@ function Connections() {
   // Periodically create new connections
   useEffect(() => {
     const interval = setInterval(() => {
-      if (connections.length < 212) {
-        // Reduced max connections for better visibility
-        createConnection();
-      }
-    }, 200); // Less frequent creation for more meaningful connections
+      setConnections((prevConnections) => {
+        if (prevConnections.length < 5) {
+          createConnection();
+        }
+        return prevConnections;
+      });
+    }, 1000); // Create new connections every second
 
     return () => clearInterval(interval);
-  }, [connections.length]);
+  }, []);
 
   // Update connections
-  useFrame((state) => {
-    const delta = state.clock.getDelta();
+  useFrame((state, delta) => {
+    const newLife = connections.map((conn) => {
+      const newLife = conn.life + delta;
 
-    // Check if we need to clean up geometries
-    // If we have too many geometries or it's been a while since the last cleanup
-    if (
-      geometriesRef.current.length > 1000 ||
-      Date.now() - lastCleanupRef.current > 10000
-    ) {
-      cleanupGeometries();
-    }
+      // Update packets smoothly without pulsing
+      const updatedPackets = conn.packets.map((packet) => {
+        let newProgress = packet.progress + packet.speed * delta;
 
-    setConnections(
-      (prevConnections) =>
-        prevConnections
-          .map((conn) => {
-            // Update connection life
-            const life = conn.life + delta;
+        // Loop packet progress smoothly
+        if (newProgress > 1) {
+          newProgress -= 1;
+        }
 
-            // Update pulse phase
-            const pulsePhase =
-              (conn.pulsePhase + conn.pulseSpeed * delta) % (Math.PI * 2);
+        // Calculate exact position along the path
+        const pathLength = conn.pathPoints.length - 1;
+        const exactPathIndex = Math.floor(newProgress * pathLength);
+        const nextPathIndex = (exactPathIndex + 1) % pathLength;
+        const pathT = (newProgress * pathLength) % 1;
 
-            // Update progress (this is now just for lifetime tracking)
-            const progress = conn.progress + conn.speed * delta;
+        const packetPos = safeLerpVectors(
+          conn.pathPoints[exactPathIndex],
+          conn.pathPoints[nextPathIndex],
+          pathT
+        );
 
-            // Update packets
-            const updatedPackets = conn.packets.map((packet) => {
-              let newProgress = packet.progress + packet.speed * delta;
-
-              // Only update trail if packet is active
-              let newTrail = [...packet.trail];
-
-              if (packet.progress > 0) {
-                // Get the position along the path
-                const pathIndex = Math.min(
-                  Math.floor(packet.progress * (conn.pathPoints.length - 1)),
-                  conn.pathPoints.length - 2
-                );
-
-                // Interpolate between path points for smooth movement
-                const pathT =
-                  (packet.progress * (conn.pathPoints.length - 1)) % 1;
-                const packetPos = new THREE.Vector3().lerpVectors(
-                  conn.pathPoints[pathIndex],
-                  conn.pathPoints[pathIndex + 1],
-                  pathT
-                );
-
-                // Add current position to trail with a unique identifier
-                const trailPoint = {
-                  position: packetPos.clone(),
-                  opacity: 1.0,
-                  id: Date.now() + Math.random() // Ensure unique ID for each trail point
-                };
-
-                newTrail.unshift(trailPoint);
-
-                // Limit trail length and fade out trail points
-                if (newTrail.length > 10) {
-                  newTrail = newTrail.slice(0, 10);
-                }
-
-                // Fade out trail points
-                newTrail = newTrail.map((point, index) => ({
-                  ...point,
-                  opacity: Math.max(0, 1 - index / 10)
-                }));
-              }
-
-              // Reset packet if it reached the end
-              if (newProgress > 1) {
-                // Only reset if the connection is still young
-                if (life < conn.maxLife * 0.7) {
-                  newProgress = 0;
-                  newTrail = []; // Clear trail when resetting
-                } else {
-                  // Let it finish its journey
-                  newProgress = 1;
-                }
-              }
-
-              return {
-                ...packet,
-                progress: newProgress,
-                trail: newTrail
-              };
-            });
-
-            // If connection has lived its life, mark it as inactive
-            if (life >= conn.maxLife) {
-              return { ...conn, active: false };
+        return {
+          ...packet,
+          progress: newProgress,
+          trail: [
+            {
+              position: packetPos,
+              opacity: 1,
+              id: packet.trail[0]?.id || Math.random()
             }
+          ]
+        };
+      });
 
-            return {
-              ...conn,
-              progress: Math.min(progress, 1),
-              life,
-              pulsePhase,
-              packets: updatedPackets
-            };
-          })
-          .filter((conn) => conn.active) // Remove inactive connections
-    );
+      return {
+        ...conn,
+        life: newLife,
+        packets: updatedPackets,
+        pulsePhase: 0 // Remove pulsing entirely
+      };
+    });
+
+    setConnections(newLife);
   });
 
   return (
     <group ref={linesRef}>
-      {/* Debug sphere to show Earth position */}
-      <mesh position={earthCenter.toArray()} geometry={sharedGeometries.debug}>
-        <meshBasicMaterial color="red" />
-      </mesh>
+      {/* Debug sphere to show Earth position - only show in debug mode */}
+      {debugInfo && (
+        <mesh
+          position={earthCenter.toArray()}
+          geometry={sharedGeometries.debug}
+        >
+          <meshBasicMaterial color="red" />
+        </mesh>
+      )}
 
       {connections.map((conn) => {
         // Calculate opacity based on life
@@ -753,10 +707,6 @@ function Connections() {
             : conn.life > conn.maxLife - 0.5
               ? (conn.maxLife - conn.life) / 0.5 // Fade out
               : 1; // Full opacity
-
-        // Add subtle pulsing effect
-        const pulseEffect = 0.8 + 0.2 * Math.sin(conn.pulsePhase);
-        const opacity = baseOpacity * pulseEffect;
 
         // Convert path points to a format suitable for THREE.js BufferGeometry
         const linePoints = [];
@@ -778,25 +728,38 @@ function Connections() {
               );
               geometriesRef.current.push(lineGeometry);
 
+              // Main line
               const lineMaterial = new THREE.LineBasicMaterial({
                 color: conn.color,
                 transparent: true,
-                opacity: opacity * 0.8,
-                linewidth: 2,
+                opacity: 0.9, // consistently high opacity
+                blending: THREE.AdditiveBlending // additive blending for glow effect
+              });
+
+              // Glow line
+              const glowMaterial = new THREE.LineBasicMaterial({
+                color: conn.color.clone().multiplyScalar(2),
+                transparent: true,
+                opacity: 0.5,
                 blending: THREE.AdditiveBlending
               });
 
               return (
-                <primitive
-                  object={new THREE.Line(lineGeometry, lineMaterial)}
-                />
+                <group>
+                  <primitive
+                    object={new THREE.Line(lineGeometry, glowMaterial)}
+                  />
+                  <primitive
+                    object={new THREE.Line(lineGeometry, lineMaterial)}
+                  />
+                </group>
               );
             })()}
 
             {/* Data packets traveling along the path */}
             {conn.packets.map((packet, packetIndex) => {
-              // Only render packets that have started their journey
-              if (packet.progress <= 0) return null;
+              if (packet.progress <= 0 || conn.pathPoints.length < 2)
+                return null;
 
               // Get the position along the path
               const pathIndex = Math.min(
@@ -807,7 +770,7 @@ function Connections() {
               // Interpolate between path points for smooth movement
               const pathT =
                 (packet.progress * (conn.pathPoints.length - 1)) % 1;
-              const packetPos = new THREE.Vector3().lerpVectors(
+              const packetPos = safeLerpVectors(
                 conn.pathPoints[pathIndex],
                 conn.pathPoints[pathIndex + 1],
                 pathT
@@ -837,7 +800,7 @@ function Connections() {
                         <meshBasicMaterial
                           color={conn.color}
                           transparent
-                          opacity={opacity * trailPoint.opacity * 0.7} // Increased opacity
+                          opacity={baseOpacity * trailPoint.opacity * 0.7} // Increased opacity
                           blending={THREE.AdditiveBlending}
                         />
                       </mesh>
@@ -853,7 +816,7 @@ function Connections() {
                     <meshBasicMaterial
                       color={conn.color}
                       transparent
-                      opacity={opacity}
+                      opacity={baseOpacity}
                       blending={THREE.AdditiveBlending}
                     />
                   </mesh>
@@ -862,12 +825,12 @@ function Connections() {
                   <mesh
                     position={[packetPos.x, packetPos.y, packetPos.z]}
                     geometry={sharedGeometries.glow}
-                    scale={packet.size / 0.025} // Scale based on packet size
+                    scale={packet.size / 0.025}
                   >
                     <meshBasicMaterial
-                      color={conn.color}
+                      color={conn.color.clone().multiplyScalar(10)}
                       transparent
-                      opacity={opacity * 0.5} // Increased opacity
+                      opacity={1.0}
                       blending={THREE.AdditiveBlending}
                     />
                   </mesh>
@@ -889,7 +852,7 @@ function Connections() {
                 <meshBasicMaterial
                   color={conn.color}
                   transparent
-                  opacity={opacity * 0.9} // Increased opacity
+                  opacity={baseOpacity * 0.9} // Increased opacity
                   blending={THREE.AdditiveBlending}
                 />
               </mesh>
@@ -906,7 +869,7 @@ function Connections() {
                 <meshBasicMaterial
                   color={conn.color}
                   transparent
-                  opacity={opacity * 0.5} // Increased opacity
+                  opacity={baseOpacity * 0.5} // Increased opacity
                   blending={THREE.AdditiveBlending}
                 />
               </mesh>
@@ -922,7 +885,7 @@ function Connections() {
                 <meshBasicMaterial
                   color={conn.color}
                   transparent
-                  opacity={opacity * 0.9} // Increased opacity
+                  opacity={baseOpacity * 0.9} // Increased opacity
                   blending={THREE.AdditiveBlending}
                 />
               </mesh>
@@ -935,7 +898,7 @@ function Connections() {
                 <meshBasicMaterial
                   color={conn.color}
                   transparent
-                  opacity={opacity * 0.5} // Increased opacity
+                  opacity={baseOpacity * 0.5} // Increased opacity
                   blending={THREE.AdditiveBlending}
                 />
               </mesh>
@@ -947,58 +910,7 @@ function Connections() {
   );
 }
 
-// Stars background
-function Stars() {
-  const starsRef = useRef<THREE.Points>(null);
-
-  // Generate random stars
-  const [positions] = useState(() => {
-    const positions = [];
-    const count = 1000;
-
-    for (let i = 0; i < count; i++) {
-      // Create stars in a sphere around the scene
-      const r = 20 + Math.random() * 10;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-
-      const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta);
-      const z = r * Math.cos(phi);
-
-      positions.push(x, y, z);
-    }
-
-    return new Float32Array(positions);
-  });
-
-  useFrame((state) => {
-    const delta = state.clock.getDelta();
-    if (starsRef.current) {
-      starsRef.current.rotation.y += delta * 0.01;
-    }
-  });
-
-  return (
-    <points ref={starsRef}>
-      <bufferGeometry>
-        <float32BufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.05}
-        color="#ffffff"
-        sizeAttenuation
-        transparent
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  );
-}
-
-export default function Hero() {
+export default function Hero({ children }: { children?: React.ReactNode }) {
   // Track time for consistent rotation
   const timeRef = useRef(0);
 
@@ -1019,15 +931,11 @@ export default function Hero() {
 
   return (
     <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
-      <Canvas camera={{ position: [4.5, 2, 3], fov: 35 }}>
-        <color attach="background" args={['#0F0F1A']} />
-        {/* Using gray-900 from tailwind */}
-        <fog attach="fog" args={['#0F0F1A', 5, 15]} />
-        <ambientLight intensity={0.2} />
-        {/* <Stars /> */}
+      <Canvas camera={{ position: [7, 4, 6], fov: 35 }}>
+        <ambientLight intensity={0.8} />
+        <Connections />
         <Earth />
         {/* <LensFlares /> */}
-        <Connections />
         {debug && (
           <>
             <axesHelper args={[5]} />
@@ -1036,43 +944,23 @@ export default function Hero() {
         )}
         <EffectComposer>
           <Bloom
-            luminanceThreshold={0.1}
-            luminanceSmoothing={0.9}
-            intensity={2}
+            luminanceThreshold={0.6} // Increased to reduce blooming of darker areas
+            luminanceSmoothing={0.2} // Reduced for sharper bloom edges
+            intensity={0.8} // Reduced overall bloom intensity
+            radius={0.4} // Added to control bloom radius
+            mipmapBlur={true}
+            levels={3} // Added to control bloom quality
           />
         </EffectComposer>
         <OrbitControls
-          // autoRotate
-          // autoRotateSpeed={0.3}
           enableZoom={false}
           enablePan={false}
-          // enableRotate={true}
           enableDamping={true}
           dampingFactor={0.05}
-          // minDistance={3}
-          // maxDistance={10}
-          // rotateSpeed={0.5}
         />
       </Canvas>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="text-center text-white px-4">
-          <div className="relative inline-block mb-4">
-            <h1 className="text-4xl md:text-6xl font-bold drop-shadow-lg">
-              Translate, Preserve, and Connect with LangQuest
-            </h1>
-            <div className="absolute -inset-1 bg-accent4/20 blur-xl rounded-full -z-10 opacity-70"></div>
-          </div>
-          <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-            The offline-tolerant, AI-assisted translation app for low-resource
-            languages.
-          </p>
-          <Button
-            size="lg"
-            className="bg-accent4 text-white hover:bg-accent1 hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl"
-          >
-            Sign up for updates
-          </Button>
-        </div>
+        <div className="container mx-auto px-4 md:px-6">{children}</div>
       </div>
     </section>
   );

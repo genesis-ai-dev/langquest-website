@@ -13,27 +13,35 @@
   --animate-accordion-up: accordion-up 0.2s ease;
 
   /* Semantic color definitions */
-  /* Galactic theme with more muted base colors */
-  --color-accent1: #3b4d7a; /* Deep space blue */
-  --color-accent1-hover: #2c3a5c;
-  --color-accent2: #614b8f; /* Nebula purple */
-  --color-accent2-hover: #4a3a6e;
-  --color-accent3: #2f5c7a; /* Cosmic blue */
-  --color-accent3-hover: #234660;
-  --color-accent4: #436b63; /* Celestial teal */
-  --color-accent4-hover: #325048;
-  
-  /* Intense colors for highlights and emphasis */
-  --color-intense1: #0080ff; /* Bright blue */
-  --color-intense1-hover: #0066cc;
-  --color-intense2: #8000ff; /* Vivid purple */
-  --color-intense2-hover: #6600cc;
-  
+  /* Galactic theme with muted base colors */
+  --color-accent1: #4a5872; /* Muted space blue */
+  --color-accent1-hover: #394358;
+  --color-accent2: #635a77; /* Muted nebula purple */
+  --color-accent2-hover: #4d455c;
+  --color-accent3: #456272; /* Muted cosmic blue */
+  --color-accent3-hover: #354a57;
+  --color-accent4: #506661; /* Muted celestial teal */
+  --color-accent4-hover: #3d4d49;
+
+  /* Softened intense colors */
+  --color-intense1: #4d8cb3; /* Muted bright blue */
+  --color-intense1-hover: #3d7094;
+  --color-intense2: #7d6699; /* Muted vivid purple */
+  --color-intense2-hover: #64527a;
+
   /* Neutral colors */
-  --color-neutral1: #8494b7; /* Starlight gray */
-  --color-neutral1-hover: #6a7696;
-  --color-neutral2: #f0f2f8; /* Cosmic dust */
-  --color-neutral2-hover: #e1e5ef;
+  --color-neutral1: #939daf; /* Muted starlight gray */
+  --color-neutral1-hover: #7a8291;
+  --color-neutral2: #f5f6f8; /* Softer cosmic dust */
+  --color-neutral2-hover: #e8eaef;
+
+  /* Text colors */
+  --color-text1: #1a1a1a;
+  --color-text2: #404040;
+  --color-text3: #737373;
+  --color-text4: #a6a6a6;
+  --color-text5: #d9d9d9;
+  --color-text6: #ffffff;
 
   @keyframes accordion-down {
     from {
