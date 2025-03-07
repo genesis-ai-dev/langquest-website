@@ -13,35 +13,35 @@
   --animate-accordion-up: accordion-up 0.2s ease;
 
   /* Semantic color definitions */
-  /* Galactic theme with muted base colors */
-  --color-accent1: #4a5872; /* Muted space blue */
-  --color-accent1-hover: #394358;
-  --color-accent2: #635a77; /* Muted nebula purple */
-  --color-accent2-hover: #4d455c;
-  --color-accent3: #456272; /* Muted cosmic blue */
-  --color-accent3-hover: #354a57;
-  --color-accent4: #506661; /* Muted celestial teal */
-  --color-accent4-hover: #3d4d49;
+  /* Galactic theme colors */
+  --color-accent1: #0C4A6E; /* Space blue */
+  --color-accent1-hover: #0A3A58;
+  --color-accent2: #581C87; /* Nebula purple */
+  --color-accent2-hover: #46166C;
+  --color-accent3: #3730A3; /* Cosmic indigo */
+  --color-accent3-hover: #2C2682;
+  --color-accent4: #0E7490; /* Celestial cyan */
+  --color-accent4-hover: #0B5D73;
 
-  /* Softened intense colors */
-  --color-intense1: #4d8cb3; /* Muted bright blue */
-  --color-intense1-hover: #3d7094;
-  --color-intense2: #7d6699; /* Muted vivid purple */
-  --color-intense2-hover: #64527a;
+  /* Intense colors */
+  --color-intense1: #6366F1; /* Starlight */
+  --color-intense1-hover: #4F51C1;
+  --color-intense2: #7E22CE; /* Nebula */
+  --color-intense2-hover: #651BA5;
 
   /* Neutral colors */
-  --color-neutral1: #939daf; /* Muted starlight gray */
-  --color-neutral1-hover: #7a8291;
-  --color-neutral2: #f5f6f8; /* Softer cosmic dust */
-  --color-neutral2-hover: #e8eaef;
+  --color-neutral1: #94A3B8; /* Starlight gray */
+  --color-neutral1-hover: #768297;
+  --color-neutral2: #F8FAFC; /* Cosmic dust */
+  --color-neutral2-hover: #E2E8F0;
 
   /* Text colors */
-  --color-text1: #1a1a1a;
-  --color-text2: #404040;
-  --color-text3: #737373;
-  --color-text4: #a6a6a6;
-  --color-text5: #d9d9d9;
-  --color-text6: #ffffff;
+  --color-text1: #0F172A;
+  --color-text2: #1E293B;
+  --color-text3: #475569;
+  --color-text4: #64748B;
+  --color-text5: #CBD5E1;
+  --color-text6: #F8FAFC;
 
   @keyframes accordion-down {
     from {

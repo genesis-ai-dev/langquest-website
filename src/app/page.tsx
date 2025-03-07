@@ -19,7 +19,8 @@ import {
   BookOpen,
   CheckCircle,
   Smartphone,
-  Zap
+  Zap,
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import Hero from '@/components/Hero';
@@ -234,180 +235,156 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto mt-12">
-              <Tabs defaultValue="bible" className="max-w-3xl mx-auto">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="bible">Bible Translation</TabsTrigger>
-                  <TabsTrigger value="cultural">Cultural Texts</TabsTrigger>
-                  <TabsTrigger value="education">
-                    Educational Materials
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="bible" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Bible Translation Projects</CardTitle>
-                      <CardDescription>
-                        Organize and manage Bible translation efforts in remote
-                        communities.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Chapter-by-Chapter Organization
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Easily organize translation work by books, chapters,
-                            and verses.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Cross-Reference Support
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Link related passages and maintain consistency
-                            across the translation.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Community Review
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Enable community members to review and validate
-                            translations.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="cultural" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Cultural Text Preservation</CardTitle>
-                      <CardDescription>
-                        Preserve important cultural stories, songs, and
-                        traditions.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Multimedia Support
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Include audio recordings alongside text to preserve
-                            pronunciation.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Cultural Context Notes
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Add explanatory notes to provide cultural context
-                            for translations.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Intergenerational Collaboration
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Connect elders with youth to pass down language and
-                            cultural knowledge.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="education" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Educational Materials</CardTitle>
-                      <CardDescription>
-                        Create learning resources in low-resource languages.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Curriculum Translation
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Translate educational materials for schools and
-                            community programs.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Vocabulary Building
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Create dictionaries and vocabulary lists for
-                            language learners.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-4">
-                        <div className="rounded-full bg-accent4/10 p-2">
-                          <CheckCircle className="h-5 w-5 text-accent4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium">
-                            Interactive Learning
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Develop interactive language learning materials for
-                            all ages.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+            <div className="mx-auto mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl">
+              <Card className="relative before:absolute before:-inset-1 before:rounded-xl before:bg-[radial-gradient(circle_at_50%_120%,var(--color-accent1),transparent_70%)] before:opacity-40 before:blur-lg before:transition-all hover:before:opacity-60">
+                <CardHeader>
+                  <CardTitle>Bible Translation</CardTitle>
+                  <CardDescription>
+                    Collect linguistic data to enable AI-powered Bible translation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Bite-sized Translation Tasks
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Break down translation into small, manageable pieces like words, phrases and verses
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Community Validation
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Enable native speakers to validate translations through simple voting
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <Clock className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Offline Collaboration (Coming Soon)
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Work together even without internet through peer-to-peer syncing
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative before:absolute before:-inset-1 before:rounded-xl before:bg-[radial-gradient(circle_at_50%_120%,var(--color-accent2),transparent_70%)] before:opacity-40 before:blur-lg before:transition-all hover:before:opacity-60">
+                <CardHeader>
+                  <CardTitle>Cultural Text Documentation</CardTitle>
+                  <CardDescription>
+                    Document and preserve cultural knowledge in low-resource languages
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Multimodal Support
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Capture text, audio recordings, and images to document language and culture
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Gamified Progress
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Track achievements and milestones to make documentation engaging
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Open Data Sharing
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Share validated translations openly to benefit the whole community
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative before:absolute before:-inset-1 before:rounded-xl before:bg-[radial-gradient(circle_at_50%_120%,var(--color-intense1),transparent_70%)] before:opacity-40 before:blur-lg before:transition-all hover:before:opacity-60">
+                <CardHeader>
+                  <CardTitle>Educational Materials</CardTitle>
+                  <CardDescription>
+                    Build language resources for education and learning
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Simple Validation
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Easily validate translations through community voting and feedback
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Resource Building
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Create dictionaries, word lists and other learning materials
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="rounded-full bg-accent4/10 p-2">
+                      <CheckCircle className="h-5 w-5 text-accent4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">
+                        Local-First Design
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Work offline and sync when internet is available
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>

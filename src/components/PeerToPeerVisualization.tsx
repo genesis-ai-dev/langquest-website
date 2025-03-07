@@ -28,7 +28,7 @@ interface Connection {
 // Generate clustered layout for nodes
 const generateClusteredNodes = (): Node[] => {
   const nodes: Node[] = [];
-  const numClusters = 7;
+  const numClusters = 9;
   const nodesPerCluster = 5;
   const clusterSpread = 1.5;
   const canvasBounds = 5; // Define canvas bounds to keep clusters within view
