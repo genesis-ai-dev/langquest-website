@@ -1,97 +1,69 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    darkMode: ["class"],
     content: [
-        './pages/**/*.{ts,tsx}',
-        './components/**/*.{ts,tsx}',
-        './app/**/*.{ts,tsx}',
-        './src/**/*.{ts,tsx}',
+        "./src/**/*.{js,jsx,ts,tsx}",
+        "./app/**/*.{js,jsx,ts,tsx}",
+        "./components/**/*.{js,jsx,ts,tsx}",
     ],
     theme: {
-        container: {
-            center: true,
-            padding: "2rem",
-            screens: {
-                "2xl": "1400px",
-            },
-        },
         extend: {
             colors: {
-                green: {
-                    600: "#4F46E5", // Changed to indigo
-                    700: "#4338CA", // Changed to darker indigo
-                },
-                beige: {
-                    50: "#EEF2FF", // Changed to indigo-50
-                    100: "#E0E7FF", // Changed to indigo-100
-                },
-                gray: {
-                    800: "#1E1B4B", // Changed to indigo-950
-                    900: "#0F0F1A", // Changed to deep space color
-                },
-                // Galactic/sci-fi colors
-                cosmic: {
-                    blue: "#0C4A6E", // Deep space blue
-                    purple: "#581C87", // Deep purple
-                    indigo: "#3730A3", // Deep indigo
-                    cyan: "#0E7490", // Sci-fi cyan
-                    nebula: "#7E22CE", // Nebula purple
-                    starlight: "#6366F1", // Star light indigo
-                },
-                border: "hsl(var(--border))",
-                input: "hsl(var(--input))",
-                ring: "hsl(var(--ring))",
-                background: "hsl(var(--background))",
-                foreground: "hsl(var(--foreground))",
+                accent1: 'var(--color-accent1)',
+                'accent1-hover': 'var(--color-accent1-hover)',
+                accent2: 'var(--color-accent2)',
+                'accent2-hover': 'var(--color-accent2-hover)',
+                accent3: 'var(--color-accent3)',
+                'accent3-hover': 'var(--color-accent3-hover)',
+                accent4: 'var(--color-accent4)',
+                'accent4-hover': 'var(--color-accent4-hover)',
+                neutral1: 'var(--color-neutral1)',
+                'neutral1-hover': 'var(--color-neutral1-hover)',
+                neutral2: 'var(--color-neutral2)',
+                'neutral2-hover': 'var(--color-neutral2-hover)',
+                border: "var(--color-border)",
+                input: "var(--color-input)",
+                ring: "var(--color-ring)",
+                background: "var(--color-background)",
+                foreground: "var(--color-foreground)",
                 primary: {
-                    DEFAULT: "hsl(var(--primary))",
-                    foreground: "hsl(var(--primary-foreground))",
+                    DEFAULT: "var(--color-primary)",
+                    foreground: "var(--color-primary-foreground)",
                 },
                 secondary: {
-                    DEFAULT: "hsl(var(--secondary))",
-                    foreground: "hsl(var(--secondary-foreground))",
+                    DEFAULT: "var(--color-secondary)",
+                    foreground: "var(--color-secondary-foreground)",
                 },
                 destructive: {
-                    DEFAULT: "hsl(var(--destructive))",
-                    foreground: "hsl(var(--destructive-foreground))",
+                    DEFAULT: "var(--color-destructive)",
+                    foreground: "var(--color-destructive-foreground)",
                 },
                 muted: {
-                    DEFAULT: "hsl(var(--muted))",
-                    foreground: "hsl(var(--muted-foreground))",
+                    DEFAULT: "var(--color-muted)",
+                    foreground: "var(--color-muted-foreground)",
                 },
                 accent: {
-                    DEFAULT: "hsl(var(--accent))",
-                    foreground: "hsl(var(--accent-foreground))",
+                    DEFAULT: "var(--color-accent)",
+                    foreground: "var(--color-accent-foreground)",
                 },
                 popover: {
-                    DEFAULT: "hsl(var(--popover))",
-                    foreground: "hsl(var(--popover-foreground))",
+                    DEFAULT: "var(--color-popover)",
+                    foreground: "var(--color-popover-foreground)",
                 },
                 card: {
-                    DEFAULT: "hsl(var(--card))",
-                    foreground: "hsl(var(--card-foreground))",
+                    DEFAULT: "var(--color-card)",
+                    foreground: "var(--color-card-foreground)",
                 },
             },
             borderRadius: {
-                lg: "var(--radius)",
-                md: "calc(var(--radius) - 2px)",
-                sm: "calc(var(--radius) - 4px)",
-            },
-            keyframes: {
-                "accordion-down": {
-                    from: { height: 0 },
-                    to: { height: "var(--radix-accordion-content-height)" },
-                },
-                "accordion-up": {
-                    from: { height: "var(--radix-accordion-content-height)" },
-                    to: { height: 0 },
-                },
-            },
-            animation: {
-                "accordion-down": "accordion-down 0.2s ease-out",
-                "accordion-up": "accordion-up 0.2s ease-out",
+                lg: "var(--radius-lg)",
+                md: "var(--radius-md)",
+                sm: "var(--radius-sm)",
+                xl: "var(--radius-xl)",
             },
         },
     },
-    plugins: [require("tailwindcss-animate")],
+    plugins: [
+        require("tailwindcss-animate"),
+        require("tailwind-scrollbar"),
+    ],
 } 

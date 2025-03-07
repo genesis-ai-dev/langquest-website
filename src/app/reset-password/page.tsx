@@ -138,7 +138,7 @@ function ResetPasswordForm() {
           />
           <button
             type="submit"
-            className="w-full p-2 mt-4 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="w-full p-2 mt-4 bg-accent1-500 text-white rounded hover:bg-accent1-600"
           >
             Reset Password
           </button>

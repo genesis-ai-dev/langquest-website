@@ -14,7 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'LangQuest'
+  title: 'LangQuest - Translate and Preserve Low-Resource Languages',
+  description:
+    'An app for translating and preserving low-resource languages, especially useful in remote areas with limited internet.'
 };
 
 export default function RootLayout({
@@ -23,10 +25,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full w-full">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased dark overscroll-none w-full h-full`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full w-full`}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark')
+              }
+            `,
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

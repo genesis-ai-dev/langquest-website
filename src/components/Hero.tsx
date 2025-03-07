@@ -1060,7 +1060,7 @@ export default function Hero() {
             <h1 className="text-4xl md:text-6xl font-bold drop-shadow-lg">
               Translate, Preserve, and Connect with LangQuest
             </h1>
-            <div className="absolute -inset-1 bg-cosmic-cyan/20 blur-xl rounded-full -z-10 opacity-70"></div>
+            <div className="absolute -inset-1 bg-accent4/20 blur-xl rounded-full -z-10 opacity-70"></div>
           </div>
           <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto">
             The offline-tolerant, AI-assisted translation app for low-resource
@@ -1068,7 +1068,7 @@ export default function Hero() {
           </p>
           <Button
             size="lg"
-            className="bg-cosmic-cyan text-white hover:bg-cosmic-blue hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl"
+            className="bg-accent4 text-white hover:bg-accent1 hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-xl"
           >
             Sign up for updates
           </Button>

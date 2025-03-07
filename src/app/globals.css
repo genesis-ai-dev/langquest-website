@@ -12,6 +12,29 @@
   --animate-accordion-down: accordion-down 0.2s ease;
   --animate-accordion-up: accordion-up 0.2s ease;
 
+  /* Semantic color definitions */
+  /* Galactic theme with more muted base colors */
+  --color-accent1: #3b4d7a; /* Deep space blue */
+  --color-accent1-hover: #2c3a5c;
+  --color-accent2: #614b8f; /* Nebula purple */
+  --color-accent2-hover: #4a3a6e;
+  --color-accent3: #2f5c7a; /* Cosmic blue */
+  --color-accent3-hover: #234660;
+  --color-accent4: #436b63; /* Celestial teal */
+  --color-accent4-hover: #325048;
+  
+  /* Intense colors for highlights and emphasis */
+  --color-intense1: #0080ff; /* Bright blue */
+  --color-intense1-hover: #0066cc;
+  --color-intense2: #8000ff; /* Vivid purple */
+  --color-intense2-hover: #6600cc;
+  
+  /* Neutral colors */
+  --color-neutral1: #8494b7; /* Starlight gray */
+  --color-neutral1-hover: #6a7696;
+  --color-neutral2: #f0f2f8; /* Cosmic dust */
+  --color-neutral2-hover: #e1e5ef;
+
   @keyframes accordion-down {
     from {
       height: 0;
