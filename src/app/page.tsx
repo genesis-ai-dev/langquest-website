@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -20,34 +22,62 @@ import {
   CheckCircle,
   Smartphone,
   Zap,
-  Clock
+  Clock,
+  Menu
 } from 'lucide-react';
 import Link from 'next/link';
 import Hero from '@/components/Hero';
 import PeerToPeerVisualization from '@/components/PeerToPeerVisualization';
+import { useState } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Navigation */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between">
           <div className="flex gap-2 items-center">
             <Globe className="h-6 w-6 text-accent1" />
             <span className="font-bold text-xl">LangQuest</span>
           </div>
-          <div className="flex items-center space-x-4">
-            <nav className="flex items-center space-x-2">
-              <Link href="/database">
-                <Button variant="outline">Full Database</Button>
-              </Link>
-              <Link href="/data-view">
-                <Button className="bg-accent1 hover:bg-accent1-hover text-white">
-                  User-Friendly Database
-                </Button>
-              </Link>
-            </nav>
-          </div>
+
+          {/* Mobile Menu Button */}
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <SheetTrigger asChild>
+              <button className="md:hidden p-2">
+                <Menu className="h-6 w-6" />
+              </button>
+            </SheetTrigger>
+            <SheetContent>
+              <nav className="flex flex-col space-y-2 p-4 mt-12">
+                <Link href="/database">
+                  <Button variant="outline" className="w-full">
+                    Full Database
+                  </Button>
+                </Link>
+                <Link href="/data-view">
+                  <Button className="w-full bg-accent1 hover:bg-accent1-hover text-white">
+                    User-Friendly Database
+                  </Button>
+                </Link>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-2">
+            <Link href="/database">
+              <Button variant="outline">Full Database</Button>
+            </Link>
+            <Link href="/data-view">
+              <Button className="bg-accent1 hover:bg-accent1-hover text-white">
+                User-Friendly Database
+              </Button>
+            </Link>
+          </nav>
         </div>
       </header>
 
@@ -240,7 +270,8 @@ export default function LandingPage() {
                 <CardHeader>
                   <CardTitle>Bible Translation</CardTitle>
                   <CardDescription>
-                    Collect linguistic data to enable AI-powered Bible translation
+                    Collect linguistic data to enable AI-powered Bible
+                    translation
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -253,7 +284,8 @@ export default function LandingPage() {
                         Bite-sized Translation Tasks
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        Break down translation into small, manageable pieces like words, phrases and verses
+                        Break down translation into small, manageable pieces
+                        like words, phrases and verses
                       </p>
                     </div>
                   </div>
@@ -266,7 +298,8 @@ export default function LandingPage() {
                         Community Validation
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        Enable native speakers to validate translations through simple voting
+                        Enable native speakers to validate translations through
+                        simple voting
                       </p>
                     </div>
                   </div>
@@ -279,7 +312,8 @@ export default function LandingPage() {
                         Offline Collaboration (Coming Soon)
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        Work together even without internet through peer-to-peer syncing
+                        Work together even without internet through peer-to-peer
+                        syncing
                       </p>
                     </div>
                   </div>
@@ -290,7 +324,8 @@ export default function LandingPage() {
                 <CardHeader>
                   <CardTitle>Cultural Text Documentation</CardTitle>
                   <CardDescription>
-                    Document and preserve cultural knowledge in low-resource languages
+                    Document and preserve cultural knowledge in low-resource
+                    languages
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -303,7 +338,8 @@ export default function LandingPage() {
                         Multimodal Support
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        Capture text, audio recordings, and images to document language and culture
+                        Capture text, audio recordings, and images to document
+                        language and culture
                       </p>
                     </div>
                   </div>
@@ -312,11 +348,10 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-accent4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">
-                        Gamified Progress
-                      </h4>
+                      <h4 className="text-sm font-medium">Gamified Progress</h4>
                       <p className="text-sm text-muted-foreground">
-                        Track achievements and milestones to make documentation engaging
+                        Track achievements and milestones to make documentation
+                        engaging
                       </p>
                     </div>
                   </div>
@@ -325,11 +360,10 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-accent4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">
-                        Open Data Sharing
-                      </h4>
+                      <h4 className="text-sm font-medium">Open Data Sharing</h4>
                       <p className="text-sm text-muted-foreground">
-                        Share validated translations openly to benefit the whole community
+                        Share validated translations openly to benefit the whole
+                        community
                       </p>
                     </div>
                   </div>
@@ -349,11 +383,10 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-accent4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">
-                        Simple Validation
-                      </h4>
+                      <h4 className="text-sm font-medium">Simple Validation</h4>
                       <p className="text-sm text-muted-foreground">
-                        Easily validate translations through community voting and feedback
+                        Easily validate translations through community voting
+                        and feedback
                       </p>
                     </div>
                   </div>
@@ -362,11 +395,10 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-accent4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">
-                        Resource Building
-                      </h4>
+                      <h4 className="text-sm font-medium">Resource Building</h4>
                       <p className="text-sm text-muted-foreground">
-                        Create dictionaries, word lists and other learning materials
+                        Create dictionaries, word lists and other learning
+                        materials
                       </p>
                     </div>
                   </div>
