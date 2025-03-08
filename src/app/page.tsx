@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Globe,
   WifiOff,
   Brain,
   Trophy,
@@ -20,19 +19,12 @@ import {
   BookOpen,
   CheckCircle,
   Smartphone,
-  Zap,
-  Clock,
-  Menu,
-  GitBranch
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import Hero from '@/components/Hero';
 import PeerToPeerVisualization from '@/components/PeerToPeerVisualization';
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SubscribeForm } from '@/components/SubscribeForm';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import WebPageWrapper from '@/components/WebPageWrapper';
 
 export default function LandingPage() {
@@ -197,7 +189,7 @@ export default function LandingPage() {
                 <h3 className="text-xl font-bold">Collaborate</h3>
                 <p className="text-sm text-muted-foreground">
                   Invite community members to contribute translations and vote
-                  on each other's work.
+                  on each other&apos;s work.
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-2 text-center">
@@ -401,7 +393,7 @@ export default function LandingPage() {
                     Future: Peer-to-Peer Connectivity
                   </h2>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    We're actively researching solutions to enable direct
+                    We&apos;re actively researching solutions to enable direct
                     device-to-device sharing of translation data without
                     internet.
                   </p>
@@ -447,7 +439,8 @@ export default function LandingPage() {
               <div className="w-full max-w-sm space-y-2">
                 <SubscribeForm />
                 <p className="text-xs text-muted-foreground">
-                  We'll notify you when LangQuest is ready for beta testing.
+                  We&apos;ll notify you when LangQuest is ready for beta
+                  testing.
                 </p>
               </div>
             </div>

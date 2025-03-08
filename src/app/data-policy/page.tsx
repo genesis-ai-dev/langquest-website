@@ -21,7 +21,8 @@ const DataPolicy = () => {
             </h2>
             <div className="prose prose-gray dark:prose-invert">
               <p>
-                We don't collect any user data, with two optional exceptions:
+                We don&apos;t collect any user data, with two optional
+                exceptions:
               </p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>
@@ -122,8 +123,9 @@ const DataPolicy = () => {
               </p>
               <p>
                 We reserve the right to update this data policy at any time
-                (don't worry, you can't dedicate something to the public domain
-                and then un-dedicate it. Public domain is forever).
+                (don&apos;t worry, you can&apos;t dedicate something to the
+                public domain and then un-dedicate it. Public domain is
+                forever).
               </p>
               <p>
                 All of the source code for the app is{' '}

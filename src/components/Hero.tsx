@@ -4,7 +4,6 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, useTexture } from '@react-three/drei';
 import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
-import { Button } from '@/components/ui/button';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
 // Types for connections
@@ -84,17 +83,11 @@ function Earth() {
     []
   );
 
-  // Roughness values
-  const roughnessLow = useMemo(() => 0.25, []);
-  const roughnessHigh = useMemo(() => 0.35, []);
-
   // Track rotation for smooth animation
   const rotationRef = useRef({ earth: 0, clouds: 0 });
 
   // Use the clock for animation
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-
+  useFrame(() => {
     // Ensure smooth rotation regardless of frame rate
     if (earthRef.current) {
       rotationRef.current.earth += 0.025 * 0.016; // Base rotation on a 60fps rate
@@ -209,183 +202,6 @@ function Earth() {
   );
 }
 
-function LensFlares() {
-  const flaresRef = useRef<THREE.Group>(null);
-
-  // Create more flares with different sizes and positions
-  const flares = useMemo(() => {
-    const flarePositions = [];
-
-    // Main flares - larger and more prominent
-    for (let i = 0; i < 3; i++) {
-      // Position them more strategically around the Earth
-      const angle = (i / 3) * Math.PI * 2;
-      const distance = 6 + Math.random() * 2;
-      const x = Math.cos(angle) * distance;
-      const y = Math.sin(angle) * distance * 0.5; // Elliptical distribution
-      const z = -2 - Math.random() * 3;
-      const size = 0.2 + Math.random() * 0.3; // Larger size
-
-      // Use specific cosmic colors for main flares
-      const colorKeys = ['cyan', 'nebula', 'starlight'] as CosmicColorKey[];
-      const color = cosmicColors[colorKeys[i % colorKeys.length]];
-
-      flarePositions.push({
-        position: [x, y, z],
-        size,
-        color,
-        rotation: Math.random() * Math.PI,
-        pulseSpeed: 0.5 + Math.random() * 0.5,
-        pulsePhase: Math.random() * Math.PI * 2
-      });
-    }
-
-    // Secondary flares - smaller and more numerous
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
-      const distance = 4 + Math.random() * 8;
-      const x = Math.cos(angle) * distance;
-      const y = Math.sin(angle) * distance * 0.6;
-      const z = -3 - Math.random() * 5;
-      const size = 0.05 + Math.random() * 0.15;
-
-      // Use random cosmic colors for secondary flares
-      const colorKeys = Object.keys(cosmicColors) as CosmicColorKey[];
-      const randomColor =
-        cosmicColors[colorKeys[Math.floor(Math.random() * colorKeys.length)]];
-
-      flarePositions.push({
-        position: [x, y, z],
-        size,
-        color: randomColor,
-        rotation: Math.random() * Math.PI,
-        pulseSpeed: 0.2 + Math.random() * 1.0,
-        pulsePhase: Math.random() * Math.PI * 2
-      });
-    }
-
-    // Add some anamorphic lens flares (horizontal streaks)
-    for (let i = 0; i < 5; i++) {
-      const angle = (i / 5) * Math.PI * 2;
-      const distance = 5 + Math.random() * 3;
-      const x = Math.cos(angle) * distance;
-      const y = Math.sin(angle) * distance * 0.4;
-      const z = -2 - Math.random() * 3;
-
-      // Anamorphic flares are wider than tall
-      const width = 0.3 + Math.random() * 0.4;
-      const height = 0.02 + Math.random() * 0.03;
-
-      // Use cosmic colors with higher intensity
-      const colorKeys = [
-        'cyan',
-        'nebula',
-        'starlight',
-        'indigo'
-      ] as CosmicColorKey[];
-      const color = cosmicColors[colorKeys[i % colorKeys.length]]
-        .clone()
-        .multiplyScalar(1.5);
-
-      flarePositions.push({
-        position: [x, y, z],
-        size: width, // Store the width in size
-        height, // Additional height property
-        color,
-        rotation: angle, // Align with angle for better effect
-        pulseSpeed: 0.3 + Math.random() * 0.4,
-        pulsePhase: Math.random() * Math.PI * 2,
-        isAnamorphic: true
-      });
-    }
-
-    return flarePositions;
-  }, []);
-
-  // Animate the flares
-  useFrame((state) => {
-    const delta = state.clock.getDelta();
-
-    if (flaresRef.current) {
-      // Slowly rotate the entire flare system
-      flaresRef.current.rotation.z += delta * 0.05;
-
-      // Update individual flares
-      flaresRef.current.children.forEach((flare, index) => {
-        if (index < flares.length) {
-          const flareData = flares[index];
-
-          // Update pulse phase
-          flareData.pulsePhase =
-            (flareData.pulsePhase + flareData.pulseSpeed * delta) %
-            (Math.PI * 2);
-
-          // Apply pulse to scale and opacity
-          const pulse = 0.8 + 0.2 * Math.sin(flareData.pulsePhase);
-
-          if (flareData.isAnamorphic) {
-            // For anamorphic flares, only pulse the width
-            flare.scale.set(pulse, 1, 1);
-          } else {
-            flare.scale.set(pulse, pulse, pulse);
-          }
-
-          // Update material opacity
-          const material = (flare as THREE.Mesh)
-            .material as THREE.MeshBasicMaterial;
-          if (material) {
-            material.opacity = 0.6 + 0.4 * Math.sin(flareData.pulsePhase);
-          }
-        }
-      });
-    }
-  });
-
-  return (
-    <group ref={flaresRef}>
-      {flares.map((flare, index) => {
-        if (flare.isAnamorphic) {
-          // Create an anamorphic lens flare (horizontal streak)
-          return (
-            <mesh
-              key={index}
-              position={flare.position as [number, number, number]}
-              rotation={[0, 0, flare.rotation]}
-            >
-              <planeGeometry args={[flare.size, flare.height as number]} />
-              <meshBasicMaterial
-                color={flare.color}
-                transparent
-                opacity={0.8}
-                side={THREE.DoubleSide}
-                blending={THREE.AdditiveBlending}
-              />
-            </mesh>
-          );
-        } else {
-          // Create a circular lens flare
-          return (
-            <mesh
-              key={index}
-              position={flare.position as [number, number, number]}
-              rotation={[0, 0, flare.rotation]}
-            >
-              <circleGeometry args={[flare.size / 2, 32]} />
-              <meshBasicMaterial
-                color={flare.color}
-                transparent
-                opacity={0.7}
-                side={THREE.DoubleSide}
-                blending={THREE.AdditiveBlending}
-              />
-            </mesh>
-          );
-        }
-      })}
-    </group>
-  );
-}
-
 // Utility function to safely interpolate vectors
 export function safeLerpVectors(
   v1: THREE.Vector3 | undefined,
@@ -413,9 +229,6 @@ function Connections() {
 
   // Track the last time geometries were cleaned up
   const lastCleanupRef = useRef(Date.now());
-
-  // Debug state to track connection creation
-  const [debugInfo, setDebugInfo] = useState({ created: 0, active: 0 });
 
   // Create reusable geometries for common shapes
   const sharedGeometries = useMemo(() => {
@@ -477,93 +290,89 @@ function Connections() {
   }, [cleanupGeometries]);
 
   // Generate a random point on the sphere
-  const getRandomPointOnSphere = (
-    radius: number = earthRadius,
-    centerPos: THREE.Vector3 = earthCenter
-  ) => {
-    const u = Math.random();
-    const v = Math.random();
-    const theta = 2 * Math.PI * u;
-    const phi = Math.acos(2 * v - 1);
+  const getRandomPointOnSphere = useCallback(
+    (radius: number = earthRadius, centerPos: THREE.Vector3 = earthCenter) => {
+      const u = Math.random();
+      const v = Math.random();
+      const theta = 2 * Math.PI * u;
+      const phi = Math.acos(2 * v - 1);
 
-    // Increase the radius significantly to ensure connections are visible above the Earth's surface
-    const actualRadius = radius * 1.2; // Increased from 1.05 to 1.2
+      // Increase the radius significantly to ensure connections are visible above the Earth's surface
+      const actualRadius = radius * 1.2; // Increased from 1.05 to 1.2
 
-    const x = centerPos.x + actualRadius * Math.sin(phi) * Math.cos(theta);
-    const y = centerPos.y + actualRadius * Math.sin(phi) * Math.sin(theta);
-    const z = centerPos.z + actualRadius * Math.cos(phi);
+      const x = centerPos.x + actualRadius * Math.sin(phi) * Math.cos(theta);
+      const y = centerPos.y + actualRadius * Math.sin(phi) * Math.sin(theta);
+      const z = centerPos.z + actualRadius * Math.cos(phi);
 
-    return new THREE.Vector3(x, y, z);
-  };
+      return new THREE.Vector3(x, y, z);
+    },
+    [earthCenter, earthRadius]
+  );
 
   // Calculate a curved path between two points on a sphere
-  const calculateArcPath = (
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    numPoints: number = 20
-  ) => {
-    const points: THREE.Vector3[] = [];
+  const calculateArcPath = useCallback(
+    (start: THREE.Vector3, end: THREE.Vector3, numPoints: number = 20) => {
+      const points: THREE.Vector3[] = [];
 
-    // Calculate the midpoint between start and end
-    const midPoint = new THREE.Vector3()
-      .addVectors(start, end)
-      .multiplyScalar(0.5);
+      // Calculate the midpoint between start and end
+      const midPoint = new THREE.Vector3()
+        .addVectors(start, end)
+        .multiplyScalar(0.5);
 
-    // Calculate the distance from the center to the midpoint
-    const midPointDistance = midPoint.distanceTo(earthCenter);
+      // Normalize the midpoint direction and scale it to create an arc
+      const midPointDir = midPoint.clone().sub(earthCenter).normalize();
 
-    // Normalize the midpoint direction and scale it to create an arc
-    const midPointDir = midPoint.clone().sub(earthCenter).normalize();
+      // Calculate the arc height based on the distance between start and end
+      // Significantly increase the arc height to make connections more visible
+      const arcHeight = start.distanceTo(end) * 0.5; // Increased from 0.5 to 0.8
 
-    // Calculate the arc height based on the distance between start and end
-    // Significantly increase the arc height to make connections more visible
-    const arcHeight = start.distanceTo(end) * 0.5; // Increased from 0.5 to 0.8
+      // For points that are far apart, make the arc higher
+      const distanceFactor = Math.min(
+        start.distanceTo(end) / (earthRadius * 2),
+        1
+      );
+      const adjustedArcHeight = arcHeight * (1.0 + distanceFactor * 1.0); // Increased factors
 
-    // For points that are far apart, make the arc higher
-    const distanceFactor = Math.min(
-      start.distanceTo(end) / (earthRadius * 2),
-      1
-    );
-    const adjustedArcHeight = arcHeight * (1.0 + distanceFactor * 1.0); // Increased factors
+      // Adjust the midpoint outward to create an arc
+      midPoint
+        .copy(earthCenter)
+        .add(midPointDir.multiplyScalar(earthRadius + adjustedArcHeight));
 
-    // Adjust the midpoint outward to create an arc
-    midPoint
-      .copy(earthCenter)
-      .add(midPointDir.multiplyScalar(earthRadius + adjustedArcHeight));
+      // Create a quadratic bezier curve
+      for (let i = 0; i < numPoints; i++) {
+        const t = i / (numPoints - 1);
 
-    // Create a quadratic bezier curve
-    for (let i = 0; i < numPoints; i++) {
-      const t = i / (numPoints - 1);
+        // Quadratic bezier curve
+        const point = new THREE.Vector3();
 
-      // Quadratic bezier curve
-      const point = new THREE.Vector3();
+        // P = (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
+        const oneMinusT = 1 - t;
+        const oneMinusTSquared = oneMinusT * oneMinusT;
+        const tSquared = t * t;
 
-      // P = (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
-      const oneMinusT = 1 - t;
-      const oneMinusTSquared = oneMinusT * oneMinusT;
-      const tSquared = t * t;
+        point.x =
+          oneMinusTSquared * start.x +
+          2 * oneMinusT * t * midPoint.x +
+          tSquared * end.x;
+        point.y =
+          oneMinusTSquared * start.y +
+          2 * oneMinusT * t * midPoint.y +
+          tSquared * end.y;
+        point.z =
+          oneMinusTSquared * start.z +
+          2 * oneMinusT * t * midPoint.z +
+          tSquared * end.z;
 
-      point.x =
-        oneMinusTSquared * start.x +
-        2 * oneMinusT * t * midPoint.x +
-        tSquared * end.x;
-      point.y =
-        oneMinusTSquared * start.y +
-        2 * oneMinusT * t * midPoint.y +
-        tSquared * end.y;
-      point.z =
-        oneMinusTSquared * start.z +
-        2 * oneMinusT * t * midPoint.z +
-        tSquared * end.z;
+        points.push(point);
+      }
 
-      points.push(point);
-    }
-
-    return points;
-  };
+      return points;
+    },
+    [earthCenter, earthRadius]
+  );
 
   // Create a new connection
-  const createConnection = () => {
+  const createConnection = useCallback(() => {
     const startPoint = getRandomPointOnSphere();
     const endPoint = getRandomPointOnSphere();
 
@@ -612,7 +421,7 @@ function Connections() {
     };
 
     setConnections((prev) => [...prev, newConnection]);
-  };
+  }, [getRandomPointOnSphere, calculateArcPath]);
 
   // Force create some initial connections
   useEffect(() => {
@@ -621,7 +430,7 @@ function Connections() {
       // Increased from 5 to 10
       createConnection();
     }
-  }, []);
+  }, [createConnection]);
 
   // Periodically create new connections
   useEffect(() => {
@@ -635,7 +444,7 @@ function Connections() {
     }, 1000); // Create new connections every second
 
     return () => clearInterval(interval);
-  }, []);
+  }, [createConnection]);
 
   // Update connections
   useFrame((state, delta) => {
@@ -689,16 +498,6 @@ function Connections() {
 
   return (
     <group ref={linesRef}>
-      {/* Debug sphere to show Earth position - only show in debug mode */}
-      {debugInfo && (
-        <mesh
-          position={earthCenter.toArray()}
-          geometry={sharedGeometries.debug}
-        >
-          <meshBasicMaterial color="red" />
-        </mesh>
-      )}
-
       {connections.map((conn) => {
         // Calculate opacity based on life
         const baseOpacity =
@@ -911,37 +710,12 @@ function Connections() {
 }
 
 export default function Hero({ children }: { children?: React.ReactNode }) {
-  // Track time for consistent rotation
-  const timeRef = useRef(0);
-
-  // Debug state
-  const [debug, setDebug] = useState(false);
-
-  // Toggle debug mode with 'd' key
-  // useEffect(() => {
-  //   const handleKeyDown = (e: KeyboardEvent) => {
-  //     if (e.key === 'd') {
-  //       setDebug((prev) => !prev);
-  //     }
-  //   };
-
-  //   window.addEventListener('keydown', handleKeyDown);
-  //   return () => window.removeEventListener('keydown', handleKeyDown);
-  // }, []);
-
   return (
     <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
       <Canvas camera={{ position: [7, 4, 6], fov: 35 }}>
         <ambientLight intensity={0.8} />
         <Connections />
         <Earth />
-        {/* <LensFlares /> */}
-        {debug && (
-          <>
-            <axesHelper args={[5]} />
-            <gridHelper args={[10, 10]} />
-          </>
-        )}
         <EffectComposer>
           <Bloom
             luminanceThreshold={0.6} // Increased to reduce blooming of darker areas
