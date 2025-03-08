@@ -454,8 +454,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </WebPageWrapper>
   );
 }
