@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
   Globe,
@@ -23,64 +22,22 @@ import {
   Smartphone,
   Zap,
   Clock,
-  Menu
+  Menu,
+  GitBranch
 } from 'lucide-react';
 import Link from 'next/link';
 import Hero from '@/components/Hero';
 import PeerToPeerVisualization from '@/components/PeerToPeerVisualization';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { SubscribeForm } from '@/components/SubscribeForm';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import WebPageWrapper from '@/components/WebPageWrapper';
 
 export default function LandingPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Navigation */}
-      <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between">
-          <div className="flex gap-2 items-center">
-            <Globe className="h-6 w-6 text-accent1" />
-            <span className="font-bold text-xl">LangQuest</span>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <SheetTrigger asChild>
-              <button className="md:hidden p-2">
-                <Menu className="h-6 w-6" />
-              </button>
-            </SheetTrigger>
-            <SheetContent>
-              <nav className="flex flex-col space-y-2 p-4 mt-12">
-                <Link href="/database">
-                  <Button variant="outline" className="w-full">
-                    Full Database
-                  </Button>
-                </Link>
-                <Link href="/data-view">
-                  <Button className="w-full bg-accent1 hover:bg-accent1-hover text-white">
-                    User-Friendly Database
-                  </Button>
-                </Link>
-              </nav>
-            </SheetContent>
-          </Sheet>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-2">
-            <Link href="/database">
-              <Button variant="outline">Full Database</Button>
-            </Link>
-            <Link href="/data-view">
-              <Button className="bg-accent1 hover:bg-accent1-hover text-white">
-                User-Friendly Database
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <WebPageWrapper>
       <main className="flex-1">
         {/* Hero Section with Three.js Globe */}
         <Hero>
@@ -98,23 +55,28 @@ export default function LandingPage() {
                   offline.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Button
-                  size="lg"
-                  className="gap-1 bg-accent4 text-white hover:bg-accent4/90"
-                >
-                  <Zap className="h-4 w-4" />
-                  Get Notified
-                </Button>
-                <Link href="/database">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className=" hover:bg-white/20 hover:text-white"
-                  >
-                    View the Database
-                  </Button>
-                </Link>
+              <div className="flex flex-col gap-4">
+                <SubscribeForm />
+                <div className="flex gap-2">
+                  <Link href="/database">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className=" hover:bg-white/20 hover:text-white"
+                    >
+                      View the Database
+                    </Button>
+                  </Link>
+                  <Link href="/data-view">
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className=" hover:bg-white/20 hover:text-white"
+                    >
+                      User-Friendly Data
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -483,20 +445,7 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className="w-full max-w-sm space-y-2">
-                <form className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-                  <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Enter your email"
-                    type="email"
-                  />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    className="sm:w-auto"
-                  >
-                    Get Early Access
-                  </Button>
-                </form>
+                <SubscribeForm />
                 <p className="text-xs text-muted-foreground">
                   We'll notify you when LangQuest is ready for beta testing.
                 </p>
@@ -506,38 +455,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full py-6 md:py-0 border-t">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <div className="flex gap-2 items-center">
-            <Globe className="h-5 w-5 text-accent1" />
-            <span className="font-semibold">LangQuest</span>
-          </div>
-          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © 2025 LangQuest. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4">
-            <a
-              href="#"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Privacy
-            </a>
-            <a
-              href="#"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Terms
-            </a>
-            <a
-              href="#"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Contact
-            </a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <Footer />
+    </WebPageWrapper>
   );
 }

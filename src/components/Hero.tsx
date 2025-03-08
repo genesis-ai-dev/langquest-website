@@ -918,16 +918,16 @@ export default function Hero({ children }: { children?: React.ReactNode }) {
   const [debug, setDebug] = useState(false);
 
   // Toggle debug mode with 'd' key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'd') {
-        setDebug((prev) => !prev);
-      }
-    };
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if (e.key === 'd') {
+  //       setDebug((prev) => !prev);
+  //     }
+  //   };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
 
   return (
     <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
@@ -959,7 +959,7 @@ export default function Hero({ children }: { children?: React.ReactNode }) {
           dampingFactor={0.05}
         />
       </Canvas>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="absolute inset-0 flex items-center justify-center">
         <div className="container mx-auto px-4 md:px-6">{children}</div>
       </div>
     </section>
