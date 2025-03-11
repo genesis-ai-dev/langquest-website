@@ -15,6 +15,10 @@ const DataPolicy = () => {
             </p>
           </div>
 
+          <div className="text-sm text-muted-foreground">
+            <p>Version 1.0 • March 10, 2025</p>
+          </div>
+
           <div className="space-y-4 mt-12">
             <h2 className="text-2xl font-bold tracking-tighter sm:text-3xl">
               User Data
