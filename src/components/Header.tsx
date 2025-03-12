@@ -4,10 +4,47 @@ import { Globe, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [DEV_ADMIN_MODE, setDEV_ADMIN_MODE] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
+
+  // Check localStorage for devAdmin flag when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const devAdmin = localStorage.getItem('devAdmin');
+      console.log('Initial devAdmin value from localStorage:', devAdmin);
+      if (devAdmin === 'true') {
+        setDEV_ADMIN_MODE(true);
+        console.log('DEV_ADMIN_MODE set to true');
+      }
+    }
+  }, []);
+
+  // Handle logo clicks to toggle dev admin mode
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+    console.log('Logo click count:', newCount);
+
+    // If clicked 5 times in succession, toggle dev admin mode
+    if (newCount >= 5) {
+      const newDevAdminMode = !DEV_ADMIN_MODE;
+      console.log('Toggling DEV_ADMIN_MODE to:', newDevAdminMode);
+      setDEV_ADMIN_MODE(newDevAdminMode);
+      localStorage.setItem('devAdmin', newDevAdminMode.toString());
+      setLogoClickCount(0);
+      toast.success(`Admin mode ${newDevAdminMode ? 'enabled' : 'disabled'}`);
+    }
+
+    // Reset count after 2 seconds of inactivity
+    setTimeout(() => {
+      setLogoClickCount(0);
+    }, 2000);
+  };
 
   return (
     <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -15,9 +52,15 @@ const Header = () => {
         <Link
           href="/"
           className="flex gap-2 items-center flex-nowrap no-underline"
+          onClick={handleLogoClick}
         >
           <Globe className="h-6 w-6 text-accent1" />
           <span className="font-bold text-xl">LangQuest</span>
+          {DEV_ADMIN_MODE && (
+            <span className="ml-2 text-xs px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded-full">
+              Admin
+            </span>
+          )}
         </Link>
 
         {/* Mobile Menu Button */}
@@ -52,6 +95,13 @@ const Header = () => {
                   User-Friendly Database
                 </Button>
               </Link>
+              {DEV_ADMIN_MODE && (
+                <Link href="/admin">
+                  <Button variant="outline" className="w-full mt-2">
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -80,6 +130,11 @@ const Header = () => {
               User-Friendly Database
             </Button>
           </Link>
+          {DEV_ADMIN_MODE && (
+            <Link href="/admin">
+              <Button variant="outline">Admin</Button>
+            </Link>
+          )}
         </nav>
       </div>
     </header>
