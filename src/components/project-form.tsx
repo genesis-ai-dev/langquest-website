@@ -15,29 +15,31 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
+import { InfoIcon } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import { LanguageCombobox, Language } from './language-combobox';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Project name must be at least 2 characters.'
   }),
   description: z.string().optional(),
-  source_language_id: z.string({
-    required_error: 'Please select a source language.'
+  source_language_id: z.string().min(1, {
+    message: 'Source language is required.'
   }),
-  target_language_id: z.string({
-    required_error: 'Please select a target language.'
+  target_language_id: z.string().min(1, {
+    message: 'Target language is required.'
   })
 });
 
@@ -51,13 +53,13 @@ interface ProjectFormProps {
 export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch languages for the dropdown
+  // Fetch languages for dropdowns
   const { data: languages, isLoading: languagesLoading } = useQuery({
     queryKey: ['languages'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('language')
-        .select('id, english_name')
+        .select('id, english_name, native_name, iso639_3')
         .order('english_name');
 
       if (error) throw error;
@@ -65,27 +67,47 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
     }
   });
 
+  // Handle language creation success
+  const handleLanguageCreated = (newLanguage: Language) => {
+    // Refetch languages to update the list
+    // This is optional since we're already updating the UI optimistically
+  };
+
   // Set up form with default values
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: initialData || {
       name: '',
       description: '',
-      source_language_id: '',
-      target_language_id: ''
+      source_language_id: 'eng', // Default to English
+      target_language_id: 'eng' // Default to English
     }
   });
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+    }
+  }, [initialData, form]);
 
   async function onSubmit(values: ProjectFormValues) {
     setIsSubmitting(true);
     try {
       let result;
 
+      // Ensure we have values for required fields
+      const projectData = {
+        ...values,
+        source_language_id: values.source_language_id || 'eng',
+        target_language_id: values.target_language_id || 'eng'
+      };
+
       if (initialData?.id) {
         // Update existing project
         const { data, error } = await supabase
           .from('project')
-          .update(values)
+          .update(projectData)
           .eq('id', initialData.id)
           .select('id')
           .single();
@@ -97,7 +119,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         // Create new project
         const { data, error } = await supabase
           .from('project')
-          .insert(values)
+          .insert(projectData)
           .select('id')
           .single();
 
@@ -111,8 +133,8 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         form.reset({
           name: '',
           description: '',
-          source_language_id: values.source_language_id,
-          target_language_id: values.target_language_id
+          source_language_id: 'eng',
+          target_language_id: 'eng'
         });
       }
 
@@ -126,10 +148,6 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (languagesLoading) {
-    return <Spinner />;
   }
 
   return (
@@ -180,24 +198,31 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
             name="source_language_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Source Language</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select source language" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {languages?.map((language) => (
-                      <SelectItem key={language.id} value={language.id}>
-                        {language.english_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel className="flex items-center gap-2">
+                  Source Language
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          The original language of the content.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </FormLabel>
+                <FormControl>
+                  <LanguageCombobox
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select source language"
+                    languages={(languages as Language[]) || []}
+                    isLoading={languagesLoading}
+                    onCreateSuccess={handleLanguageCreated}
+                  />
+                </FormControl>
                 <FormDescription>
                   The original language of the content.
                 </FormDescription>
@@ -211,24 +236,31 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
             name="target_language_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Target Language</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select target language" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {languages?.map((language) => (
-                      <SelectItem key={language.id} value={language.id}>
-                        {language.english_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel className="flex items-center gap-2">
+                  Target Language
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          The language you're translating into.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </FormLabel>
+                <FormControl>
+                  <LanguageCombobox
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select target language"
+                    languages={(languages as Language[]) || []}
+                    isLoading={languagesLoading}
+                    onCreateSuccess={handleLanguageCreated}
+                  />
+                </FormControl>
                 <FormDescription>
                   The language you're translating into.
                 </FormDescription>
