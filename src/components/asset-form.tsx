@@ -219,23 +219,20 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           const fileName = `${Date.now()}-${image.name}`;
           setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
 
+          // Simple upload without progress tracking
           const { data: uploadData, error: uploadError } =
             await supabase.storage
               .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-              .upload(`images/${fileName}`, image, {
-                onUploadProgress: (progress) => {
-                  const percent = Math.round(
-                    (progress.loaded / progress.total) * 100
-                  );
-                  setUploadProgress((prev) => ({
-                    ...prev,
-                    [fileName]: percent
-                  }));
-                }
-              });
+              .upload(`images/${fileName}`, image);
 
           if (uploadError) throw uploadError;
           uploadedImagePaths.push(uploadData.path);
+
+          // Update progress manually after upload completes
+          setUploadProgress((prev) => ({
+            ...prev,
+            [fileName]: 100
+          }));
         }
       }
 
@@ -253,19 +250,18 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-          .upload(`audio/${fileName}`, file, {
-            onUploadProgress: (progress) => {
-              const percent = Math.round(
-                (progress.loaded / progress.total) * 100
-              );
-              setUploadProgress((prev) => ({ ...prev, [fileName]: percent }));
-            }
-          });
+          .upload(`audio/${fileName}`, file);
 
         if (uploadError) throw uploadError;
         if (updatedContent[index]) {
           updatedContent[index].audio_id = uploadData.path;
         }
+
+        // Update progress manually after upload completes
+        setUploadProgress((prev) => ({
+          ...prev,
+          [fileName]: 100
+        }));
       }
 
       let assetId: string;
@@ -304,7 +300,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
             images:
               finalImagePaths.length > 0
                 ? JSON.stringify(finalImagePaths)
-                : null
+                : null,
+            created_at: new Date().toISOString(),
+            source_language_id: 'eng' // Default to English, adjust as needed
           })
           .select('id')
           .single();
@@ -320,7 +318,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
-          audio_id: item.audio_id
+          audio_id: item.audio_id,
+          id: crypto.randomUUID()
         }));
 
         const { error: contentError } = await supabase
@@ -755,7 +754,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                 {allQuests?.map((quest) => (
                                   <CommandItem
                                     key={quest.id}
-                                    value={quest.name}
+                                    value={quest.name || ''}
                                     onSelect={() => {
                                       if (!selectedQuests.includes(quest.id)) {
                                         setSelectedQuests([
