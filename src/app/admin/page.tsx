@@ -14,7 +14,7 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Copy, LogOut } from 'lucide-react';
@@ -37,6 +37,20 @@ import { toast } from 'sonner';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 
 export default function AdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container p-8 max-w-screen-xl mx-auto flex justify-center">
+          <Spinner />
+        </div>
+      }
+    >
+      <AdminContent />
+    </Suspense>
+  );
+}
+
+function AdminContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('projects');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
