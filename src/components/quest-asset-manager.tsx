@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
-import { Search, Plus, Check, X } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Check,
+  X,
+  Filter,
+  ListFilter,
+  Tag,
+  Image,
+  FileText
+} from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -25,17 +35,29 @@ import {
   TableRow
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface QuestAssetManagerProps {
   questId: string;
@@ -49,7 +71,12 @@ export function QuestAssetManager({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if the device is mobile
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Fetch quest details
   const { data: quest, isLoading: questLoading } = useQuery({
@@ -83,7 +110,8 @@ export function QuestAssetManager({
   const {
     data: linkedAssets,
     isLoading: linkedAssetsLoading,
-    refetch: refetchLinkedAssets
+    refetch: refetchLinkedAssets,
+    error: linkedAssetsError
   } = useQuery({
     queryKey: ['quest-assets', questId],
     queryFn: async () => {
@@ -97,7 +125,10 @@ export function QuestAssetManager({
             name,
             images,
             source_language:language!source_language_id(english_name),
-            content:asset_content_link(id, text)
+            content:asset_content_link(id, text),
+            tags:asset_tag_link(
+              tag:tag_id(id, name)
+            )
           )
         `
         )
@@ -110,8 +141,12 @@ export function QuestAssetManager({
   });
 
   // Fetch all assets for search
-  const { data: searchResults, isLoading: searchLoading } = useQuery({
-    queryKey: ['asset-search', searchTerm, questId],
+  const {
+    data: searchResults,
+    isLoading: searchLoading,
+    error: searchError
+  } = useQuery({
+    queryKey: ['asset-search', searchTerm, questId, activeTab],
     queryFn: async () => {
       let query = supabase.from('asset').select(`
           id,
@@ -129,12 +164,19 @@ export function QuestAssetManager({
         query = query.ilike('name', `%${searchTerm}%`);
       }
 
+      // Filter by tab if not "all"
+      if (activeTab === 'images') {
+        query = query.not('images', 'is', null);
+      } else if (activeTab === 'text') {
+        query = query.not('content', 'is', null);
+      }
+
       const { data, error } = await query.order('name');
 
       if (error) throw error;
       return data;
     },
-    enabled: isDialogOpen // Only fetch when dialog is open
+    enabled: isSheetOpen // Only fetch when sheet is open
   });
 
   // Initialize selected assets with already linked assets
@@ -144,18 +186,32 @@ export function QuestAssetManager({
     }
   }, [linkedAssets]);
 
+  // Handle errors
+  useEffect(() => {
+    if (linkedAssetsError) {
+      setError('Failed to load linked assets');
+      toast.error('Failed to load linked assets');
+    } else if (searchError) {
+      setError('Failed to search assets');
+      toast.error('Failed to search assets');
+    } else {
+      setError(null);
+    }
+  }, [linkedAssetsError, searchError]);
+
   // Handle asset selection
-  const toggleAssetSelection = (assetId: string) => {
+  const toggleAssetSelection = useCallback((assetId: string) => {
     setSelectedAssets((prev) =>
       prev.includes(assetId)
         ? prev.filter((id) => id !== assetId)
         : [...prev, assetId]
     );
-  };
+  }, []);
 
   // Handle saving asset links
   const saveAssetLinks = async () => {
     setIsSubmitting(true);
+    setError(null);
     try {
       // Get current linked assets
       const currentLinkedAssetIds =
@@ -198,7 +254,7 @@ export function QuestAssetManager({
       }
 
       toast.success('Assets updated successfully');
-      setIsDialogOpen(false);
+      setIsSheetOpen(false);
       refetchLinkedAssets();
 
       if (onSuccess) {
@@ -206,6 +262,7 @@ export function QuestAssetManager({
       }
     } catch (error) {
       console.error('Error updating assets:', error);
+      setError('Failed to update assets');
       toast.error('Failed to update assets');
     } finally {
       setIsSubmitting(false);
@@ -222,9 +279,195 @@ export function QuestAssetManager({
   };
 
   // Check if an asset is already linked to this quest
-  const isAssetLinked = (assetId: string) => {
-    return selectedAssets.includes(assetId);
+  const isAssetLinked = useCallback(
+    (assetId: string) => {
+      return selectedAssets.includes(assetId);
+    },
+    [selectedAssets]
+  );
+
+  // Reset search and filters when sheet opens/closes
+  const handleOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+      setSearchTerm('');
+      setActiveTab('all');
+    }
   };
+
+  // Render asset table
+  const renderAssetTable = () => (
+    <div className="flex flex-col gap-4 h-full">
+      <Tabs
+        defaultValue="all"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="mb-4"
+      >
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="text">Text</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="flex items-center space-x-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search assets by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 w-full"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={() => setSearchTerm('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setSearchTerm('');
+            setActiveTab('all');
+          }}
+          disabled={!searchTerm && activeTab === 'all'}
+        >
+          <Filter className="mr-2 h-4 w-4" />
+          Reset
+        </Button>
+      </div>
+
+      <div className="flex-1 w-full overflow-hidden">
+        <ScrollArea className="h-full rounded-md border">
+          <Table className="w-full table-fixed">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px] sticky left-0 bg-background z-10">
+                  <span className="sr-only">Select</span>
+                </TableHead>
+                <TableHead className="w-[300px] sticky left-[40px] bg-background z-10">
+                  Name
+                </TableHead>
+                <TableHead className="w-[250px]">Preview</TableHead>
+                <TableHead className="w-[150px]">Language</TableHead>
+                <TableHead className="w-[300px]">Tags</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {searchLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <div className="flex justify-center py-4">
+                      <Spinner />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <div className="text-center py-4 text-destructive">
+                      {error}.{' '}
+                      <Button
+                        variant="link"
+                        onClick={() => refetchLinkedAssets()}
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : searchResults?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <div className="text-center py-4 text-muted-foreground">
+                      No assets found. Try a different search term.
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                searchResults?.map((asset) => (
+                  <TableRow
+                    key={asset.id}
+                    className={isAssetLinked(asset.id) ? 'bg-muted/50' : ''}
+                    onClick={() => toggleAssetSelection(asset.id)}
+                  >
+                    <TableCell className="py-2 sticky left-0 bg-inherit z-10">
+                      <Checkbox
+                        checked={isAssetLinked(asset.id)}
+                        onCheckedChange={() => toggleAssetSelection(asset.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium py-2 group cursor-pointer sticky left-[40px] bg-inherit z-10">
+                      <div className="truncate group-hover:whitespace-normal">
+                        {asset.name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 group cursor-pointer">
+                      <div className="truncate group-hover:whitespace-normal">
+                        {getAssetPreview(asset)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 group cursor-pointer">
+                      <div className="truncate group-hover:whitespace-normal">
+                        {asset.source_language.english_name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {asset.tags && asset.tags.length > 0 ? (
+                          asset.tags.map((tagLink: any) => (
+                            <Badge key={tagLink.tag.id} variant="outline">
+                              {tagLink.tag.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            No tags
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+
+  // Render sheet footer
+  const renderFooter = () => (
+    <div className="flex items-center justify-between w-full">
+      <div className="text-sm text-muted-foreground">
+        {selectedAssets.length} assets selected
+      </div>
+      <div className="flex space-x-2">
+        <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button onClick={saveAssetLinks} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Spinner className="mr-2 h-4 w-4" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </Button>
+      </div>
+    </div>
+  );
 
   if (questLoading) {
     return (
@@ -249,121 +492,38 @@ export function QuestAssetManager({
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+        <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
+          <SheetTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Manage Assets
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Add Assets to Quest</DialogTitle>
-              <DialogDescription>
+          </SheetTrigger>
+          <SheetContent
+            side={isMobile ? 'bottom' : 'right'}
+            className={`p-6 flex flex-col overflow-hidden ${
+              isMobile
+                ? 'h-[95vh] sm:h-[90vh]'
+                : 'w-[95vw] max-w-[1200px] !right-0 !left-auto'
+            }`}
+            style={
+              !isMobile ? { width: '95vw', maxWidth: '1200px' } : undefined
+            }
+          >
+            <SheetHeader className="mb-4">
+              <SheetTitle>Add Assets to Quest</SheetTitle>
+              <SheetDescription>
                 Search and select assets to add to this quest.
-              </DialogDescription>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
 
-            <div className="flex items-center space-x-2 my-4">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search assets by name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-            </div>
+            <div className="flex-1 overflow-hidden">{renderAssetTable()}</div>
 
-            <ScrollArea className="h-[400px] rounded-md border">
-              {searchLoading ? (
-                <div className="flex justify-center py-10">
-                  <Spinner />
-                </div>
-              ) : searchResults?.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  No assets found. Try a different search term.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Preview</TableHead>
-                      <TableHead>Language</TableHead>
-                      <TableHead>Tags</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {searchResults?.map((asset) => (
-                      <TableRow
-                        key={asset.id}
-                        className={isAssetLinked(asset.id) ? 'bg-muted/50' : ''}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={isAssetLinked(asset.id)}
-                            onCheckedChange={() =>
-                              toggleAssetSelection(asset.id)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {asset.name}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {getAssetPreview(asset)}
-                        </TableCell>
-                        <TableCell>
-                          {asset.source_language.english_name}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {asset.tags && asset.tags.length > 0 ? (
-                              asset.tags.map((tagLink: any) => (
-                                <Badge key={tagLink.tag.id} variant="outline">
-                                  {tagLink.tag.name}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-muted-foreground text-sm">
-                                No tags
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </ScrollArea>
-
-            <DialogFooter className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                {selectedAssets.length} assets selected
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={saveAssetLinks} disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <SheetFooter className="mt-6 pt-2 border-t">
+              {renderFooter()}
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
       <Card>
@@ -378,39 +538,82 @@ export function QuestAssetManager({
             <div className="flex justify-center py-10">
               <Spinner />
             </div>
+          ) : error ? (
+            <div className="text-center py-10 text-destructive">
+              {error}.{' '}
+              <Button variant="link" onClick={() => refetchLinkedAssets()}>
+                Try again
+              </Button>
+            </div>
           ) : linkedAssets?.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               No assets added to this quest yet. Click "Manage Assets" to add
               some.
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {linkedAssets?.map((link) => (
-                <Card key={link.asset_id} className="overflow-hidden">
-                  {link.asset.images && (
+                <Card
+                  key={link.asset_id}
+                  className="overflow-hidden h-full flex flex-col group hover:shadow-md transition-shadow"
+                >
+                  {link.asset.images ? (
                     <div className="aspect-video w-full overflow-hidden bg-muted">
                       <img
                         src={JSON.parse(link.asset.images)[0] || ''}
                         alt={link.asset.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
                             'https://placehold.co/600x400?text=No+Image';
                         }}
                       />
                     </div>
+                  ) : (
+                    <div className="aspect-video w-full flex items-center justify-center bg-muted/50">
+                      <FileText className="h-12 w-12 text-muted-foreground/50" />
+                    </div>
                   )}
                   <CardHeader className="p-4">
-                    <CardTitle className="text-lg">{link.asset.name}</CardTitle>
-                    <CardDescription>
-                      {link.asset.source_language.english_name}
+                    <CardTitle className="text-lg line-clamp-1">
+                      {link.asset.name}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-1">
+                      <Badge variant="outline" className="font-normal">
+                        {link.asset.source_language.english_name}
+                      </Badge>
+                      {link.asset.content && link.asset.content.length > 0 && (
+                        <Badge variant="secondary" className="font-normal">
+                          <FileText className="h-3 w-3 mr-1" /> Text
+                        </Badge>
+                      )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
+                  <CardContent className="p-4 pt-0 flex-grow">
                     <p className="text-sm text-muted-foreground line-clamp-3">
                       {getAssetPreview(link.asset)}
                     </p>
                   </CardContent>
+                  {link.asset.tags && link.asset.tags.length > 0 && (
+                    <CardFooter className="p-4 pt-0">
+                      <div className="flex flex-wrap gap-1">
+                        {link.asset.tags.slice(0, 3).map((tagLink: any) => (
+                          <Badge
+                            key={tagLink.tag.id}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {tagLink.tag.name}
+                          </Badge>
+                        ))}
+                        {link.asset.tags.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{link.asset.tags.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </CardFooter>
+                  )}
                 </Card>
               ))}
             </div>
