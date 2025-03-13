@@ -234,7 +234,7 @@ export function DataView() {
   if (!assets) return <div>No assets found.</div>;
 
   return (
-    <div className="whitespace-pre-wrap px-8 py-4 max-w-200 mx-auto flex flex-col">
+    <div className="whitespace-pre-wrap px-8 py-4 max-w-200 mx-auto flex flex-col scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b py-4">
         <div className="flex gap-2 items-top flex-col">
           <div className="flex gap-2 items-center">

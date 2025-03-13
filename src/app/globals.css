@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+@plugin 'tailwindcss-animate';
+@plugin 'tailwind-scrollbar';
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -8,37 +11,6 @@
 
   --animate-accordion-down: accordion-down 0.2s ease;
   --animate-accordion-up: accordion-up 0.2s ease;
-
-  /* Semantic color definitions */
-  /* Galactic theme colors */
-  --color-accent1: #0c4a6e; /* Space blue */
-  --color-accent1-hover: #0a3a58;
-  --color-accent2: #581c87; /* Nebula purple */
-  --color-accent2-hover: #46166c;
-  --color-accent3: #3730a3; /* Cosmic indigo */
-  --color-accent3-hover: #2c2682;
-  --color-accent4: #0e7490; /* Celestial cyan */
-  --color-accent4-hover: #0b5d73;
-
-  /* Intense colors */
-  --color-intense1: #6366f1; /* Starlight */
-  --color-intense1-hover: #4f51c1;
-  --color-intense2: #7e22ce; /* Nebula */
-  --color-intense2-hover: #651ba5;
-
-  /* Neutral colors */
-  --color-neutral1: #94a3b8; /* Starlight gray */
-  --color-neutral1-hover: #768297;
-  --color-neutral2: #f8fafc; /* Cosmic dust */
-  --color-neutral2-hover: #e2e8f0;
-
-  /* Text colors */
-  --color-text1: #0f172a;
-  --color-text2: #1e293b;
-  --color-text3: #475569;
-  --color-text4: #64748b;
-  --color-text5: #cbd5e1;
-  --color-text6: #f8fafc;
 
   @keyframes accordion-down {
     from {
@@ -161,6 +133,37 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Semantic color definitions */
+  /* Galactic theme colors */
+  --color-accent1: #0c4a6e; /* Space blue */
+  --color-accent1-hover: #0a3a58;
+  --color-accent2: #581c87; /* Nebula purple */
+  --color-accent2-hover: #46166c;
+  --color-accent3: #3730a3; /* Cosmic indigo */
+  --color-accent3-hover: #2c2682;
+  --color-accent4: #0e7490; /* Celestial cyan */
+  --color-accent4-hover: #0b5d73;
+
+  /* Intense colors */
+  --color-intense1: #6366f1; /* Starlight */
+  --color-intense1-hover: #4f51c1;
+  --color-intense2: #7e22ce; /* Nebula */
+  --color-intense2-hover: #651ba5;
+
+  /* Neutral colors */
+  --color-neutral1: #94a3b8; /* Starlight gray */
+  --color-neutral1-hover: #768297;
+  --color-neutral2: #f8fafc; /* Cosmic dust */
+  --color-neutral2-hover: #e2e8f0;
+
+  /* Text colors */
+  --color-text1: #0f172a;
+  --color-text2: #1e293b;
+  --color-text3: #475569;
+  --color-text4: #64748b;
+  --color-text5: #cbd5e1;
+  --color-text6: #f8fafc;
 }
 
 @layer base {

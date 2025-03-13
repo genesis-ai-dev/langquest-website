@@ -1538,12 +1538,15 @@ export function DatabaseViewer() {
     });
 
     return Object.keys(tableSchemas)
-      .filter((name) => showLinkTables || !linkTablesSet.has(name))
+      .filter(
+        (name) =>
+          showLinkTables || !linkTablesSet.has(name) || name === selectedTable
+      )
       .map((name) => ({
         name,
         isLinkTable: linkTablesSet.has(name)
       }));
-  }, [tableSchemas, showLinkTables, queryClient, page, pageSize]);
+  }, [tableSchemas, showLinkTables, selectedTable]);
 
   // Get the schema for the selected table
   const currentSchema = React.useMemo(
@@ -1707,7 +1710,8 @@ export function DatabaseViewer() {
           }}
           className={cn(
             'w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent',
-            t.isLinkTable && 'text-muted-foreground'
+            t.isLinkTable && 'text-muted-foreground',
+            selectedTable === t.name && 'bg-accent'
           )}
           disabled={schemasLoading || dataLoading}
         >

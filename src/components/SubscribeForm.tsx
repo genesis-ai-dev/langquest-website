@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,27 +15,21 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useMutation } from '@tanstack/react-query';
+import { subscribeSchema } from '@/lib/schemas';
 
-const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' })
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof subscribeSchema>;
 
 export function SubscribeForm() {
-  const [isLoading, setIsLoading] = useState(false);
-
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(subscribeSchema),
     defaultValues: {
       email: ''
     }
   });
 
-  async function onSubmit(data: FormValues) {
-    setIsLoading(true);
-
-    try {
+  const { isPending, mutate: subscribe } = useMutation({
+    mutationFn: async (data: FormValues) => {
       const response = await fetch('/api/subscribe', {
         method: 'POST',
         headers: {
@@ -51,20 +44,22 @@ export function SubscribeForm() {
         throw new Error(result.error || 'Failed to subscribe');
       }
 
+      return result;
+    },
+    onSuccess: () => {
       toast.success('You have been subscribed successfully!');
       form.reset();
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Subscription error:', error);
       toast.error('Failed to subscribe. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  }
+  });
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit((data: FormValues) => subscribe(data))}
         className="flex flex-col sm:flex-row gap-2"
       >
         <FormField
@@ -77,7 +72,7 @@ export function SubscribeForm() {
                   placeholder="Enter your email"
                   {...field}
                   className="h-12"
-                  disabled={isLoading}
+                  disabled={isPending}
                 />
               </FormControl>
               <FormMessage />
@@ -88,10 +83,10 @@ export function SubscribeForm() {
           type="submit"
           size="lg"
           className="gap-1 bg-accent4 text-white hover:bg-accent4/90 h-12"
-          disabled={isLoading}
+          disabled={isPending}
         >
           <Zap className="h-4 w-4" />
-          {isLoading ? 'Subscribing...' : 'Get Notified'}
+          {isPending ? 'Subscribing...' : 'Get Notified'}
         </Button>
       </form>
     </Form>

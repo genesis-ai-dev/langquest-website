@@ -4,7 +4,10 @@ import { z } from 'zod';
 
 export const env = createEnv({
   extends: [vercel()],
-  server: {},
+  server: {
+    AUDIENCE_ID: z.string().min(1),
+    RESEND_API_KEY: z.string().min(1)
+  },
   client: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_URL: z.string().url(),

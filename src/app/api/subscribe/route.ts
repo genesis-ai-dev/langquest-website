@@ -1,23 +1,28 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
+import { subscribeSchema } from '@/lib/schemas';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const parsed = await subscribeSchema.safeParseAsync(await request.json());
 
-    if (!email || typeof email !== 'string') {
+    if (!parsed.success) {
+      // Show field errors for invalid fields
       return NextResponse.json(
-        { error: 'Email is required and must be a string' },
+        { error: parsed.error.flatten() },
         { status: 400 }
       );
     }
 
+    const { email } = parsed.data;
+
     const response = await resend.contacts.create({
       email,
       unsubscribed: false,
-      audienceId: process.env.AUDIENCE_ID as string
+      audienceId: env.AUDIENCE_ID
     });
 
     return NextResponse.json(

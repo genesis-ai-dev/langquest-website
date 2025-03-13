@@ -2,10 +2,10 @@
 
 import { Suspense } from 'react';
 import { useEffect, useState, useCallback } from 'react';
-import { createClient, AuthError } from '@supabase/supabase-js';
+import { AuthError } from '@supabase/supabase-js';
 import { useSearchParams } from 'next/navigation';
-import { env } from '@/lib/env';
 import { isMobile } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 // This is the main page component (server component)
 export default function ResetPasswordPage() {
@@ -22,12 +22,6 @@ function ResetPasswordForm() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
-
-  // Initialize Supabase client
-  const supabaseClient = createClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 
   const handlePasswordReset = useCallback(async () => {
     // Get tokens from URL and hash
@@ -62,7 +56,7 @@ function ResetPasswordForm() {
       window.location.href = deepLink;
     } else {
       try {
-        const { error: sessionError } = await supabaseClient.auth.setSession({
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: access_token!,
           refresh_token: refresh_token!
         });
@@ -79,7 +73,7 @@ function ResetPasswordForm() {
         setError('red');
       }
     }
-  }, [searchParams, supabaseClient]);
+  }, [searchParams]);
 
   useEffect(() => {
     handlePasswordReset();
@@ -92,7 +86,7 @@ function ResetPasswordForm() {
       .value;
 
     try {
-      const { error } = await supabaseClient.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: password
       });
 
