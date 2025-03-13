@@ -17,7 +17,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Copy } from 'lucide-react';
+import { PlusCircle, Copy, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
@@ -31,6 +31,10 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { useAuth } from '@/components/auth-provider';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Breadcrumbs } from '@/components/breadcrumbs';
 
 export default function AdminPage() {
   const searchParams = useSearchParams();
@@ -45,6 +49,29 @@ export default function AdminPage() {
   const [selectedQuestName, setSelectedQuestName] =
     useState<string>('Unnamed Quest');
   const [projectToClone, setProjectToClone] = useState<string | null>(null);
+  const { user, signOut, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Logged out successfully');
+      // Use window.location for a hard redirect
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
+  };
+
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!user && !isLoading) {
+      console.log('No user found in admin page, redirecting to login');
+      window.location.href = '/login';
+    }
+  }, [user, isLoading]);
 
   // Get query parameters
   useEffect(() => {
@@ -59,7 +86,7 @@ export default function AdminPage() {
 
   // Fetch projects
   const {
-    data: projects,
+    data: projects = [],
     isLoading: projectsLoading,
     refetch: refetchProjects
   } = useQuery({
@@ -80,13 +107,13 @@ export default function AdminPage() {
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   // Fetch quests for the selected project
   const {
-    data: quests,
+    data: quests = [],
     isLoading: questsLoading,
     refetch: refetchQuests
   } = useQuery({
@@ -108,7 +135,7 @@ export default function AdminPage() {
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!selectedProjectId
   });
@@ -128,7 +155,7 @@ export default function AdminPage() {
     setShowAssetForm(false);
   };
 
-  const selectedProject = projects?.find((p) => p.id === selectedProjectId);
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   // Project form dialog
   const handleProjectFormClose = () => {
@@ -158,70 +185,85 @@ export default function AdminPage() {
     <div className="container p-8 max-w-screen-xl mx-auto">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
-          {/* Header with contextual navigation */}
+          {/* Header with contextual navigation and user info */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            {activeTab !== 'projects' && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (activeTab === 'assets' && selectedProjectId) {
-                    // Go back to quests
-                    setSelectedQuestId(null);
-                    setActiveTab('quests');
-                  } else {
-                    // Go back to projects
-                    setSelectedProjectId(null);
-                    setSelectedQuestId(null);
-                    setActiveTab('projects');
-                  }
-                }}
-              >
-                {activeTab === 'assets'
-                  ? '← Back to Quests'
-                  : '← Back to Projects'}
-              </Button>
-            )}
+            <h1 className="text-3xl font-bold">Project Management Dashboard</h1>
+            <div className="flex items-center gap-4">
+              {user && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Logged in as {user.email}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign out
+                  </Button>
+                </div>
+              )}
+              {activeTab !== 'projects' && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (activeTab === 'assets' && selectedProjectId) {
+                      // Go back to quests
+                      setSelectedQuestId(null);
+                      setActiveTab('quests');
+                    } else {
+                      // Go back to projects
+                      setSelectedProjectId(null);
+                      setSelectedQuestId(null);
+                      setActiveTab('projects');
+                    }
+                  }}
+                >
+                  {activeTab === 'assets'
+                    ? '← Back to Quests'
+                    : '← Back to Projects'}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Breadcrumb navigation */}
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <Button
-              variant="link"
-              className="p-0 h-auto"
-              onClick={() => {
+          <Breadcrumbs
+            items={[
+              {
+                label: 'Projects',
+                href: 'projects',
+                isActive: activeTab === 'projects' && !selectedProjectId
+              },
+              ...(selectedProjectId
+                ? [
+                    {
+                      label: `Project: ${selectedProject ? selectedProject.name : 'Loading...'}`,
+                      href: 'quests',
+                      isActive: activeTab === 'quests' && !selectedQuestId
+                    }
+                  ]
+                : []),
+              ...(selectedQuestId
+                ? [
+                    {
+                      label: `Quest: ${selectedQuestName}`,
+                      href: 'assets',
+                      isActive: activeTab === 'assets'
+                    }
+                  ]
+                : [])
+            ]}
+            onNavigate={(href) => {
+              if (href === 'projects') {
                 setSelectedProjectId(null);
                 setSelectedQuestId(null);
                 setActiveTab('projects');
-              }}
-            >
-              Admin
-            </Button>
-            {selectedProjectId && (
-              <>
-                <span>/</span>
-                <Button
-                  variant="link"
-                  className="p-0 h-auto"
-                  onClick={() => {
-                    setSelectedQuestId(null);
-                    setActiveTab('quests');
-                  }}
-                >
-                  {selectedProject?.name || 'Project'}
-                </Button>
-              </>
-            )}
-            {selectedQuestId && (
-              <>
-                <span>/</span>
-                <span>{selectedQuestName}</span>
-              </>
-            )}
-          </nav>
+              } else if (href === 'quests') {
+                setSelectedQuestId(null);
+                setActiveTab('quests');
+              } else if (href === 'assets') {
+                setActiveTab('assets');
+              }
+            }}
+          />
 
           {/* Main content area */}
           <div className="mt-4">
@@ -268,7 +310,7 @@ export default function AdminPage() {
                   <div className="flex justify-center p-8">
                     <Spinner />
                   </div>
-                ) : projects?.length === 0 ? (
+                ) : projects.length === 0 ? (
                   <div className="text-center py-10">
                     <p className="text-muted-foreground mb-4">
                       You don't have any projects yet. Create your first project
@@ -281,7 +323,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    {projects?.map((project) => (
+                    {projects.map((project) => (
                       <Card key={project.id} className="overflow-hidden">
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
@@ -335,7 +377,7 @@ export default function AdminPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold">
-                    Quests in "{selectedProject?.name}"
+                    Quests in "{selectedProject ? selectedProject.name : ''}"
                   </h2>
                   <Button onClick={() => setShowQuestForm(true)}>
                     Add New Quest
@@ -351,7 +393,7 @@ export default function AdminPage() {
                           <CardTitle>Create New Quest</CardTitle>
                           <CardDescription>
                             Create a new quest for project{' '}
-                            {selectedProject?.name}
+                            {selectedProject ? selectedProject.name : ''}
                           </CardDescription>
                         </div>
                         <Button
@@ -380,7 +422,7 @@ export default function AdminPage() {
                   <div className="flex justify-center p-8">
                     <Spinner />
                   </div>
-                ) : quests?.length === 0 ? (
+                ) : quests.length === 0 ? (
                   <div className="text-center py-10">
                     <p className="text-muted-foreground mb-4">
                       This project doesn't have any quests yet. Add your first
@@ -393,7 +435,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    {quests?.map((quest) => (
+                    {quests.map((quest) => (
                       <Card key={quest.id} className="overflow-hidden">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg">
@@ -405,8 +447,10 @@ export default function AdminPage() {
                         </CardHeader>
                         <CardContent className="pb-2">
                           <div className="text-sm text-muted-foreground">
-                            {quest.assets?.length || 0} asset
-                            {quest.assets?.length !== 1 ? 's' : ''}
+                            {(quest.assets && quest.assets.length) || 0} asset
+                            {(quest.assets && quest.assets.length) !== 1
+                              ? 's'
+                              : ''}
                           </div>
                         </CardContent>
                         <CardFooter className="flex justify-end pt-0">

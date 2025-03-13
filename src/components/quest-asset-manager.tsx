@@ -319,11 +319,17 @@ export function QuestAssetManager({
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {asset.tags?.map((tagLink: any) => (
-                              <Badge key={tagLink.tag.id} variant="outline">
-                                {tagLink.tag.name}
-                              </Badge>
-                            ))}
+                            {asset.tags && asset.tags.length > 0 ? (
+                              asset.tags.map((tagLink: any) => (
+                                <Badge key={tagLink.tag.id} variant="outline">
+                                  {tagLink.tag.name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">
+                                No tags
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
