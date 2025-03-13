@@ -9,12 +9,14 @@ import GithubIcon from './icons/github-icon';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import { useAuth } from './auth-provider';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [DEV_ADMIN_MODE, setDEV_ADMIN_MODE] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
   const t = useTranslations('header');
+  const { user } = useAuth();
 
   // Check localStorage for devAdmin flag when component mounts
   useEffect(() => {
@@ -98,10 +100,10 @@ const Header = () => {
               >
                 {t('userFriendlyData')}
               </Link>
-              {DEV_ADMIN_MODE && (
+              {(!!user || DEV_ADMIN_MODE) && (
                 <Link href="/admin">
                   <Button variant="outline" className="w-full mt-2">
-                    {t('adminDashboard')}
+                    {!!user ? 'Project Management' : t('adminDashboard')}
                   </Button>
                 </Link>
               )}
@@ -135,9 +137,11 @@ const Header = () => {
           >
             {t('userFriendlyData')}
           </Link>
-          {DEV_ADMIN_MODE && (
+          {(!!user || DEV_ADMIN_MODE) && (
             <Link href="/admin">
-              <Button variant="outline">{t('admin')}</Button>
+              <Button variant="outline">
+                {!!user ? 'Project Management' : t('admin')}
+              </Button>
             </Link>
           )}
         </nav>

@@ -28,17 +28,8 @@ import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
-import { X } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem
-} from './ui/command';
+import { X, CheckIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CheckIcon } from 'lucide-react';
 
 const questFormSchema = z.object({
   name: z.string().min(2, {
@@ -68,10 +59,9 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
-  const [open, setOpen] = useState(false);
 
   // Fetch projects for the dropdown
-  const { data: projects, isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -87,12 +77,12 @@ export function QuestForm({
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   // Fetch tags for the multi-select
-  const { data: tags, isLoading: tagsLoading } = useQuery({
+  const { data: tags = [], isLoading: tagsLoading } = useQuery({
     queryKey: ['tags'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -101,7 +91,7 @@ export function QuestForm({
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -119,8 +109,8 @@ export function QuestForm({
   async function onSubmit(values: QuestFormValues) {
     setIsSubmitting(true);
     try {
-      // Add selected tags to the values
-      values.tags = selectedTags;
+      // We're now handling tags directly with selectedTags state
+      // No need to add them to values here
 
       let questId: string;
 
@@ -163,8 +153,8 @@ export function QuestForm({
       }
 
       // Add new tags
-      if (values.tags && values.tags.length > 0) {
-        const tagLinks = values.tags.map((tagId) => ({
+      if (selectedTags.length > 0) {
+        const tagLinks = selectedTags.map((tagId) => ({
           quest_id: questId,
           tag_id: tagId
         }));
@@ -278,100 +268,112 @@ export function QuestForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="tags"
-          render={() => (
-            <FormItem>
-              <FormLabel>Tags</FormLabel>
-              <FormControl>
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-1 p-1 border rounded-md">
-                    {selectedTags.length > 0 ? (
-                      selectedTags.map((tagId) => {
-                        const tag = tags?.find((t) => t.id === tagId);
-                        return (
-                          <Badge
-                            key={tagId}
-                            variant="secondary"
-                            className="m-1"
-                          >
-                            {tag?.name}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 ml-2"
-                              onClick={() => {
-                                setSelectedTags(
-                                  selectedTags.filter((id) => id !== tagId)
-                                );
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        );
-                      })
-                    ) : (
-                      <div className="text-sm text-muted-foreground p-2">
-                        No tags selected
-                      </div>
-                    )}
-                  </div>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="justify-between"
-                      >
-                        Select tags
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search tags..." />
-                        <CommandEmpty>No tag found.</CommandEmpty>
-                        <CommandGroup>
-                          {tags?.map((tag) => (
-                            <CommandItem
-                              key={tag.id}
-                              value={tag.name}
-                              onSelect={() => {
-                                if (!selectedTags.includes(tag.id)) {
-                                  setSelectedTags([...selectedTags, tag.id]);
-                                } else {
-                                  setSelectedTags(
-                                    selectedTags.filter((id) => id !== tag.id)
-                                  );
-                                }
-                              }}
-                            >
-                              <CheckIcon
-                                className={cn(
-                                  'mr-2 h-4 w-4',
-                                  selectedTags.includes(tag.id)
-                                    ? 'opacity-100'
-                                    : 'opacity-0'
-                                )}
-                              />
-                              {tag.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </FormControl>
-              <FormDescription>
-                Add tags to categorize this quest.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+        {/* Use a hidden input for tags to avoid Controller issues */}
+        <input
+          type="hidden"
+          {...form.register('tags')}
+          value={JSON.stringify(selectedTags)}
         />
+
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Tags
+            </label>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[60px]">
+              {selectedTags.length > 0 ? (
+                selectedTags.map((tagId) => {
+                  const tag = tags.find((t) => t.id === tagId);
+                  return (
+                    <Badge key={tagId} variant="secondary" className="m-1">
+                      {tag?.name}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 ml-2"
+                        onClick={() => {
+                          const newSelectedTags = selectedTags.filter(
+                            (id) => id !== tagId
+                          );
+                          setSelectedTags(newSelectedTags);
+                          // Update form value
+                          form.setValue('tags', newSelectedTags);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  );
+                })
+              ) : (
+                <div className="text-sm text-muted-foreground p-2">
+                  No tags selected
+                </div>
+              )}
+            </div>
+
+            {/* Only render the Popover when tags are available or loading is complete */}
+            {!tagsLoading ? (
+              <div className="border rounded-md p-4">
+                <div className="mb-4">
+                  <label className="text-sm font-medium mb-2 block">
+                    Available Tags
+                  </label>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Click on tags to select/deselect them
+                  </div>
+                  {tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <Badge
+                          key={tag.id}
+                          variant={
+                            selectedTags.includes(tag.id)
+                              ? 'default'
+                              : 'outline'
+                          }
+                          className="cursor-pointer"
+                          onClick={() => {
+                            let newSelectedTags;
+                            if (!selectedTags.includes(tag.id)) {
+                              newSelectedTags = [...selectedTags, tag.id];
+                            } else {
+                              newSelectedTags = selectedTags.filter(
+                                (id) => id !== tag.id
+                              );
+                            }
+                            setSelectedTags(newSelectedTags);
+                            // Update form value
+                            form.setValue('tags', newSelectedTags);
+                          }}
+                        >
+                          {tag.name}
+                          {selectedTags.includes(tag.id) && (
+                            <CheckIcon className="ml-1 h-3 w-3" />
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No tags available
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-center p-4 border rounded-md">
+                <Spinner className="h-6 w-6" />
+                <span className="ml-2">Loading tags...</span>
+              </div>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Add tags to categorize this quest.
+          </p>
+        </div>
 
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
