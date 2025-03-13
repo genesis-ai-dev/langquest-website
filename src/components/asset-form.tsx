@@ -141,6 +141,21 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     enabled: !!questId
   });
 
+  // Fetch English language ID
+  const { data: englishLanguage } = useQuery({
+    queryKey: ['language', 'english'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('language')
+        .select('id')
+        .eq('code', 'eng')
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
   // Set up form with default values
   const form = useForm<AssetFormValues>({
     resolver: zodResolver(assetFormSchema),
@@ -299,25 +314,91 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
         toast.success('Asset updated successfully');
       } else {
-        // Create new asset
-        const { data, error } = await supabase
-          .from('asset')
-          .insert({
-            name: values.name,
-            images:
-              finalImagePaths.length > 0
-                ? JSON.stringify(finalImagePaths)
-                : null,
-            created_at: new Date().toISOString(),
-            source_language_id: 'eng' // Default to English, adjust as needed
-          })
-          .select('id')
-          .single();
+        // Fetch a valid language ID from the database
+        let sourceLanguageId: string;
 
-        if (error) throw error;
-        assetId = data.id;
+        try {
+          // First try to get the language ID from the selected quest
+          if (selectedQuests.length > 0) {
+            const selectedQuestId = selectedQuests[0];
 
-        toast.success('Asset created successfully');
+            // Fetch the quest with its project and language details
+            const { data: questData, error: questError } = await supabase
+              .from('quest')
+              .select(
+                `
+                project:project_id(
+                  source_language_id
+                )
+              `
+              )
+              .eq('id', selectedQuestId)
+              .single();
+
+            if (!questError && questData?.project?.source_language_id) {
+              sourceLanguageId = questData.project.source_language_id;
+
+              // Create new asset with the language ID from the quest
+              const { data, error } = await supabase
+                .from('asset')
+                .insert({
+                  name: values.name,
+                  images:
+                    finalImagePaths.length > 0
+                      ? JSON.stringify(finalImagePaths)
+                      : null,
+                  created_at: new Date().toISOString(),
+                  source_language_id: sourceLanguageId
+                })
+                .select('id')
+                .single();
+
+              if (error) throw error;
+              assetId = data.id;
+
+              toast.success('Asset created successfully');
+
+              // Skip the fallback logic
+              return;
+            }
+          }
+
+          // Fallback: Try to get the English language ID
+          const { data: langData, error: langError } = await supabase
+            .from('language')
+            .select('id')
+            .eq('code', 'eng')
+            .single();
+
+          if (langError || !langData) {
+            throw new Error('Could not fetch language ID');
+          }
+
+          sourceLanguageId = langData.id;
+
+          // Create new asset with the English language ID
+          const { data, error } = await supabase
+            .from('asset')
+            .insert({
+              name: values.name,
+              images:
+                finalImagePaths.length > 0
+                  ? JSON.stringify(finalImagePaths)
+                  : null,
+              created_at: new Date().toISOString(),
+              source_language_id: sourceLanguageId
+            })
+            .select('id')
+            .single();
+
+          if (error) throw error;
+          assetId = data.id;
+
+          toast.success('Asset created successfully');
+        } catch (insertError) {
+          console.error('Error creating asset:', insertError);
+          throw insertError;
+        }
       }
 
       // Add content items
