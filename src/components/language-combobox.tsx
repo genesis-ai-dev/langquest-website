@@ -52,6 +52,8 @@ export function LanguageCombobox({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [newlyCreatedLanguage, setNewlyCreatedLanguage] =
+    useState<Language | null>(null);
 
   // Filter languages based on input
   const filteredLanguages = languages.filter((language) =>
@@ -67,18 +69,28 @@ export function LanguageCombobox({
       // Generate a simple ISO code from the first 3 letters of the language name
       const iso639_3 = inputValue.trim().toLowerCase().slice(0, 3);
 
-      // Insert the new language
-      const { data, error } = await supabase
-        .from('language')
-        .insert({
+      // Use the API endpoint instead of direct Supabase access
+      const response = await fetch('/api/language', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           english_name: inputValue.trim(),
           native_name: inputValue.trim(),
           iso639_3
         })
-        .select()
-        .single();
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create language');
+      }
+
+      const data = await response.json();
+
+      // Store the newly created language
+      setNewlyCreatedLanguage(data);
 
       toast.success(`Added language: ${data.english_name}`);
       onChange(data.id);
@@ -96,6 +108,13 @@ export function LanguageCombobox({
     }
   };
 
+  // Find the selected language, including the newly created one if applicable
+  const selectedLanguage =
+    languages.find((language) => language.id === value) ||
+    (newlyCreatedLanguage && newlyCreatedLanguage.id === value
+      ? newlyCreatedLanguage
+      : null);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -109,10 +128,7 @@ export function LanguageCombobox({
           )}
           disabled={disabled}
         >
-          {value
-            ? languages.find((language) => language.id === value)
-                ?.english_name || 'Unknown language'
-            : placeholder}
+          {selectedLanguage ? selectedLanguage.english_name : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
