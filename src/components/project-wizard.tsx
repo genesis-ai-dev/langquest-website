@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,6 +95,7 @@ export function ProjectWizard({
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const queryClient = useQueryClient();
   const [wizardData, setWizardData] = useState<Partial<ProjectWizardValues>>({
     step1: {
       method: projectToClone ? 'clone' : 'new',
@@ -328,8 +329,8 @@ export function ProjectWizard({
       const projectData = {
         name: projectName || wizardData.step2?.name || '',
         description: wizardData.step2?.description || '',
-        source_language_id: wizardData.step2?.source_language_id || 'eng',
-        target_language_id: wizardData.step2?.target_language_id || 'eng'
+        source_language_id: wizardData.step2?.source_language_id || '',
+        target_language_id: wizardData.step2?.target_language_id || ''
       };
 
       console.log('Final project data being submitted:', projectData);
@@ -440,7 +441,7 @@ export function ProjectWizard({
   // Handle language creation success
   const handleLanguageCreated = (newLanguage: Language) => {
     // Refetch languages to update the list
-    // This is optional since we're already updating the UI optimistically
+    queryClient.invalidateQueries({ queryKey: ['languages'] });
   };
 
   // Render step 1: Choose project creation method
