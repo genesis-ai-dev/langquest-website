@@ -21,17 +21,8 @@ import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
-import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem
-} from './ui/command';
+import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
@@ -43,11 +34,12 @@ const assetFormSchema = z.object({
   content: z
     .array(
       z.object({
-        text: z.string().min(1, { message: 'Content text is required' }),
+        text: z.string(),
         audio_id: z.string().optional()
       })
     )
-    .optional(),
+    .optional()
+    .default([]),
   tags: z.array(z.string()).optional(),
   quests: z.array(z.string()).optional()
 });
@@ -68,8 +60,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   const [selectedQuests, setSelectedQuests] = useState<string[]>(
     questId ? [questId] : initialData?.quests || []
   );
-  const [tagsOpen, setTagsOpen] = useState(false);
-  const [questsOpen, setQuestsOpen] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>(
     initialData?.images || []
@@ -193,7 +183,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   };
 
   const removeContentItem = (index: number) => {
-    setContentItems((prev) => prev.filter((_, i) => i !== index));
+    setContentItems((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      // If all content items are removed, we still want to allow form submission
+      return updated;
+    });
   };
 
   const updateContentItem = (index: number, text: string) => {
@@ -207,10 +201,22 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   async function onSubmit(values: AssetFormValues) {
     setIsSubmitting(true);
     try {
-      // Add selected tags and quests to the values
-      values.tags = selectedTags;
-      values.quests = selectedQuests;
-      values.content = contentItems.filter((item) => item.text.trim() !== '');
+      // Filter out empty content items
+      const filteredContent = contentItems.filter(
+        (item) => item.text.trim() !== ''
+      );
+      values.content = filteredContent.length > 0 ? filteredContent : [];
+
+      // Check if we have at least an image or content
+      if (
+        images.length === 0 &&
+        (!imageUrls || imageUrls.length === 0) &&
+        filteredContent.length === 0
+      ) {
+        toast.error('Please add at least an image or content item');
+        setIsSubmitting(false);
+        return;
+      }
 
       // Upload images if any
       const uploadedImagePaths: string[] = [];
@@ -237,12 +243,13 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       }
 
       // Combine with existing image paths if updating
-      const finalImagePaths = initialData?.images
-        ? [...initialData.images, ...uploadedImagePaths]
-        : uploadedImagePaths;
+      const finalImagePaths =
+        initialData && initialData.images
+          ? [...initialData.images, ...uploadedImagePaths]
+          : uploadedImagePaths;
 
       // Upload audio files if any
-      const updatedContent = [...values.content!];
+      const updatedContent = [...(values.content || [])];
       for (const [indexStr, file] of Object.entries(audioFiles)) {
         const index = parseInt(indexStr);
         const fileName = `${Date.now()}-${file.name}`;
@@ -335,8 +342,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       }
 
       // Add new tags
-      if (values.tags && values.tags.length > 0) {
-        const tagLinks = values.tags.map((tagId) => ({
+      if (selectedTags.length > 0) {
+        const tagLinks = selectedTags.map((tagId) => ({
           asset_id: assetId,
           tag_id: tagId
         }));
@@ -357,8 +364,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       }
 
       // Add new quest links
-      if (values.quests && values.quests.length > 0) {
-        const questLinks = values.quests.map((questId) => ({
+      if (selectedQuests.length > 0) {
+        const questLinks = selectedQuests.map((questId) => ({
           asset_id: assetId,
           quest_id: questId
         }));
@@ -392,7 +399,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       }
     } catch (error) {
       console.error('Error saving asset:', error);
-      toast.error('Failed to save asset');
+      if (error instanceof Error) {
+        toast.error(`Failed to save asset: ${error.message}`);
+      } else {
+        toast.error('Failed to save asset');
+      }
     } finally {
       setIsSubmitting(false);
       setUploadProgress({});
@@ -592,6 +603,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                   <FormLabel>Tags</FormLabel>
                   <FormControl>
                     <div className="flex flex-col gap-2">
+                      {/* Hidden input to store tags for form validation */}
+                      <input
+                        type="hidden"
+                        {...form.register('tags')}
+                        value={JSON.stringify(selectedTags)}
+                      />
                       <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[80px]">
                         {selectedTags.length > 0 ? (
                           selectedTags.map((tagId) => {
@@ -624,56 +641,56 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                           </div>
                         )}
                       </div>
-                      <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={tagsOpen}
-                            className="justify-between"
-                          >
-                            Select tags
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
-                          <Command>
-                            <CommandInput placeholder="Search tags..." />
-                            <CommandEmpty>No tag found.</CommandEmpty>
-                            <CommandGroup>
-                              {tags?.map((tag) => (
-                                <CommandItem
+
+                      {/* Replace Popover with direct tag selection UI */}
+                      <div className="border rounded-md p-4">
+                        <div className="mb-4">
+                          <label className="text-sm font-medium mb-2 block">
+                            Available Tags
+                          </label>
+                          <div className="text-sm text-muted-foreground mb-2">
+                            Click on tags to select/deselect them
+                          </div>
+                          {tags && tags.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {tags.map((tag) => (
+                                <Badge
                                   key={tag.id}
-                                  value={tag.name}
-                                  onSelect={() => {
+                                  variant={
+                                    selectedTags.includes(tag.id)
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    let newSelectedTags;
                                     if (!selectedTags.includes(tag.id)) {
-                                      setSelectedTags([
+                                      newSelectedTags = [
                                         ...selectedTags,
                                         tag.id
-                                      ]);
+                                      ];
                                     } else {
-                                      setSelectedTags(
-                                        selectedTags.filter(
-                                          (id) => id !== tag.id
-                                        )
+                                      newSelectedTags = selectedTags.filter(
+                                        (id) => id !== tag.id
                                       );
                                     }
+                                    setSelectedTags(newSelectedTags);
                                   }}
                                 >
-                                  <CheckIcon
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      selectedTags.includes(tag.id)
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
-                                    )}
-                                  />
                                   {tag.name}
-                                </CommandItem>
+                                  {selectedTags.includes(tag.id) && (
+                                    <CheckIcon className="ml-1 h-3 w-3" />
+                                  )}
+                                </Badge>
                               ))}
-                            </CommandGroup>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-sm text-muted-foreground">
+                              No tags available
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </FormControl>
                   <FormDescription>
@@ -694,15 +711,21 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                   <FormLabel>Quests</FormLabel>
                   <FormControl>
                     <div className="flex flex-col gap-2">
+                      {/* Hidden input to store quests for form validation */}
+                      <input
+                        type="hidden"
+                        {...form.register('quests')}
+                        value={JSON.stringify(selectedQuests)}
+                      />
                       <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[80px]">
                         {selectedQuests.length > 0 ? (
-                          selectedQuests.map((questId) => {
+                          selectedQuests.map((selectedQuestId) => {
                             const quest = allQuests?.find(
-                              (q) => q.id === questId
+                              (q) => q.id === selectedQuestId
                             );
                             return (
                               <Badge
-                                key={questId}
+                                key={selectedQuestId}
                                 variant="secondary"
                                 className="m-1"
                               >
@@ -712,16 +735,16 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                   size="sm"
                                   className="h-auto p-0 ml-2"
                                   onClick={() => {
-                                    if (questId !== questId) {
-                                      // Don't allow removing pre-selected quest
+                                    // Don't allow removing pre-selected quest
+                                    if (questId !== selectedQuestId) {
                                       setSelectedQuests(
                                         selectedQuests.filter(
-                                          (id) => id !== questId
+                                          (id) => id !== selectedQuestId
                                         )
                                       );
                                     }
                                   }}
-                                  disabled={questId === questId} // Disable if it's the pre-selected quest
+                                  disabled={questId === selectedQuestId} // Disable if it's the pre-selected quest
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
@@ -735,60 +758,65 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                         )}
                       </div>
                       {!questId && ( // Only show quest selector if not pre-selected
-                        <Popover open={questsOpen} onOpenChange={setQuestsOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={questsOpen}
-                              className="justify-between"
-                            >
-                              Select quests
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <CommandInput placeholder="Search quests..." />
-                              <CommandEmpty>No quest found.</CommandEmpty>
-                              <CommandGroup>
-                                {allQuests?.map((quest) => (
-                                  <CommandItem
+                        <div className="border rounded-md p-4">
+                          <div className="mb-4">
+                            <label className="text-sm font-medium mb-2 block">
+                              Available Quests
+                            </label>
+                            <div className="text-sm text-muted-foreground mb-2">
+                              Click on quests to select/deselect them
+                            </div>
+                            {allQuests && allQuests.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {allQuests.map((quest) => (
+                                  <Badge
                                     key={quest.id}
-                                    value={quest.name || ''}
-                                    onSelect={() => {
-                                      if (!selectedQuests.includes(quest.id)) {
-                                        setSelectedQuests([
-                                          ...selectedQuests,
-                                          quest.id
-                                        ]);
-                                      } else {
-                                        setSelectedQuests(
-                                          selectedQuests.filter(
-                                            (id) => id !== quest.id
-                                          )
-                                        );
+                                    variant={
+                                      selectedQuests.includes(quest.id)
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    className={`cursor-pointer ${
+                                      questId === quest.id ? 'opacity-70' : ''
+                                    }`}
+                                    onClick={() => {
+                                      if (questId !== quest.id) {
+                                        let newSelectedQuests;
+                                        if (
+                                          !selectedQuests.includes(quest.id)
+                                        ) {
+                                          newSelectedQuests = [
+                                            ...selectedQuests,
+                                            quest.id
+                                          ];
+                                        } else {
+                                          newSelectedQuests =
+                                            selectedQuests.filter(
+                                              (id) => id !== quest.id
+                                            );
+                                        }
+                                        setSelectedQuests(newSelectedQuests);
                                       }
                                     }}
                                   >
-                                    <CheckIcon
-                                      className={cn(
-                                        'mr-2 h-4 w-4',
-                                        selectedQuests.includes(quest.id)
-                                          ? 'opacity-100'
-                                          : 'opacity-0'
-                                      )}
-                                    />
                                     {quest.name} (
                                     {quest.project.source_language.english_name}{' '}
                                     →{' '}
                                     {quest.project.target_language.english_name}
                                     )
-                                  </CommandItem>
+                                    {selectedQuests.includes(quest.id) && (
+                                      <CheckIcon className="ml-1 h-3 w-3" />
+                                    )}
+                                  </Badge>
                                 ))}
-                              </CommandGroup>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-sm text-muted-foreground">
+                                No quests available
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </FormControl>
