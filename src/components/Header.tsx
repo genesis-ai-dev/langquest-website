@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { Button } from './ui/button';
 import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
 import { useState } from 'react';
+import { useAuth } from './auth-provider';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -52,6 +54,13 @@ const Header = () => {
                   User-Friendly Database
                 </Button>
               </Link>
+              {user && (
+                <Link href="/admin">
+                  <Button variant="outline" className="w-full mt-2">
+                    Project Management
+                  </Button>
+                </Link>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -80,6 +89,11 @@ const Header = () => {
               User-Friendly Database
             </Button>
           </Link>
+          {user && (
+            <Link href="/admin">
+              <Button variant="outline">Project Management</Button>
+            </Link>
+          )}
         </nav>
       </div>
     </header>
