@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useSearchParams } from 'next/navigation';
 import { env } from '@/lib/env';
 import { isMobile } from '@/lib/utils';
+import { getQueryParams } from '@/lib/supabase-query-params';
 
 export default function RegistrationConfirmationPage() {
   return (
@@ -26,54 +27,52 @@ function RegistrationConfirmation() {
   );
 
   const handleRegistrationConfirmation = useCallback(async () => {
-    // Get tokens from URL and hash
-    const access_token =
-      searchParams.get('access_token') ||
-      window.location.hash.match(/access_token=([^&]*)/)?.[1];
-    const refresh_token =
-      searchParams.get('refresh_token') ||
-      window.location.hash.match(/refresh_token=([^&]*)/)?.[1];
-    const type =
-      searchParams.get('type') ||
-      window.location.hash.match(/type=([^&]*)/)?.[1];
+    const { params } = getQueryParams(window.location.href);
+
+    const error = params.error;
+    const error_code = params.error_code;
+    const error_description = params.error_description;
+
+    console.log('error', error);
+    console.log('error_code', error_code);
+    console.log('error_description', error_description);
+
+    if (error) {
+      setMessage(error_description);
+      setError('red');
+      return;
+    }
 
     if (isMobile()) {
+      const access_token = params.access_token;
+      const refresh_token = params.refresh_token;
+      const type = params.type;
+
+      if (!params.access_token || !params.refresh_token || !params.type) {
+        setMessage('Missing required parameters.');
+        setError('red');
+        return;
+      }
+
       // Mobile deep linking
-      const deepLink = `langquest://registration-confirmation#access_token=${access_token}&refresh_token=${refresh_token}&type=${type}`;
+      const deepLink = `langquest:///#access_token=${access_token}&refresh_token=${refresh_token}&type=${type}`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
-      const now = Date.now();
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.src = deepLink;
       document.body.appendChild(iframe);
 
       setTimeout(() => {
-        if (Date.now() - now < 3000) {
-          window.location.href = playStoreUrl;
-        }
-      }, 2000);
+        window.location.href = playStoreUrl;
+      }, 5000);
 
       window.location.href = deepLink;
     } else {
-      try {
-        // Verify the token is valid
-        const { error: sessionError } = await supabaseClient.auth.setSession({
-          access_token: access_token!,
-          refresh_token: refresh_token!
-        });
-
-        if (sessionError) throw sessionError;
-
-        setMessage(
-          'Your registration has been confirmed! You can now log in to the LangQuest app.'
-        );
-      } catch (error) {
-        console.error('Error confirming registration:', error);
-        setMessage('Error: Invalid or expired registration link.');
-        setError('red');
-      }
+      setMessage(
+        'Your registration has been confirmed! You can now log in to the LangQuest app.'
+      );
     }
   }, [searchParams, supabaseClient]);
 

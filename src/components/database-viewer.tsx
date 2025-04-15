@@ -36,7 +36,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { env } from '@/lib/env';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { cn, toProperCase } from '@/lib/utils';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

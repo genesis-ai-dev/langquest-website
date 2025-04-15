@@ -14,7 +14,7 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import { env } from '@/lib/env';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import jsonata from 'jsonata';
