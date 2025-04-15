@@ -36,7 +36,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { env } from '@/lib/env';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { cn, toProperCase } from '@/lib/utils';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -1226,14 +1226,12 @@ function ReverseRelationshipPreview({
         // For link tables, we need to join through to the target table
         // First, get the foreign key table that the throughTargetColumn points to
         const { data: schemaData } = await supabase
-          // @ts-expect-error metadata is not typed
           .from('_metadata')
           .select('*');
 
         const foreignKeyTable = schemaData?.find(
           (table: any) =>
             table.table === throughTable && table.column === throughTargetColumn
-          // @ts-expect-error metadata is not typed
         )?.foreign_table;
 
         if (foreignKeyTable) {

@@ -14,7 +14,7 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import { env } from '@/lib/env';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import jsonata from 'jsonata';
@@ -43,6 +43,72 @@ import {
   SelectTrigger,
   SelectValue
 } from './ui/select';
+
+export interface Root {
+  assets: {
+    id: string;
+    name: string;
+    translations: {
+      id: string;
+      text: string;
+      audio: string;
+      votes: Vote[];
+      target_language: TargetLanguage;
+    }[];
+    content: Content[];
+    tags: Tag[];
+    quests: {
+      quest?: {
+        id: string;
+        name: string;
+        tags: Tag[];
+        project: {
+          id: string;
+          name: string;
+          description: string;
+          source_language: SourceLanguage;
+          target_language: TargetLanguage;
+        };
+        description: string;
+      };
+    }[];
+    images?: string[];
+  }[];
+  count: number;
+}
+
+export interface Vote {
+  id: string;
+  polarity: string;
+}
+
+export interface TargetLanguage {
+  id: string;
+  english_name: string;
+}
+
+export interface Content {
+  id: string;
+  text: string;
+  audio_id: string;
+}
+
+export interface Tag {
+  tag: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface SourceLanguage {
+  id: string;
+  english_name: string;
+}
+
+export interface TargetLanguage {
+  id: string;
+  english_name: string;
+}
 
 const pathMap = {
   name: 'name',
@@ -89,7 +155,7 @@ export function DataView() {
   );
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(0));
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<Root>({
     queryKey: ['assets', page, pageSize],
     queryFn: async () => {
       const { data, error, count } = await supabase
@@ -119,9 +185,11 @@ export function DataView() {
             : undefined
         })),
         count
-      };
+      } as unknown as Root;
     }
   });
+
+  console.log(data);
 
   const assets = data?.assets;
   const count = data?.count;
@@ -525,17 +593,23 @@ export function DataView() {
                         className={`flex flex-col gap-2 bg-secondary/30 p-4 rounded-md w-full ${
                           asset.quests?.length === 1 && 'col-span-2'
                         }`}
-                        key={`${quest.quest.id}-${asset.id}`}
+                        key={`${quest.quest?.id}-${asset.id}`}
                       >
                         <div className="flex flex-col gap-6">
                           <div>
                             <span className="flex flex-1 text-lg font-semibold">
-                              {quest.quest.name}
+                              {quest.quest?.name}
                             </span>
                             <span className="text-secondary-foreground">
-                              {quest.quest.project.source_language.english_name}{' '}
+                              {
+                                quest.quest?.project.source_language
+                                  .english_name
+                              }{' '}
                               →{' '}
-                              {quest.quest.project.target_language.english_name}
+                              {
+                                quest.quest?.project.target_language
+                                  .english_name
+                              }
                             </span>
                           </div>
                           <div className="flex flex-col gap-4">
@@ -545,14 +619,14 @@ export function DataView() {
                                   Description
                                 </span>{' '}
                                 <span className="text-muted-foreground">
-                                  {quest.quest.description}
+                                  {quest.quest?.description}
                                 </span>
                               </div>
                               <div className="flex gap-2">
                                 <span className="font-semibold w-20">
-                                  Tags ({quest.quest.tags.length})
+                                  Tags ({quest.quest?.tags.length})
                                 </span>
-                                {quest.quest.tags.map((tag) => (
+                                {quest.quest?.tags.map((tag) => (
                                   <Badge variant="outline" key={tag.tag.id}>
                                     {tag.tag.name}
                                   </Badge>
@@ -566,7 +640,7 @@ export function DataView() {
                                   Project
                                 </span>{' '}
                                 <span className="text-muted-foreground">
-                                  {quest.quest.project.name}
+                                  {quest.quest?.project.name}
                                 </span>
                               </div>
                               <div className="flex gap-2">
@@ -574,7 +648,7 @@ export function DataView() {
                                   Description
                                 </span>{' '}
                                 <span className="text-muted-foreground">
-                                  {quest.quest.project.description}
+                                  {quest.quest?.project.description}
                                 </span>
                               </div>
                             </div>
