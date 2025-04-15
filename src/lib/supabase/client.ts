@@ -19,8 +19,9 @@ const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
 };
 
 export function createClient(environment?: SupabaseEnvironment | null) {
-  console.log('creating client for environment', environment);
   const { url, key } = getSupabaseCredentials(environment ?? 'production');
+  console.log('created client for environment', environment);
+  console.log('url', url);
   return createBrowserClient(url, key);
 }
 
