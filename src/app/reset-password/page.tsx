@@ -1,24 +1,23 @@
 'use client';
 
-import { getQueryParams } from '@/lib/supabase-query-params';
-import { AuthError, EmailOtpType } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
-import { isMobile } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Form,
-  FormMessage,
   FormControl,
   FormField,
-  FormItem
+  FormItem,
+  FormMessage
 } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { Input } from '@/components/ui/input';
+import { getQueryParams } from '@/lib/supabase-query-params';
+import { supabase } from '@/lib/supabase/client';
+import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 const resetPasswordSchema = z
   .object({

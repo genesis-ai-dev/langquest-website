@@ -1,11 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { useSearchParams } from 'next/navigation';
-import { env } from '@/lib/env';
-import { isMobile } from '@/lib/utils';
 import { getQueryParams } from '@/lib/supabase-query-params';
+import { isMobile } from '@/lib/utils';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
 export default function RegistrationConfirmationPage() {
   return (
@@ -18,13 +15,6 @@ export default function RegistrationConfirmationPage() {
 function RegistrationConfirmation() {
   const [message, setMessage] = useState('Processing your registration...');
   const [error, setError] = useState('');
-  const searchParams = useSearchParams();
-
-  // Initialize Supabase client
-  const supabaseClient = createClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 
   const handleRegistrationConfirmation = useCallback(async () => {
     const { params } = getQueryParams(window.location.href);
@@ -74,11 +64,11 @@ function RegistrationConfirmation() {
         'Your registration has been confirmed! You can now log in to the LangQuest app.'
       );
     }
-  }, [searchParams, supabaseClient]);
+  }, []);
 
   useEffect(() => {
     handleRegistrationConfirmation();
-  }, [handleRegistrationConfirmation, searchParams]);
+  }, [handleRegistrationConfirmation]);
 
   return (
     <div className="container mx-auto px-4 py-10 text-center">

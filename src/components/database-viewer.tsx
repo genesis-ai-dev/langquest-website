@@ -1226,14 +1226,12 @@ function ReverseRelationshipPreview({
         // For link tables, we need to join through to the target table
         // First, get the foreign key table that the throughTargetColumn points to
         const { data: schemaData } = await supabase
-          // @ts-expect-error metadata is not typed
           .from('_metadata')
           .select('*');
 
         const foreignKeyTable = schemaData?.find(
           (table: any) =>
             table.table === throughTable && table.column === throughTargetColumn
-          // @ts-expect-error metadata is not typed
         )?.foreign_table;
 
         if (foreignKeyTable) {
