@@ -15,7 +15,7 @@ import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -32,7 +32,7 @@ const resetPasswordSchema = z
 
 type FormValues = z.infer<typeof resetPasswordSchema>;
 
-export default function ResetPasswordPage() {
+export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
   const supabase = useMemo(
@@ -118,64 +118,71 @@ export default function ResetPasswordPage() {
     }
   });
 
+  if (showForm)
+    return (
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit((data: FormValues) =>
+            updatePassword(data)
+          )}
+        >
+          <fieldset
+            className="flex flex-col gap-4 mx-auto py-30"
+            disabled={isSuccess}
+          >
+            <h2 className="text-xl font-bold text-center">
+              Reset Your Password
+            </h2>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      {...field}
+                      className="h-12"
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Confirm your password"
+                      {...field}
+                      className="h-12"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" size="lg" disabled={isPending}>
+              Reset Password
+            </Button>
+          </fieldset>
+        </form>
+      </Form>
+    );
+}
+
+export default function ResetPasswordPage() {
   return (
     <div className="container max-w-sm mx-auto px-4">
-      {showForm && (
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((data: FormValues) =>
-              updatePassword(data)
-            )}
-          >
-            <fieldset
-              className="flex flex-col gap-4 mx-auto py-30"
-              disabled={isSuccess}
-            >
-              <h2 className="text-xl font-bold text-center">
-                Reset Your Password
-              </h2>
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your password"
-                        {...field}
-                        className="h-12"
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Confirm your password"
-                        {...field}
-                        className="h-12"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" size="lg" disabled={isPending}>
-                Reset Password
-              </Button>
-            </fieldset>
-          </form>
-        </Form>
-      )}
+      <Suspense fallback={<div>Loading...</div>}>
+        <ResetPasswordForm />
+      </Suspense>
     </div>
   );
 }
