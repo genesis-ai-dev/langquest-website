@@ -10,11 +10,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { getQueryParams } from '@/lib/supabase-query-params';
-import { supabase } from '@/lib/supabase/client';
+import { createClient, SupabaseEnvironment } from '@/lib/supabase/client';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -33,6 +34,11 @@ type FormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordPage() {
   const [showForm, setShowForm] = useState(false);
+  const searchParams = useSearchParams();
+  const supabase = useMemo(
+    () => createClient(searchParams.get('env') as SupabaseEnvironment),
+    [searchParams]
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(resetPasswordSchema),
