@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { getQueryParams } from '@/lib/supabase-query-params';
-import { createClient, SupabaseEnvironment } from '@/lib/supabase/client';
+import { createBrowserClient, SupabaseEnvironment } from '@/lib/supabase';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -36,9 +36,8 @@ type FormValues = z.infer<typeof resetPasswordSchema>;
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
-  const supabase = useMemo(
-    () => createClient(searchParams.get('env') as SupabaseEnvironment),
-    [searchParams] // Include searchParams to recreate client when environment changes
+  const supabase = createBrowserClient(
+    searchParams.get('env') as SupabaseEnvironment
   );
 
   const form = useForm<FormValues>({
@@ -50,6 +49,8 @@ export function ResetPasswordForm() {
   });
 
   useEffect(() => {
+    console.log('useEffect');
+
     const { params } = getQueryParams(window.location.href);
 
     const error = params.error;
@@ -95,7 +96,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [searchParams, supabase]);
+  }, []);
 
   const {
     mutate: updatePassword,
