@@ -9,13 +9,14 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { createBrowserClient, SupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
-import { createClient, SupabaseEnvironment } from '@/lib/supabase/client';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AuthError } from '@supabase/supabase-js';
 import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -35,9 +36,8 @@ type FormValues = z.infer<typeof resetPasswordSchema>;
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
-  const supabase = useMemo(
-    () => createClient(searchParams.get('env') as SupabaseEnvironment),
-    [searchParams]
+  const supabase = createBrowserClient(
+    searchParams.get('env') as SupabaseEnvironment
   );
 
   const form = useForm<FormValues>({
@@ -49,6 +49,8 @@ export function ResetPasswordForm() {
   });
 
   useEffect(() => {
+    console.log('useEffect');
+
     const { params } = getQueryParams(window.location.href);
 
     const error = params.error;
@@ -86,7 +88,7 @@ export function ResetPasswordForm() {
           access_token: access_token!,
           refresh_token: refresh_token!
         })
-        .then(({ error: sessionError }) => {
+        .then(({ error: sessionError }: { error: AuthError | null }) => {
           if (sessionError) {
             toast.error(sessionError.message);
             throw sessionError;
