@@ -19,6 +19,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { AuthError } from '@supabase/supabase-js';
 
 const resetPasswordSchema = z
   .object({
@@ -37,7 +38,7 @@ export function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const supabase = useMemo(
     () => createClient(searchParams.get('env') as SupabaseEnvironment),
-    [searchParams]
+    [searchParams] // Include searchParams to recreate client when environment changes
   );
 
   const form = useForm<FormValues>({
@@ -86,7 +87,7 @@ export function ResetPasswordForm() {
           access_token: access_token!,
           refresh_token: refresh_token!
         })
-        .then(({ error: sessionError }) => {
+        .then(({ error: sessionError }: { error: AuthError | null }) => {
           if (sessionError) {
             toast.error(sessionError.message);
             throw sessionError;
@@ -94,7 +95,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, []);
+  }, [searchParams, supabase]);
 
   const {
     mutate: updatePassword,
