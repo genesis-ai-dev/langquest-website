@@ -1,5 +1,6 @@
 'use client';
 
+import { Spinner } from '@/components/spinner';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -182,7 +183,13 @@ export function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="container max-w-sm mx-auto px-4">
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="w-full h-screen flex items-center justify-center">
+            <Spinner className="size-4" />
+          </div>
+        }
+      >
         <ResetPasswordForm />
       </Suspense>
     </div>
