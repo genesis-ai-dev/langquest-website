@@ -1,5 +1,6 @@
-import { createBrowserClient } from '@supabase/ssr';
 import { env } from '@/lib/env';
+import { createBrowserClient } from '@supabase/ssr';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const environments = ['production', 'preview', 'development'] as const;
 export type SupabaseEnvironment = (typeof environments)[number];
@@ -23,15 +24,12 @@ const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
 // Create a map to store instances for different environments
 const supabaseInstances = new Map<
   SupabaseEnvironment,
-  ReturnType<typeof createBrowserClient>
+  SupabaseClient<any, 'public', any>
 >();
 
 export function createClient(environment?: SupabaseEnvironment | null) {
   // Default to production if environment is undefined or null
-  const env =
-    environment && ['production', 'preview'].includes(environment)
-      ? (environment as SupabaseEnvironment)
-      : 'production';
+  const env = environment ?? 'production';
 
   // Return existing instance for this environment if already created
   const existingInstance = supabaseInstances.get(env);
