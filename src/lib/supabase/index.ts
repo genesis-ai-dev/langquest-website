@@ -2,8 +2,7 @@ import { env } from '@/lib/env';
 import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-const environments = ['production', 'preview', 'development'] as const;
-export type SupabaseEnvironment = (typeof environments)[number];
+export type SupabaseEnvironment = 'production' | 'preview' | 'development';
 
 const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   switch (environment) {
