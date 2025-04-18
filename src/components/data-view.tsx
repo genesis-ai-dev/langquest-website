@@ -17,6 +17,7 @@ import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { Num, T, Var } from 'gt-next';
 import jsonata from 'jsonata';
 import {
   ArrowDownWideNarrowIcon,
@@ -43,8 +44,6 @@ import {
   SelectTrigger,
   SelectValue
 } from './ui/select';
-import { Var, T, Num } from 'gt-next';
-import { useGT } from 'gt-next/client';
 
 export interface Root {
   assets: {
@@ -295,8 +294,6 @@ export function DataView() {
     setSort(newSort);
     filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
   };
-
-  const t = useGT();
 
   if (isLoading)
     return (

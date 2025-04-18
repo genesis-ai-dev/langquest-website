@@ -104,7 +104,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, []);
+  }, [supabase.auth]);
 
   const {
     mutate: updatePassword,
