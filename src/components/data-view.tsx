@@ -658,7 +658,7 @@ export function DataView() {
                         <div className="grid grid-cols-2 gap-2">
                           <Var>
                             {asset.quests?.map((quest) => (
-                              <T>
+                              <T key={`${quest.quest?.id}-${asset.id}`}>
                                 <div
                                   className={`flex flex-col gap-2 bg-secondary/30 p-4 rounded-md w-full ${
                                     asset.quests?.length === 1 && 'col-span-2'

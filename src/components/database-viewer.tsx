@@ -2135,11 +2135,15 @@ export function DatabaseViewer() {
                     </PopoverTrigger>
                     <PopoverContent className="w-100" align="end">
                       <div className="space-y-4">
-                        {hasNoFilters && (
-                          <div className="text-sm text-muted-foreground">
-                            No filters applied to this view
-                          </div>
-                        )}
+                        <Var>
+                          {hasNoFilters && (
+                            <T id="components.database_viewer.17">
+                              <div className="text-sm text-muted-foreground">
+                                No filters applied to this view
+                              </div>
+                            </T>
+                          )}
+                        </Var>
 
                         <Var>
                           {filters[selectedTable]?.map(
