@@ -1974,13 +1974,15 @@ export function DatabaseViewer() {
                       >
                         <List className="size-4" />
                         <span className="hidden sm:block">
-                          {sorting?.length > 0 ? (
-                            <>
-                              Sorted by <Var>{sorting.length}</Var> rule(s)
-                            </>
-                          ) : (
-                            <>Sort</>
-                          )}
+                          <Var>
+                            {sorting?.length > 0 ? (
+                              <T>
+                                Sorted by <Var>{sorting.length}</Var> rule(s)
+                              </T>
+                            ) : (
+                              <T>Sort</T>
+                            )}
+                          </Var>
                         </span>
                       </Button>
                     </PopoverTrigger>
