@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { T } from 'gt-next';
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -196,7 +197,9 @@ function CarouselPrevious({
       {...props}
     >
       <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
+      <T id="previous-slide">
+        <span className="sr-only">Previous slide</span>
+      </T>
     </Button>
   );
 }
@@ -226,7 +229,9 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <span className="sr-only">Next slide</span>
+      <T id="previous-slide">
+        <span className="sr-only">Next slide</span>
+      </T>
     </Button>
   );
 }

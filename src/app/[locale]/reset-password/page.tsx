@@ -21,18 +21,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-
-const resetPasswordSchema = z
-  .object({
-    password: z.string().min(1),
-    confirmPassword: z.string().min(1)
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match.',
-    path: ['confirmPassword']
-  });
-
-type FormValues = z.infer<typeof resetPasswordSchema>;
+import { T } from 'gt-next';
+import { useGT } from 'gt-next/client';
 
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
@@ -40,6 +30,23 @@ export function ResetPasswordForm() {
   const supabase = createBrowserClient(
     searchParams.get('env') as SupabaseEnvironment
   );
+  const t = useGT();
+
+  const resetPasswordSchema = z
+    .object({
+      password: z
+        .string()
+        .min(1, { message: t('String must contain at least 1 character(s)') }),
+      confirmPassword: z
+        .string()
+        .min(1, { message: t('String must contain at least 1 character(s)') })
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t('Passwords do not match.'),
+      path: ['confirmPassword']
+    });
+
+  type FormValues = z.infer<typeof resetPasswordSchema>;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -113,7 +120,9 @@ export function ResetPasswordForm() {
     },
     onSuccess: () => {
       toast.success(
-        'Password successfully updated! You can now close this window and log in to the app.'
+        t(
+          'Password successfully updated! You can now close this window and log in to the app.'
+        )
       );
     },
     onError: (error) => {
@@ -123,60 +132,64 @@ export function ResetPasswordForm() {
 
   if (showForm)
     return (
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit((data: FormValues) =>
-            updatePassword(data)
-          )}
-        >
-          <fieldset
-            className="flex flex-col gap-4 mx-auto py-30"
-            disabled={isSuccess}
+      <T id="app.reset_password.page.0">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((data: FormValues) =>
+              updatePassword(data)
+            )}
           >
-            <h2 className="text-xl font-bold text-center">
-              Reset Your Password
-            </h2>
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Enter your password"
-                      {...field}
-                      className="h-12"
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Confirm your password"
-                      {...field}
-                      className="h-12"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" size="lg" disabled={isPending}>
-              Reset Password
-            </Button>
-          </fieldset>
-        </form>
-      </Form>
+            <fieldset
+              className="flex flex-col gap-4 mx-auto py-30"
+              disabled={isSuccess}
+            >
+              <h2 className="text-xl font-bold text-center">
+                Reset Your Password
+              </h2>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder={t('Enter your password')}
+                        {...field}
+                        className="h-12"
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder={t('Confirm your password')}
+                        {...field}
+                        className="h-12"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" size="lg" disabled={isPending}>
+                Reset Password
+              </Button>
+            </fieldset>
+          </form>
+        </Form>
+      </T>
     );
 }
 

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Providers } from '../components/providers';
+import { ClientProviders } from '../../components/client-providers';
 import { Toaster } from '@/components/ui/sonner';
+import { getLocaleDirection } from 'generaltranslation';
+import { getLocale, GTProvider } from 'gt-next/server';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -20,17 +22,22 @@ export const metadata: Metadata = {
     'An app for translating and preserving low-resource languages, especially useful in remote areas with limited internet.'
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale(); // e.g. "ar" for Arabic
+  const dir = getLocaleDirection(locale); // e.g. "rtl" for "right-to-left"
+
   return (
-    <html lang="en" className="h-full w-full">
+    <html className="h-full w-full" lang={locale} dir={dir}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
       >
-        <Providers>{children}</Providers>
+        <GTProvider>
+          <ClientProviders>{children}</ClientProviders>
+        </GTProvider>
         <Toaster position="top-center" />
       </body>
     </html>

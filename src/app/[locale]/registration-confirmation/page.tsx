@@ -3,10 +3,18 @@
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { Suspense, useCallback, useEffect, useState } from 'react';
+import { T, Var } from 'gt-next';
+import { Spinner } from '@/components/spinner';
 
 export default function RegistrationConfirmationPage() {
   return (
-    <Suspense fallback={<div className="text-center my-5">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="w-full h-screen flex items-center justify-center">
+          <Spinner className="size-4" />
+        </div>
+      }
+    >
       <RegistrationConfirmation />
     </Suspense>
   );
@@ -71,24 +79,31 @@ function RegistrationConfirmation() {
   }, [handleRegistrationConfirmation]);
 
   return (
-    <div className="container mx-auto px-4 py-10 text-center">
-      <h1 className="text-3xl font-bold mb-6">LangQuest Registration</h1>
-      <div className={`text-xl my-5 ${error ? 'text-red-500' : ''}`}>
-        {message}
-      </div>
-      {!error && (
-        <div className="mt-8">
-          <p className="mb-4">
-            Download the LangQuest app to start your language learning journey:
-          </p>
-          <a
-            href="https://play.google.com/store/apps/details?id=com.etengenesis.langquest"
-            className="inline-block px-6 py-3 bg-accent1-500 text-white rounded-lg hover:bg-accent1-600"
-          >
-            Download from Google Play
-          </a>
+    <T id="app.registration_confirmation.page.2">
+      <div className="container mx-auto px-4 py-10 text-center">
+        <h1 className="text-3xl font-bold mb-6">LangQuest Registration</h1>
+        <div className={`text-xl my-5 ${error ? 'text-red-500' : ''}`}>
+          <Var>{message}</Var>
         </div>
-      )}
-    </div>
+        <Var>
+          {!error && (
+            <T id="app.registration_confirmation.page.1">
+              <div className="mt-8">
+                <p className="mb-4">
+                  Download the LangQuest app to start your language learning
+                  journey:
+                </p>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.etengenesis.langquest"
+                  className="inline-block px-6 py-3 bg-accent1-500 text-white rounded-lg hover:bg-accent1-600"
+                >
+                  Download from Google Play
+                </a>
+              </div>
+            </T>
+          )}
+        </Var>
+      </div>
+    </T>
   );
 }

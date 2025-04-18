@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
   }
 });
 
-export function Providers({ children }: { children: ReactNode }) {
+export function ClientProviders({ children }: { children: ReactNode }) {
   return (
     <NuqsAdapter>
       <QueryClientProvider client={queryClient}>

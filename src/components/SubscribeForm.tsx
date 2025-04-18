@@ -1,10 +1,10 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Zap } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,8 +15,9 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useMutation } from '@tanstack/react-query';
 import { subscribeSchema } from '@/lib/schemas';
+import { useMutation } from '@tanstack/react-query';
+import { T } from 'gt-next';
 
 type FormValues = z.infer<typeof subscribeSchema>;
 
@@ -86,7 +87,11 @@ export function SubscribeForm() {
           disabled={isPending}
         >
           <Zap className="h-4 w-4" />
-          {isPending ? 'Subscribing...' : 'Get Notified'}
+          {isPending ? (
+            <T id="pending">Subscribing...</T>
+          ) : (
+            <T id="not-pending">Get Notified</T>
+          )}
         </Button>
       </form>
     </Form>

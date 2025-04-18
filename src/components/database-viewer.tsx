@@ -90,6 +90,9 @@ import {
 } from './ui/sheet';
 
 // Define base types
+
+import { Num, Plural, T, Var } from 'gt-next';
+import { useGT } from 'gt-next/client';
 type ColumnType = 'string' | 'number' | 'boolean' | 'timestamp' | 'uuid';
 
 const visibilityStateSchema = z.record(z.boolean());
@@ -508,7 +511,21 @@ function RelatedRecordsCount({
 
   return (
     <span className="text-muted-foreground">
-      {data} {data === 1 ? 'record' : 'records'}
+      <T id="components.database_viewer.0">
+        <Plural
+          n={data}
+          one={
+            <>
+              <Num>1</Num> record.
+            </>
+          }
+          other={
+            <>
+              <Num>{data}</Num> records.
+            </>
+          }
+        />
+      </T>
     </span>
   );
 }
@@ -594,112 +611,126 @@ function useTransformedColumns({
                   recordId={String(recordId)}
                   isLinkTable={col.reverseRelationship.isLinkTable}
                 />
+
                 {!isPreview && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="size-6">
-                        <ChevronRight className="size-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-100 p-0 flex flex-col"
-                      align="end"
-                    >
-                      <div className="p-2 border-b border-border text-sm">
-                        <span className="text-muted-foreground">
-                          {col.reverseRelationship.isLinkTable
-                            ? 'Related records from'
-                            : 'Referencing records from'}
-                        </span>{' '}
-                        {(() => {
-                          if (
-                            col.reverseRelationship.isLinkTable &&
-                            col.reverseRelationship.throughTable &&
-                            col.reverseRelationship.throughTargetColumn &&
-                            tableSchemas
-                          ) {
-                            // Get the actual target table name from the foreign key
-                            const throughTable =
-                              col.reverseRelationship.throughTable;
-                            const throughTargetColumn =
-                              col.reverseRelationship.throughTargetColumn;
-                            const foreignKeyInfo = tableSchemas[
-                              throughTable
-                            ]?.columns.find(
-                              (c) => c.key === throughTargetColumn
-                            )?.foreignKey;
-
-                            if (foreignKeyInfo) {
-                              return foreignKeyInfo.table;
-                            }
-                          }
-
-                          // Fallback to the source table name
-                          return col.reverseRelationship.sourceTable;
-                        })()}
-                        :
-                      </div>
-                      <ReverseRelationshipPreview
-                        tableName={col.reverseRelationship.sourceTable}
-                        columnName={col.reverseRelationship.sourceColumn}
-                        recordId={String(recordId)}
-                        isLinkTable={col.reverseRelationship.isLinkTable}
-                        throughTable={col.reverseRelationship.throughTable}
-                        throughSourceColumn={
-                          col.reverseRelationship.throughSourceColumn
-                        }
-                        throughTargetColumn={
-                          col.reverseRelationship.throughTargetColumn
-                        }
-                      />
-                      <div className="flex justify-end p-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-sm"
-                          onClick={() => {
-                            // For link tables, we want to navigate to the target table, not the link table
-                            if (
-                              col.reverseRelationship!.isLinkTable &&
-                              col.reverseRelationship!.throughTable &&
-                              col.reverseRelationship!.throughTargetColumn &&
-                              tableSchemas
-                            ) {
-                              // Find the foreign key that this column points to
-                              const throughTable =
-                                col.reverseRelationship!.throughTable;
-                              const throughTargetColumn =
-                                col.reverseRelationship!.throughTargetColumn;
-                              const foreignKeyInfo = tableSchemas[
-                                throughTable
-                              ]?.columns.find(
-                                (c) => c.key === throughTargetColumn
-                              )?.foreignKey;
-
-                              if (foreignKeyInfo) {
-                                // Navigate to the target table
-                                onForeignKeySelect?.({
-                                  table: foreignKeyInfo.table,
-                                  column: foreignKeyInfo.column,
-                                  value: '' // We don't have a specific value to filter by
-                                });
-                                return;
-                              }
-                            }
-
-                            // Default behavior for non-link tables
-                            onForeignKeySelect?.({
-                              table: col.reverseRelationship!.sourceTable,
-                              column: col.reverseRelationship!.sourceColumn,
-                              value: String(recordId)
-                            });
-                          }}
-                        >
-                          Open table
+                  <T id="components.database_viewer.4">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="size-6">
+                          <ChevronRight className="size-4" />
                         </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-100 p-0 flex flex-col"
+                        align="end"
+                      >
+                        <div className="p-2 border-b border-border text-sm">
+                          <span className="text-muted-foreground">
+                            <Var>
+                              {col.reverseRelationship.isLinkTable ? (
+                                <T id="components.database_viewer.2">
+                                  {'Related records from'}
+                                </T>
+                              ) : (
+                                <T id="components.database_viewer.3">
+                                  {'Referencing records from'}
+                                </T>
+                              )}
+                            </Var>
+                          </span>{' '}
+                          <Var>
+                            {(() => {
+                              if (
+                                col.reverseRelationship.isLinkTable &&
+                                col.reverseRelationship.throughTable &&
+                                col.reverseRelationship.throughTargetColumn &&
+                                tableSchemas
+                              ) {
+                                // Get the actual target table name from the foreign key
+                                const throughTable =
+                                  col.reverseRelationship.throughTable;
+                                const throughTargetColumn =
+                                  col.reverseRelationship.throughTargetColumn;
+                                const foreignKeyInfo = tableSchemas[
+                                  throughTable
+                                ]?.columns.find(
+                                  (c) => c.key === throughTargetColumn
+                                )?.foreignKey;
+
+                                if (foreignKeyInfo) {
+                                  return foreignKeyInfo.table;
+                                }
+                              }
+
+                              // Fallback to the source table name
+                              return col.reverseRelationship.sourceTable;
+                            })()}
+                          </Var>
+                          :
+                        </div>
+                        <ReverseRelationshipPreview
+                          tableName={col.reverseRelationship.sourceTable}
+                          columnName={col.reverseRelationship.sourceColumn}
+                          recordId={String(recordId)}
+                          isLinkTable={col.reverseRelationship.isLinkTable}
+                          throughTable={col.reverseRelationship.throughTable}
+                          throughSourceColumn={
+                            col.reverseRelationship.throughSourceColumn
+                          }
+                          throughTargetColumn={
+                            col.reverseRelationship.throughTargetColumn
+                          }
+                        />
+
+                        <div className="flex justify-end p-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-sm"
+                            onClick={() => {
+                              // For link tables, we want to navigate to the target table, not the link table
+                              if (
+                                col.reverseRelationship!.isLinkTable &&
+                                col.reverseRelationship!.throughTable &&
+                                col.reverseRelationship!.throughTargetColumn &&
+                                tableSchemas
+                              ) {
+                                // Find the foreign key that this column points to
+                                const throughTable =
+                                  col.reverseRelationship!.throughTable;
+                                const throughTargetColumn =
+                                  col.reverseRelationship!.throughTargetColumn;
+                                const foreignKeyInfo = tableSchemas[
+                                  throughTable
+                                ]?.columns.find(
+                                  (c) => c.key === throughTargetColumn
+                                )?.foreignKey;
+
+                                if (foreignKeyInfo) {
+                                  // Navigate to the target table
+                                  onForeignKeySelect?.({
+                                    table: foreignKeyInfo.table,
+                                    column: foreignKeyInfo.column,
+                                    value: '' // We don't have a specific value to filter by
+                                  });
+                                  return;
+                                }
+                              }
+
+                              // Default behavior for non-link tables
+                              onForeignKeySelect?.({
+                                table: col.reverseRelationship!.sourceTable,
+                                column: col.reverseRelationship!.sourceColumn,
+                                value: String(recordId)
+                              });
+                            }}
+                          >
+                            Open table
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </T>
                 )}
               </div>
             );
@@ -775,55 +806,60 @@ function useTransformedColumns({
           }
           if (col.foreignKey && !isPreview) {
             return (
-              <div className="flex items-center gap-2">
-                <span className="truncate">{String(value)}</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="size-6 ml-auto"
-                    >
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-100 p-0 flex flex-col"
-                    align="end"
-                  >
-                    <div className="p-2 border-b border-border text-sm">
-                      <span className="text-muted-foreground">
-                        Referencing record from
-                      </span>{' '}
-                      {col.foreignKey.table}:
-                    </div>
-                    <PreviewTable
-                      tableName={col.foreignKey.table}
-                      filterColumn={col.foreignKey.column}
-                      filterValue={String(value)}
-                    />
-                    <div className="flex justify-end p-2">
+              <T id="components.database_viewer.5">
+                <div className="flex items-center gap-2">
+                  <span className="truncate">
+                    <Var>{String(value)}</Var>
+                  </span>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="rounded-sm"
-                        onClick={() => {
-                          onForeignKeySelect?.({
-                            table: col.foreignKey!.table,
-                            column: col.foreignKey!.column,
-                            value: String(value),
-                            sourceTable: col.foreignKey!.table,
-                            sourceColumn: col.key,
-                            sourceValue: String(value)
-                          });
-                        }}
+                        className="size-6 ml-auto"
                       >
-                        Open table
+                        <ChevronRight className="size-4" />
                       </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-100 p-0 flex flex-col"
+                      align="end"
+                    >
+                      <div className="p-2 border-b border-border text-sm">
+                        <span className="text-muted-foreground">
+                          Referencing record from
+                        </span>{' '}
+                        <Var>{col.foreignKey.table}</Var>:
+                      </div>
+                      <PreviewTable
+                        tableName={col.foreignKey.table}
+                        filterColumn={col.foreignKey.column}
+                        filterValue={String(value)}
+                      />
+
+                      <div className="flex justify-end p-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-sm"
+                          onClick={() => {
+                            onForeignKeySelect?.({
+                              table: col.foreignKey!.table,
+                              column: col.foreignKey!.column,
+                              value: String(value),
+                              sourceTable: col.foreignKey!.table,
+                              sourceColumn: col.key,
+                              sourceValue: String(value)
+                            });
+                          }}
+                        >
+                          Open table
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </T>
             );
           } else if (col.foreignKey && isPreview) {
             // For foreign keys in preview mode, just show the value without the popover button
@@ -881,9 +917,11 @@ function PreviewTable({
 
   if (!data?.length) {
     return (
-      <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
-        No matching records found.
-      </div>
+      <T id="components.database_viewer.6">
+        <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
+          No matching records found.
+        </div>
+      </T>
     );
   }
 
@@ -1216,6 +1254,7 @@ function ReverseRelationshipPreview({
       throughSourceColumn,
       throughTargetColumn
     ],
+
     queryFn: async () => {
       if (
         isLinkTable &&
@@ -1374,17 +1413,21 @@ function ReverseRelationshipPreview({
 
   if (!data?.linkData?.length) {
     return (
-      <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
-        No related records found.
-      </div>
+      <T id="components.database_viewer.7">
+        <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
+          No related records found.
+        </div>
+      </T>
     );
   }
 
   if (!displayData || !columns.length) {
     return (
-      <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
-        Unable to display related records.
-      </div>
+      <T id="components.database_viewer.8">
+        <div className="h-20 text-sm flex items-center text-center justify-center p-2 text-muted-foreground">
+          Unable to display related records.
+        </div>
+      </T>
     );
   }
 
@@ -1421,9 +1464,13 @@ function ReverseRelationshipPreview({
         </TableBody>
       </Table>
       {hasMoreRecords && (
-        <div className="p-2 text-sm text-right text-muted-foreground border-t border-border">
-          <span>{totalRecords - MAX_DISPLAY_RECORDS} more records...</span>
-        </div>
+        <T id="components.database_viewer.9">
+          <div className="p-2 text-sm text-right text-muted-foreground border-t border-border">
+            <span>
+              <Var>{totalRecords - MAX_DISPLAY_RECORDS}</Var> more records...
+            </span>
+          </div>
+        </T>
       )}
     </div>
   );
@@ -1720,7 +1767,7 @@ export function DatabaseViewer() {
               t.name,
               page,
               pageSize
-            ])?.count ?? 0}
+            ])?.count ?? <T id="components.database_viewer.10">{0}</T>}
           </span>
         </button>
       ))}
@@ -1728,19 +1775,23 @@ export function DatabaseViewer() {
   );
 
   const LinkTablesFooter = () => (
-    <div className="p-3 border-t border-border">
-      <div className="flex items-center justify-between">
-        <Label htmlFor="show-link-tables" className="text-sm cursor-pointer">
-          Show link tables
-        </Label>
-        <Switch
-          id="show-link-tables"
-          checked={showLinkTables}
-          onCheckedChange={setShowLinkTables}
-        />
+    <T id="components.database_viewer.11">
+      <div className="p-3 border-t border-border">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="show-link-tables" className="text-sm cursor-pointer">
+            Show link tables
+          </Label>
+          <Switch
+            id="show-link-tables"
+            checked={showLinkTables}
+            onCheckedChange={setShowLinkTables}
+          />
+        </div>
       </div>
-    </div>
+    </T>
   );
+
+  const t = useGT();
 
   return (
     <div className="flex h-screen">
@@ -1754,11 +1805,13 @@ export function DatabaseViewer() {
         {schemasError || dataError ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-destructive">
-              {schemasError instanceof Error
-                ? schemasError.message
-                : dataError instanceof Error
-                  ? dataError.message
-                  : 'An error occurred'}
+              {schemasError instanceof Error ? (
+                schemasError.message
+              ) : dataError instanceof Error ? (
+                dataError.message
+              ) : (
+                <T id="components.database_viewer.12">{'An error occurred'}</T>
+              )}
             </div>
           </div>
         ) : schemasLoading || dataLoading ? (
@@ -1766,304 +1819,259 @@ export function DatabaseViewer() {
             <Spinner />
           </div>
         ) : (
-          <div className="flex flex-col gap-4 h-full">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight md:block hidden">
-                {toProperCase(selectedTable)}
-              </h2>
-              <div className="flex items-center gap-2">
-                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                  <SheetTrigger asChild className="md:hidden">
-                    <Button variant="ghost" size="sm" className="px-0 w-auto">
-                      <PanelLeft className="size-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left">
-                    <SheetHeader>
-                      <VisuallyHidden>
-                        <SheetTitle>Tables</SheetTitle>
-                      </VisuallyHidden>
-                    </SheetHeader>
-                    <Tables />
-                    <LinkTablesFooter />
-                  </SheetContent>
-                </Sheet>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Download className="size-4" />
-                      <span className="hidden sm:block">Export</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-75" align="end">
-                    <div className="flex flex-col gap-4">
-                      <div className="flex flex-col gap-2">
-                        <RadioGroup
-                          value={exportMode}
-                          onValueChange={(value) =>
-                            setExportMode(value as 'current' | 'all')
-                          }
-                          className="gap-3"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="current" id="current" />
-                            <label
-                              htmlFor="current"
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              Current Table
-                            </label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="all"
-                              id="all"
-                              disabled={!tableSchemas || !!exportProgress}
-                            />
-                            <label
-                              htmlFor="all"
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              All Tables
-                            </label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={includeAttachments}
-                          onCheckedChange={(checked) =>
-                            setIncludeAttachments(!!checked)
-                          }
-                        />
-                        Download attachments
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="flex-1"
-                          onClick={() => {
-                            if (exportMode === 'all') {
-                              if (!tableSchemas) return;
-                              exportAllTables(
-                                'json',
-                                includeAttachments,
-                                Object.keys(tableSchemas),
-                                setExportProgress
-                              ).finally(() => setExportProgress(null));
-                            } else {
-                              exportToJson(
-                                table
-                                  .getFilteredRowModel()
-                                  .rows.map((row) => row.original),
-                                includeAttachments,
-                                selectedTable
-                              );
+          <T id="components.database_viewer.20">
+            <div className="flex flex-col gap-4 h-full">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold tracking-tight md:block hidden">
+                  <Var>{toProperCase(selectedTable)}</Var>
+                </h2>
+                <div className="flex items-center gap-2">
+                  <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                    <SheetTrigger asChild className="md:hidden">
+                      <Button variant="ghost" size="sm" className="px-0 w-auto">
+                        <PanelLeft className="size-4" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left">
+                      <SheetHeader>
+                        <VisuallyHidden>
+                          <SheetTitle>Tables</SheetTitle>
+                        </VisuallyHidden>
+                      </SheetHeader>
+                      <Tables />
+                      <LinkTablesFooter />
+                    </SheetContent>
+                  </Sheet>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <Download className="size-4" />
+                        <span className="hidden sm:block">Export</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-75" align="end">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                          <RadioGroup
+                            value={exportMode}
+                            onValueChange={(value) =>
+                              setExportMode(value as 'current' | 'all')
                             }
-                          }}
-                          disabled={!tableSchemas || !!exportProgress}
-                        >
-                          <FileJson className="size-5" /> JSON
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="flex-1"
-                          onClick={() => {
-                            if (exportMode === 'all') {
-                              if (!tableSchemas) return;
-                              exportAllTables(
-                                'csv',
-                                includeAttachments,
-                                Object.keys(tableSchemas),
-                                setExportProgress
-                              ).finally(() => setExportProgress(null));
-                            } else {
-                              exportToCsv(
-                                table
-                                  .getFilteredRowModel()
-                                  .rows.map((row) => row.original),
-                                includeAttachments,
-                                selectedTable
-                              );
-                            }
-                          }}
-                          disabled={!tableSchemas || !!exportProgress}
-                        >
-                          <FileSpreadsheet className="size-5" /> CSV
-                        </Button>
-                      </div>
-                      {exportProgress && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          Exporting {exportProgress}...
-                        </span>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        sorting?.length > 0 &&
-                          'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                      )}
-                    >
-                      <List className="size-4" />
-                      <span className="hidden sm:block">
-                        {sorting?.length > 0
-                          ? `Sorted by ${sorting.length} rule(s)`
-                          : 'Sort'}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-100" align="end">
-                    <div className="space-y-4">
-                      {pendingSorting.length === 0 && (
-                        <div className="text-sm text-muted-foreground mb-2">
-                          No sorts applied to this view
-                        </div>
-                      )}
-                      {pendingSorting.map((sort, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div className="text-sm flex items-center gap-2 flex-1">
-                            <div className="text-muted-foreground flex items-center gap-2">
-                              <AlignJustify className="size-4" />
-                              {index === 0 ? 'sort by' : 'then by'}
-                            </div>{' '}
-                            {sort.id}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">ascending</span>
-                            <Checkbox
-                              checked={!sort.desc}
-                              onCheckedChange={(checked) => {
-                                const newSorting = [...pendingSorting];
-                                newSorting[index] = { ...sort, desc: !checked };
-                                setPendingSorting(newSorting);
-                              }}
-                              className="translate-y-[1px]"
-                            />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              const newSorting = [...pendingSorting];
-                              newSorting.splice(index, 1);
-                              setPendingSorting(newSorting);
-                            }}
+                            className="gap-3"
                           >
-                            <X className="size-4" />
-                          </Button>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="current" id="current" />
+                              <label
+                                htmlFor="current"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                Current Table
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem
+                                value="all"
+                                id="all"
+                                disabled={!tableSchemas || !!exportProgress}
+                              />
+
+                              <label
+                                htmlFor="all"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                All Tables
+                              </label>
+                            </div>
+                          </RadioGroup>
                         </div>
-                      ))}
-                      <div className="flex items-center gap-2 border-t border-border pt-3">
-                        {nonFilteredColumns.length !== 0 ? (
-                          <Select
-                            value=""
-                            onValueChange={(value) => {
-                              const column = table.getColumn(value);
-                              if (column) {
-                                setPendingSorting([
-                                  ...pendingSorting,
-                                  { id: value, desc: false }
-                                ]);
+                        <div className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={includeAttachments}
+                            onCheckedChange={(checked) =>
+                              setIncludeAttachments(!!checked)
+                            }
+                          />
+                          Download attachments
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1"
+                            onClick={() => {
+                              if (exportMode === 'all') {
+                                if (!tableSchemas) return;
+                                exportAllTables(
+                                  'json',
+                                  includeAttachments,
+                                  Object.keys(tableSchemas),
+                                  setExportProgress
+                                ).finally(() => setExportProgress(null));
+                              } else {
+                                exportToJson(
+                                  table
+                                    .getFilteredRowModel()
+                                    .rows.map((row) => row.original),
+                                  includeAttachments,
+                                  selectedTable
+                                );
                               }
                             }}
+                            disabled={!tableSchemas || !!exportProgress}
                           >
-                            <SelectTrigger className="h-8 border-none pl-0 shadow-none">
-                              <SelectValue placeholder="Pick a column to sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {nonFilteredColumns.map((column) => (
-                                <SelectItem key={column.id} value={column.id}>
-                                  {column.id}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span className="text-sm text-muted-foreground flex-1">
-                            All columns have been added
-                          </span>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSorting(pendingSorting);
-                          }}
-                          disabled={!pendingSorting.length && !sorting.length}
-                        >
-                          Apply sorting
-                        </Button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        columnFilters[selectedTable]?.length > 0 &&
-                          'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                      )}
-                    >
-                      <Filter className="size-4" />
-                      <span className="hidden sm:block">
-                        {columnFilters[selectedTable]?.length > 0
-                          ? `Filtered by ${columnFilters[selectedTable]?.length} rule(s)`
-                          : 'Filter'}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-100" align="end">
-                    <div className="space-y-4">
-                      {hasNoFilters && (
-                        <div className="text-sm text-muted-foreground">
-                          No filters applied to this view
+                            <FileJson className="size-5" /> JSON
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1"
+                            onClick={() => {
+                              if (exportMode === 'all') {
+                                if (!tableSchemas) return;
+                                exportAllTables(
+                                  'csv',
+                                  includeAttachments,
+                                  Object.keys(tableSchemas),
+                                  setExportProgress
+                                ).finally(() => setExportProgress(null));
+                              } else {
+                                exportToCsv(
+                                  table
+                                    .getFilteredRowModel()
+                                    .rows.map((row) => row.original),
+                                  includeAttachments,
+                                  selectedTable
+                                );
+                              }
+                            }}
+                            disabled={!tableSchemas || !!exportProgress}
+                          >
+                            <FileSpreadsheet className="size-5" /> CSV
+                          </Button>
                         </div>
-                      )}
-
-                      {filters[selectedTable]?.map(
-                        (filter: FilterCondition, index: number) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <Select
-                              value={filter.column}
-                              defaultValue={filterableColumn}
-                              onValueChange={(value) => {
-                                const newFilters = [
-                                  ...(filters[selectedTable] ?? [])
-                                ];
-                                newFilters[index] = {
-                                  ...filter,
-                                  column: value
-                                };
-                                setFilters({
-                                  ...filters,
-                                  [selectedTable]: newFilters
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {table
-                                  .getAllColumns()
-                                  .filter((column) => column.getCanFilter())
-                                  .map((column) => (
+                        <Var>
+                          {exportProgress && (
+                            <T id="components.database_viewer.13">
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                Exporting <Var>{exportProgress}</Var>...
+                              </span>
+                            </T>
+                          )}
+                        </Var>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          sorting?.length > 0 &&
+                            'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                        )}
+                      >
+                        <List className="size-4" />
+                        <span className="hidden sm:block">
+                          {sorting?.length > 0 ? (
+                            <>
+                              Sorted by <Var>{sorting.length}</Var> rule(s)
+                            </>
+                          ) : (
+                            <>Sort</>
+                          )}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-100" align="end">
+                      <div className="space-y-4">
+                        <Var>
+                          {pendingSorting.length === 0 && (
+                            <T id="components.database_viewer.15">
+                              <div className="text-sm text-muted-foreground mb-2">
+                                No sorts applied to this view
+                              </div>
+                            </T>
+                          )}
+                        </Var>
+                        <Var>
+                          {pendingSorting.map((sort, index) => (
+                            <T id="components.database_viewer.23" key={index}>
+                              <div
+                                key={index}
+                                className="flex items-center gap-2"
+                              >
+                                <div className="text-sm flex items-center gap-2 flex-1">
+                                  <div className="text-muted-foreground flex items-center gap-2">
+                                    <AlignJustify className="size-4" />
+                                    <Var>
+                                      {index === 0 ? (
+                                        <T id="components.database_viewer.21">
+                                          {'sort by'}
+                                        </T>
+                                      ) : (
+                                        <T id="components.database_viewer.22">
+                                          {'then by'}
+                                        </T>
+                                      )}
+                                    </Var>
+                                  </div>{' '}
+                                  <Var>{sort.id}</Var>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">ascending</span>
+                                  <Checkbox
+                                    checked={!sort.desc}
+                                    onCheckedChange={(checked) => {
+                                      const newSorting = [...pendingSorting];
+                                      newSorting[index] = {
+                                        ...sort,
+                                        desc: !checked
+                                      };
+                                      setPendingSorting(newSorting);
+                                    }}
+                                    className="translate-y-[1px]"
+                                  />
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    const newSorting = [...pendingSorting];
+                                    newSorting.splice(index, 1);
+                                    setPendingSorting(newSorting);
+                                  }}
+                                >
+                                  <X className="size-4" />
+                                </Button>
+                              </div>
+                            </T>
+                          ))}
+                        </Var>
+                        <div className="flex items-center gap-2 border-t border-border pt-3">
+                          <Var>
+                            {nonFilteredColumns.length !== 0 ? (
+                              <Select
+                                value=""
+                                onValueChange={(value) => {
+                                  const column = table.getColumn(value);
+                                  if (column) {
+                                    setPendingSorting([
+                                      ...pendingSorting,
+                                      { id: value, desc: false }
+                                    ]);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="h-8 border-none pl-0 shadow-none">
+                                  <SelectValue
+                                    placeholder={t('Pick a column to sort by')}
+                                  />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {nonFilteredColumns.map((column) => (
                                     <SelectItem
                                       key={column.id}
                                       value={column.id}
@@ -2071,325 +2079,444 @@ export function DatabaseViewer() {
                                       {column.id}
                                     </SelectItem>
                                   ))}
-                              </SelectContent>
-                            </Select>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <T id="components.database_viewer.16">
+                                <span className="text-sm text-muted-foreground flex-1">
+                                  All columns have been added
+                                </span>
+                              </T>
+                            )}
+                          </Var>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSorting(pendingSorting);
+                            }}
+                            disabled={!pendingSorting.length && !sorting.length}
+                          >
+                            Apply sorting
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          columnFilters[selectedTable]?.length > 0 &&
+                            'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                        )}
+                      >
+                        <Filter className="size-4" />
+                        <span className="hidden sm:block">
+                          {columnFilters[selectedTable]?.length > 0 ? (
+                            <>
+                              Filtered by{' '}
+                              <Var>{columnFilters[selectedTable]?.length}</Var>{' '}
+                              rule(s)
+                            </>
+                          ) : (
+                            <>Filter</>
+                          )}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-100" align="end">
+                      <div className="space-y-4">
+                        {hasNoFilters && (
+                          <div className="text-sm text-muted-foreground">
+                            No filters applied to this view
+                          </div>
+                        )}
 
-                            <Select
-                              defaultValue={OPERATORS[0].value}
-                              value={filter.operator}
-                              onValueChange={(value) => {
-                                const newFilters = [
-                                  ...(filters[selectedTable] ?? [])
-                                ];
-                                newFilters[index] = {
-                                  ...filter,
-                                  operator: value
-                                };
-                                setFilters({
-                                  ...filters,
-                                  [selectedTable]: newFilters
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="h-8 w-52">
-                                <SelectValue>{filter.operator}</SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {OPERATORS.map((op) => (
-                                  <SelectItem
-                                    key={op.value}
-                                    value={op.value}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <span className="text-sm text-muted-foreground">
-                                      {getOperatorSymbol(op.value)}
-                                    </span>
-                                    {op.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                        <Var>
+                          {filters[selectedTable]?.map(
+                            (filter: FilterCondition, index: number) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 text-sm"
+                              >
+                                <Select
+                                  value={filter.column}
+                                  defaultValue={filterableColumn}
+                                  onValueChange={(value) => {
+                                    const newFilters = [
+                                      ...(filters[selectedTable] ?? [])
+                                    ];
 
-                            {currentSchema?.columns.find(
-                              (col) => col.key === filter.column
-                            )?.type === 'timestamp' ? (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className={cn(
-                                      'w-[240px] justify-start text-left font-normal h-8',
-                                      !filter.value && 'text-muted-foreground'
-                                    )}
-                                  >
-                                    <CalendarIcon className="size-4 mr-2" />
-                                    {filter.value ? (
-                                      format(new Date(filter.value), 'PP')
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
+                                    newFilters[index] = {
+                                      ...filter,
+                                      column: value
+                                    };
+                                    setFilters({
+                                      ...filters,
+                                      [selectedTable]: newFilters
+                                    });
+                                  }}
                                 >
-                                  <Calendar
-                                    mode="single"
-                                    selected={
-                                      filter.value
-                                        ? new Date(filter.value)
-                                        : undefined
-                                    }
-                                    onSelect={(date) => {
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {table
+                                      .getAllColumns()
+                                      .filter((column) => column.getCanFilter())
+                                      .map((column) => (
+                                        <SelectItem
+                                          key={column.id}
+                                          value={column.id}
+                                        >
+                                          {column.id}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <Select
+                                  defaultValue={OPERATORS[0].value}
+                                  value={filter.operator}
+                                  onValueChange={(value) => {
+                                    const newFilters = [
+                                      ...(filters[selectedTable] ?? [])
+                                    ];
+
+                                    newFilters[index] = {
+                                      ...filter,
+                                      operator: value
+                                    };
+                                    setFilters({
+                                      ...filters,
+                                      [selectedTable]: newFilters
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 w-52">
+                                    <SelectValue>{filter.operator}</SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {OPERATORS.map((op) => (
+                                      <SelectItem
+                                        key={op.value}
+                                        value={op.value}
+                                        className="flex items-center gap-2"
+                                      >
+                                        <span className="text-sm text-muted-foreground">
+                                          {getOperatorSymbol(op.value)}
+                                        </span>
+                                        {op.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                {currentSchema?.columns.find(
+                                  (col) => col.key === filter.column
+                                )?.type === 'timestamp' ? (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        className={cn(
+                                          'w-[240px] justify-start text-left font-normal h-8',
+                                          !filter.value &&
+                                            'text-muted-foreground'
+                                        )}
+                                      >
+                                        <CalendarIcon className="size-4 mr-2" />
+                                        {filter.value ? (
+                                          format(new Date(filter.value), 'PP')
+                                        ) : (
+                                          <T id="components.database_viewer.24">
+                                            <span>Pick a date</span>
+                                          </T>
+                                        )}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-0"
+                                      align="start"
+                                    >
+                                      <Calendar
+                                        mode="single"
+                                        selected={
+                                          filter.value
+                                            ? new Date(filter.value)
+                                            : undefined
+                                        }
+                                        onSelect={(date) => {
+                                          const newFilters = [
+                                            ...(filters[selectedTable] ?? [])
+                                          ];
+
+                                          newFilters[index] = {
+                                            ...filter,
+                                            value: date
+                                              ? date.toISOString()
+                                              : ''
+                                          };
+                                          setFilters({
+                                            ...filters,
+                                            [selectedTable]: newFilters
+                                          });
+                                        }}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                ) : (
+                                  <Input
+                                    value={filter.value}
+                                    onChange={(e) => {
                                       const newFilters = [
                                         ...(filters[selectedTable] ?? [])
                                       ];
+
                                       newFilters[index] = {
                                         ...filter,
-                                        value: date ? date.toISOString() : ''
+                                        value: e.target.value
                                       };
                                       setFilters({
                                         ...filters,
                                         [selectedTable]: newFilters
                                       });
                                     }}
-                                    initialFocus
+                                    placeholder="Enter a value"
+                                    className="h-8"
                                   />
-                                </PopoverContent>
-                              </Popover>
-                            ) : (
-                              <Input
-                                value={filter.value}
-                                onChange={(e) => {
-                                  const newFilters = [
-                                    ...(filters[selectedTable] ?? [])
-                                  ];
-                                  newFilters[index] = {
-                                    ...filter,
-                                    value: e.target.value
-                                  };
-                                  setFilters({
-                                    ...filters,
-                                    [selectedTable]: newFilters
-                                  });
-                                }}
-                                placeholder="Enter a value"
-                                className="h-8"
-                              />
-                            )}
+                                )}
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleRemoveFilter(index)}
-                            >
-                              <X className="size-4" />
-                            </Button>
-                          </div>
-                        )
-                      )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleRemoveFilter(index)}
+                                >
+                                  <X className="size-4" />
+                                </Button>
+                              </div>
+                            )
+                          )}
+                        </Var>
 
-                      <div className="flex gap-2 border-t border-border pt-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setFilters({
-                              ...filters,
-                              [selectedTable]: [
-                                ...(filters[selectedTable] ?? []),
-                                {
-                                  column: filterableColumn ?? '',
-                                  operator: OPERATORS[0].value,
-                                  value: ''
-                                }
-                              ]
-                            });
-                          }}
-                        >
-                          <Plus className="size-4 mr-2" />
-                          Add filter
-                        </Button>
-                        <div className="flex justify-end flex-1">
+                        <div className="flex gap-2 border-t border-border pt-3">
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => {
-                              // Apply all filters
-                              filters[selectedTable]?.forEach((filter) => {
-                                table
-                                  .getColumn(filter.column)
-                                  ?.setFilterValue(filter.value);
-                              });
-
-                              const removedFilters = columnFilters[
-                                selectedTable
-                              ]?.filter(
-                                (columnFilter) =>
-                                  !filters[selectedTable]?.some(
-                                    (filter) =>
-                                      filter.column === columnFilter.id
-                                  )
-                              );
-
-                              removedFilters?.forEach((filter) => {
-                                table
-                                  .getColumn(filter.id)
-                                  ?.setFilterValue(undefined);
+                              setFilters({
+                                ...filters,
+                                [selectedTable]: [
+                                  ...(filters[selectedTable] ?? []),
+                                  {
+                                    column: filterableColumn ?? '',
+                                    operator: OPERATORS[0].value,
+                                    value: ''
+                                  }
+                                ]
                               });
                             }}
-                            disabled={
-                              !columnFilters[selectedTable]?.length &&
-                              !filters[selectedTable]?.length
-                            }
                           >
-                            Apply filter
+                            <Plus className="size-4 mr-2" />
+                            Add filter
                           </Button>
+                          <div className="flex justify-end flex-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Apply all filters
+                                filters[selectedTable]?.forEach((filter) => {
+                                  table
+                                    .getColumn(filter.column)
+                                    ?.setFilterValue(filter.value);
+                                });
+
+                                const removedFilters = columnFilters[
+                                  selectedTable
+                                ]?.filter(
+                                  (columnFilter) =>
+                                    !filters[selectedTable]?.some(
+                                      (filter) =>
+                                        filter.column === columnFilter.id
+                                    )
+                                );
+
+                                removedFilters?.forEach((filter) => {
+                                  table
+                                    .getColumn(filter.id)
+                                    ?.setFilterValue(undefined);
+                                });
+                              }}
+                              disabled={
+                                !columnFilters[selectedTable]?.length &&
+                                !filters[selectedTable]?.length
+                              }
+                            >
+                              Apply filter
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="ml-auto" size="sm">
-                      <Columns3 className="size-4" />
-                      <span className="hidden sm:block select-none">
-                        Columns
-                      </span>{' '}
-                      <ChevronDown className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {table
-                      .getAllColumns()
-                      .filter((column) => column.getCanHide())
-                      .map((column) => {
-                        return (
-                          <DropdownMenuCheckboxItem
-                            key={column.id}
-                            checked={column.getIsVisible()}
-                            onCheckedChange={(value) =>
-                              column.toggleVisibility(!!value)
-                            }
+                    </PopoverContent>
+                  </Popover>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="ml-auto" size="sm">
+                        <Columns3 className="size-4" />
+                        <span className="hidden sm:block select-none">
+                          Columns
+                        </span>{' '}
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <Var>
+                        {table
+                          .getAllColumns()
+                          .filter((column) => column.getCanHide())
+                          .map((column) => {
+                            return (
+                              <DropdownMenuCheckboxItem
+                                key={column.id}
+                                checked={column.getIsVisible()}
+                                onCheckedChange={(value) =>
+                                  column.toggleVisibility(!!value)
+                                }
+                              >
+                                {column.id}
+                              </DropdownMenuCheckboxItem>
+                            );
+                          })}
+                      </Var>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <Table containerClassName="border flex-1 overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+                <TableHeader className="bg-accent z-10 sticky top-0">
+                  <Var>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow
+                        key={headerGroup.id}
+                        className="outline outline-border"
+                      >
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id} className="bg-background">
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </Var>
+                </TableHeader>
+                <TableBody className="h-full overflow-y-auto">
+                  <Var>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && 'selected'}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="truncate">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <T id="components.database_viewer.19">
+                        <TableRow>
+                          <TableCell
+                            colSpan={columns.length}
+                            className="h-24 text-center"
                           >
-                            {column.id}
-                          </DropdownMenuCheckboxItem>
-                        );
-                      })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
+                            No results.
+                          </TableCell>
+                        </TableRow>
+                      </T>
+                    )}
+                  </Var>
+                </TableBody>
+              </Table>
 
-            <Table containerClassName="border flex-1 overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
-              <TableHeader className="bg-accent z-10 sticky top-0">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="outline outline-border"
+              <div className="flex items-center space-x-2 justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPage((page || 0) - 1)}
+                    disabled={!table.getCanPreviousPage()}
+                    className="size-8"
                   >
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className="bg-background">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="h-full overflow-y-auto">
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="truncate">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
+                    <ArrowLeft className="size-4" />
+                  </Button>
+                  Page
+                  <Input
+                    min={1}
+                    max={table.getPageCount()}
+                    value={(page || 0) + 1}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value > 0 && value <= table.getPageCount()) {
+                        setPage(value - 1);
+                      }
+                    }}
+                    className="h-8 w-14"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPage((page || 0) + 1)}
+                    disabled={!table.getCanNextPage()}
+                    className="size-8"
+                  >
+                    <ArrowRight className="size-4" />
+                  </Button>
+                  <span>
+                    of <Num>{table.getPageCount()}</Num>
+                  </span>
+                  <Select
+                    value={pageSize?.toString()}
+                    onValueChange={(value) => setPageSize(Number(value))}
+                  >
+                    <SelectTrigger className="h-8 w-[110px]">
+                      <SelectValue>
+                        <Num>{pageSize}</Num> rows
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[50, 100, 200].map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          <Num>{size}</Num> rows
+                        </SelectItem>
                       ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            <div className="flex items-center space-x-2 justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPage((page || 0) - 1)}
-                  disabled={!table.getCanPreviousPage()}
-                  className="size-8"
-                >
-                  <ArrowLeft className="size-4" />
-                </Button>
-                Page
-                <Input
-                  min={1}
-                  max={table.getPageCount()}
-                  value={(page || 0) + 1}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (value > 0 && value <= table.getPageCount()) {
-                      setPage(value - 1);
-                    }
-                  }}
-                  className="h-8 w-14"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPage((page || 0) + 1)}
-                  disabled={!table.getCanNextPage()}
-                  className="size-8"
-                >
-                  <ArrowRight className="size-4" />
-                </Button>
-                <span>of {table.getPageCount()}</span>
-                <Select
-                  value={pageSize?.toString()}
-                  onValueChange={(value) => setPageSize(Number(value))}
-                >
-                  <SelectTrigger className="h-8 w-[110px]">
-                    <SelectValue>{pageSize} rows</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[50, 100, 200].map((size) => (
-                      <SelectItem key={size} value={size.toString()}>
-                        {size} rows
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="hidden sm:block">
-                  {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                  {table.getFilteredRowModel().rows.length} row(s) selected.
-                </span>
+                    </SelectContent>
+                  </Select>
+                  <span className="hidden sm:block">
+                    <Num>{table.getFilteredSelectedRowModel().rows.length}</Num>{' '}
+                    of <Num>{table.getFilteredRowModel().rows.length}</Num>{' '}
+                    row(s) selected.
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          </T>
         )}
       </div>
     </div>

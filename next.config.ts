@@ -1,3 +1,4 @@
+import { withGTConfig } from 'gt-next/config';
 import type { NextConfig } from 'next';
 
 import '@/lib/env';
@@ -8,4 +9,7 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true }
 };
 
-export default nextConfig;
+export default withGTConfig(nextConfig, {
+  defaultLocale: 'en',
+  locales: ['en', 'es']
+});

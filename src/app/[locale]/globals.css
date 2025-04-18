@@ -206,10 +206,10 @@
 }
 
 a {
-  @apply text-text5;
-  text-decoration: underline;
+  /* @apply text-text5; */
+  /* text-decoration: underline; */
 }
 
 a:hover {
-  @apply text-text4;
+  /* @apply text-text4; */
 }
