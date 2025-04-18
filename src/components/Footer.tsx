@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Globe } from 'lucide-react';
-import { Var, T, Num } from 'gt-next';
+import { Var, T } from 'gt-next';
 import GithubIcon from './icons/github-icon';
 
 const Footer = () => {
@@ -23,20 +23,20 @@ const Footer = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <a
+            <Link
               href="/data-policy"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               Open Data Policy
-            </a>
-            <a
+            </Link>
+            <Link
               href="https://frontierrnd.com"
               target="_blank"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               Frontier R&D
-            </a>
-            <a
+            </Link>
+            <Link
               href="https://github.com/genesis-ai-dev/langquest"
               target="_blank"
               className="text-sm text-muted-foreground hover:text-foreground"
@@ -44,7 +44,7 @@ const Footer = () => {
               <div className="flex items-center gap-2">
                 <GithubIcon />
               </div>
-            </a>
+            </Link>
           </div>
         </div>
       </footer>

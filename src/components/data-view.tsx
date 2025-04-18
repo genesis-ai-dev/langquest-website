@@ -655,97 +655,86 @@ export function DataView() {
                           Quests (<Var>{asset.quests?.length}</Var>)
                         </h3>
                         <div className="grid grid-cols-2 gap-2">
-                          <Var>
-                            {asset.quests?.map((quest) => (
-                              <T id="components.data_view.11">
-                                <div
-                                  className={`flex flex-col gap-2 bg-secondary/30 p-4 rounded-md w-full ${
-                                    asset.quests?.length === 1 && 'col-span-2'
-                                  }`}
-                                  key={`${quest.quest?.id}-${asset.id}`}
-                                >
-                                  <div className="flex flex-col gap-6">
-                                    <div>
-                                      <span className="flex flex-1 text-lg font-semibold">
-                                        <Var>{quest.quest?.name}</Var>
+                          {asset.quests?.map((quest) => (
+                            <div
+                              className={`flex flex-col gap-2 bg-secondary/30 p-4 rounded-md w-full ${
+                                asset.quests?.length === 1 && 'col-span-2'
+                              }`}
+                              key={`${quest.quest?.id}-${asset.id}`}
+                            >
+                              <div className="flex flex-col gap-6">
+                                <div>
+                                  <span className="flex flex-1 text-lg font-semibold">
+                                    <Var>{quest.quest?.name}</Var>
+                                  </span>
+                                  <span className="text-secondary-foreground">
+                                    <Var>
+                                      {
+                                        quest.quest?.project.source_language
+                                          .english_name
+                                      }
+                                    </Var>{' '}
+                                    →{' '}
+                                    <Var>
+                                      {
+                                        quest.quest?.project.target_language
+                                          .english_name
+                                      }
+                                    </Var>
+                                  </span>
+                                </div>
+                                <div className="flex flex-col gap-4">
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex gap-2">
+                                      <span className="font-semibold w-20">
+                                        Description
+                                      </span>{' '}
+                                      <span className="text-muted-foreground">
+                                        <Var>{quest.quest?.description}</Var>
                                       </span>
-                                      <span className="text-secondary-foreground">
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <span className="font-semibold w-20">
+                                        Tags (
+                                        <Var>{quest.quest?.tags.length}</Var>)
+                                      </span>
+                                      <Var>
+                                        {quest.quest?.tags.map((tag) => (
+                                          <Badge
+                                            variant="outline"
+                                            key={tag.tag.id}
+                                          >
+                                            {tag.tag.name}
+                                          </Badge>
+                                        ))}
+                                      </Var>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex gap-2">
+                                      <span className="font-semibold w-20">
+                                        Project
+                                      </span>{' '}
+                                      <span className="text-muted-foreground">
+                                        <Var>{quest.quest?.project.name}</Var>
+                                      </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <span className="font-semibold w-20">
+                                        Description
+                                      </span>{' '}
+                                      <span className="text-muted-foreground">
                                         <Var>
-                                          {
-                                            quest.quest?.project.source_language
-                                              .english_name
-                                          }
-                                        </Var>{' '}
-                                        →{' '}
-                                        <Var>
-                                          {
-                                            quest.quest?.project.target_language
-                                              .english_name
-                                          }
+                                          {quest.quest?.project.description}
                                         </Var>
                                       </span>
                                     </div>
-                                    <div className="flex flex-col gap-4">
-                                      <div className="flex flex-col gap-1">
-                                        <div className="flex gap-2">
-                                          <span className="font-semibold w-20">
-                                            Description
-                                          </span>{' '}
-                                          <span className="text-muted-foreground">
-                                            <Var>
-                                              {quest.quest?.description}
-                                            </Var>
-                                          </span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <span className="font-semibold w-20">
-                                            Tags (
-                                            <Var>
-                                              {quest.quest?.tags.length}
-                                            </Var>
-                                            )
-                                          </span>
-                                          <Var>
-                                            {quest.quest?.tags.map((tag) => (
-                                              <Badge
-                                                variant="outline"
-                                                key={tag.tag.id}
-                                              >
-                                                {tag.tag.name}
-                                              </Badge>
-                                            ))}
-                                          </Var>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex flex-col gap-1">
-                                        <div className="flex gap-2">
-                                          <span className="font-semibold w-20">
-                                            Project
-                                          </span>{' '}
-                                          <span className="text-muted-foreground">
-                                            <Var>
-                                              {quest.quest?.project.name}
-                                            </Var>
-                                          </span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <span className="font-semibold w-20">
-                                            Description
-                                          </span>{' '}
-                                          <span className="text-muted-foreground">
-                                            <Var>
-                                              {quest.quest?.project.description}
-                                            </Var>
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
                                   </div>
                                 </div>
-                              </T>
-                            ))}
-                          </Var>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
