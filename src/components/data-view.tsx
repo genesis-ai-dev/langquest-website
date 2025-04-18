@@ -444,13 +444,15 @@ export function DataView() {
                     >
                       <ListIcon className="size-4" />
                       <span className="hidden sm:block">
-                        {sort.length > 0 ? (
-                          <>
-                            Sorted by <Var>{sort.length}</Var> rule(s)
-                          </>
-                        ) : (
-                          <>Sort</>
-                        )}
+                        <Var>
+                          {sort.length > 0 ? (
+                            <T>
+                              Sorted by <Var>{sort.length}</Var> rule(s)
+                            </T>
+                          ) : (
+                            <T>Sort</T>
+                          )}
+                        </Var>
                       </span>
                     </Button>
                   </PopoverTrigger>

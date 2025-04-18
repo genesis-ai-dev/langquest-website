@@ -2117,15 +2117,19 @@ export function DatabaseViewer() {
                       >
                         <Filter className="size-4" />
                         <span className="hidden sm:block">
-                          {columnFilters[selectedTable]?.length > 0 ? (
-                            <>
-                              Filtered by{' '}
-                              <Var>{columnFilters[selectedTable]?.length}</Var>{' '}
-                              rule(s)
-                            </>
-                          ) : (
-                            <>Filter</>
-                          )}
+                          <Var>
+                            {columnFilters[selectedTable]?.length > 0 ? (
+                              <T>
+                                Filtered by{' '}
+                                <Var>
+                                  {columnFilters[selectedTable]?.length}
+                                </Var>{' '}
+                                rule(s)
+                              </T>
+                            ) : (
+                              <T>Filter</T>
+                            )}
+                          </Var>
                         </span>
                       </Button>
                     </PopoverTrigger>
