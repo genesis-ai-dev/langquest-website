@@ -10,8 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "format": "prettier --ignore-path .gitignore --check . --cache",
-    "format:fix": "prettier --ignore-path .gitignore --write . --cache",
+    "format": "prettier --check . --cache",
+    "format:fix": "prettier --write . --cache",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
