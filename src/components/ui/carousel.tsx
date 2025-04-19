@@ -229,7 +229,7 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <T id="previous-slide">
+      <T id="next-slide">
         <span className="sr-only">Next slide</span>
       </T>
     </Button>
