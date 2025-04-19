@@ -7,6 +7,7 @@ import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
 import { useState } from 'react';
 import { T } from 'gt-next';
 import GithubIcon from './icons/github-icon';
+import { LocaleSelector } from 'gt-next/client';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -44,6 +45,7 @@ const Header = () => {
                 >
                   Source Code
                 </Link>
+                <LocaleSelector />
                 <div className="border-t my-2"></div>
                 <Link href="/database">
                   <Button variant="outline" className="w-full">
