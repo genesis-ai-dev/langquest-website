@@ -2511,11 +2511,15 @@ export function DatabaseViewer() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {[50, 100, 200].map((size) => (
-                        <SelectItem key={size} value={size.toString()}>
-                          <Num>{size}</Num> rows
-                        </SelectItem>
-                      ))}
+                      <Var>
+                        {[50, 100, 200].map((size) => (
+                          <T key={size}>
+                            <SelectItem key={size} value={size.toString()}>
+                              <Num>{size}</Num> rows
+                            </SelectItem>
+                          </T>
+                        ))}
+                      </Var>
                     </SelectContent>
                   </Select>
                   <span className="hidden sm:block">
