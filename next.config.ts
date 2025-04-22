@@ -16,10 +16,6 @@ const nextConfig: NextConfig = {
       {
         source: '/ingest/:path*',
         destination: 'https://us.i.posthog.com/:path*'
-      },
-      {
-        source: '/ingest/decide',
-        destination: 'https://us.i.posthog.com/decide'
       }
     ];
   },
