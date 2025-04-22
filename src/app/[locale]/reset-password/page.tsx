@@ -24,6 +24,12 @@ import { z } from 'zod';
 import { T } from 'gt-next';
 import { useGT } from 'gt-next/client';
 
+// only one error code is working right now, we need a better solution
+const errorCodeMap = {
+  same_password: 'New password should be different from the old password.',
+  otp_expired: 'Email link is invalid or has expired.'
+};
+
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
@@ -31,6 +37,18 @@ export function ResetPasswordForm() {
     searchParams.get('env') as SupabaseEnvironment
   );
   const t = useGT();
+
+  const toastError = (error: AuthError | string) => {
+    const errorMessage = t(
+      errorCodeMap[
+        (typeof error === 'string'
+          ? error
+          : error.code) as keyof typeof errorCodeMap
+      ]
+    );
+
+    toast.error(errorMessage ?? error);
+  };
 
   const resetPasswordSchema = z
     .object({
@@ -70,7 +88,7 @@ export function ResetPasswordForm() {
     console.log('error_description', error_description);
 
     if (error) {
-      toast.error(error_description);
+      toastError(error_code);
       return;
     }
 
@@ -98,7 +116,7 @@ export function ResetPasswordForm() {
         })
         .then(({ error: sessionError }: { error: AuthError | null }) => {
           if (sessionError) {
-            toast.error(sessionError.message);
+            toastError(sessionError);
             throw sessionError;
           }
           setShowForm(true);
@@ -125,9 +143,7 @@ export function ResetPasswordForm() {
         )
       );
     },
-    onError: (error) => {
-      toast.error(error.message);
-    }
+    onError: toastError
   });
 
   if (showForm)
