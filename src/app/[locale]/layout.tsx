@@ -37,8 +37,8 @@ export default async function RootLayout({
       >
         <GTProvider>
           <ClientProviders>{children}</ClientProviders>
+          <Toaster position="top-center" />
         </GTProvider>
-        <Toaster position="top-center" />
       </body>
     </html>
   );
