@@ -24,6 +24,24 @@ import { z } from 'zod';
 import { Branch, T } from 'gt-next';
 import { useGT } from 'gt-next/client';
 
+function ErrorMessage({
+  error
+}: {
+  error: AuthError | { code: string; message: string };
+}) {
+  return (
+    <Branch
+      branch={error.code}
+      same_password={
+        <p>New password should be different from the old password.</p>
+      }
+      otp_expired={<p>Email link is invalid or has expired.</p>}
+    >
+      {error.message}
+    </Branch>
+  );
+}
+
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
@@ -33,17 +51,7 @@ export function ResetPasswordForm() {
   const t = useGT();
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
-    toast.error(() => (
-      <Branch
-        branch={error.code}
-        same_password={
-          <p>New password should be different from the old password.</p>
-        }
-        otp_expired={<p>Email link is invalid or has expired.</p>}
-      >
-        {error.message}
-      </Branch>
-    ));
+    toast.error(() => <ErrorMessage error={error} />);
   };
 
   const resetPasswordSchema = z
