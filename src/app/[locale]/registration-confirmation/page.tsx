@@ -5,6 +5,7 @@ import { isMobile } from '@/lib/utils';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { T, Var } from 'gt-next';
 import { Spinner } from '@/components/spinner';
+import { useGT } from 'gt-next/client';
 
 export default function RegistrationConfirmationPage() {
   return (
@@ -21,7 +22,8 @@ export default function RegistrationConfirmationPage() {
 }
 
 function RegistrationConfirmation() {
-  const [message, setMessage] = useState('Processing your registration...');
+  const t = useGT();
+  const [message, setMessage] = useState(t('Processing your registration...'));
   const [error, setError] = useState('');
 
   const handleRegistrationConfirmation = useCallback(async () => {
@@ -69,7 +71,9 @@ function RegistrationConfirmation() {
       window.location.href = deepLink;
     } else {
       setMessage(
-        'Your registration has been confirmed! You can now log in to the LangQuest app.'
+        t(
+          'Your registration has been confirmed! You can now log in to the LangQuest app.'
+        )
       );
     }
   }, []);
