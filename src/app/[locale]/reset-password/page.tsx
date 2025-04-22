@@ -30,15 +30,17 @@ function ErrorMessage({
   error: AuthError | { code: string; message: string };
 }) {
   return (
-    <Branch
-      branch={error.code}
-      same_password={
-        <p>New password should be different from the old password.</p>
-      }
-      otp_expired={<p>Email link is invalid or has expired.</p>}
-    >
-      {error.message}
-    </Branch>
+    <T>
+      <Branch
+        branch={error.code}
+        same_password={
+          <p>New password should be different from the old password.</p>
+        }
+        otp_expired={<p>Email link is invalid or has expired.</p>}
+      >
+        {error.message}
+      </Branch>
+    </T>
   );
 }
 
@@ -83,15 +85,10 @@ export function ResetPasswordForm() {
 
     const { params } = getQueryParams(window.location.href);
 
-    const error = params.error;
     const error_code = params.error_code;
     const error_description = params.error_description;
 
-    console.log('error', error);
-    console.log('error_code', error_code);
-    console.log('error_description', error_description);
-
-    if (error) {
+    if (error_code) {
       toastError({ code: error_code, message: error_description });
       return;
     }
