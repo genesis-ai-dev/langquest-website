@@ -30,19 +30,15 @@ function ErrorMessage({
   error: AuthError | { code: string; message: string };
 }) {
   return (
-    <T id="reset-password.error-message">
-      <Var>
-        <Branch
-          branch={error.code}
-          same_password={
-            <p>New password should be different from the old password.</p>
-          }
-          otp_expired={<p>Email link is invalid or has expired.</p>}
-        >
-          {error.message}
-        </Branch>
-      </Var>
-    </T>
+    <Branch
+      branch={error.code}
+      same_password={
+        <p>New password should be different from the old password.</p>
+      }
+      otp_expired={<p>Email link is invalid or has expired.</p>}
+    >
+      {error.message}
+    </Branch>
   );
 }
 
