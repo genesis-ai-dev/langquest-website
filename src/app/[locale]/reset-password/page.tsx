@@ -32,19 +32,16 @@ export function ResetPasswordForm() {
   );
   const t = useGT();
 
-  const toastError = (error: AuthError | string) => {
-    const errorCode = typeof error === 'string' ? error : error.code;
-    const errorMessage = typeof error === 'string' ? error : error.message;
-
+  const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => (
       <Branch
-        branch={errorCode}
+        branch={error.code}
         same_password={
           <p>New password should be different from the old password.</p>
         }
         otp_expired={<p>Email link is invalid or has expired.</p>}
       >
-        {errorMessage}
+        {error.message}
       </Branch>
     ));
   };
@@ -87,7 +84,7 @@ export function ResetPasswordForm() {
     console.log('error_description', error_description);
 
     if (error) {
-      toastError(error_code);
+      toastError({ code: error_code, message: error_description });
       return;
     }
 
