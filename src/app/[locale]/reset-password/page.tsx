@@ -21,14 +21,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { T } from 'gt-next';
+import { Branch, T } from 'gt-next';
 import { useGT } from 'gt-next/client';
-
-// only one error code is working right now, we need a better solution
-const errorCodeMap = {
-  same_password: 'New password should be different from the old password.',
-  otp_expired: 'Email link is invalid or has expired.'
-};
 
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
@@ -39,15 +33,20 @@ export function ResetPasswordForm() {
   const t = useGT();
 
   const toastError = (error: AuthError | string) => {
-    const errorMessage = t(
-      errorCodeMap[
-        (typeof error === 'string'
-          ? error
-          : error.code) as keyof typeof errorCodeMap
-      ]
-    );
+    const errorCode = typeof error === 'string' ? error : error.code;
+    const errorMessage = typeof error === 'string' ? error : error.message;
 
-    toast.error(errorMessage ?? error);
+    toast.error(() => (
+      <Branch
+        branch={errorCode}
+        same_password={
+          <p>New password should be different from the old password.</p>
+        }
+        otp_expired={<p>Email link is invalid or has expired.</p>}
+      >
+        {errorMessage}
+      </Branch>
+    ));
   };
 
   const resetPasswordSchema = z
