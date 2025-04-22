@@ -21,7 +21,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Branch, T } from 'gt-next';
+import { Branch, T, Var } from 'gt-next';
 import { useGT } from 'gt-next/client';
 
 function ErrorMessage({
@@ -31,15 +31,17 @@ function ErrorMessage({
 }) {
   return (
     <T>
-      <Branch
-        branch={error.code}
-        same_password={
-          <p>New password should be different from the old password.</p>
-        }
-        otp_expired={<p>Email link is invalid or has expired.</p>}
-      >
-        {error.message}
-      </Branch>
+      <Var>
+        <Branch
+          branch={error.code}
+          same_password={
+            <p>New password should be different from the old password.</p>
+          }
+          otp_expired={<p>Email link is invalid or has expired.</p>}
+        >
+          {error.message}
+        </Branch>
+      </Var>
     </T>
   );
 }
