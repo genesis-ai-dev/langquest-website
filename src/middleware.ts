@@ -9,7 +9,8 @@ export const config = {
      * - api (API routes)
      * - _next (internal files)
      * - static files
+     * - ingest (PostHog ingestion)
      */
-    '/((?!api|static|.*\\..*|_next).*)'
+    '/((?!api|static|.*\\..*|_next|ingest).*)'
   ]
 };
