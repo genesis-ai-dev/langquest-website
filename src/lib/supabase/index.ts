@@ -42,7 +42,6 @@ export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   }
 
   const { url, key } = getSupabaseCredentials(env);
-  console.log('Initializing Supabase client for environment:', env, url);
   const newInstance = createSupabaseBrowserClient(url, key);
   supabaseInstances.set(env, newInstance);
   return newInstance;
