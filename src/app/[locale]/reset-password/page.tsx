@@ -30,7 +30,7 @@ function ErrorMessage({
   error: AuthError | { code: string; message: string };
 }) {
   return (
-    <T id="reset-password.error-message">
+    <T id="reset_password.error_message">
       <Branch
         branch={error.code}
         same_password={

@@ -28,13 +28,14 @@ function PrivacyPolicy() {
               </h2>
               <div className="prose prose-gray dark:prose-invert">
                 <p>
-                  This Privacy Policy describes how Frontier R&D ("we," "us," or
-                  "our") collects, uses, and shares information in connection
-                  with your use of the LangQuest mobile application ("App").
+                  This Privacy Policy describes how Frontier R&D
+                  (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects,
+                  uses, and shares information in connection with your use of
+                  the LangQuest mobile application (&quot;App&quot;).
                 </p>
                 <p>
                   We are committed to protecting your privacy. We collect
-                  minimal data necessary to provide you with the App's
+                  minimal data necessary to provide you with the App&apos;s
                   functionality, as outlined in this policy.
                 </p>
                 <p>
@@ -408,8 +409,8 @@ function PrivacyPolicy() {
                   </li>
                   <li>
                     <strong>Right to Opt-Out</strong>: You may opt-out of the
-                    "sale" of your personal information, though we do not sell
-                    personal information in the traditional sense.
+                    &quot;sale&quot; of your personal information, though we do
+                    not sell personal information in the traditional sense.
                   </li>
                   <li>
                     <strong>Right to Non-Discrimination</strong>: We will not

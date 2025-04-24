@@ -27,6 +27,4 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true
 };
 
-export default withGTConfig(nextConfig, {
-  defaultLocale: 'en'
-});
+export default withGTConfig(nextConfig, {});

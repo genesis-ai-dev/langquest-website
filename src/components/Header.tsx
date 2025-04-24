@@ -2,13 +2,11 @@
 
 import { Globe, Menu } from 'lucide-react';
 import Link from 'next/link';
-import { Button, buttonVariants } from './ui/button';
+import { buttonVariants } from './ui/button';
 import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
 import { useState } from 'react';
 import { T } from 'gt-next';
 import GithubIcon from './icons/github-icon';
-import { LocaleSelector } from 'gt-next/client';
-import clsx from 'clsx';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

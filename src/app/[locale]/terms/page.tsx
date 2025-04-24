@@ -27,10 +27,11 @@ function TermsOfService() {
               </h2>
               <div className="prose prose-gray dark:prose-invert">
                 <p>
-                  Welcome to LangQuest ("App"), a mobile application provided by
-                  Frontier R&D ("we," "us," or "our"). These Terms of Service
-                  ("Terms") govern your access to and use of the LangQuest
-                  application and services.
+                  Welcome to LangQuest (&quot;App&quot;), a mobile application
+                  provided by Frontier R&D (&quot;we,&quot; &quot;us,&quot; or
+                  &quot;our&quot;). These Terms of Service (&quot;Terms&quot;)
+                  govern your access to and use of the LangQuest application and
+                  services.
                 </p>
                 <p>
                   By downloading, accessing, or using LangQuest, you agree to be
@@ -243,8 +244,9 @@ function TermsOfService() {
               <div className="prose prose-gray dark:prose-invert space-y-4">
                 <h3 className="text-xl font-bold">8.1 "As Is" Basis</h3>
                 <p>
-                  The App is provided on an "as is" and "as available" basis
-                  without warranties of any kind, either express or implied.
+                  The App is provided on an &quot;as is&quot; and &quot;as
+                  available&quot; basis without warranties of any kind, either
+                  express or implied.
                 </p>
 
                 <h3 className="text-xl font-bold">8.2 Accuracy of Content</h3>
