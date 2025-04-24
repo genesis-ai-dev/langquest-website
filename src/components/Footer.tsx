@@ -24,10 +24,16 @@ const Footer = () => {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href="/data-policy"
+              href="/terms"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              Open Data Policy
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Privacy
             </Link>
             <Link
               href="https://frontierrnd.com"

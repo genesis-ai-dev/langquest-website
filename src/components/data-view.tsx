@@ -297,7 +297,7 @@ export function DataView() {
 
   if (isLoading)
     return (
-      <div className="flex w-full h-full items-center justify-center">
+      <div className="flex w-screen h-screen items-center justify-center">
         <Spinner />
       </div>
     );
