@@ -397,15 +397,15 @@ function PrivacyPolicy() {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
                     <strong>Right to Know</strong>: You may request information
-                    about the personal information we've collected about you,
-                    including categories of information, purposes for
-                    collection, and categories of third parties with whom we've
-                    shared it.
+                    about the personal information we&apos;ve collected about
+                    you, including categories of information, purposes for
+                    collection, and categories of third parties with whom
+                    we&apos;ve shared it.
                   </li>
                   <li>
                     <strong>Right to Delete</strong>: You may request deletion
-                    of personal information we've collected from you, subject to
-                    certain exceptions.
+                    of personal information we&apos;ve collected from you,
+                    subject to certain exceptions.
                   </li>
                   <li>
                     <strong>Right to Opt-Out</strong>: You may opt-out of the

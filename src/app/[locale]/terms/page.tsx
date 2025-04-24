@@ -88,9 +88,9 @@ function TermsOfService() {
                 <p>
                   By submitting, uploading, or contributing any content to
                   LangQuest, including but not limited to translations,
-                  recordings, comments, and votes ("User Content"), you agree
-                  that all such contributions will be freely available worldwide
-                  under the CC0 1.0 Universal (CC0 1.0) Public Domain
+                  recordings, comments, and votes (&quot;User Content&quot;),
+                  you agree that all such contributions will be freely available
+                  worldwide under the CC0 1.0 Universal (CC0 1.0) Public Domain
                   Dedication.
                 </p>
 
@@ -327,18 +327,19 @@ function TermsOfService() {
                 <h3 className="text-xl font-bold">12.1 User Information</h3>
                 <p>
                   When you create an account, we collect basic information such
-                  as your email address and username ("User Information"). You
-                  grant us the right to store and process this information to
-                  provide the App's functionality.
+                  as your email address and username (&quot;User
+                  Information&quot;). You grant us the right to store and
+                  process this information to provide the App&apos;s
+                  functionality.
                 </p>
 
                 <h3 className="text-xl font-bold">12.2 User Submissions</h3>
                 <p>
                   All content you contribute to LangQuest, including
-                  translations, recordings, comments, and votes ("User
-                  Submissions") is dedicated to the public domain under the CC0
-                  1.0 Universal license as described in Section 3. You grant us
-                  a non-exclusive, worldwide, royalty-free license to use,
+                  translations, recordings, comments, and votes (&quot;User
+                  Submissions&quot;) is dedicated to the public domain under the
+                  CC0 1.0 Universal license as described in Section 3. You grant
+                  us a non-exclusive, worldwide, royalty-free license to use,
                   process, and display User Submissions for the purpose of
                   providing and improving the App.
                 </p>
@@ -386,11 +387,12 @@ function TermsOfService() {
                 <h3 className="text-xl font-bold">12.3 Service Data</h3>
                 <p>
                   As you interact with the App, we collect data about how the
-                  App is performing and being used ("Service Data"). Provided
-                  that this data is aggregated and anonymized with no personally
-                  identifying information, we may use this data for any purpose,
-                  including improving our services, developing new features, and
-                  contributing insights back to the open source community.
+                  App is performing and being used (&quot;Service Data&quot;).
+                  Provided that this data is aggregated and anonymized with no
+                  personally identifying information, we may use this data for
+                  any purpose, including improving our services, developing new
+                  features, and contributing insights back to the open source
+                  community.
                 </p>
               </div>
             </div>
