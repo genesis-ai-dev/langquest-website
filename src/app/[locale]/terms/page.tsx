@@ -149,7 +149,7 @@ function TermsOfService() {
                   <li>Use the App for any illegal purpose</li>
                   <li>
                     Attempt to gain unauthorized access to the App or other
-                    users' accounts
+                    users&apos; accounts
                   </li>
                   <li>Interfere with or disrupt the App or servers</li>
                   <li>
@@ -175,7 +175,7 @@ function TermsOfService() {
 
                 <h3 className="text-xl font-bold">6.2 Open Source Code</h3>
                 <p>
-                  LangQuest's source code is open source and made available
+                  LangQuest&apos;s source code is open source and made available
                   under the MIT License. You may view, fork, modify, and use the
                   code in accordance with the terms of this license as published
                   in our GitHub repository.
@@ -242,7 +242,9 @@ function TermsOfService() {
                 8. Disclaimers
               </h2>
               <div className="prose prose-gray dark:prose-invert space-y-4">
-                <h3 className="text-xl font-bold">8.1 "As Is" Basis</h3>
+                <h3 className="text-xl font-bold">
+                  8.1 &quot;As Is&quot; Basis
+                </h3>
                 <p>
                   The App is provided on an &quot;as is&quot; and &quot;as
                   available&quot; basis without warranties of any kind, either

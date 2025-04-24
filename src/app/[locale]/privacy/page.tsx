@@ -307,7 +307,7 @@ function PrivacyPolicy() {
 
             <div className="space-y-4 mt-12">
               <h2 className="text-2xl font-bold tracking-tighter sm:text-3xl">
-                7. Children's Privacy
+                7. Children&apos;s Privacy
               </h2>
               <div className="prose prose-gray dark:prose-invert">
                 <p>
