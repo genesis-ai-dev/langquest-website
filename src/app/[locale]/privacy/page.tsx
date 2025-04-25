@@ -373,7 +373,7 @@ function PrivacyPolicy() {
                   <li>
                     GitHub Issues:{' '}
                     <a
-                      href="https://github.com/eten-genesis/langquest"
+                      href="https://github.com/genesis-ai-dev/langquest"
                       className="text-primary underline"
                     >
                       LangQuest GitHub Repository

@@ -7,6 +7,7 @@ import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
 import { useState } from 'react';
 import { T } from 'gt-next';
 import GithubIcon from './icons/github-icon';
+import { cn } from '@/lib/utils';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,7 +44,7 @@ const Header = () => {
                   href="/database"
                   className={buttonVariants({ variant: 'outline' })}
                 >
-                  Full Database
+                  All Data
                 </Link>
                 <Link
                   href="/data-view"
@@ -52,7 +53,7 @@ const Header = () => {
                     class: 'bg-accent1 hover:bg-accent1-hover text-white'
                   })}
                 >
-                  User-Friendly Database
+                  User-Friendly Data
                 </Link>
               </nav>
             </SheetContent>
@@ -71,13 +72,18 @@ const Header = () => {
               href="/database"
               className={buttonVariants({ variant: 'outline' })}
             >
-              Full Database
+              All Data
             </Link>
             <Link
               href="/data-view"
-              className={buttonVariants({ variant: 'secondary' })}
+              className={cn(
+                buttonVariants({
+                  variant: 'secondary'
+                }),
+                'bg-accent4 text-white hover:bg-accent4/90'
+              )}
             >
-              User-Friendly Database
+              User-Friendly Data
             </Link>
           </nav>
         </div>

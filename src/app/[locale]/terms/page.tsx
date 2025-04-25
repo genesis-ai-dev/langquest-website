@@ -438,7 +438,8 @@ function TermsOfService() {
                   <li>
                     GitHub:{' '}
                     <a
-                      href="https://github.com/eten-genesis/langquest"
+                      href="https://github.com/genesis-ai-dev/langquest"
+                      aria-label="LangQuest GitHub Repository"
                       className="text-primary underline"
                     >
                       LangQuest GitHub Repository
