@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.5.2",
   "scripts": {
-    "translate": "pnpm dlx gtx-cli translate",
+    "translate": "pnpm dlx gtx-cli@latest translate",
     "dev": "next dev --turbopack",
     "build": "pnpm translate && next build",
     "start": "next start",
