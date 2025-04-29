@@ -105,8 +105,8 @@ importers:
         specifier: ^6.2.3
         version: 6.2.3
       gt-next:
-        specifier: ^5.2.22
-        version: 5.2.22(next@15.2.0-canary.68(@babel/core@7.26.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: ^5.2.25
+        version: 5.2.25(next@15.2.0-canary.68(@babel/core@7.26.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       jsonata:
         specifier: ^2.0.6
         version: 2.0.6
@@ -2344,8 +2344,8 @@ packages:
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
 
-  gt-next@5.2.22:
-    resolution: {integrity: sha512-nNeBHsYjZJcfF4C1ZkSUWZY1Nvy+U4zkj8k0DIYFs8A3hcvFSOXWfycUsYK/VMRNljzkDpLCwUmm+aWqjFpMTA==}
+  gt-next@5.2.25:
+    resolution: {integrity: sha512-vbo9L06Y9suAQZR+H+Jg7WKHogb51magdBykiDCYHSq6l0bCkhjw6aiWQfA98TcSu3/C+pndTV/eYrnw+6mDBg==}
     peerDependencies:
       next: '>=13.0.0 <15.2.1 || >15.2.2'
       react: '>=16.8.0 <20.0.0'
@@ -5890,7 +5890,7 @@ snapshots:
 
   graphemer@1.4.0: {}
 
-  gt-next@5.2.22(next@15.2.0-canary.68(@babel/core@7.26.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+  gt-next@5.2.25(next@15.2.0-canary.68(@babel/core@7.26.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
       '@generaltranslation/supported-locales': 2.0.7
       generaltranslation: 6.2.3

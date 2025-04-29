@@ -1,3 +1,4 @@
 {
-  "locales": ["es"]
+  "locales": ["es", "zh", "fr", "de", "ja"],
+  "defaultLocale": "en"
 }
