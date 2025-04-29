@@ -44,14 +44,14 @@ function PrivacyPolicy() {
                   However, as explained in Section 8, your data may be processed
                   in the United States.
                 </p>
-                <h3 className="text-xl font-bold">Geographical Limitations</h3>
+                <h3 className="text-xl font-bold">Global Availability</h3>
                 <p>
-                  Please note that LangQuest is primarily designed for and
-                  targeted to users in North America. The App and its services
-                  are not intended for users in the European Economic Area
-                  (EEA), and we do not specifically market to EEA residents. Our
-                  data handling practices are designed to comply with Canadian
-                  and applicable US laws.
+                  LangQuest is designed to be available worldwide to users of
+                  all languages and cultures. While we are based in Canada, we
+                  welcome users from all countries and regions. Our mission is
+                  to preserve and make language data accessible globally, and we
+                  are committed to respecting privacy laws in the various
+                  jurisdictions where our users reside.
                 </p>
               </div>
             </div>
@@ -332,6 +332,18 @@ function PrivacyPolicy() {
                   outside your country of residence, including from Canada to
                   the United States, which may have different data protection
                   rules than those of your country.
+                </p>
+                <p>
+                  Please be aware that different countries have different data
+                  protection requirements. At this time, we process all data in
+                  the United States, regardless of user location. If you are
+                  located in a region with specific data protection laws (such
+                  as the European Economic Area, United Kingdom, Switzerland,
+                  Brazil, or other jurisdictions), please understand that by
+                  using our App, you are consenting to the transfer and
+                  processing of your information in the United States, which may
+                  not provide the same level of data protection as your home
+                  country.
                 </p>
               </div>
             </div>

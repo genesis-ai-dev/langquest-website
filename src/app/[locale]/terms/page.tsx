@@ -318,6 +318,22 @@ function TermsOfService() {
                   acknowledge that your data may be processed and stored in the
                   United States, as described in our Privacy Policy.
                 </p>
+                <p>
+                  If you are accessing and using the App from outside Canada,
+                  you do so at your own volition and are responsible for
+                  compliance with local laws applicable to your use of the App.
+                  Nothing in these Terms shall be interpreted to diminish any
+                  rights you may have under applicable local law that cannot be
+                  lawfully changed or excluded.
+                </p>
+                <p>
+                  Different jurisdictions have different legal requirements. By
+                  using this App, you acknowledge that all disputes will be
+                  governed by Canadian law and heard in Canadian courts,
+                  regardless of your location. While local laws may grant you
+                  additional rights, enforcement of those rights may require
+                  action in Canadian courts.
+                </p>
               </div>
             </div>
 
