@@ -77,7 +77,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.0-canary.68",
-    "gtx-cli": "^1.1.13",
     "prettier": "^3.5.3",
     "tailwind-scrollbar": "^4.0.1",
     "typescript": "^5"
