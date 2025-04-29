@@ -105,8 +105,7 @@ function PrivacyPolicy() {
                   </li>
                   <li>
                     <strong>Device Information</strong>: Information about your
-                    device, including device model, operating system, and unique
-                    device identifiers.
+                    device, including device model, and operating system.
                   </li>
                   <li>
                     <strong>Analytics Data</strong>: We use PostHog, an
