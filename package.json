@@ -6,7 +6,7 @@
   "scripts": {
     "translate": "pnpm dlx gtx-cli@latest translate",
     "dev": "next dev --turbopack",
-    "build": "pnpm translate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
