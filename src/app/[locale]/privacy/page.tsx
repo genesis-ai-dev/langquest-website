@@ -317,9 +317,10 @@ function PrivacyPolicy() {
 
                 <h3 className="text-xl font-bold">6.4 Analytics Opt-Out</h3>
                 <p>
-                  The App does not currently provide a direct way to opt out of
-                  analytics collection. If you wish to restrict analytics
-                  collection, you can contact us to discuss your options.
+                  You can opt out of analytics collection directly in the App's
+                  profile settings. Simply navigate to your profile and disable
+                  analytics tracking. This will prevent the collection of usage
+                  data while you continue to use the App.
                 </p>
               </div>
             </div>
