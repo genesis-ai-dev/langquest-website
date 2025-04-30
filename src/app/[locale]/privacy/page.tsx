@@ -112,10 +112,30 @@ function PrivacyPolicy() {
                     analytics service, to collect usage data to help us improve
                     the App. This may include:
                     <ul className="list-disc pl-6 space-y-2 mt-2">
-                      <li>How you interact with the App</li>
-                      <li>Performance data and error logs</li>
                       <li>
-                        Session recordings (interactions with the App interface)
+                        Device metadata: device type, screen dimensions,
+                        operating system version, and app version
+                      </li>
+                      <li>
+                        Location data: general geographic location (country and
+                        city) based on IP address
+                      </li>
+                      <li>
+                        Usage patterns: features accessed, buttons clicked,
+                        screens viewed, and navigation paths
+                      </li>
+                      <li>
+                        Session information: session duration, frequency of use,
+                        and timestamps of activities
+                      </li>
+                      <li>
+                        Technical events: app crashes, network requests, and
+                        loading times
+                      </li>
+                      <li>
+                        Unique identifiers: randomly generated device
+                        identifiers that don't personally identify you but help
+                        us analyze usage patterns
                       </li>
                     </ul>
                   </li>
