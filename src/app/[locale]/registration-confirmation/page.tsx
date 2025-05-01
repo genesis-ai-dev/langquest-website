@@ -76,7 +76,7 @@ function RegistrationConfirmation() {
         )
       );
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     handleRegistrationConfirmation();

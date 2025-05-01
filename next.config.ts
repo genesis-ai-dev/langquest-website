@@ -28,5 +28,5 @@ const nextConfig: NextConfig = {
 };
 
 export default withGTConfig(nextConfig, {
-  defaultLocale: 'en'
+  defaultLocale: 'en-US'
 });

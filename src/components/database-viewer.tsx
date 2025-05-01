@@ -516,12 +516,12 @@ function RelatedRecordsCount({
           n={data}
           one={
             <>
-              <Num>1</Num> record.
+              <Num>1</Num> record
             </>
           }
           other={
             <>
-              <Num>{data}</Num> records.
+              <Num>{data}</Num> records
             </>
           }
         />
@@ -926,7 +926,10 @@ function PreviewTable({
   }
 
   return (
-    <Table containerClassName="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+    <Table
+      containerClassName="flex-1 overflow-auto"
+      className="scrollbar-thin scrollbar-thumb-muted scrollbar-track-background"
+    >
       <TableHeader>
         <TableRow>
           {columns.map((col) => (
@@ -1439,7 +1442,7 @@ function ReverseRelationshipPreview({
 
   return (
     <div className="flex flex-col">
-      <Table containerClassName="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+      <Table className="flex-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-background overflow-auto">
         <TableHeader>
           <TableRow>
             {columns.map((col) => (
@@ -1747,17 +1750,23 @@ export function DatabaseViewer() {
   const Tables = ({ className }: { className?: string }) => (
     <ScrollArea className={cn('flex flex-col gap-2 p-2 flex-1', className)}>
       {tables.map((t) => (
-        <button
+        <Button
           key={t.name}
+          variant="ghost"
           onClick={() => {
             setSelectedTable(t.name);
             setIsSheetOpen(false);
           }}
           className={cn(
-            'w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent',
+            'w-full justify-between my-1',
             t.isLinkTable && 'text-muted-foreground',
             selectedTable === t.name && 'bg-accent'
           )}
+          // className={cn(
+          //   'w-full flex items-center justify-between px-4 py-2 text-sm rounded-md hover:bg-accent',
+          // t.isLinkTable && 'text-muted-foreground',
+          // selectedTable === t.name && 'bg-accent'
+          // )}
           disabled={schemasLoading || dataLoading}
         >
           <span className="">{toProperCase(t.name)}</span>
@@ -1769,7 +1778,7 @@ export function DatabaseViewer() {
               pageSize
             ])?.count ?? <T id="components.database_viewer.10">{0}</T>}
           </span>
-        </button>
+        </Button>
       ))}
     </ScrollArea>
   );
@@ -2409,7 +2418,10 @@ export function DatabaseViewer() {
                 </div>
               </div>
 
-              <Table containerClassName="border flex-1 overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+              <Table
+                containerClassName="border flex-1"
+                className="overflow-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background"
+              >
                 <TableHeader className="bg-accent z-10 sticky top-0">
                   <Var>
                     {table.getHeaderGroups().map((headerGroup) => (

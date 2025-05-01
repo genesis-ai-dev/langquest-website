@@ -58,7 +58,7 @@ export default function LandingPage() {
                         variant="outline"
                         className=" hover:bg-white/20 hover:text-white"
                       >
-                        View the Database
+                        All Data
                       </Button>
                     </Link>
                     <Link href="/data-view">
