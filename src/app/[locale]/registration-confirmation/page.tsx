@@ -3,9 +3,8 @@
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { Suspense, useCallback, useEffect, useState } from 'react';
-import { T, Var } from 'gt-next';
 import { Spinner } from '@/components/spinner';
-import { useGT } from 'gt-next/client';
+import { useTranslations } from 'next-intl';
 
 export default function RegistrationConfirmationPage() {
   return (
@@ -22,8 +21,8 @@ export default function RegistrationConfirmationPage() {
 }
 
 function RegistrationConfirmation() {
-  const t = useGT();
-  const [message, setMessage] = useState(t('Processing your registration...'));
+  const t = useTranslations('registration_confirmation');
+  const [message, setMessage] = useState(t('processing'));
   const [error, setError] = useState('');
 
   const handleRegistrationConfirmation = useCallback(async () => {
@@ -49,7 +48,7 @@ function RegistrationConfirmation() {
       const type = params.type;
 
       if (!params.access_token || !params.refresh_token || !params.type) {
-        setMessage('Missing required parameters.');
+        setMessage(t('missing_params'));
         setError('red');
         return;
       }
@@ -70,11 +69,7 @@ function RegistrationConfirmation() {
 
       window.location.href = deepLink;
     } else {
-      setMessage(
-        t(
-          'Your registration has been confirmed! You can now log in to the LangQuest app.'
-        )
-      );
+      setMessage(t('success_message'));
     }
   }, [t]);
 
@@ -83,31 +78,22 @@ function RegistrationConfirmation() {
   }, [handleRegistrationConfirmation]);
 
   return (
-    <T id="app.registration_confirmation.page.2">
-      <div className="container mx-auto px-4 py-10 text-center">
-        <h1 className="text-3xl font-bold mb-6">LangQuest Registration</h1>
-        <div className={`text-xl my-5 ${error ? 'text-red-500' : ''}`}>
-          <Var>{message}</Var>
-        </div>
-        <Var>
-          {!error && (
-            <T id="app.registration_confirmation.page.1">
-              <div className="mt-8">
-                <p className="mb-4">
-                  Download the LangQuest app to start your language learning
-                  journey:
-                </p>
-                <a
-                  href="https://play.google.com/store/apps/details?id=com.etengenesis.langquest"
-                  className="inline-block px-6 py-3 bg-accent1-500 text-white rounded-lg hover:bg-accent1-600"
-                >
-                  Download from Google Play
-                </a>
-              </div>
-            </T>
-          )}
-        </Var>
+    <div className="container mx-auto px-4 py-10 text-center">
+      <h1 className="text-3xl font-bold mb-6">{t('title')}</h1>
+      <div className={`text-xl my-5 ${error ? 'text-red-500' : ''}`}>
+        {message}
       </div>
-    </T>
+      {!error && (
+        <div className="mt-8">
+          <p className="mb-4">{t('download_section.message')}</p>
+          <a
+            href="https://play.google.com/store/apps/details?id=com.etengenesis.langquest"
+            className="inline-block px-6 py-3 bg-accent1-500 text-white rounded-lg hover:bg-accent1-600"
+          >
+            {t('download_section.button')}
+          </a>
+        </div>
+      )}
+    </div>
   );
 }

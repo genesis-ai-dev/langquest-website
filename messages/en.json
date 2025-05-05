@@ -1,0 +1,168 @@
+{
+  "reset_password": {
+    "title": "Reset Your Password",
+    "password_input": "Enter your password",
+    "confirm_password_input": "Confirm your password",
+    "submit_button": "Reset Password",
+    "success_message": "Password successfully updated! You can now close this window and log in to the app.",
+    "validation": {
+      "required": "String must contain at least 1 character(s)",
+      "passwords_match": "Passwords do not match."
+    },
+    "error_message": {
+      "same_password": "New password should be different from the old password.",
+      "otp_expired": "Email link is invalid or has expired.",
+      "default": "{message}"
+    },
+    "redirecting": "Redirecting to LangQuest app..."
+  },
+  "registration_confirmation": {
+    "title": "LangQuest Registration",
+    "processing": "Processing your registration...",
+    "success_message": "Your registration has been confirmed! You can now log in to the LangQuest app.",
+    "missing_params": "Missing required parameters.",
+    "download_section": {
+      "message": "Download the LangQuest app to begin your language journey:",
+      "button": "Download from Google Play"
+    }
+  },
+  "Header": {
+    "title": "LangQuest",
+    "sourceCode": "Source Code",
+    "allData": "All Data",
+    "userFriendlyData": "User-Friendly Data"
+  },
+  "Footer": {
+    "mitLicense": "MIT License",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "frontierRND": "Frontier R&D"
+  },
+  "SubscribeForm": {
+    "emailPlaceholder": "Enter your email",
+    "getNotified": "Get Notified",
+    "subscribing": "Subscribing...",
+    "success": "You have been subscribed successfully!",
+    "errors": {
+      "failed": "Failed to subscribe",
+      "tryAgain": "Failed to subscribe. Please try again."
+    }
+  },
+  "HomePage": {
+    "title": "LangQuest",
+    "about": "About",
+    "comingSoon": "Coming Soon",
+    "hero": {
+      "title": "Translate, Preserve, and Connect",
+      "subtitle": "Translate and preserve endangered languages anywhere, even offline."
+    },
+    "allData": "All Data",
+    "userFriendlyData": "User-Friendly Data",
+    "features": {
+      "title": "Designed for Remote Translation",
+      "subtitle": "LangQuest makes translation possible even in the most challenging environments.",
+      "offline": {
+        "title": "Offline Tolerance",
+        "description": "Work without internet for extended periods. Your data is safely stored locally until you can sync."
+      },
+      "ai": {
+        "title": "AI-Assisted Translation",
+        "description": "Use AI to generate initial translations, which users can review and vote on, speeding up the process."
+      },
+      "gamification": {
+        "title": "Gamification",
+        "description": "Features like leaderboards and rewards make translation fun and encourage participation."
+      },
+      "openData": {
+        "title": "Open Data",
+        "description": "All validated translations become part of an openly licensed database, helping train future AI models."
+      }
+    },
+    "howItWorks": {
+      "title": "How LangQuest Works",
+      "subtitle": "Organize translations into projects, quests, and assets for efficient management.",
+      "projects": {
+        "title": "Create Projects",
+        "description": "Organize your translation work into projects, like translating the Bible or important cultural texts."
+      },
+      "collaborate": {
+        "title": "Collaborate",
+        "description": "Invite community members to contribute translations and vote on each other's work."
+      },
+      "validate": {
+        "title": "Validate & Share",
+        "description": "Validate translations through community voting and share them with the world."
+      }
+    },
+    "useCases": {
+      "title": "Perfect For",
+      "subtitle": "LangQuest is designed for a variety of translation needs."
+    }
+  },
+  "DataView": {
+    "errorLoading": "Error loading assets: {error}",
+    "noAssets": "No assets found",
+    "filter": "Filter",
+    "filteredBy": "{count, plural, one {Filtered by # field} other {Filtered by # fields}}",
+    "sort": "Sort",
+    "sortedBy": "{count, plural, one {Sorted by # field} other {Sorted by # fields}}",
+    "ascending": "Ascending",
+    "descending": "Descending",
+    "images": "{count, plural, one {# Image} other {# Images}}",
+    "quests": "{count, plural, one {# Quest} other {# Quests}}",
+    "description": "Description",
+    "tags": "{count, plural, one {# Tag} other {# Tags}}",
+    "project": "Project",
+    "sourceContent": "{count, plural, one {# Source Content} other {# Source Contents}}",
+    "translations": "{count, plural, one {# Translation} other {# Translations}}",
+    "noText": "No text available",
+    "rowsDisplay": "{count} rows"
+  },
+  "DatabaseViewer": {
+    "oneRecord": "1 record",
+    "manyRecords": "{count} records",
+    "relatedRecordsFrom": "Related records from",
+    "referencingRecordsFrom": "Referencing records from",
+    "referencingRecordFrom": "Referencing record from",
+    "openTable": "Open table",
+    "noMatchingRecords": "No matching records found.",
+    "noRelatedRecords": "No related records found.",
+    "unableToDisplayRecords": "Unable to display related records.",
+    "moreRecords": "{count} more records...",
+    "errorOccurred": "An error occurred",
+    "tables": "Tables",
+    "export": "Export",
+    "currentTable": "Current Table",
+    "allTables": "All Tables",
+    "downloadAttachments": "Download attachments",
+    "exporting": "Exporting {table}...",
+    "sort": "Sort",
+    "sortedBy": "{count, plural, one {Sorted by # rule} other {Sorted by # rules}}",
+    "noSortsApplied": "No sorts applied to this view",
+    "sortBy": "sort by",
+    "thenBy": "then by",
+    "ascending": "ascending",
+    "pickColumnToSortBy": "Pick a column to sort by",
+    "allColumnsAdded": "All columns have been added",
+    "applySorting": "Apply sorting",
+    "filter": "Filter",
+    "filteredBy": "{count, plural, one {Filtered by # rule} other {Filtered by # rules}}",
+    "noFiltersApplied": "No filters applied to this view",
+    "pickDate": "Pick a date",
+    "enterValue": "Enter a value",
+    "addFilter": "Add filter",
+    "applyFilter": "Apply filter",
+    "columns": "Columns",
+    "noResults": "No results.",
+    "page": "Page",
+    "of": "of",
+    "rows": "rows",
+    "rowsSelected": "row(s) selected",
+    "showLinkTables": "Show link tables"
+  },
+  "ui": {
+    "close": "Close",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide"
+  }
+}

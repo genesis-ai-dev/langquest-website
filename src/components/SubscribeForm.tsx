@@ -5,6 +5,7 @@ import { Zap } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,11 +18,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { subscribeSchema } from '@/lib/schemas';
 import { useMutation } from '@tanstack/react-query';
-import { T } from 'gt-next';
 
 type FormValues = z.infer<typeof subscribeSchema>;
 
 export function SubscribeForm() {
+  const t = useTranslations('SubscribeForm');
+
   const form = useForm<FormValues>({
     resolver: zodResolver(subscribeSchema),
     defaultValues: {
@@ -42,18 +44,18 @@ export function SubscribeForm() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to subscribe');
+        throw new Error(result.error || t('errors.failed'));
       }
 
       return result;
     },
     onSuccess: () => {
-      toast.success('You have been subscribed successfully!');
+      toast.success(t('success'));
       form.reset();
     },
     onError: (error) => {
       console.error('Subscription error:', error);
-      toast.error('Failed to subscribe. Please try again.');
+      toast.error(t('errors.tryAgain'));
     }
   });
 
@@ -70,7 +72,7 @@ export function SubscribeForm() {
             <FormItem className="flex-1">
               <FormControl>
                 <Input
-                  placeholder="Enter your email"
+                  placeholder={t('emailPlaceholder')}
                   {...field}
                   className="h-12"
                   disabled={isPending}
@@ -87,11 +89,7 @@ export function SubscribeForm() {
           disabled={isPending}
         >
           <Zap className="h-4 w-4" />
-          {isPending ? (
-            <T id="pending">Subscribing...</T>
-          ) : (
-            <T id="not-pending">Get Notified</T>
-          )}
+          {isPending ? t('subscribing') : t('getNotified')}
         </Button>
       </form>
     </Form>

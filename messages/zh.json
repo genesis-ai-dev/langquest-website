@@ -1,0 +1,168 @@
+{
+  "reset_password": {
+    "title": "重置密码",
+    "password_input": "输入您的密码",
+    "confirm_password_input": "确认您的密码",
+    "submit_button": "重置密码",
+    "success_message": "密码已成功更新！您现在可以关闭此窗口并登录应用程序。",
+    "validation": {
+      "required": "字符串至少包含 1 个字符",
+      "passwords_match": "两次输入的密码不一致。"
+    },
+    "error_message": {
+      "same_password": "新密码应与旧密码不同。",
+      "otp_expired": "邮件链接无效或已过期。",
+      "default": "{message}"
+    },
+    "redirecting": "正在跳转到 LangQuest 应用..."
+  },
+  "registration_confirmation": {
+    "title": "LangQuest 注册",
+    "processing": "正在处理您的注册...",
+    "success_message": "您的注册已确认！您现在可以登录 LangQuest 应用。",
+    "missing_params": "缺少必要参数。",
+    "download_section": {
+      "message": "下载 LangQuest 应用，开启您的语言之旅：",
+      "button": "从 Google Play 下载"
+    }
+  },
+  "Header": {
+    "title": "LangQuest",
+    "sourceCode": "源代码",
+    "allData": "全部数据",
+    "userFriendlyData": "用户友好数据"
+  },
+  "Footer": {
+    "mitLicense": "MIT 许可协议",
+    "terms": "条款",
+    "privacy": "隐私",
+    "frontierRND": "Frontier 研发"
+  },
+  "SubscribeForm": {
+    "emailPlaceholder": "输入您的电子邮箱",
+    "getNotified": "获取通知",
+    "subscribing": "正在订阅...",
+    "success": "您已成功订阅！",
+    "errors": {
+      "failed": "订阅失败",
+      "tryAgain": "订阅失败，请重试。"
+    }
+  },
+  "HomePage": {
+    "title": "LangQuest",
+    "about": "关于",
+    "comingSoon": "即将上线",
+    "hero": {
+      "title": "翻译、保护、连接",
+      "subtitle": "随时随地翻译并保护濒危语言，即使在离线状态下。"
+    },
+    "allData": "全部数据",
+    "userFriendlyData": "用户友好数据",
+    "features": {
+      "title": "为偏远地区翻译而设计",
+      "subtitle": "LangQuest 即使在最具挑战性的环境中也能实现翻译。",
+      "offline": {
+        "title": "离线容错",
+        "description": "长时间无需互联网也可工作。您的数据将安全地本地存储，待同步。"
+      },
+      "ai": {
+        "title": "AI 辅助翻译",
+        "description": "使用 AI 生成初始翻译，用户可审核和投票，提高效率。"
+      },
+      "gamification": {
+        "title": "游戏化",
+        "description": "排行榜和奖励等功能让翻译变得有趣并激励参与。"
+      },
+      "openData": {
+        "title": "开放数据",
+        "description": "所有验证过的翻译都将成为开放许可数据库的一部分，帮助训练未来的 AI 模型。"
+      }
+    },
+    "howItWorks": {
+      "title": "LangQuest 工作原理",
+      "subtitle": "将翻译工作组织为项目、任务和资源，实现高效管理。",
+      "projects": {
+        "title": "创建项目",
+        "description": "将您的翻译工作组织为项目，例如翻译圣经或重要的文化文本。"
+      },
+      "collaborate": {
+        "title": "协作",
+        "description": "邀请社区成员贡献翻译，并对彼此的翻译进行投票。"
+      },
+      "validate": {
+        "title": "验证与分享",
+        "description": "通过社区投票验证翻译，并分享给全世界。"
+      }
+    },
+    "useCases": {
+      "title": "适用场景",
+      "subtitle": "LangQuest 适用于多种翻译需求。"
+    }
+  },
+  "DataView": {
+    "errorLoading": "加载资源时出错：{error}",
+    "noAssets": "未找到资源",
+    "filter": "筛选",
+    "filteredBy": "{count, plural, one {按 # 个字段筛选} other {按 # 个字段筛选}}",
+    "sort": "排序",
+    "sortedBy": "{count, plural, one {按 # 个字段排序} other {按 # 个字段排序}}",
+    "ascending": "升序",
+    "descending": "降序",
+    "images": "{count, plural, one {# 张图片} other {# 张图片}}",
+    "quests": "{count, plural, one {# 个任务} other {# 个任务}}",
+    "description": "描述",
+    "tags": "{count, plural, one {# 个标签} other {# 个标签}}",
+    "project": "项目",
+    "sourceContent": "{count, plural, one {# 个原始内容} other {# 个原始内容}}",
+    "translations": "{count, plural, one {# 个翻译} other {# 个翻译}}",
+    "noText": "无可用文本",
+    "rowsDisplay": "显示 {count} 行"
+  },
+  "DatabaseViewer": {
+    "oneRecord": "1 条记录",
+    "manyRecords": "{count} 条记录",
+    "relatedRecordsFrom": "来自的相关记录",
+    "referencingRecordsFrom": "来自的引用记录",
+    "referencingRecordFrom": "来自的引用记录",
+    "openTable": "打开表格",
+    "noMatchingRecords": "未找到匹配的记录。",
+    "noRelatedRecords": "未找到相关记录。",
+    "unableToDisplayRecords": "无法显示相关记录。",
+    "moreRecords": "还有 {count} 条记录...",
+    "errorOccurred": "发生错误",
+    "tables": "表格",
+    "export": "导出",
+    "currentTable": "当前表格",
+    "allTables": "所有表格",
+    "downloadAttachments": "下载附件",
+    "exporting": "正在导出 {table}...",
+    "sort": "排序",
+    "sortedBy": "{count, plural, one {按 # 个规则排序} other {按 # 个规则排序}}",
+    "noSortsApplied": "此视图未应用排序",
+    "sortBy": "排序依据",
+    "thenBy": "然后依据",
+    "ascending": "升序",
+    "pickColumnToSortBy": "选择要排序的列",
+    "allColumnsAdded": "所有列均已添加",
+    "applySorting": "应用排序",
+    "filter": "筛选",
+    "filteredBy": "{count, plural, one {按 # 个规则筛选} other {按 # 个规则筛选}}",
+    "noFiltersApplied": "此视图未应用筛选器",
+    "pickDate": "选择日期",
+    "enterValue": "输入值",
+    "addFilter": "添加筛选器",
+    "applyFilter": "应用筛选器",
+    "columns": "列",
+    "noResults": "无结果。",
+    "page": "页",
+    "of": "共",
+    "rows": "行",
+    "rowsSelected": "已选择行",
+    "showLinkTables": "显示链接表"
+  },
+  "ui": {
+    "close": "关闭",
+    "previousSlide": "上一张幻灯片",
+    "nextSlide": "下一张幻灯片"
+  }
+}

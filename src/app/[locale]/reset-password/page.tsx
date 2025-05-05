@@ -21,27 +21,23 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Branch, T, Var } from 'gt-next';
-import { useGT } from 'gt-next/client';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 function ErrorMessage({
   error
 }: {
   error: AuthError | { code: string; message: string };
 }) {
-  return (
-    <T id="reset_password.error_message">
-      <Branch
-        branch={error.code}
-        same_password={
-          <p>New password should be different from the old password.</p>
-        }
-        otp_expired={<p>Email link is invalid or has expired.</p>}
-      >
-        <Var>{error.message}</Var>
-      </Branch>
-    </T>
-  );
+  const t = useTranslations('reset_password');
+
+  if (error.code === 'same_password') {
+    return <p>{t('error_message.same_password')}</p>;
+  } else if (error.code === 'otp_expired') {
+    return <p>{t('error_message.otp_expired')}</p>;
+  } else {
+    return <p>{error.message}</p>;
+  }
 }
 
 export function ResetPasswordForm() {
@@ -50,7 +46,7 @@ export function ResetPasswordForm() {
   const supabase = createBrowserClient(
     searchParams.get('env') as SupabaseEnvironment
   );
-  const t = useGT();
+  const t = useTranslations('reset_password');
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => <ErrorMessage error={error} />);
@@ -58,15 +54,11 @@ export function ResetPasswordForm() {
 
   const resetPasswordSchema = z
     .object({
-      password: z
-        .string()
-        .min(1, { message: t('String must contain at least 1 character(s)') }),
-      confirmPassword: z
-        .string()
-        .min(1, { message: t('String must contain at least 1 character(s)') })
+      password: z.string().min(1, { message: t('validation.required') }),
+      confirmPassword: z.string().min(1, { message: t('validation.required') })
     })
     .refine((data) => data.password === data.confirmPassword, {
-      message: t('Passwords do not match.'),
+      message: t('validation.passwords_match'),
       path: ['confirmPassword']
     });
 
@@ -97,7 +89,7 @@ export function ResetPasswordForm() {
     const refresh_token = params.refresh_token;
 
     if (isMobile()) {
-      toast.success('Redirecting to LangQuest app...');
+      toast.success(t('redirecting'));
       const deepLink = `langquest://reset-password#access_token=${access_token}&refresh_token=${refresh_token}`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
@@ -138,75 +130,67 @@ export function ResetPasswordForm() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(
-        t(
-          'Password successfully updated! You can now close this window and log in to the app.'
-        )
-      );
+      toast.success(t('success_message'));
     },
     onError: toastError
   });
 
   if (showForm)
     return (
-      <T id="app.reset_password.page.0">
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((data: FormValues) =>
-              updatePassword(data)
-            )}
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit((data: FormValues) =>
+            updatePassword(data)
+          )}
+        >
+          <fieldset
+            className="flex flex-col gap-4 mx-auto py-30"
+            disabled={isSuccess}
           >
-            <fieldset
-              className="flex flex-col gap-4 mx-auto py-30"
-              disabled={isSuccess}
-            >
-              <h2 className="text-xl font-bold text-center">
-                Reset Your Password
-              </h2>
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder={t('Enter your password')}
-                        {...field}
-                        className="h-12"
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <h2 className="text-xl font-bold text-center">{t('title')}</h2>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder={t('password_input')}
+                      {...field}
+                      className="h-12"
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder={t('Confirm your password')}
-                        {...field}
-                        className="h-12"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder={t('confirm_password_input')}
+                      {...field}
+                      className="h-12"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <Button type="submit" size="lg" disabled={isPending}>
-                Reset Password
-              </Button>
-            </fieldset>
-          </form>
-        </Form>
-      </T>
+            <Button type="submit" size="lg" disabled={isPending}>
+              {t('submit_button')}
+            </Button>
+          </fieldset>
+        </form>
+      </Form>
     );
 }
 

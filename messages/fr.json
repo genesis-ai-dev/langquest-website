@@ -1,0 +1,168 @@
+{
+  "reset_password": {
+    "title": "Réinitialisez votre mot de passe",
+    "password_input": "Entrez votre mot de passe",
+    "confirm_password_input": "Confirmez votre mot de passe",
+    "submit_button": "Réinitialiser le mot de passe",
+    "success_message": "Mot de passe mis à jour avec succès ! Vous pouvez maintenant fermer cette fenêtre et vous connecter à l'application.",
+    "validation": {
+      "required": "La chaîne doit contenir au moins 1 caractère",
+      "passwords_match": "Les mots de passe ne correspondent pas."
+    },
+    "error_message": {
+      "same_password": "Le nouveau mot de passe doit être différent de l'ancien.",
+      "otp_expired": "Le lien par e-mail est invalide ou a expiré.",
+      "default": "{message}"
+    },
+    "redirecting": "Redirection vers l'application LangQuest..."
+  },
+  "registration_confirmation": {
+    "title": "Inscription à LangQuest",
+    "processing": "Traitement de votre inscription...",
+    "success_message": "Votre inscription a été confirmée ! Vous pouvez maintenant vous connecter à l'application LangQuest.",
+    "missing_params": "Paramètres requis manquants.",
+    "download_section": {
+      "message": "Téléchargez l'application LangQuest pour commencer votre voyage linguistique :",
+      "button": "Télécharger depuis Google Play"
+    }
+  },
+  "Header": {
+    "title": "LangQuest",
+    "sourceCode": "Code source",
+    "allData": "Toutes les données",
+    "userFriendlyData": "Données conviviales"
+  },
+  "Footer": {
+    "mitLicense": "Licence MIT",
+    "terms": "Conditions",
+    "privacy": "Confidentialité",
+    "frontierRND": "Frontier R&D"
+  },
+  "SubscribeForm": {
+    "emailPlaceholder": "Entrez votre e-mail",
+    "getNotified": "Recevoir une notification",
+    "subscribing": "Abonnement en cours...",
+    "success": "Vous avez été abonné avec succès !",
+    "errors": {
+      "failed": "Échec de l'abonnement",
+      "tryAgain": "Échec de l'abonnement. Veuillez réessayer."
+    }
+  },
+  "HomePage": {
+    "title": "LangQuest",
+    "about": "À propos",
+    "comingSoon": "Bientôt disponible",
+    "hero": {
+      "title": "Traduire, Préserver et Connecter",
+      "subtitle": "Traduisez et préservez les langues en danger partout, même hors ligne."
+    },
+    "allData": "Toutes les données",
+    "userFriendlyData": "Données conviviales",
+    "features": {
+      "title": "Conçu pour la traduction à distance",
+      "subtitle": "LangQuest permet la traduction même dans les environnements les plus difficiles.",
+      "offline": {
+        "title": "Fonctionnement hors ligne",
+        "description": "Travaillez sans internet pendant de longues périodes. Vos données sont stockées localement en toute sécurité jusqu'à la synchronisation."
+      },
+      "ai": {
+        "title": "Traduction assistée par IA",
+        "description": "Utilisez l'IA pour générer des traductions initiales, que les utilisateurs peuvent revoir et évaluer afin d'accélérer le processus."
+      },
+      "gamification": {
+        "title": "Ludification",
+        "description": "Des fonctionnalités comme les classements et les récompenses rendent la traduction amusante et stimulent la participation."
+      },
+      "openData": {
+        "title": "Données ouvertes",
+        "description": "Toutes les traductions validées sont ajoutées à une base de données sous licence libre, aidant à entraîner les futurs modèles d'IA."
+      }
+    },
+    "howItWorks": {
+      "title": "Comment fonctionne LangQuest",
+      "subtitle": "Organisez les traductions en projets, quêtes et ressources pour une gestion efficace.",
+      "projects": {
+        "title": "Créer des projets",
+        "description": "Organisez votre travail de traduction en projets, comme la traduction de la Bible ou de textes culturels importants."
+      },
+      "collaborate": {
+        "title": "Collaborer",
+        "description": "Invitez les membres de la communauté à contribuer aux traductions et à évaluer celles des autres."
+      },
+      "validate": {
+        "title": "Valider et partager",
+        "description": "Validez les traductions grâce aux votes de la communauté et partagez-les avec le monde."
+      }
+    },
+    "useCases": {
+      "title": "Parfait pour",
+      "subtitle": "LangQuest est conçu pour une variété de besoins en traduction."
+    }
+  },
+  "DataView": {
+    "errorLoading": "Erreur lors du chargement des ressources : {error}",
+    "noAssets": "Aucune ressource trouvée",
+    "filter": "Filtrer",
+    "filteredBy": "{count, plural, one {Filtré par # champ} other {Filtré par # champs}}",
+    "sort": "Trier",
+    "sortedBy": "{count, plural, one {Trié par # champ} other {Trié par # champs}}",
+    "ascending": "Ascendant",
+    "descending": "Descendant",
+    "images": "{count, plural, one {# image} other {# images}}",
+    "quests": "{count, plural, one {# quête} other {# quêtes}}",
+    "description": "Description",
+    "tags": "{count, plural, one {# étiquette} other {# étiquettes}}",
+    "project": "Projet",
+    "sourceContent": "{count, plural, one {# contenu source} other {# contenus sources}}",
+    "translations": "{count, plural, one {# traduction} other {# traductions}}",
+    "noText": "Aucun texte disponible",
+    "rowsDisplay": "{count} lignes"
+  },
+  "DatabaseViewer": {
+    "oneRecord": "1 enregistrement",
+    "manyRecords": "{count} enregistrements",
+    "relatedRecordsFrom": "Enregistrements liés de",
+    "referencingRecordsFrom": "Enregistrements référencés de",
+    "referencingRecordFrom": "Enregistrement référencé de",
+    "openTable": "Ouvrir la table",
+    "noMatchingRecords": "Aucun enregistrement correspondant trouvé.",
+    "noRelatedRecords": "Aucun enregistrement lié trouvé.",
+    "unableToDisplayRecords": "Impossible d'afficher les enregistrements liés.",
+    "moreRecords": "{count} enregistrements supplémentaires...",
+    "errorOccurred": "Une erreur s'est produite",
+    "tables": "Tables",
+    "export": "Exporter",
+    "currentTable": "Table actuelle",
+    "allTables": "Toutes les tables",
+    "downloadAttachments": "Télécharger les pièces jointes",
+    "exporting": "Exportation de {table}...",
+    "sort": "Trier",
+    "sortedBy": "{count, plural, one {Trié par # règle} other {Trié par # règles}}",
+    "noSortsApplied": "Aucun tri appliqué à cette vue",
+    "sortBy": "trier par",
+    "thenBy": "puis par",
+    "ascending": "ascendant",
+    "pickColumnToSortBy": "Choisissez une colonne à trier",
+    "allColumnsAdded": "Toutes les colonnes ont été ajoutées",
+    "applySorting": "Appliquer le tri",
+    "filter": "Filtrer",
+    "filteredBy": "{count, plural, one {Filtré par # règle} other {Filtré par # règles}}",
+    "noFiltersApplied": "Aucun filtre appliqué à cette vue",
+    "pickDate": "Choisissez une date",
+    "enterValue": "Entrez une valeur",
+    "addFilter": "Ajouter un filtre",
+    "applyFilter": "Appliquer le filtre",
+    "columns": "Colonnes",
+    "noResults": "Aucun résultat.",
+    "page": "Page",
+    "of": "de",
+    "rows": "lignes",
+    "rowsSelected": "ligne(s) sélectionnée(s)",
+    "showLinkTables": "Afficher les tables de liaison"
+  },
+  "ui": {
+    "close": "Fermer",
+    "previousSlide": "Diapositive précédente",
+    "nextSlide": "Diapositive suivante"
+  }
+}

@@ -1,5 +1,5 @@
-import { withGTConfig } from 'gt-next/config';
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 import '@/lib/env';
 
@@ -27,6 +27,5 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true
 };
 
-export default withGTConfig(nextConfig, {
-  defaultLocale: 'en-US'
-});
+const withNextIntl = createNextIntlPlugin();
+export default withNextIntl(nextConfig);

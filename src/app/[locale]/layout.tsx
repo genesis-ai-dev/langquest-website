@@ -3,8 +3,10 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '../../components/client-providers';
 import { Toaster } from '@/components/ui/sonner';
-import { getLocaleDirection } from 'generaltranslation';
-import { getLocale, GTProvider } from 'gt-next/server';
+import { NextIntlClientProvider, hasLocale } from 'next-intl';
+import { notFound } from 'next/navigation';
+import { routing } from '@/i18n/routing';
+import { setRequestLocale } from 'next-intl/server';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -22,23 +24,40 @@ export const metadata: Metadata = {
     'An app for translating and preserving low-resource languages, especially useful in remote areas with limited internet.'
 };
 
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
 export default async function RootLayout({
-  children
+  children,
+  params
 }: {
   children: React.ReactNode;
+  params: { locale: string };
 }) {
-  const locale = await getLocale(); // e.g. "ar" for Arabic
-  const dir = getLocaleDirection(locale); // e.g. "rtl" for "right-to-left"
+  const { locale } = await params;
+
+  // Ensure that the incoming `locale` is valid
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
+
+  // Enable static rendering
+  setRequestLocale(locale);
+
+  // For this example, we're using LTR for all supported locales
+  // If you add RTL languages, you would need to update this logic
+  const dir = 'ltr';
 
   return (
     <html className="h-full w-full" lang={locale} dir={dir}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
       >
-        <GTProvider>
+        <NextIntlClientProvider>
           <ClientProviders>{children}</ClientProviders>
           <Toaster position="top-center" />
-        </GTProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

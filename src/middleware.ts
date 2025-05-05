@@ -1,6 +1,8 @@
-import { createNextMiddleware } from 'gt-next/middleware';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
 
-export default createNextMiddleware();
+// Pass the dictionary to the middleware for translations
+export default createMiddleware(routing);
 
 export const config = {
   matcher: [
