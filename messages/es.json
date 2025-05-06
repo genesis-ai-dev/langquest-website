@@ -26,34 +26,34 @@
       "button": "Descargar desde Google Play"
     }
   },
-  "Header": {
+  "header": {
     "title": "LangQuest",
     "sourceCode": "Código Fuente",
     "allData": "Todos los Datos",
     "userFriendlyData": "Datos Amigables"
   },
-  "Footer": {
+  "footer": {
     "mitLicense": "Licencia MIT",
     "terms": "Términos",
     "privacy": "Privacidad",
     "frontierRND": "Frontier R&D"
   },
-  "SubscribeForm": {
-    "emailPlaceholder": "Ingrese su correo electrónico",
-    "getNotified": "Recibir Notificaciones",
+  "subscribe_form": {
+    "emailPlaceholder": "Ingresa tu correo electrónico",
+    "getNotified": "Recibe Notificaciones",
     "subscribing": "Suscribiendo...",
     "success": "¡Te has suscrito exitosamente!",
     "errors": {
       "failed": "Error al suscribirse",
-      "tryAgain": "Error al suscribirse. Por favor, inténtelo de nuevo."
+      "tryAgain": "Error al suscribirse. Por favor, intenta de nuevo."
     }
   },
-  "HomePage": {
+  "homepage": {
     "title": "LangQuest",
     "about": "Acerca de",
     "comingSoon": "Próximamente",
     "hero": {
-      "title": "Traducir, Preservar y Conectar",
+      "title": "Traduce, Preserva y Conecta",
       "subtitle": "Traduce y preserva idiomas en peligro en cualquier lugar, incluso sin conexión."
     },
     "allData": "Todos los Datos",
@@ -63,11 +63,11 @@
       "subtitle": "LangQuest hace posible la traducción incluso en los entornos más desafiantes.",
       "offline": {
         "title": "Tolerancia Sin Conexión",
-        "description": "Trabaje sin internet durante períodos prolongados. Sus datos se almacenan de forma segura localmente hasta que pueda sincronizar."
+        "description": "Trabaja sin internet por largos períodos. Tus datos se almacenan de forma segura localmente hasta que puedas sincronizar."
       },
       "ai": {
         "title": "Traducción Asistida por IA",
-        "description": "Use IA para generar traducciones iniciales, que los usuarios pueden revisar y votar, acelerando el proceso."
+        "description": "Usa IA para generar traducciones iniciales, que los usuarios pueden revisar y votar, acelerando el proceso."
       },
       "gamification": {
         "title": "Gamificación",
@@ -75,31 +75,46 @@
       },
       "openData": {
         "title": "Datos Abiertos",
-        "description": "Todas las traducciones validadas se convierten en parte de una base de datos con licencia abierta, ayudando a entrenar futuros modelos de IA."
+        "description": "Todas las traducciones validadas forman parte de una base de datos de licencia abierta, ayudando a entrenar futuros modelos de IA."
       }
     },
     "howItWorks": {
       "title": "Cómo Funciona LangQuest",
-      "subtitle": "Organice traducciones en proyectos, misiones y recursos para una gestión eficiente.",
+      "subtitle": "Organiza traducciones en proyectos, misiones y activos para una gestión eficiente.",
       "projects": {
-        "title": "Crear Proyectos",
-        "description": "Organice su trabajo de traducción en proyectos, como traducir la Biblia o textos culturales importantes."
+        "title": "Crea Proyectos",
+        "description": "Organiza tu trabajo de traducción en proyectos, como traducir la Biblia o textos culturales importantes."
       },
       "collaborate": {
-        "title": "Colaborar",
-        "description": "Invite a miembros de la comunidad a contribuir con traducciones y votar el trabajo de los demás."
+        "title": "Colabora",
+        "description": "Invita a miembros de la comunidad a contribuir con traducciones y votar sobre el trabajo de otros."
       },
       "validate": {
-        "title": "Validar y Compartir",
-        "description": "Valide traducciones a través del voto de la comunidad y compártalas con el mundo."
+        "title": "Valida y Comparte",
+        "description": "Valida traducciones a través de votación comunitaria y compártelas con el mundo."
       }
     },
     "useCases": {
       "title": "Perfecto Para",
       "subtitle": "LangQuest está diseñado para una variedad de necesidades de traducción."
+    },
+    "future": {
+      "badge": "Próximamente",
+      "title": "Futuro: Conectividad Peer-to-Peer",
+      "subtitle": "Estamos investigando activamente soluciones para permitir el intercambio directo de datos de traducción entre dispositivos sin internet.",
+      "features": {
+        "share": "Comparte actualizaciones entre dispositivos cuando los miembros del equipo se reúnen",
+        "sync": "Sincroniza el progreso entre múltiples dispositivos sin internet",
+        "collaborate": "Permite una verdadera colaboración en las ubicaciones más remotas"
+      }
+    },
+    "cta": {
+      "title": "Únete a la Comunidad LangQuest",
+      "subtitle": "Sé de los primeros en usar LangQuest y ayuda a preservar los idiomas con pocos recursos.",
+      "notification": "Te notificaremos cuando LangQuest esté listo para pruebas beta."
     }
   },
-  "DataView": {
+  "data_view": {
     "errorLoading": "Error al cargar recursos: {error}",
     "noAssets": "No se encontraron recursos",
     "filter": "Filtrar",
@@ -118,12 +133,12 @@
     "noText": "No hay texto disponible",
     "rowsDisplay": "{count} filas"
   },
-  "DatabaseViewer": {
+  "database_viewer": {
     "oneRecord": "1 registro",
     "manyRecords": "{count} registros",
     "relatedRecordsFrom": "Registros relacionados de",
-    "referencingRecordsFrom": "Registros que hacen referencia desde",
-    "referencingRecordFrom": "Registro que hace referencia desde",
+    "referencingRecordsFrom": "Registros referenciando de",
+    "referencingRecordFrom": "Registro referenciando de",
     "openTable": "Abrir tabla",
     "noMatchingRecords": "No se encontraron registros coincidentes.",
     "noRelatedRecords": "No se encontraron registros relacionados.",
@@ -142,14 +157,14 @@
     "sortBy": "ordenar por",
     "thenBy": "luego por",
     "ascending": "ascendente",
-    "pickColumnToSortBy": "Seleccione una columna para ordenar",
-    "allColumnsAdded": "Se han agregado todas las columnas",
+    "pickColumnToSortBy": "Elige una columna para ordenar",
+    "allColumnsAdded": "Todas las columnas han sido agregadas",
     "applySorting": "Aplicar ordenamiento",
     "filter": "Filtrar",
     "filteredBy": "{count, plural, one {Filtrado por # regla} other {Filtrado por # reglas}}",
     "noFiltersApplied": "No hay filtros aplicados a esta vista",
-    "pickDate": "Seleccionar fecha",
-    "enterValue": "Ingrese un valor",
+    "pickDate": "Elige una fecha",
+    "enterValue": "Ingresa un valor",
     "addFilter": "Agregar filtro",
     "applyFilter": "Aplicar filtro",
     "columns": "Columnas",

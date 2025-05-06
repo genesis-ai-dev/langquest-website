@@ -22,7 +22,7 @@ import { useMutation } from '@tanstack/react-query';
 type FormValues = z.infer<typeof subscribeSchema>;
 
 export function SubscribeForm() {
-  const t = useTranslations('SubscribeForm');
+  const t = useTranslations('subscribe_form');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(subscribeSchema),

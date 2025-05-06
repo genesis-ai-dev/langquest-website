@@ -150,7 +150,7 @@ const parseAsSorting = createParser({
 });
 
 export function DataView() {
-  const t = useTranslations('DataView');
+  const t = useTranslations('data_view');
   const [pageSize, setPageSize] = useQueryState(
     'size',
     parseAsInteger.withDefault(20)

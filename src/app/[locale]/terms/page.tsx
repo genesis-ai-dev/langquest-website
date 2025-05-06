@@ -10,8 +10,8 @@ function TermsOfService() {
               Terms of Service
             </h1>
             <p className="text-lg text-muted-foreground">
-              These Terms of Service ("Terms") govern your use of the LangQuest
-              mobile application.
+              These Terms of Service (&quot;Terms&quot;) govern your use of the
+              LangQuest mobile application.
             </p>
           </div>
 

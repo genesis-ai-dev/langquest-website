@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 
 const Footer = () => {
-  const t = useTranslations('Footer');
+  const t = useTranslations('footer');
 
   return (
     <footer className="w-full py-6 md:py-0 border-t">
