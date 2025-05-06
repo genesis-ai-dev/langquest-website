@@ -22,7 +22,6 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 
 function ErrorMessage({
   error
@@ -115,7 +114,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [supabase.auth]);
+  }, [supabase.auth, t]);
 
   const {
     mutate: updatePassword,

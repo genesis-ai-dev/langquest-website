@@ -495,7 +495,7 @@ function RelatedRecordsCount({
   recordId: string;
   isLinkTable?: boolean;
 }) {
-  const t = useTranslations('DatabaseViewer');
+  const t = useTranslations('database_viewer');
   const { data, isLoading } = useQuery({
     queryKey: ['relatedRecordsCount', tableName, columnName, recordId],
     queryFn: async () => {
@@ -530,7 +530,7 @@ function useTransformedColumns({
   isPreview?: boolean;
   tableSchemas?: Record<string, TableSchema>;
 }) {
-  const t = useTranslations('DatabaseViewer');
+  const t = useTranslations('database_viewer');
   return React.useMemo(() => {
     if (!schema) return [];
     return [
@@ -842,7 +842,7 @@ function useTransformedColumns({
         }
       }))
     ];
-  }, [schema, onForeignKeySelect, isPreview, tableSchemas]);
+  }, [schema, onForeignKeySelect, isPreview, tableSchemas, t]);
 }
 
 function PreviewTable({
@@ -854,7 +854,7 @@ function PreviewTable({
   filterColumn: string;
   filterValue: string;
 }) {
-  const t = useTranslations('DatabaseViewer');
+  const t = useTranslations('database_viewer');
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ['tableSchemas'],
     queryFn: fetchTableSchemas
@@ -1218,7 +1218,7 @@ function ReverseRelationshipPreview({
   throughSourceColumn?: string;
   throughTargetColumn?: string;
 }) {
-  const t = useTranslations('DatabaseViewer');
+  const t = useTranslations('database_viewer');
   const { data, isLoading } = useQuery({
     queryKey: [
       'reverseRelationship',
@@ -1418,7 +1418,7 @@ function ReverseRelationshipPreview({
 }
 
 export function DatabaseViewer() {
-  const t = useTranslations('DatabaseViewer');
+  const t = useTranslations('database_viewer');
 
   // Fetch table schemas
   const {
@@ -1715,7 +1715,7 @@ export function DatabaseViewer() {
   };
 
   const LinkTablesFooter = () => {
-    const t = useTranslations('DatabaseViewer');
+    const t = useTranslations('database_viewer');
     return (
       <div className="p-3 border-t border-border">
         <div className="flex items-center justify-between">

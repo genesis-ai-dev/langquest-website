@@ -29,7 +29,7 @@ import {
 import { useTranslations } from 'next-intl';
 
 export default function LandingPage() {
-  const t = useTranslations('HomePage');
+  const t = useTranslations('homepage');
 
   return (
     <WebPageWrapper>
@@ -384,34 +384,30 @@ export default function LandingPage() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <Badge className="inline-flex mb-2" variant="secondary">
-                    Coming Soon
+                    {t('future.badge')}
                   </Badge>
                   <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                    Future: Peer-to-Peer Connectivity
+                    {t('future.title')}
                   </h2>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    We&apos;re actively researching solutions to enable direct
-                    device-to-device sharing of translation data without
-                    internet.
+                    {t('future.subtitle')}
                   </p>
                 </div>
                 <ul className="space-y-2">
                   <li className="flex items-start gap-2">
                     <Share2 className="h-5 w-5 text-accent4 mt-0.5" />
                     <span className="text-sm">
-                      Share updates between devices when team members meet
+                      {t('future.features.share')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Smartphone className="h-5 w-5 text-accent4 mt-0.5" />
-                    <span className="text-sm">
-                      Sync progress across multiple devices without internet
-                    </span>
+                    <span className="text-sm">{t('future.features.sync')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Users className="h-5 w-5 text-accent4 mt-0.5" />
                     <span className="text-sm">
-                      Enable true collaboration in the most remote locations
+                      {t('future.features.collaborate')}
                     </span>
                   </li>
                 </ul>
@@ -426,18 +422,16 @@ export default function LandingPage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Join the LangQuest Community
+                  {t('cta.title')}
                 </h2>
                 <p className="max-w-[900px] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Be among the first to use LangQuest and help preserve
-                  low-resource languages.
+                  {t('cta.subtitle')}
                 </p>
               </div>
               <div className="w-full max-w-sm space-y-2">
                 <SubscribeForm />
                 <p className="text-xs text-muted-foreground">
-                  We&apos;ll notify you when LangQuest is ready for beta
-                  testing.
+                  {t('cta.notification')}
                 </p>
               </div>
             </div>

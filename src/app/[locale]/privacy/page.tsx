@@ -132,8 +132,8 @@ function PrivacyPolicy() {
                     </li>
                     <li>
                       Unique identifiers: randomly generated device identifiers
-                      that don't personally identify you but help us analyze
-                      usage patterns
+                      that don&apos;t personally identify you but help us
+                      analyze usage patterns
                     </li>
                   </ul>
                 </li>
@@ -310,10 +310,10 @@ function PrivacyPolicy() {
 
               <h3 className="text-xl font-bold">6.4 Analytics Opt-Out</h3>
               <p>
-                You can opt out of analytics collection directly in the App's
-                profile settings. Simply navigate to your profile and disable
-                analytics tracking. This will prevent the collection of usage
-                data while you continue to use the App.
+                You can opt out of analytics collection directly in the
+                App&apos;s profile settings. Simply navigate to your profile and
+                disable analytics tracking. This will prevent the collection of
+                usage data while you continue to use the App.
               </p>
             </div>
           </div>

@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const t = useTranslations('Header');
+  const t = useTranslations('header');
 
   return (
     <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

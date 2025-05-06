@@ -26,19 +26,19 @@
       "button": "Download from Google Play"
     }
   },
-  "Header": {
+  "header": {
     "title": "LangQuest",
     "sourceCode": "Source Code",
     "allData": "All Data",
     "userFriendlyData": "User-Friendly Data"
   },
-  "Footer": {
+  "footer": {
     "mitLicense": "MIT License",
     "terms": "Terms",
     "privacy": "Privacy",
     "frontierRND": "Frontier R&D"
   },
-  "SubscribeForm": {
+  "subscribe_form": {
     "emailPlaceholder": "Enter your email",
     "getNotified": "Get Notified",
     "subscribing": "Subscribing...",
@@ -48,7 +48,7 @@
       "tryAgain": "Failed to subscribe. Please try again."
     }
   },
-  "HomePage": {
+  "homepage": {
     "title": "LangQuest",
     "about": "About",
     "comingSoon": "Coming Soon",
@@ -97,9 +97,24 @@
     "useCases": {
       "title": "Perfect For",
       "subtitle": "LangQuest is designed for a variety of translation needs."
+    },
+    "future": {
+      "badge": "Coming Soon",
+      "title": "Future: Peer-to-Peer Connectivity",
+      "subtitle": "We're actively researching solutions to enable direct device-to-device sharing of translation data without internet.",
+      "features": {
+        "share": "Share updates between devices when team members meet",
+        "sync": "Sync progress across multiple devices without internet",
+        "collaborate": "Enable true collaboration in the most remote locations"
+      }
+    },
+    "cta": {
+      "title": "Join the LangQuest Community",
+      "subtitle": "Be among the first to use LangQuest and help preserve low-resource languages.",
+      "notification": "We'll notify you when LangQuest is ready for beta testing."
     }
   },
-  "DataView": {
+  "data_view": {
     "errorLoading": "Error loading assets: {error}",
     "noAssets": "No assets found",
     "filter": "Filter",
@@ -118,7 +133,7 @@
     "noText": "No text available",
     "rowsDisplay": "{count} rows"
   },
-  "DatabaseViewer": {
+  "database_viewer": {
     "oneRecord": "1 record",
     "manyRecords": "{count} records",
     "relatedRecordsFrom": "Related records from",

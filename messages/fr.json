@@ -26,80 +26,95 @@
       "button": "Télécharger depuis Google Play"
     }
   },
-  "Header": {
+  "header": {
     "title": "LangQuest",
-    "sourceCode": "Code source",
-    "allData": "Toutes les données",
-    "userFriendlyData": "Données conviviales"
+    "sourceCode": "Code Source",
+    "allData": "Toutes les Données",
+    "userFriendlyData": "Données Conviviales"
   },
-  "Footer": {
+  "footer": {
     "mitLicense": "Licence MIT",
     "terms": "Conditions",
     "privacy": "Confidentialité",
     "frontierRND": "Frontier R&D"
   },
-  "SubscribeForm": {
-    "emailPlaceholder": "Entrez votre e-mail",
-    "getNotified": "Recevoir une notification",
-    "subscribing": "Abonnement en cours...",
-    "success": "Vous avez été abonné avec succès !",
+  "subscribe_form": {
+    "emailPlaceholder": "Entrez votre email",
+    "getNotified": "Soyez Notifié",
+    "subscribing": "Inscription en cours...",
+    "success": "Vous avez été inscrit avec succès !",
     "errors": {
-      "failed": "Échec de l'abonnement",
-      "tryAgain": "Échec de l'abonnement. Veuillez réessayer."
+      "failed": "Échec de l'inscription",
+      "tryAgain": "Échec de l'inscription. Veuillez réessayer."
     }
   },
-  "HomePage": {
+  "homepage": {
     "title": "LangQuest",
-    "about": "À propos",
-    "comingSoon": "Bientôt disponible",
+    "about": "À Propos",
+    "comingSoon": "Bientôt Disponible",
     "hero": {
       "title": "Traduire, Préserver et Connecter",
       "subtitle": "Traduisez et préservez les langues en danger partout, même hors ligne."
     },
-    "allData": "Toutes les données",
-    "userFriendlyData": "Données conviviales",
+    "allData": "Toutes les Données",
+    "userFriendlyData": "Données Conviviales",
     "features": {
-      "title": "Conçu pour la traduction à distance",
-      "subtitle": "LangQuest permet la traduction même dans les environnements les plus difficiles.",
+      "title": "Conçu pour la Traduction à Distance",
+      "subtitle": "LangQuest rend la traduction possible même dans les environnements les plus difficiles.",
       "offline": {
-        "title": "Fonctionnement hors ligne",
-        "description": "Travaillez sans internet pendant de longues périodes. Vos données sont stockées localement en toute sécurité jusqu'à la synchronisation."
+        "title": "Tolérance Hors Ligne",
+        "description": "Travaillez sans internet pendant de longues périodes. Vos données sont stockées en toute sécurité localement jusqu'à ce que vous puissiez synchroniser."
       },
       "ai": {
-        "title": "Traduction assistée par IA",
-        "description": "Utilisez l'IA pour générer des traductions initiales, que les utilisateurs peuvent revoir et évaluer afin d'accélérer le processus."
+        "title": "Traduction Assistée par IA",
+        "description": "Utilisez l'IA pour générer des traductions initiales, que les utilisateurs peuvent examiner et voter, accélérant ainsi le processus."
       },
       "gamification": {
         "title": "Ludification",
-        "description": "Des fonctionnalités comme les classements et les récompenses rendent la traduction amusante et stimulent la participation."
+        "description": "Des fonctionnalités comme les classements et les récompenses rendent la traduction amusante et encouragent la participation."
       },
       "openData": {
-        "title": "Données ouvertes",
-        "description": "Toutes les traductions validées sont ajoutées à une base de données sous licence libre, aidant à entraîner les futurs modèles d'IA."
+        "title": "Données Ouvertes",
+        "description": "Toutes les traductions validées font partie d'une base de données sous licence ouverte, aidant à former les futurs modèles d'IA."
       }
     },
     "howItWorks": {
-      "title": "Comment fonctionne LangQuest",
-      "subtitle": "Organisez les traductions en projets, quêtes et ressources pour une gestion efficace.",
+      "title": "Comment Fonctionne LangQuest",
+      "subtitle": "Organisez les traductions en projets, quêtes et actifs pour une gestion efficace.",
       "projects": {
-        "title": "Créer des projets",
+        "title": "Créez des Projets",
         "description": "Organisez votre travail de traduction en projets, comme la traduction de la Bible ou de textes culturels importants."
       },
       "collaborate": {
-        "title": "Collaborer",
-        "description": "Invitez les membres de la communauté à contribuer aux traductions et à évaluer celles des autres."
+        "title": "Collaborez",
+        "description": "Invitez les membres de la communauté à contribuer aux traductions et à voter sur le travail des autres."
       },
       "validate": {
-        "title": "Valider et partager",
-        "description": "Validez les traductions grâce aux votes de la communauté et partagez-les avec le monde."
+        "title": "Validez et Partagez",
+        "description": "Validez les traductions par le vote de la communauté et partagez-les avec le monde."
       }
     },
     "useCases": {
-      "title": "Parfait pour",
-      "subtitle": "LangQuest est conçu pour une variété de besoins en traduction."
+      "title": "Parfait Pour",
+      "subtitle": "LangQuest est conçu pour une variété de besoins de traduction."
+    },
+    "future": {
+      "badge": "Bientôt Disponible",
+      "title": "Futur : Connectivité Pair-à-Pair",
+      "subtitle": "Nous recherchons activement des solutions pour permettre le partage direct de données de traduction entre appareils sans internet.",
+      "features": {
+        "share": "Partagez les mises à jour entre appareils lors des rencontres d'équipe",
+        "sync": "Synchronisez la progression entre plusieurs appareils sans internet",
+        "collaborate": "Permettez une véritable collaboration dans les endroits les plus reculés"
+      }
+    },
+    "cta": {
+      "title": "Rejoignez la Communauté LangQuest",
+      "subtitle": "Soyez parmi les premiers à utiliser LangQuest et aidez à préserver les langues peu dotées.",
+      "notification": "Nous vous informerons lorsque LangQuest sera prêt pour les tests bêta."
     }
   },
-  "DataView": {
+  "data_view": {
     "errorLoading": "Erreur lors du chargement des ressources : {error}",
     "noAssets": "Aucune ressource trouvée",
     "filter": "Filtrer",
@@ -108,32 +123,32 @@
     "sortedBy": "{count, plural, one {Trié par # champ} other {Trié par # champs}}",
     "ascending": "Ascendant",
     "descending": "Descendant",
-    "images": "{count, plural, one {# image} other {# images}}",
-    "quests": "{count, plural, one {# quête} other {# quêtes}}",
+    "images": "{count, plural, one {# Image} other {# Images}}",
+    "quests": "{count, plural, one {# Quête} other {# Quêtes}}",
     "description": "Description",
-    "tags": "{count, plural, one {# étiquette} other {# étiquettes}}",
+    "tags": "{count, plural, one {# Tag} other {# Tags}}",
     "project": "Projet",
-    "sourceContent": "{count, plural, one {# contenu source} other {# contenus sources}}",
-    "translations": "{count, plural, one {# traduction} other {# traductions}}",
+    "sourceContent": "{count, plural, one {# Contenu Source} other {# Contenus Sources}}",
+    "translations": "{count, plural, one {# Traduction} other {# Traductions}}",
     "noText": "Aucun texte disponible",
     "rowsDisplay": "{count} lignes"
   },
-  "DatabaseViewer": {
+  "database_viewer": {
     "oneRecord": "1 enregistrement",
     "manyRecords": "{count} enregistrements",
     "relatedRecordsFrom": "Enregistrements liés de",
-    "referencingRecordsFrom": "Enregistrements référencés de",
-    "referencingRecordFrom": "Enregistrement référencé de",
+    "referencingRecordsFrom": "Enregistrements référençant de",
+    "referencingRecordFrom": "Enregistrement référençant de",
     "openTable": "Ouvrir la table",
     "noMatchingRecords": "Aucun enregistrement correspondant trouvé.",
     "noRelatedRecords": "Aucun enregistrement lié trouvé.",
     "unableToDisplayRecords": "Impossible d'afficher les enregistrements liés.",
     "moreRecords": "{count} enregistrements supplémentaires...",
-    "errorOccurred": "Une erreur s'est produite",
+    "errorOccurred": "Une erreur est survenue",
     "tables": "Tables",
     "export": "Exporter",
-    "currentTable": "Table actuelle",
-    "allTables": "Toutes les tables",
+    "currentTable": "Table Actuelle",
+    "allTables": "Toutes les Tables",
     "downloadAttachments": "Télécharger les pièces jointes",
     "exporting": "Exportation de {table}...",
     "sort": "Trier",
@@ -142,23 +157,23 @@
     "sortBy": "trier par",
     "thenBy": "puis par",
     "ascending": "ascendant",
-    "pickColumnToSortBy": "Choisissez une colonne à trier",
+    "pickColumnToSortBy": "Choisissez une colonne pour trier",
     "allColumnsAdded": "Toutes les colonnes ont été ajoutées",
     "applySorting": "Appliquer le tri",
     "filter": "Filtrer",
     "filteredBy": "{count, plural, one {Filtré par # règle} other {Filtré par # règles}}",
     "noFiltersApplied": "Aucun filtre appliqué à cette vue",
-    "pickDate": "Choisissez une date",
-    "enterValue": "Entrez une valeur",
+    "pickDate": "Choisir une date",
+    "enterValue": "Entrer une valeur",
     "addFilter": "Ajouter un filtre",
     "applyFilter": "Appliquer le filtre",
     "columns": "Colonnes",
     "noResults": "Aucun résultat.",
     "page": "Page",
-    "of": "de",
+    "of": "sur",
     "rows": "lignes",
     "rowsSelected": "ligne(s) sélectionnée(s)",
-    "showLinkTables": "Afficher les tables de liaison"
+    "showLinkTables": "Afficher les tables de liens"
   },
   "ui": {
     "close": "Fermer",

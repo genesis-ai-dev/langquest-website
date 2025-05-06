@@ -26,80 +26,95 @@
       "button": "从 Google Play 下载"
     }
   },
-  "Header": {
+  "header": {
     "title": "LangQuest",
     "sourceCode": "源代码",
-    "allData": "全部数据",
+    "allData": "所有数据",
     "userFriendlyData": "用户友好数据"
   },
-  "Footer": {
-    "mitLicense": "MIT 许可协议",
+  "footer": {
+    "mitLicense": "MIT 许可证",
     "terms": "条款",
     "privacy": "隐私",
-    "frontierRND": "Frontier 研发"
+    "frontierRND": "Frontier R&D"
   },
-  "SubscribeForm": {
-    "emailPlaceholder": "输入您的电子邮箱",
+  "subscribe_form": {
+    "emailPlaceholder": "输入您的邮箱",
     "getNotified": "获取通知",
-    "subscribing": "正在订阅...",
+    "subscribing": "订阅中...",
     "success": "您已成功订阅！",
     "errors": {
       "failed": "订阅失败",
-      "tryAgain": "订阅失败，请重试。"
+      "tryAgain": "订阅失败。请重试。"
     }
   },
-  "HomePage": {
+  "homepage": {
     "title": "LangQuest",
     "about": "关于",
-    "comingSoon": "即将上线",
+    "comingSoon": "即将推出",
     "hero": {
-      "title": "翻译、保护、连接",
-      "subtitle": "随时随地翻译并保护濒危语言，即使在离线状态下。"
+      "title": "翻译、保存和连接",
+      "subtitle": "随时随地翻译和保存濒危语言，甚至离线也可以。"
     },
-    "allData": "全部数据",
+    "allData": "所有数据",
     "userFriendlyData": "用户友好数据",
     "features": {
-      "title": "为偏远地区翻译而设计",
-      "subtitle": "LangQuest 即使在最具挑战性的环境中也能实现翻译。",
+      "title": "为远程翻译而设计",
+      "subtitle": "LangQuest 使翻译在最具挑战性的环境中也能实现。",
       "offline": {
         "title": "离线容错",
-        "description": "长时间无需互联网也可工作。您的数据将安全地本地存储，待同步。"
+        "description": "长时间无网络工作。您的数据会安全地存储在本地，直到您可以同步。"
       },
       "ai": {
         "title": "AI 辅助翻译",
-        "description": "使用 AI 生成初始翻译，用户可审核和投票，提高效率。"
+        "description": "使用 AI 生成初始翻译，用户可以审查和投票，加快翻译过程。"
       },
       "gamification": {
         "title": "游戏化",
-        "description": "排行榜和奖励等功能让翻译变得有趣并激励参与。"
+        "description": "排行榜和奖励等功能使翻译变得有趣并鼓励参与。"
       },
       "openData": {
         "title": "开放数据",
-        "description": "所有验证过的翻译都将成为开放许可数据库的一部分，帮助训练未来的 AI 模型。"
+        "description": "所有经过验证的翻译都成为开放许可数据库的一部分，帮助训练未来的 AI 模型。"
       }
     },
     "howItWorks": {
-      "title": "LangQuest 工作原理",
-      "subtitle": "将翻译工作组织为项目、任务和资源，实现高效管理。",
+      "title": "LangQuest 如何工作",
+      "subtitle": "将翻译组织成项目、任务和资产，实现高效管理。",
       "projects": {
         "title": "创建项目",
-        "description": "将您的翻译工作组织为项目，例如翻译圣经或重要的文化文本。"
+        "description": "将您的翻译工作组织成项目，如翻译圣经或重要文化文本。"
       },
       "collaborate": {
         "title": "协作",
-        "description": "邀请社区成员贡献翻译，并对彼此的翻译进行投票。"
+        "description": "邀请社区成员贡献翻译并对彼此的工作进行投票。"
       },
       "validate": {
-        "title": "验证与分享",
-        "description": "通过社区投票验证翻译，并分享给全世界。"
+        "title": "验证和分享",
+        "description": "通过社区投票验证翻译并与世界分享。"
       }
     },
     "useCases": {
-      "title": "适用场景",
-      "subtitle": "LangQuest 适用于多种翻译需求。"
+      "title": "完美适用于",
+      "subtitle": "LangQuest 专为各种翻译需求而设计。"
+    },
+    "future": {
+      "badge": "即将推出",
+      "title": "未来：点对点连接",
+      "subtitle": "我们正在积极研究解决方案，以实现设备之间无需互联网的直接翻译数据共享。",
+      "features": {
+        "share": "团队成员见面时在设备之间共享更新",
+        "sync": "在多个设备之间无需互联网同步进度",
+        "collaborate": "在最偏远的地区实现真正的协作"
+      }
+    },
+    "cta": {
+      "title": "加入 LangQuest 社区",
+      "subtitle": "成为首批使用 LangQuest 的用户之一，帮助保护低资源语言。",
+      "notification": "当 LangQuest 准备好进行 Beta 测试时，我们会通知您。"
     }
   },
-  "DataView": {
+  "data_view": {
     "errorLoading": "加载资源时出错：{error}",
     "noAssets": "未找到资源",
     "filter": "筛选",
@@ -113,17 +128,17 @@
     "description": "描述",
     "tags": "{count, plural, one {# 个标签} other {# 个标签}}",
     "project": "项目",
-    "sourceContent": "{count, plural, one {# 个原始内容} other {# 个原始内容}}",
+    "sourceContent": "{count, plural, one {# 个源内容} other {# 个源内容}}",
     "translations": "{count, plural, one {# 个翻译} other {# 个翻译}}",
     "noText": "无可用文本",
-    "rowsDisplay": "显示 {count} 行"
+    "rowsDisplay": "{count} 行"
   },
-  "DatabaseViewer": {
+  "database_viewer": {
     "oneRecord": "1 条记录",
     "manyRecords": "{count} 条记录",
-    "relatedRecordsFrom": "来自的相关记录",
-    "referencingRecordsFrom": "来自的引用记录",
-    "referencingRecordFrom": "来自的引用记录",
+    "relatedRecordsFrom": "相关记录来自",
+    "referencingRecordsFrom": "引用记录来自",
+    "referencingRecordFrom": "引用记录来自",
     "openTable": "打开表格",
     "noMatchingRecords": "未找到匹配的记录。",
     "noRelatedRecords": "未找到相关记录。",
@@ -137,32 +152,32 @@
     "downloadAttachments": "下载附件",
     "exporting": "正在导出 {table}...",
     "sort": "排序",
-    "sortedBy": "{count, plural, one {按 # 个规则排序} other {按 # 个规则排序}}",
+    "sortedBy": "{count, plural, one {按 # 条规则排序} other {按 # 条规则排序}}",
     "noSortsApplied": "此视图未应用排序",
-    "sortBy": "排序依据",
-    "thenBy": "然后依据",
+    "sortBy": "按",
+    "thenBy": "然后按",
     "ascending": "升序",
     "pickColumnToSortBy": "选择要排序的列",
-    "allColumnsAdded": "所有列均已添加",
+    "allColumnsAdded": "已添加所有列",
     "applySorting": "应用排序",
     "filter": "筛选",
-    "filteredBy": "{count, plural, one {按 # 个规则筛选} other {按 # 个规则筛选}}",
-    "noFiltersApplied": "此视图未应用筛选器",
+    "filteredBy": "{count, plural, one {按 # 条规则筛选} other {按 # 条规则筛选}}",
+    "noFiltersApplied": "此视图未应用筛选",
     "pickDate": "选择日期",
     "enterValue": "输入值",
-    "addFilter": "添加筛选器",
-    "applyFilter": "应用筛选器",
+    "addFilter": "添加筛选",
+    "applyFilter": "应用筛选",
     "columns": "列",
     "noResults": "无结果。",
     "page": "页",
     "of": "共",
     "rows": "行",
-    "rowsSelected": "已选择行",
-    "showLinkTables": "显示链接表"
+    "rowsSelected": "已选择 {count} 行",
+    "showLinkTables": "显示链接表格"
   },
   "ui": {
     "close": "关闭",
-    "previousSlide": "上一张幻灯片",
-    "nextSlide": "下一张幻灯片"
+    "previousSlide": "上一张",
+    "nextSlide": "下一张"
   }
 }
