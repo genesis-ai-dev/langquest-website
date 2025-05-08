@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.etengenesis.langquest",
+      "sha256_cert_fingerprints": [
+        "90:1F:EC:DF:99:08:46:D3:CC:A8:70:69:E4:4A:64:66:11:4C:CC:A4:41:28:75:C4:57:6A:F4:CF:07:92:36:FA"
+      ]
+    }
+  }
+]
