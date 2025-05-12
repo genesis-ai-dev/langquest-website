@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { env } from '@/lib/env';
 import { getSupabaseCredentials, SupabaseEnvironment } from '.';
 import { SupabaseClient } from '@supabase/supabase-js';
 
