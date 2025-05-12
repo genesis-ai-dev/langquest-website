@@ -10,7 +10,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { createBrowserClient, SupabaseEnvironment } from '@/lib/supabase';
+import { SupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,6 +22,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 function ErrorMessage({
   error
