@@ -45,7 +45,6 @@ function RegistrationConfirmation() {
     if (isMobile()) {
       const access_token = params.access_token;
       const refresh_token = params.refresh_token;
-      const type = params.type;
 
       if (!params.access_token || !params.refresh_token) {
         setMessage(t('missing_params'));
