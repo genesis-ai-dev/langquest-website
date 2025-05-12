@@ -47,14 +47,14 @@ function RegistrationConfirmation() {
       const refresh_token = params.refresh_token;
       const type = params.type;
 
-      if (!params.access_token || !params.refresh_token || !params.type) {
+      if (!params.access_token || !params.refresh_token) {
         setMessage(t('missing_params'));
         setError('red');
         return;
       }
 
       // Mobile deep linking
-      const deepLink = `langquest:///#access_token=${access_token}&refresh_token=${refresh_token}&type=${type}`;
+      const deepLink = `langquest:///#access_token=${access_token}&refresh_token=${refresh_token}}`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
