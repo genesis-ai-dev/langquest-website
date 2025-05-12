@@ -4,7 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 export type SupabaseEnvironment = 'production' | 'preview' | 'development';
 
-const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
+export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   switch (environment) {
     case 'development':
       return {
@@ -25,24 +25,17 @@ const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   }
 };
 
+export const getSupabaseEnvironment = (url: string) => {
+  const previewUrl = getSupabaseCredentials('preview').url;
+  const developmentUrl = getSupabaseCredentials('development').url;
+
+  if (url.startsWith(developmentUrl)) return 'development';
+  if (url.startsWith(previewUrl)) return 'preview';
+  return 'production';
+};
+
 // Create a map to store instances for different environments
-const supabaseInstances = new Map<
+export const supabaseInstances = new Map<
   SupabaseEnvironment,
   SupabaseClient<any, 'public', any>
 >();
-
-export function createBrowserClient(environment?: SupabaseEnvironment | null) {
-  // Default to production if environment is undefined or null
-  const env = environment ?? 'production';
-
-  // Return existing instance for this environment if already created
-  const existingInstance = supabaseInstances.get(env);
-  if (existingInstance) {
-    return existingInstance;
-  }
-
-  const { url, key } = getSupabaseCredentials(env);
-  const newInstance = createSupabaseBrowserClient(url, key);
-  supabaseInstances.set(env, newInstance);
-  return newInstance;
-}

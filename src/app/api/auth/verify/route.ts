@@ -1,4 +1,5 @@
 import { env } from '@/lib/env';
+import { getSupabaseEnvironment } from '@/lib/supabase';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,7 +16,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient(
+    getSupabaseEnvironment(searchParams.get('project_ref')!)
+  );
 
   try {
     const {
