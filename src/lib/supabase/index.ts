@@ -25,12 +25,12 @@ export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   }
 };
 
-export const getSupabaseEnvironment = (url: string) => {
+export const getSupabaseEnvironment = (project_ref: string) => {
   const previewUrl = getSupabaseCredentials('preview').url;
   const developmentUrl = getSupabaseCredentials('development').url;
 
-  if (url.startsWith(developmentUrl)) return 'development';
-  if (url.startsWith(previewUrl)) return 'preview';
+  if (developmentUrl.includes(project_ref)) return 'development';
+  if (previewUrl.includes(project_ref)) return 'preview';
   return 'production';
 };
 
