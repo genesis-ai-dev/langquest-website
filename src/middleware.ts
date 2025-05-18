@@ -8,8 +8,15 @@ import { createClient } from '@supabase/supabase-js';
 const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
 export default async function middleware(request: NextRequest) {
-  // Execute next-intl middleware first
+  console.log('Middleware hit. Pathname:', request.nextUrl.pathname);
   const responseFromIntl = await nextIntlMiddleware(request);
+  console.log(
+    'Response from nextIntlMiddleware for',
+    request.nextUrl.pathname,
+    ':',
+    responseFromIntl.status,
+    responseFromIntl.headers.get('location')
+  );
 
   // If next-intl decided to redirect (e.g., for locale prefix), honor that redirect
   if (

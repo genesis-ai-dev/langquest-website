@@ -39,3 +39,9 @@ export const supabaseInstances = new Map<
   SupabaseEnvironment,
   SupabaseClient<any, 'public', any>
 >();
+
+// Create and export a default Supabase browser client
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey);
