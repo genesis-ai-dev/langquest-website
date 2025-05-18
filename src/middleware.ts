@@ -109,6 +109,6 @@ export const config = {
      * - static files (e.g. /favicon.ico)
      * - ingest (PostHog ingestion)
      */
-    '/((?!api|static|.*\..*|_next|ingest).*)'
+    '/((?!api|static|.*\\..*|_next|ingest).*)'
   ]
 };
