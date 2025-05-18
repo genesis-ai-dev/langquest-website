@@ -424,8 +424,15 @@ function AdminContent() {
                 questId={selectedQuestId}
                 questName={selectedQuestName}
                 projectId={selectedProjectId!}
-                onAssetCreated={handleAssetSuccess} // This might need adjustment depending on QuestAssetManager's props
-                onAssetUpdated={handleAssetSuccess} // This might need adjustment
+                onAssetCreated={handleAssetSuccess}
+                onAssetUpdated={handleAssetSuccess}
+                onAddNewAsset={() => {
+                  if (selectedQuestId) {
+                    setShowAssetForm(true);
+                  } else {
+                    toast.error('Please select a quest first.');
+                  }
+                }}
                 onBack={() => {
                   setSelectedQuestId(null);
                   setActiveTab('quests');
@@ -479,8 +486,8 @@ function AdminContent() {
         {/* Asset Form Dialog - This might be managed within QuestAssetManager now */}
         {/* Consider if this explicit dialog is still needed or if QuestAssetManager handles its own modals */}
         <Dialog open={showAssetForm} onOpenChange={setShowAssetForm}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="sticky top-0 bg-background z-10 py-4">
               <DialogTitle>Create New Asset</DialogTitle>
               <DialogDescription>
                 Fill in the details to create a new asset for quest:

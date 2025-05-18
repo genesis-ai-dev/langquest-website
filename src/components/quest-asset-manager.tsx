@@ -62,11 +62,13 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 interface QuestAssetManagerProps {
   questId: string;
   onSuccess?: () => void;
+  onAddNewAsset: () => void;
 }
 
 export function QuestAssetManager({
   questId,
-  onSuccess
+  onSuccess,
+  onAddNewAsset
 }: QuestAssetManagerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
@@ -492,38 +494,44 @@ export function QuestAssetManager({
           </p>
         </div>
 
-        <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
-          <SheetTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Manage Assets
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side={isMobile ? 'bottom' : 'right'}
-            className={`p-6 flex flex-col overflow-hidden ${
-              isMobile
-                ? 'h-[95vh] sm:h-[90vh]'
-                : 'w-[95vw] max-w-[1200px] !right-0 !left-auto'
-            }`}
-            style={
-              !isMobile ? { width: '95vw', maxWidth: '1200px' } : undefined
-            }
-          >
-            <SheetHeader className="mb-4">
-              <SheetTitle>Add Assets to Quest</SheetTitle>
-              <SheetDescription>
-                Search and select assets to add to this quest.
-              </SheetDescription>
-            </SheetHeader>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={onAddNewAsset}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Asset
+          </Button>
+          <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
+            <SheetTrigger asChild>
+              <Button>
+                <ListFilter className="mr-2 h-4 w-4" />
+                Manage Linked Assets
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side={isMobile ? 'bottom' : 'right'}
+              className={`p-6 flex flex-col overflow-hidden ${
+                isMobile
+                  ? 'h-[95vh] sm:h-[90vh]'
+                  : 'w-[95vw] max-w-[1200px] !right-0 !left-auto'
+              }`}
+              style={
+                !isMobile ? { width: '95vw', maxWidth: '1200px' } : undefined
+              }
+            >
+              <SheetHeader className="mb-4">
+                <SheetTitle>Add Assets to Quest</SheetTitle>
+                <SheetDescription>
+                  Search and select assets to add to this quest.
+                </SheetDescription>
+              </SheetHeader>
 
-            <div className="flex-1 overflow-hidden">{renderAssetTable()}</div>
+              <div className="flex-1 overflow-hidden">{renderAssetTable()}</div>
 
-            <SheetFooter className="mt-6 pt-2 border-t">
-              {renderFooter()}
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+              <SheetFooter className="mt-6 pt-2 border-t">
+                {renderFooter()}
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       <Card>

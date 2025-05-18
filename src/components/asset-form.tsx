@@ -478,12 +478,21 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       if (onSuccess) {
         onSuccess({ id: assetId });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving asset:', error);
-      if (error instanceof Error) {
+      // Check if the error is a Supabase Storage error object
+      if (
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        'error' in error
+      ) {
+        // Typical Supabase storage error structure has error.message and error.error (like "InvalidRequest")
+        toast.error(`Failed to save asset: ${error.message}`);
+      } else if (error instanceof Error) {
         toast.error(`Failed to save asset: ${error.message}`);
       } else {
-        toast.error('Failed to save asset');
+        toast.error('Failed to save asset due to an unknown error.');
       }
     } finally {
       setIsSubmitting(false);
@@ -557,7 +566,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                 </div>
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept="image/png, image/jpeg"
                   className="hidden"
                   onChange={handleImageChange}
                   multiple

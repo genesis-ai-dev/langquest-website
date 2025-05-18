@@ -181,9 +181,10 @@ export function QuestForm({
       if (onSuccess) {
         onSuccess({ id: questId });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving quest:', error);
-      toast.error('Failed to save quest');
+      const errorMessage = error?.message || 'An unknown error occurred';
+      toast.error(`Failed to save quest: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
