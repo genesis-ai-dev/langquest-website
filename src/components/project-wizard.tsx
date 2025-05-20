@@ -492,32 +492,73 @@ export function ProjectWizard({
           const { data: newQuestData, error: newQuestError } = await supabase
             .from('quest')
             .insert(newQuest)
-            .select('id')
+            .select('id, name') // Select name for logging
             .single();
 
           if (newQuestError) throw newQuestError;
 
           // Clone asset links for this quest
-          const { data: assetLinks, error: assetLinksError } = await supabase
-            .from('quest_asset_link')
-            .select('asset_id')
-            .eq('quest_id', quest.id);
+          console.log(
+            `[ProjectWizard Clone] Cloning links for template quest ID: ${quest.id}, Name: ${quest.name}`
+          );
+          const { data: assetLinksFromTemplate, error: assetLinksError } =
+            await supabase
+              .from('quest_asset_link')
+              .select('asset_id, active') // Fetch active status for logging/debugging
+              .eq('quest_id', quest.id);
 
-          if (assetLinksError) throw assetLinksError;
+          if (assetLinksError) {
+            console.error(
+              `[ProjectWizard Clone] Error fetching asset links for template quest ${quest.id}:`,
+              assetLinksError
+            );
+            throw assetLinksError;
+          }
+
+          console.log(
+            `[ProjectWizard Clone] Found asset links for template quest ${quest.id}:`,
+            JSON.parse(JSON.stringify(assetLinksFromTemplate || []))
+          );
 
           // Create new asset links for the new quest
-          for (const link of assetLinks || []) {
-            const newLink = {
-              quest_id: newQuestData.id,
-              asset_id: link.asset_id,
-              active: true
-            };
+          if (assetLinksFromTemplate && assetLinksFromTemplate.length > 0) {
+            for (const templateLink of assetLinksFromTemplate) {
+              console.log(
+                `[ProjectWizard Clone] Processing templateLink: asset_id=${templateLink.asset_id}, active=${templateLink.active} for template quest ${quest.id}`
+              );
+              const newLinkData = {
+                quest_id: newQuestData.id,
+                asset_id: templateLink.asset_id,
+                active: true // Always set to true for the new link, as per original logic
+              };
 
-            const { error: newLinkError } = await supabase
-              .from('quest_asset_link')
-              .insert(newLink);
+              console.log(
+                '[ProjectWizard Clone] Attempting to insert new asset link:',
+                JSON.parse(JSON.stringify(newLinkData))
+              );
+              const { error: newLinkError } = await supabase
+                .from('quest_asset_link')
+                .insert(newLinkData);
 
-            if (newLinkError) throw newLinkError;
+              if (newLinkError) {
+                console.error(
+                  `[ProjectWizard Clone] Error inserting new asset link for new quest ${newQuestData.id} (${newQuestData.name}) and asset ${templateLink.asset_id}:`,
+                  newLinkError
+                );
+                toast.error(
+                  `Failed to link asset ${templateLink.asset_id} to quest ${newQuestData.name}. Error: ${newLinkError.message}`
+                );
+                throw newLinkError;
+              } else {
+                console.log(
+                  `[ProjectWizard Clone] Successfully linked asset ${templateLink.asset_id} to new quest ${newQuestData.id} (${newQuestData.name})`
+                );
+              }
+            }
+          } else {
+            console.log(
+              `[ProjectWizard Clone] No asset links found in template for quest ${quest.id} (${quest.name}) to clone.`
+            );
           }
         }
       }

@@ -148,7 +148,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       const { data, error } = await supabase
         .from('language')
         .select('id')
-        .eq('code', 'eng')
+        .eq('iso639_3', 'eng')
         .single();
 
       if (error) throw error;
@@ -347,7 +347,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                     finalImagePaths.length > 0
                       ? JSON.stringify(finalImagePaths)
                       : null,
-                  created_at: new Date().toISOString(),
+                  active: true,
                   source_language_id: sourceLanguageId
                 })
                 .select('id')
@@ -357,9 +357,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
               assetId = data.id;
 
               toast.success('Asset created successfully');
-
-              // Skip the fallback logic
-              return;
             }
           }
 
@@ -367,11 +364,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           const { data: langData, error: langError } = await supabase
             .from('language')
             .select('id')
-            .eq('code', 'eng')
+            .eq('iso639_3', 'eng')
             .single();
 
           if (langError || !langData) {
-            throw new Error('Could not fetch language ID');
+            throw new Error('Could not fetch language ID for asset creation.');
           }
 
           sourceLanguageId = langData.id;
@@ -385,7 +382,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                 finalImagePaths.length > 0
                   ? JSON.stringify(finalImagePaths)
                   : null,
-              created_at: new Date().toISOString(),
+              active: true,
               source_language_id: sourceLanguageId
             })
             .select('id')
@@ -396,8 +393,10 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
           toast.success('Asset created successfully');
         } catch (insertError) {
-          console.error('Error creating asset:', insertError);
-          throw insertError;
+          console.error('Error creating asset record:', insertError);
+          toast.error('Failed to create core asset record.');
+          setIsSubmitting(false);
+          return;
         }
       }
 
@@ -407,55 +406,121 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           asset_id: assetId,
           text: item.text,
           audio_id: item.audio_id,
-          id: crypto.randomUUID()
+          id: crypto.randomUUID(),
+          active: true
         }));
 
         const { error: contentError } = await supabase
           .from('asset_content_link')
           .insert(contentLinks);
 
-        if (contentError) throw contentError;
+        if (contentError) {
+          console.error('Error linking asset content:', contentError);
+          toast.error(`Failed to link asset content: ${contentError.message}`);
+          // Decide if this is a hard stop or if partial success is okay
+          // For now, let's assume it's not a hard stop but log it.
+        }
       }
 
       // Handle tags - first remove existing tags
       if (initialData?.id) {
-        await supabase.from('asset_tag_link').delete().eq('asset_id', assetId);
+        const { error: deleteTagsError } = await supabase
+          .from('asset_tag_link')
+          .delete()
+          .eq('asset_id', assetId);
+        if (deleteTagsError) {
+          console.error('Error deleting old asset tags:', deleteTagsError);
+          toast.error(`Failed to clear old tags: ${deleteTagsError.message}`);
+        }
       }
 
       // Add new tags
       if (selectedTags.length > 0) {
         const tagLinks = selectedTags.map((tagId) => ({
           asset_id: assetId,
-          tag_id: tagId
+          tag_id: tagId,
+          active: true
         }));
 
         const { error: tagError } = await supabase
           .from('asset_tag_link')
           .insert(tagLinks);
 
-        if (tagError) throw tagError;
+        if (tagError) {
+          console.error('Error linking asset tags:', tagError);
+          toast.error(`Failed to link asset tags: ${tagError.message}`);
+        }
       }
 
       // Handle quests - first remove existing quest links
       if (initialData?.id) {
-        await supabase
+        const { error: deleteQuestsError } = await supabase
           .from('quest_asset_link')
           .delete()
           .eq('asset_id', assetId);
+        if (deleteQuestsError) {
+          console.error(
+            'Error deleting old asset-quest links:',
+            deleteQuestsError
+          );
+          toast.error(
+            `Failed to clear old quest links: ${deleteQuestsError.message}`
+          );
+        }
       }
+
+      // Log selectedQuests state just before the linking logic for quests
+      console.log(
+        '[AssetForm - onSubmit] Just before quest linking. assetId:',
+        assetId,
+        'selectedQuests state:',
+        selectedQuests
+      );
 
       // Add new quest links
       if (selectedQuests.length > 0) {
-        const questLinks = selectedQuests.map((questId) => ({
+        const questLinksPayload = selectedQuests.map((questId) => ({
           asset_id: assetId,
-          quest_id: questId
+          quest_id: questId,
+          active: true
         }));
+        console.log(
+          '[AssetForm - onSubmit] Constructed questLinksPayload:',
+          JSON.parse(JSON.stringify(questLinksPayload))
+        );
 
-        const { error: questError } = await supabase
+        const { data: insertedLinks, error: questError } = await supabase
           .from('quest_asset_link')
-          .insert(questLinks);
+          .insert(questLinksPayload)
+          .select(); // Ask Supabase to return the inserted rows
 
-        if (questError) throw questError;
+        if (questError) {
+          console.error(
+            '[AssetForm - onSubmit] Error linking asset to quests (Supabase error):',
+            questError
+          );
+          toast.error(`Failed to link asset to quests: ${questError.message}`);
+        } else if (
+          !insertedLinks ||
+          insertedLinks.length !== questLinksPayload.length
+        ) {
+          console.error(
+            '[AssetForm - onSubmit] Failed to link asset to quests: Number of inserted links does not match expected.',
+            {
+              expectedCount: questLinksPayload.length,
+              insertedCount: insertedLinks?.length || 0,
+              insertedLinksData: JSON.parse(JSON.stringify(insertedLinks || []))
+            }
+          );
+          toast.error(
+            'Operation reported success, but failed to correctly link asset to all selected quests. Please check asset details.'
+          );
+        } else {
+          console.log(
+            '[AssetForm - onSubmit] Successfully linked asset to quests. Inserted links:',
+            JSON.parse(JSON.stringify(insertedLinks))
+          );
+        }
       }
 
       // Reset form if not editing
