@@ -205,22 +205,51 @@ export function ProjectWizard({
     const subscription = step2Form.watch((value) => {
       if (step === 2 && Object.keys(value).length > 0) {
         // Only update if we have actual values and we're on step 2
-        const formValues = step2Form.getValues();
-        if (formValues.name) {
+        // 'value' is the current state of the form from the watch callback
+        if (value.name) {
           // Only update if name exists (to avoid empty updates)
-          setWizardData((prev) => ({
-            ...prev,
-            step2: {
-              ...prev.step2,
-              ...formValues
+          setWizardData((prev) => {
+            const prevStep2 = prev.step2 || {
+              name: '',
+              description: undefined, // explicit undefined for clarity if not present
+              source_language_id: 'eng',
+              target_language_id: 'eng'
+            };
+
+            // Construct the potential new step2 data from current form values
+            // Ensure it strictly matches the type z.infer<typeof projectDetailsSchema>
+            const newStep2Data: z.infer<typeof projectDetailsSchema> = {
+              name: value.name!, // Assert non-null as it's checked by the if (value.name) guard
+              description: value.description, // This is string | undefined, matching the schema
+              source_language_id:
+                value.source_language_id || prevStep2.source_language_id,
+              target_language_id:
+                value.target_language_id || prevStep2.target_language_id
+            };
+
+            // Compare new data with previous step2 data
+            if (
+              prevStep2.name === newStep2Data.name &&
+              prevStep2.description === newStep2Data.description &&
+              prevStep2.source_language_id ===
+                newStep2Data.source_language_id &&
+              prevStep2.target_language_id === newStep2Data.target_language_id
+            ) {
+              return prev; // No actual change in values, return the existing state object to prevent loop
             }
-          }));
+
+            // If there are changes, update wizardData.step2
+            return {
+              ...prev,
+              step2: newStep2Data
+            };
+          });
         }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [step, step2Form]);
+  }, [step, step2Form]); // Dependencies: step and step2Form (which is stable)
 
   // Reset form when step changes to 2
   useEffect(() => {
@@ -246,46 +275,140 @@ export function ProjectWizard({
 
   // If projectToClone is provided, pre-fill the form when projects are loaded
   useEffect(() => {
+    console.log(
+      '[ProjectWizard - Clone Effect Triggered] projectToClone:',
+      projectToClone,
+      'existingProjects loaded:',
+      !!existingProjects,
+      'current step:',
+      step
+    );
+
     if (projectToClone && existingProjects) {
       const projectData = existingProjects.find((p) => p.id === projectToClone);
       if (projectData) {
-        // Pre-select the clone option and the project
-        step1Form.setValue('method', 'clone');
-        step1Form.setValue('template_id', projectToClone);
+        console.log(
+          '[ProjectWizard - Clone] Found projectData to clone:',
+          JSON.parse(JSON.stringify(projectData))
+        );
 
-        // Set the initial project name
-        const initialName = `${projectData.name} (Copy)`;
+        // Update step1Form values if this is the initial setup for cloning
+        if (
+          step1Form.getValues('method') !== 'clone' ||
+          step1Form.getValues('template_id') !== projectToClone
+        ) {
+          step1Form.setValue('method', 'clone');
+          step1Form.setValue('template_id', projectToClone);
+        }
+
+        const initialName = `Clone of ${projectData.name}`;
+        const initialDescription = projectData.description;
+        const initialSourceLanguage = projectData.source_language_id;
+
+        console.log(
+          '[ProjectWizard - Clone] Generated initialName:',
+          initialName
+        );
+        console.log(
+          '[ProjectWizard - Clone] Generated initialDescription:',
+          initialDescription
+        );
+        console.log(
+          '[ProjectWizard - Clone] Generated initialSourceLanguage:',
+          initialSourceLanguage
+        );
+
+        // Set the local projectName state, which controls the input field
         setProjectName(initialName);
 
-        // Pre-fill step 2 form with project data
-        const newFormValues = {
+        // Prepare values for step2Form and wizardData.step2
+        const step2Values = {
           name: initialName,
-          description: projectData.description || '',
-          source_language_id: projectData.source_language_id,
+          description: initialDescription,
+          source_language_id: initialSourceLanguage,
           target_language_id: '' // User must specify target language
         };
 
-        // Only reset if we haven't already entered custom values
-        if (step2Form.getValues('name') === '') {
-          step2Form.reset(newFormValues);
-        }
-
+        // Update wizardData first, as other effects might depend on it
         setWizardData((prev) => ({
           ...prev,
           step1: {
+            // ensure step1 is also aligned
             method: 'clone',
             template_id: projectToClone
           },
-          step2: newFormValues
+          step2: { ...(prev.step2 || {}), ...step2Values }
         }));
 
-        // If projectToClone is provided, skip to step 2
+        // Reset step2Form with the new values
+        // This should happen after wizardData is updated if other effects watch wizardData.step2 to reset the form
+        step2Form.reset(step2Values);
+        console.log(
+          '[ProjectWizard - Clone] step2Form reset with:',
+          JSON.parse(JSON.stringify(step2Values))
+        );
+
+        // If projectToClone is provided and we are in step 1, automatically move to step 2
         if (step === 1) {
+          console.log(
+            '[ProjectWizard - Clone] Advancing from step 1 to step 2 due to cloning.'
+          );
           setStep(2);
         }
+      } else {
+        console.log(
+          '[ProjectWizard - Clone] projectToClone ID provided (' +
+            projectToClone +
+            '), but projectData NOT found in existingProjects.'
+        );
+      }
+    } else {
+      console.log(
+        '[ProjectWizard - Clone] useEffect for cloning condition not met (inside). projectToClone:',
+        projectToClone,
+        'existingProjects loaded:',
+        !!existingProjects
+      );
+    }
+    // Main dependencies are projectToClone and existingProjects. Others are for specific conditional logic inside.
+  }, [
+    projectToClone,
+    existingProjects,
+    step,
+    step1Form,
+    step2Form,
+    setProjectName,
+    setWizardData,
+    setStep
+  ]);
+
+  // Sync step2Form with wizardData.step2 when step changes to 2 or wizardData.step2 changes
+  // This helps ensure that if wizardData.step2 was populated by the cloning effect,
+  // the form reflects it when navigating to or re-entering step 2.
+  useEffect(() => {
+    if (step === 2 && wizardData.step2) {
+      console.log(
+        '[ProjectWizard - Step 2 Sync Effect] Resetting step2Form with wizardData.step2:',
+        JSON.parse(JSON.stringify(wizardData.step2))
+      );
+      step2Form.reset(wizardData.step2);
+      if (wizardData.step2.name) {
+        setProjectName(wizardData.step2.name); // Sync local projectName if it exists in wizardData
       }
     }
-  }, [projectToClone, existingProjects, step, step1Form, step2Form]);
+  }, [step, wizardData.step2]); // step2Form is not in deps to prevent potential loops if reset triggers watch that updates wizardData
+
+  // Initialize project name from wizardData when component loads (if not already set by cloning)
+  useEffect(() => {
+    if (wizardData.step2?.name && !projectName && step === 2) {
+      console.log(
+        '[ProjectWizard - Initial projectName Sync] Setting projectName from wizardData.step2.name:',
+        wizardData.step2.name
+      );
+      setProjectName(wizardData.step2.name);
+    }
+    // Only run when wizardData.step2.name changes and projectName is not already set, specifically for step 2.
+  }, [wizardData.step2?.name, step]); // Removed projectName from deps to avoid re-running if projectName is set by this effect itself or by cloning effect.
 
   // Handle step 1 submission
   const onStep1Submit = async (values: z.infer<typeof projectMethodSchema>) => {
@@ -514,8 +637,8 @@ export function ProjectWizard({
                         existingProjects?.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.name} (
-                            {project.source_language.english_name} →{' '}
-                            {project.target_language.english_name})
+                            {project.source_language[0]?.english_name} →{' '}
+                            {project.target_language[0]?.english_name})
                           </SelectItem>
                         ))
                       )}
@@ -626,19 +749,30 @@ export function ProjectWizard({
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    <LanguageCombobox
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select source language"
-                      disabled={wizardData.step1?.method === 'clone'}
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
-                      onCreateSuccess={handleLanguageCreated}
-                    />
+                    {(function () {
+                      console.log(
+                        '[ProjectWizard - renderStep2] Source LanguageCombobox value:',
+                        field.value
+                      );
+                      console.log(
+                        '[ProjectWizard - renderStep2] Source LanguageCombobox wizardData.step2.source_language_id:',
+                        wizardData.step2?.source_language_id
+                      );
+                      return (
+                        <LanguageCombobox
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select source language"
+                          languages={(languages as Language[]) || []}
+                          isLoading={languagesLoading}
+                          onCreateSuccess={handleLanguageCreated}
+                        />
+                      );
+                    })()}
                   </FormControl>
                   <FormDescription>
                     {wizardData.step1?.method === 'clone'
-                      ? 'Source language is inherited from the template project.'
+                      ? "Defaults to the cloned project's source language, but can be changed."
                       : 'The original language of the content.'}
                   </FormDescription>
                   <FormMessage />

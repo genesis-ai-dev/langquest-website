@@ -459,7 +459,7 @@ function AdminContent() {
             </DialogHeader>
             <ProjectWizard
               onSuccess={handleProjectCreated}
-              projectToCloneId={projectToClone}
+              projectToClone={projectToClone}
             />
           </DialogContent>
         </Dialog>
