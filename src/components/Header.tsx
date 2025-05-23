@@ -1,17 +1,56 @@
 'use client';
 
 import { Globe, Menu } from 'lucide-react';
-import { buttonVariants } from './ui/button';
+import { buttonVariants, Button } from './ui/button';
 import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import GithubIcon from './icons/github-icon';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import { useAuth } from './auth-provider';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [DEV_ADMIN_MODE, setDEV_ADMIN_MODE] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
   const t = useTranslations('header');
+  const { user } = useAuth();
+
+  // Check localStorage for devAdmin flag when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const devAdmin = localStorage.getItem('devAdmin');
+      if (devAdmin === 'true') {
+        setDEV_ADMIN_MODE(true);
+      }
+    }
+  }, []);
+
+  // Handle logo clicks to toggle dev admin mode
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+
+    // If clicked 5 times in succession, toggle dev admin mode
+    if (newCount >= 5) {
+      const newDevAdminMode = !DEV_ADMIN_MODE;
+      setDEV_ADMIN_MODE(newDevAdminMode);
+      localStorage.setItem('devAdmin', newDevAdminMode.toString());
+      setLogoClickCount(0);
+      toast.success(
+        t('adminMode', {
+          status: newDevAdminMode ? t('enabled') : t('disabled')
+        })
+      );
+    }
+
+    // Reset count after 2 seconds of inactivity
+    setTimeout(() => {
+      setLogoClickCount(0);
+    }, 2000);
+  };
 
   return (
     <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -19,9 +58,15 @@ const Header = () => {
         <Link
           href="/"
           className="flex gap-2 items-center flex-nowrap no-underline font-bold"
+          onClick={handleLogoClick}
         >
           <Globe className="h-6 w-6 text-accent4" />
-          {t('title')}
+          <span className="font-bold text-xl">{t('title')}</span>
+          {DEV_ADMIN_MODE && (
+            <span className="ml-2 text-xs px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded-full">
+              {t('admin')}
+            </span>
+          )}
         </Link>
 
         {/* Mobile Menu Button */}
@@ -55,6 +100,13 @@ const Header = () => {
               >
                 {t('userFriendlyData')}
               </Link>
+              {(!!user || DEV_ADMIN_MODE) && (
+                <Link href="/admin">
+                  <Button variant="outline" className="w-full mt-2">
+                    {!!user ? 'Project Management' : t('adminDashboard')}
+                  </Button>
+                </Link>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -85,6 +137,13 @@ const Header = () => {
           >
             {t('userFriendlyData')}
           </Link>
+          {(!!user || DEV_ADMIN_MODE) && (
+            <Link href="/admin">
+              <Button variant="outline">
+                {!!user ? 'Project Management' : t('admin')}
+              </Button>
+            </Link>
+          )}
         </nav>
       </div>
     </header>

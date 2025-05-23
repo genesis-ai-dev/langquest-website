@@ -50,9 +50,14 @@ export default async function RootLayout({
   const dir = 'ltr';
 
   return (
-    <html className="h-full w-full" lang={locale} dir={dir}>
+    <html
+      className="h-full w-full"
+      lang={locale}
+      dir={dir}
+      suppressHydrationWarning
+    >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider>
           <ClientProviders>{children}</ClientProviders>
