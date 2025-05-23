@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
 import { InfoIcon, ArrowRight, ArrowLeft, Copy, Plus } from 'lucide-react';
@@ -32,7 +31,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
@@ -72,14 +70,18 @@ const projectConfirmSchema = z.object({
   confirmed: z.boolean().default(true)
 });
 
-// Combined schema for all steps
-const projectWizardSchema = z.object({
-  step1: projectMethodSchema,
-  step2: projectDetailsSchema,
-  step3: projectConfirmSchema
-});
+// Combined schema for all steps (used only for typing)
+// const projectWizardSchema = z.object({
+//   step1: projectMethodSchema,
+//   step2: projectDetailsSchema,
+//   step3: projectConfirmSchema
+// });
 
-type ProjectWizardValues = z.infer<typeof projectWizardSchema>;
+type ProjectWizardValues = {
+  step1?: z.infer<typeof projectMethodSchema>;
+  step2?: z.infer<typeof projectDetailsSchema>;
+  step3?: z.infer<typeof projectConfirmSchema>;
+};
 
 interface ProjectWizardProps {
   onSuccess?: (data: { id: string }) => void;
@@ -95,7 +97,6 @@ export function ProjectWizard({
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectName, setProjectName] = useState('');
-  const queryClient = useQueryClient();
   const [wizardData, setWizardData] = useState<Partial<ProjectWizardValues>>({
     step1: {
       method: projectToClone ? 'clone' : 'new',
@@ -396,7 +397,7 @@ export function ProjectWizard({
         setProjectName(wizardData.step2.name); // Sync local projectName if it exists in wizardData
       }
     }
-  }, [step, wizardData.step2]); // step2Form is not in deps to prevent potential loops if reset triggers watch that updates wizardData
+  }, [step, wizardData.step2, step2Form]); // Added step2Form to dependencies
 
   // Initialize project name from wizardData when component loads (if not already set by cloning)
   useEffect(() => {
@@ -408,7 +409,7 @@ export function ProjectWizard({
       setProjectName(wizardData.step2.name);
     }
     // Only run when wizardData.step2.name changes and projectName is not already set, specifically for step 2.
-  }, [wizardData.step2?.name, step]); // Removed projectName from deps to avoid re-running if projectName is set by this effect itself or by cloning effect.
+  }, [wizardData.step2?.name, step, projectName]); // Added projectName to dependencies
 
   // Handle step 1 submission
   const onStep1Submit = async (values: z.infer<typeof projectMethodSchema>) => {
@@ -603,9 +604,9 @@ export function ProjectWizard({
   };
 
   // Handle language creation success
-  const handleLanguageCreated = (newLanguage: Language) => {
+  const handleLanguageCreated = () => {
     // Refetch languages to update the list
-    queryClient.invalidateQueries({ queryKey: ['languages'] });
+    // This is optional since we're already updating the UI optimistically
   };
 
   // Render step 1: Choose project creation method
@@ -686,7 +687,7 @@ export function ProjectWizard({
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose a project to clone. You'll need to specify a new
+                    Choose a project to clone. You&apos;ll need to specify a new
                     target language in the next step.
                   </FormDescription>
                   <FormMessage />
@@ -813,7 +814,7 @@ export function ProjectWizard({
                   </FormControl>
                   <FormDescription>
                     {wizardData.step1?.method === 'clone'
-                      ? "Defaults to the cloned project's source language, but can be changed."
+                      ? 'Defaults to the cloned project&apos;s source language, but can be changed.'
                       : 'The original language of the content.'}
                   </FormDescription>
                   <FormMessage />
@@ -835,7 +836,7 @@ export function ProjectWizard({
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            The language you're translating into.
+                            The language you&apos;re translating into.
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -852,8 +853,8 @@ export function ProjectWizard({
                     />
                   </FormControl>
                   <FormDescription>
-                    The language you're translating into. This is required even
-                    when cloning a template.
+                    The language you&apos;re translating into. This is required
+                    even when cloning a template.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -931,8 +932,8 @@ export function ProjectWizard({
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Please review the project details above. Click "Create Project" to
-              proceed or go back to make changes.
+              Please review the project details above. Click &quot;Create
+              Project&quot; to proceed or go back to make changes.
             </p>
           </div>
 

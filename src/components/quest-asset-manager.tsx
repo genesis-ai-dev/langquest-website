@@ -7,17 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
-import {
-  Search,
-  Plus,
-  Check,
-  X,
-  Filter,
-  ListFilter,
-  Tag,
-  Image,
-  FileText
-} from 'lucide-react';
+import { Search, Plus, X, Filter, ListFilter, FileText } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -41,19 +31,9 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
-  SheetClose
+  SheetTrigger
 } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
-} from '@/components/ui/command';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -555,8 +535,8 @@ export function QuestAssetManager({
             </div>
           ) : linkedAssets?.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              No assets added to this quest yet. Click "Manage Assets" to add
-              some.
+              No assets added to this quest yet. Click &quot;Manage Assets&quot;
+              to add some.
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

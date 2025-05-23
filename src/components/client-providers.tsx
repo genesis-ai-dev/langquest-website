@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { ThemeProvider } from 'next-themes';
@@ -19,13 +18,7 @@ const queryClient = new QueryClient({
   }
 });
 
-export function ClientProviders({
-  children,
-  pageProps
-}: {
-  children: React.ReactNode;
-  pageProps?: any; // pageProps might be passed if using an older Next.js pattern or for specific needs
-}) {
+export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <NuqsAdapter>
       <QueryClientProvider client={queryClient}>

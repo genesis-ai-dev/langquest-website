@@ -20,7 +20,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
-import { Switch } from '@/components/ui/switch';
 import { InfoIcon } from 'lucide-react';
 import {
   Tooltip,
@@ -68,7 +67,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   });
 
   // Handle language creation success
-  const handleLanguageCreated = (newLanguage: Language) => {
+  const handleLanguageCreated = () => {
     // Refetch languages to update the list
     // This is optional since we're already updating the UI optimistically
   };
@@ -185,7 +184,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                 />
               </FormControl>
               <FormDescription>
-                Provide details about the project's purpose and goals.
+                Provide details about the project&apos;s purpose and goals.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -245,7 +244,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
-                          The language you're translating into.
+                          The language you&apos;re translating into.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -262,7 +261,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                   />
                 </FormControl>
                 <FormDescription>
-                  The language you're translating into.
+                  The language you&apos;re translating into.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

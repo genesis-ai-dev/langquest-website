@@ -19,7 +19,6 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Spinner } from './spinner';
 
@@ -195,7 +194,7 @@ export function LanguageCombobox({
                       ) : (
                         <>
                           <Plus className="mr-2 h-4 w-4" />
-                          Create "{inputValue}"
+                          Create &quot;{inputValue}&quot;
                         </>
                       )}
                     </CommandItem>
