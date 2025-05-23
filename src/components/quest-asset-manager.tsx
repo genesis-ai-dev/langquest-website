@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { env } from '@/lib/env';
 
 interface QuestAssetManagerProps {
   questId: string;
@@ -548,7 +549,22 @@ export function QuestAssetManager({
                   {(link.asset as any).images ? (
                     <div className="aspect-video w-full overflow-hidden bg-muted">
                       <img
-                        src={JSON.parse((link.asset as any).images)[0] || ''}
+                        src={(() => {
+                          try {
+                            const imagePaths = JSON.parse(
+                              (link.asset as any).images
+                            );
+                            if (imagePaths && imagePaths.length > 0) {
+                              return supabase.storage
+                                .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                                .getPublicUrl(imagePaths[0]).data.publicUrl;
+                            }
+                            return '';
+                          } catch (error) {
+                            console.error('Error parsing image paths:', error);
+                            return '';
+                          }
+                        })()}
                         alt={(link.asset as any).name}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
