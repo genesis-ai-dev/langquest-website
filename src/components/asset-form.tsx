@@ -959,9 +959,15 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                     }}
                                   >
                                     {quest.name} (
-                                                                         {(quest.project as any).source_language?.english_name}{' '}
-                                     →{' '}
-                                     {(quest.project as any).target_language?.english_name}
+                                    {
+                                      (quest.project as any).source_language
+                                        ?.english_name
+                                    }{' '}
+                                    →{' '}
+                                    {
+                                      (quest.project as any).target_language
+                                        ?.english_name
+                                    }
                                     )
                                     {selectedQuests.includes(quest.id) && (
                                       <CheckIcon className="ml-1 h-3 w-3" />

@@ -66,12 +66,14 @@ export function QuestForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project')
-        .select(`
+        .select(
+          `
           id, 
           name, 
           source_language:source_language_id(english_name), 
           target_language:target_language_id(english_name)
-        `)
+        `
+        )
         .order('name');
 
       if (error) throw error;
@@ -253,7 +255,8 @@ export function QuestForm({
                 <SelectContent>
                   {projects?.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
-                      {project.name} ({(project.source_language as any)?.english_name} →{' '}
+                      {project.name} (
+                      {(project.source_language as any)?.english_name} →{' '}
                       {(project.target_language as any)?.english_name})
                     </SelectItem>
                   ))}
