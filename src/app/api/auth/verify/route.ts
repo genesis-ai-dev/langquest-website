@@ -1,6 +1,7 @@
 import { env } from '@/lib/env';
 import { getSupabaseEnvironment } from '@/lib/supabase';
 import { createClient } from '@/lib/supabase/server';
+import { AuthError } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -45,8 +46,14 @@ export async function GET(request: NextRequest) {
 
     // Default redirect to home page if no redirect URL is provided
     return NextResponse.redirect(new URL('/', request.url));
-  } catch (error) {
+  } catch (error: AuthError | unknown) {
     console.error('Verification error:', error);
-    return NextResponse.json({ error: 'Verification failed' }, { status: 400 });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof AuthError ? error.message : 'Verification failed'
+      },
+      { status: 400 }
+    );
   }
 }
