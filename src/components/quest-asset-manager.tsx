@@ -94,8 +94,8 @@ export function QuestAssetManager({
           project:project_id(
             id,
             name,
-            source_language:language!source_language_id(english_name),
-            target_language:language!target_language_id(english_name)
+            source_language:source_language_id(english_name),
+            target_language:target_language_id(english_name)
           )
         `
         )
@@ -126,7 +126,7 @@ export function QuestAssetManager({
             id,
             name,
             images,
-            source_language:language!source_language_id(english_name),
+            source_language:source_language_id(english_name),
             content:asset_content_link(id, text),
             tags:asset_tag_link(
               tag:tag_id(id, name)
@@ -154,7 +154,7 @@ export function QuestAssetManager({
           id,
           name,
           images,
-          source_language:language!source_language_id(english_name),
+          source_language:source_language_id(english_name),
           content:asset_content_link(id, text),
           tags:asset_tag_link(
             tag:tag_id(id, name)
@@ -419,7 +419,7 @@ export function QuestAssetManager({
                     </TableCell>
                     <TableCell className="py-2 group cursor-pointer">
                       <div className="truncate group-hover:whitespace-normal">
-                        {asset.source_language.english_name}
+                        {(asset as any).source_language?.english_name}
                       </div>
                     </TableCell>
                     <TableCell className="py-2">
@@ -489,8 +489,8 @@ export function QuestAssetManager({
         <div>
           <h2 className="text-xl font-semibold">{quest.name}</h2>
           <p className="text-sm text-muted-foreground">
-            {quest.project.source_language.english_name} →{' '}
-            {quest.project.target_language.english_name}
+            {quest.project?.source_language?.english_name} →{' '}
+            {quest.project?.target_language?.english_name}
           </p>
         </div>
 
@@ -565,11 +565,11 @@ export function QuestAssetManager({
                   key={link.asset_id}
                   className="overflow-hidden h-full flex flex-col group hover:shadow-md transition-shadow"
                 >
-                  {link.asset.images ? (
+                  {(link.asset as any).images ? (
                     <div className="aspect-video w-full overflow-hidden bg-muted">
                       <img
-                        src={JSON.parse(link.asset.images)[0] || ''}
-                        alt={link.asset.name}
+                        src={JSON.parse((link.asset as any).images)[0] || ''}
+                        alt={(link.asset as any).name}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
@@ -584,44 +584,48 @@ export function QuestAssetManager({
                   )}
                   <CardHeader className="p-4">
                     <CardTitle className="text-lg line-clamp-1">
-                      {link.asset.name}
+                      {(link.asset as any).name}
                     </CardTitle>
                     <CardDescription className="flex items-center gap-1">
                       <Badge variant="outline" className="font-normal">
-                        {link.asset.source_language.english_name}
+                        {(link.asset as any).source_language?.english_name}
                       </Badge>
-                      {link.asset.content && link.asset.content.length > 0 && (
-                        <Badge variant="secondary" className="font-normal">
-                          <FileText className="h-3 w-3 mr-1" /> Text
-                        </Badge>
-                      )}
+                      {(link.asset as any).content &&
+                        (link.asset as any).content.length > 0 && (
+                          <Badge variant="secondary" className="font-normal">
+                            <FileText className="h-3 w-3 mr-1" /> Text
+                          </Badge>
+                        )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 flex-grow">
                     <p className="text-sm text-muted-foreground line-clamp-3">
-                      {getAssetPreview(link.asset)}
+                      {getAssetPreview(link.asset as any)}
                     </p>
                   </CardContent>
-                  {link.asset.tags && link.asset.tags.length > 0 && (
-                    <CardFooter className="p-4 pt-0">
-                      <div className="flex flex-wrap gap-1">
-                        {link.asset.tags.slice(0, 3).map((tagLink: any) => (
-                          <Badge
-                            key={tagLink.tag.id}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {tagLink.tag.name}
-                          </Badge>
-                        ))}
-                        {link.asset.tags.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{link.asset.tags.length - 3} more
-                          </Badge>
-                        )}
-                      </div>
-                    </CardFooter>
-                  )}
+                  {(link.asset as any).tags &&
+                    (link.asset as any).tags.length > 0 && (
+                      <CardFooter className="p-4 pt-0">
+                        <div className="flex flex-wrap gap-1">
+                          {(link.asset as any).tags
+                            .slice(0, 3)
+                            .map((tagLink: any) => (
+                              <Badge
+                                key={tagLink.tag.id}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {tagLink.tag.name}
+                              </Badge>
+                            ))}
+                          {(link.asset as any).tags.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{(link.asset as any).tags.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </CardFooter>
+                    )}
                 </Card>
               ))}
             </div>

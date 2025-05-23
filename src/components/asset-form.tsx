@@ -22,7 +22,7 @@ import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+// import { cn } from '@/lib/utils';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
@@ -68,9 +68,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   const [contentItems, setContentItems] = useState<
     { text: string; audio_id?: string }[]
   >(initialData?.content || [{ text: '', audio_id: undefined }]);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-    {}
-  );
+  // const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
+  //   {}
+  // );
 
   // Fetch tags for the multi-select
   const { data: tags, isLoading: tagsLoading } = useQuery({
@@ -99,8 +99,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           project:project_id(
             id, 
             name, 
-            source_language:language!source_language_id(english_name), 
-            target_language:language!target_language_id(english_name)
+            source_language:source_language_id(english_name), 
+            target_language:target_language_id(english_name)
           )
         `
         )
@@ -127,8 +127,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           project:project_id(
             id, 
             name, 
-            source_language:language!source_language_id(english_name), 
-            target_language:language!target_language_id(english_name)
+            source_language:source_language_id(english_name), 
+            target_language:target_language_id(english_name)
           )
         `
         )
@@ -141,20 +141,20 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     enabled: !!questId
   });
 
-  // Fetch English language ID
-  const { data: englishLanguage } = useQuery({
-    queryKey: ['language', 'english'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('language')
-        .select('id')
-        .eq('iso639_3', 'eng')
-        .single();
+  // Fetch English language ID - commenting out unused for now
+  // const { data: englishLanguage } = useQuery({
+  //   queryKey: ['language', 'english'],
+  //   queryFn: async () => {
+  //     const { data, error } = await supabase
+  //       .from('language')
+  //       .select('id')
+  //       .eq('iso639_3', 'eng')
+  //       .single();
 
-      if (error) throw error;
-      return data;
-    }
-  });
+  //     if (error) throw error;
+  //     return data;
+  //   }
+  // });
 
   // Set up form with default values
   const form = useForm<AssetFormValues>({
@@ -238,7 +238,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       if (images.length > 0) {
         for (const image of images) {
           const fileName = `${Date.now()}-${image.name}`;
-          setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
+          // setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
 
           // Simple upload without progress tracking
           const { data: uploadData, error: uploadError } =
@@ -250,10 +250,10 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           uploadedImagePaths.push(uploadData.path);
 
           // Update progress manually after upload completes
-          setUploadProgress((prev) => ({
-            ...prev,
-            [fileName]: 100
-          }));
+          // setUploadProgress((prev) => ({
+          //   ...prev,
+          //   [fileName]: 100
+          // }));
         }
       }
 
@@ -268,7 +268,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       for (const [indexStr, file] of Object.entries(audioFiles)) {
         const index = parseInt(indexStr);
         const fileName = `${Date.now()}-${file.name}`;
-        setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
+        // setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
@@ -280,10 +280,10 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         }
 
         // Update progress manually after upload completes
-        setUploadProgress((prev) => ({
-          ...prev,
-          [fileName]: 100
-        }));
+        // setUploadProgress((prev) => ({
+        //   ...prev,
+        //   [fileName]: 100
+        // }));
       }
 
       let assetId: string;
@@ -335,8 +335,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
               .eq('id', selectedQuestId)
               .single();
 
-            if (!questError && questData?.project?.source_language_id) {
-              sourceLanguageId = questData.project.source_language_id;
+            if (
+              !questError &&
+              questData?.project &&
+              'source_language_id' in questData.project
+            ) {
+              sourceLanguageId = (questData.project as any).source_language_id;
 
               // Create new asset with the language ID from the quest
               const { data, error } = await supabase
@@ -561,7 +565,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       }
     } finally {
       setIsSubmitting(false);
-      setUploadProgress({});
+      // setUploadProgress({});
     }
   }
 
@@ -955,9 +959,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                     }}
                                   >
                                     {quest.name} (
-                                    {quest.project.source_language.english_name}{' '}
-                                    →{' '}
-                                    {quest.project.target_language.english_name}
+                                                                         {(quest.project as any).source_language?.english_name}{' '}
+                                     →{' '}
+                                     {(quest.project as any).target_language?.english_name}
                                     )
                                     {selectedQuests.includes(quest.id) && (
                                       <CheckIcon className="ml-1 h-3 w-3" />

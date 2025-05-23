@@ -1,6 +1,6 @@
 'use client';
 
-import { ProjectForm } from '@/components/project-form';
+// import { ProjectForm } from '@/components/project-form';
 import { QuestForm } from '@/components/quest-form';
 import { AssetForm } from '@/components/asset-form';
 import { ProjectWizard } from '@/components/project-wizard';
@@ -10,8 +10,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-  CardFooter
+  CardTitle
+  // CardFooter
 } from '@/components/ui/card';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
@@ -21,7 +21,7 @@ import { PlusCircle, Copy, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
-import Link from 'next/link';
+// import Link from 'next/link';
 import { QuestAssetManager } from '@/components/quest-asset-manager';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -32,7 +32,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { useAuth } from '@/components/auth-provider';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 
@@ -64,7 +64,7 @@ function AdminContent() {
     useState<string>('Unnamed Quest');
   const [projectToClone, setProjectToClone] = useState<string | null>(null);
   const { user, signOut, isLoading } = useAuth();
-  const router = useRouter();
+  // const router = useRouter();
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -113,8 +113,8 @@ function AdminContent() {
           id, 
           name, 
           description,
-          source_language:language!source_language_id(english_name), 
-          target_language:language!target_language_id(english_name),
+          source_language:source_language_id(english_name), 
+          target_language:target_language_id(english_name),
           quests:quest(id)
         `
         )
@@ -319,10 +319,12 @@ function AdminContent() {
                             {project.description}
                           </p>
                           <p className="text-sm">
-                            Source: {project.source_language?.english_name}
+                            Source:{' '}
+                            {(project.source_language as any)?.english_name}
                           </p>
                           <p className="text-sm">
-                            Target: {project.target_language?.english_name}
+                            Target:{' '}
+                            {(project.target_language as any)?.english_name}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -422,20 +424,13 @@ function AdminContent() {
             {selectedQuestId ? (
               <QuestAssetManager
                 questId={selectedQuestId}
-                questName={selectedQuestName}
-                projectId={selectedProjectId!}
-                onAssetCreated={handleAssetSuccess}
-                onAssetUpdated={handleAssetSuccess}
+                onSuccess={handleAssetSuccess}
                 onAddNewAsset={() => {
                   if (selectedQuestId) {
                     setShowAssetForm(true);
                   } else {
                     toast.error('Please select a quest first.');
                   }
-                }}
-                onBack={() => {
-                  setSelectedQuestId(null);
-                  setActiveTab('quests');
                 }}
               />
             ) : (
@@ -459,7 +454,7 @@ function AdminContent() {
             </DialogHeader>
             <ProjectWizard
               onSuccess={handleProjectCreated}
-              projectToClone={projectToClone}
+              projectToClone={projectToClone || undefined}
             />
           </DialogContent>
         </Dialog>

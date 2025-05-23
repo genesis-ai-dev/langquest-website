@@ -8,32 +8,32 @@ import { useState, useEffect } from 'react';
  * @returns Boolean indicating if the media query matches
  */
 export function useMediaQuery(query: string): boolean {
-    const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(false);
 
-    useEffect(() => {
-        // Check if window is available (client-side)
-        if (typeof window === 'undefined') {
-            return;
-        }
+  useEffect(() => {
+    // Check if window is available (client-side)
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-        const media = window.matchMedia(query);
+    const media = window.matchMedia(query);
 
-        // Set initial value
-        setMatches(media.matches);
+    // Set initial value
+    setMatches(media.matches);
 
-        // Create listener function
-        const listener = (event: MediaQueryListEvent) => {
-            setMatches(event.matches);
-        };
+    // Create listener function
+    const listener = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
 
-        // Add listener
-        media.addEventListener('change', listener);
+    // Add listener
+    media.addEventListener('change', listener);
 
-        // Clean up
-        return () => {
-            media.removeEventListener('change', listener);
-        };
-    }, [query]);
+    // Clean up
+    return () => {
+      media.removeEventListener('change', listener);
+    };
+  }, [query]);
 
-    return matches;
-} 
+  return matches;
+}
