@@ -489,8 +489,8 @@ export function QuestAssetManager({
         <div>
           <h2 className="text-xl font-semibold">{quest.name}</h2>
           <p className="text-sm text-muted-foreground">
-            {quest.project?.source_language?.english_name} →{' '}
-            {quest.project?.target_language?.english_name}
+            {(quest.project as any)?.source_language?.english_name} →{' '}
+            {(quest.project as any)?.target_language?.english_name}
           </p>
         </div>
 
