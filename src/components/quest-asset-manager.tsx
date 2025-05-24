@@ -39,6 +39,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { env } from '@/lib/env';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious
+} from '@/components/ui/carousel';
 
 interface QuestAssetManagerProps {
   questId: string;
@@ -547,32 +554,92 @@ export function QuestAssetManager({
                   className="overflow-hidden h-full flex flex-col group hover:shadow-md transition-shadow"
                 >
                   {(link.asset as any).images ? (
-                    <div className="aspect-video w-full overflow-hidden bg-muted">
-                      <img
-                        src={(() => {
-                          try {
-                            const imagePaths = JSON.parse(
-                              (link.asset as any).images
+                    (() => {
+                      try {
+                        const imagePaths = JSON.parse(
+                          (link.asset as any).images
+                        );
+                        if (imagePaths && imagePaths.length > 0) {
+                          // If only one image, show it directly
+                          if (imagePaths.length === 1) {
+                            return (
+                              <div className="aspect-video w-full overflow-hidden bg-muted">
+                                <img
+                                  src={
+                                    supabase.storage
+                                      .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                                      .getPublicUrl(imagePaths[0]).data
+                                      .publicUrl
+                                  }
+                                  alt={(link.asset as any).name}
+                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      'https://placehold.co/600x400?text=No+Image';
+                                  }}
+                                />
+                              </div>
                             );
-                            if (imagePaths && imagePaths.length > 0) {
-                              return supabase.storage
-                                .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-                                .getPublicUrl(imagePaths[0]).data.publicUrl;
-                            }
-                            return '';
-                          } catch (error) {
-                            console.error('Error parsing image paths:', error);
-                            return '';
                           }
-                        })()}
-                        alt={(link.asset as any).name}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://placehold.co/600x400?text=No+Image';
-                        }}
-                      />
-                    </div>
+
+                          // If multiple images, show carousel
+                          return (
+                            <div className="aspect-video w-full overflow-hidden bg-muted relative">
+                              <Carousel
+                                opts={{ loop: true }}
+                                className="h-full"
+                              >
+                                <CarouselContent className="h-full">
+                                  {imagePaths.map(
+                                    (imagePath: string, index: number) => (
+                                      <CarouselItem
+                                        key={index}
+                                        className="h-full"
+                                      >
+                                        <img
+                                          src={
+                                            supabase.storage
+                                              .from(
+                                                env.NEXT_PUBLIC_SUPABASE_BUCKET
+                                              )
+                                              .getPublicUrl(imagePath).data
+                                              .publicUrl
+                                          }
+                                          alt={`${(link.asset as any).name} - Image ${index + 1}`}
+                                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src =
+                                              'https://placehold.co/600x400?text=No+Image';
+                                          }}
+                                        />
+                                      </CarouselItem>
+                                    )
+                                  )}
+                                </CarouselContent>
+                                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-6 w-6" />
+                                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6" />
+                              </Carousel>
+                              {/* Image counter badge */}
+                              <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                {imagePaths.length} images
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="aspect-video w-full flex items-center justify-center bg-muted/50">
+                            <FileText className="h-12 w-12 text-muted-foreground/50" />
+                          </div>
+                        );
+                      } catch (error) {
+                        console.error('Error parsing image paths:', error);
+                        return (
+                          <div className="aspect-video w-full flex items-center justify-center bg-muted/50">
+                            <FileText className="h-12 w-12 text-muted-foreground/50" />
+                          </div>
+                        );
+                      }
+                    })()
                   ) : (
                     <div className="aspect-video w-full flex items-center justify-center bg-muted/50">
                       <FileText className="h-12 w-12 text-muted-foreground/50" />
