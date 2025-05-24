@@ -572,7 +572,7 @@ export function QuestAssetManager({
                                       .publicUrl
                                   }
                                   alt={(link.asset as any).name}
-                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  className="h-full w-full object-contain object-center group-hover:scale-105 transition-transform duration-300"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src =
                                       'https://placehold.co/600x400?text=No+Image';
@@ -606,7 +606,7 @@ export function QuestAssetManager({
                                               .publicUrl
                                           }
                                           alt={`${(link.asset as any).name} - Image ${index + 1}`}
-                                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                          className="h-full w-full object-contain object-center group-hover:scale-105 transition-transform duration-300"
                                           onError={(e) => {
                                             (e.target as HTMLImageElement).src =
                                               'https://placehold.co/600x400?text=No+Image';
