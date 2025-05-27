@@ -227,7 +227,9 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
               );
             }
             sourceLanguageId = sourceLang.id;
-            languageCache.set(row.source_language, sourceLanguageId);
+            if (sourceLanguageId) {
+              languageCache.set(row.source_language, sourceLanguageId);
+            }
           }
 
           if (!targetLanguageId) {
@@ -243,7 +245,14 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
               );
             }
             targetLanguageId = targetLang.id;
-            languageCache.set(row.target_language, targetLanguageId);
+            if (targetLanguageId) {
+              languageCache.set(row.target_language, targetLanguageId);
+            }
+          }
+
+          // At this point, both language IDs are guaranteed to be strings
+          if (!sourceLanguageId || !targetLanguageId) {
+            throw new Error('Language IDs could not be resolved');
           }
 
           // Check if project already exists
@@ -272,6 +281,10 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             if (projectError) throw projectError;
             projectId = project.id;
           }
+
+          if (!projectId) {
+            throw new Error('Project ID could not be resolved');
+          }
           projectMap.set(row.project_name, projectId);
         }
 
@@ -279,6 +292,10 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
         const questKey = `${row.project_name}:${row.quest_name}`;
         let questId = questMap.get(questKey);
         if (!questId) {
+          if (!projectId) {
+            throw new Error('Project ID is required to create quest');
+          }
+
           const { data: quest, error: questError } = await supabase
             .from('quest')
             .insert({
@@ -291,6 +308,10 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
 
           if (questError) throw questError;
           questId = quest.id;
+
+          if (!questId) {
+            throw new Error('Quest ID could not be resolved');
+          }
           questMap.set(questKey, questId);
 
           // Handle quest tags
@@ -328,7 +349,12 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
         }
 
         // Create asset
-        const sourceLanguageId = languageCache.get(row.source_language)!;
+        const sourceLanguageId = languageCache.get(row.source_language);
+        if (!sourceLanguageId) {
+          throw new Error(
+            `Source language ID not found for '${row.source_language}'`
+          );
+        }
         const { data: asset, error: assetError } = await supabase
           .from('asset')
           .insert({
