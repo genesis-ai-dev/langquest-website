@@ -46,6 +46,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
+import { BulkUpload } from '@/components/bulk-upload';
 
 interface QuestAssetManagerProps {
   questId: string;
@@ -64,6 +65,7 @@ export function QuestAssetManager({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // Check if the device is mobile
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -487,6 +489,10 @@ export function QuestAssetManager({
             <Plus className="mr-2 h-4 w-4" />
             Create New Asset
           </Button>
+          <Button variant="outline" onClick={() => setShowBulkUpload(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Bulk Upload Assets
+          </Button>
           <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
             <SheetTrigger asChild>
               <Button>
@@ -695,6 +701,40 @@ export function QuestAssetManager({
           )}
         </CardContent>
       </Card>
+
+      {/* Bulk Upload Dialog */}
+      <Sheet open={showBulkUpload} onOpenChange={setShowBulkUpload}>
+        <SheetContent
+          side={isMobile ? 'bottom' : 'right'}
+          className={`p-6 flex flex-col overflow-hidden ${
+            isMobile
+              ? 'h-[95vh] sm:h-[90vh]'
+              : 'w-[95vw] max-w-[1000px] !right-0 !left-auto'
+          }`}
+          style={!isMobile ? { width: '95vw', maxWidth: '1000px' } : undefined}
+        >
+          <SheetHeader className="mb-4">
+            <SheetTitle>Bulk Upload Assets</SheetTitle>
+            <SheetDescription>
+              Upload multiple assets to this quest using a CSV file.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-hidden">
+            <BulkUpload
+              mode="quest"
+              questId={questId}
+              onSuccess={() => {
+                setShowBulkUpload(false);
+                refetchLinkedAssets();
+                if (onSuccess) {
+                  onSuccess();
+                }
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

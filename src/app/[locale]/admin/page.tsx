@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
 // import Link from 'next/link';
 import { QuestAssetManager } from '@/components/quest-asset-manager';
+import { BulkUpload } from '@/components/bulk-upload';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -270,7 +271,7 @@ function AdminContent() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="projects" disabled={!!selectedQuestId}>
               Projects
             </TabsTrigger>
@@ -283,6 +284,7 @@ function AdminContent() {
             <TabsTrigger value="assets" disabled={!selectedQuestId}>
               Assets
             </TabsTrigger>
+            <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
           </TabsList>
 
           {/* Projects Tab */}
@@ -436,6 +438,60 @@ function AdminContent() {
             ) : (
               <p>Please select a quest to manage its assets.</p>
             )}
+          </TabsContent>
+
+          {/* Bulk Upload Tab */}
+          <TabsContent value="bulk-upload">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bulk Upload</CardTitle>
+                <CardDescription>
+                  Upload multiple projects or assets using CSV files
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="project-upload" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="project-upload">
+                      Project Upload
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="quest-upload"
+                      disabled={!selectedQuestId}
+                    >
+                      Quest Asset Upload
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="project-upload" className="mt-6">
+                    <BulkUpload
+                      mode="project"
+                      onSuccess={() => {
+                        refetchProjects();
+                        toast.success('Projects uploaded successfully!');
+                      }}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="quest-upload" className="mt-6">
+                    {selectedQuestId ? (
+                      <BulkUpload
+                        mode="quest"
+                        questId={selectedQuestId}
+                        onSuccess={() => {
+                          handleAssetSuccess();
+                          toast.success('Assets uploaded successfully!');
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Please select a quest first to upload assets
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
