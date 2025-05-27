@@ -34,12 +34,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get the initial session
     const getInitialSession = async () => {
       try {
-        console.log('Getting initial session');
+        console.log('[AUTH PROVIDER] Getting initial session');
         const {
           data: { session }
         } = await supabase.auth.getSession();
 
-        console.log('Session:', session ? 'Found' : 'Not found');
+        console.log(
+          '[AUTH PROVIDER] Session:',
+          session ? 'Found' : 'Not found'
+        );
+        console.log('[AUTH PROVIDER] Session user:', session?.user?.email);
 
         if (mounted) {
           setSession(session);
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsInitialized(true);
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('[AUTH PROVIDER] Error getting initial session:', error);
         if (mounted) {
           setIsLoading(false);
           setIsInitialized(true);
@@ -62,7 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', _event);
+      console.log('[AUTH PROVIDER] Auth state changed:', _event);
+      console.log(
+        '[AUTH PROVIDER] New session:',
+        session ? 'Found' : 'Not found'
+      );
+      console.log('[AUTH PROVIDER] New session user:', session?.user?.email);
 
       if (mounted) {
         setSession(session);
@@ -79,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      console.log('[AUTH PROVIDER] Signing out');
       setIsLoading(true);
       await supabase.auth.signOut();
       setUser(null);
@@ -86,10 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // After signing out, redirect to home page
       if (pathname !== '/') {
+        console.log('[AUTH PROVIDER] Redirecting to home after signout');
         window.location.href = '/';
       }
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('[AUTH PROVIDER] Error signing out:', error);
     } finally {
       setIsLoading(false);
     }

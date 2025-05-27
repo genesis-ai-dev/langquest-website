@@ -8,10 +8,22 @@ import { createClient } from '@supabase/supabase-js';
 const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
 export default async function middleware(request: NextRequest) {
-  console.log('Middleware hit. Pathname:', request.nextUrl.pathname);
+  console.log('[MIDDLEWARE] Hit. Pathname:', request.nextUrl.pathname);
+  console.log('[MIDDLEWARE] Full URL:', request.url);
+  console.log(
+    '[MIDDLEWARE] Search params:',
+    request.nextUrl.searchParams.toString()
+  );
+
+  // Special handling for auth verification routes
+  if (request.nextUrl.pathname.startsWith('/api/auth/verify')) {
+    console.log('[MIDDLEWARE] Auth verify route detected, passing through');
+    return NextResponse.next();
+  }
+
   const responseFromIntl = await nextIntlMiddleware(request);
   console.log(
-    'Response from nextIntlMiddleware for',
+    '[MIDDLEWARE] Response from nextIntlMiddleware for',
     request.nextUrl.pathname,
     ':',
     responseFromIntl.status,
