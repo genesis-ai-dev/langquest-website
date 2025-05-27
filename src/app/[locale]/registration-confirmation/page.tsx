@@ -26,27 +26,51 @@ function RegistrationConfirmation() {
   const [error, setError] = useState('');
 
   const handleRegistrationConfirmation = useCallback(async () => {
+    console.log('[REGISTRATION CONFIRMATION] Starting confirmation process');
+    console.log(
+      '[REGISTRATION CONFIRMATION] Current URL:',
+      window.location.href
+    );
+
     const { params } = getQueryParams(window.location.href);
+    console.log('[REGISTRATION CONFIRMATION] Query params:', params);
 
     const error = params.error;
     const error_code = params.error_code;
     const error_description = params.error_description;
 
-    console.log('error', error);
-    console.log('error_code', error_code);
-    console.log('error_description', error_description);
+    console.log('[REGISTRATION CONFIRMATION] error:', error);
+    console.log('[REGISTRATION CONFIRMATION] error_code:', error_code);
+    console.log(
+      '[REGISTRATION CONFIRMATION] error_description:',
+      error_description
+    );
 
     if (error) {
+      console.log(
+        '[REGISTRATION CONFIRMATION] Error found, setting error message'
+      );
       setMessage(error_description);
       setError('red');
       return;
     }
 
     if (isMobile()) {
+      console.log('[REGISTRATION CONFIRMATION] Mobile device detected');
       const access_token = params.access_token;
       const refresh_token = params.refresh_token;
 
+      console.log(
+        '[REGISTRATION CONFIRMATION] access_token exists:',
+        !!access_token
+      );
+      console.log(
+        '[REGISTRATION CONFIRMATION] refresh_token exists:',
+        !!refresh_token
+      );
+
       if (!params.access_token || !params.refresh_token) {
+        console.log('[REGISTRATION CONFIRMATION] Missing tokens');
         setMessage(t('missing_params'));
         setError('red');
         return;
@@ -57,17 +81,23 @@ function RegistrationConfirmation() {
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
+      console.log('[REGISTRATION CONFIRMATION] Creating deep link:', deepLink);
+
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.src = deepLink;
       document.body.appendChild(iframe);
 
       setTimeout(() => {
+        console.log('[REGISTRATION CONFIRMATION] Redirecting to Play Store');
         window.location.href = playStoreUrl;
       }, 5000);
 
       window.location.href = deepLink;
     } else {
+      console.log(
+        '[REGISTRATION CONFIRMATION] Desktop device, showing success message'
+      );
       setMessage(t('success_message'));
     }
   }, [t]);

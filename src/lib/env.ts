@@ -28,3 +28,19 @@ export const env = createEnv({
   },
   skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === 'lint'
 });
+
+console.log('[ENV] Environment variables loaded:');
+console.log('[ENV] NEXT_PUBLIC_SITE_URL:', env.NEXT_PUBLIC_SITE_URL);
+console.log('[ENV] NEXT_PUBLIC_SUPABASE_URL:', env.NEXT_PUBLIC_SUPABASE_URL);
+console.log(
+  '[ENV] NEXT_PUBLIC_SUPABASE_ANON_KEY exists:',
+  !!env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+console.log(
+  '[ENV] NEXT_PUBLIC_SUPABASE_PREVIEW_URL:',
+  env.NEXT_PUBLIC_SUPABASE_PREVIEW_URL
+);
+console.log(
+  '[ENV] NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY exists:',
+  !!env.NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY
+);
