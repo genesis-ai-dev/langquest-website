@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -37,6 +38,8 @@ export default function LoginPage() {
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   // const router = useRouter();
@@ -102,6 +105,12 @@ function LoginForm() {
     // Prevent multiple submissions
     if (isLoading || redirecting) return;
 
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      toast.error('Please accept the terms and conditions to continue');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -110,6 +119,11 @@ function LoginForm() {
         email,
         password,
         options: {
+          data: {
+            username: username,
+            terms_accepted: termsAccepted,
+            terms_accepted_at: new Date().toISOString()
+          },
           emailRedirectTo: `${window.location.origin}/login?redirectTo=${redirectTo}`
         }
       });
@@ -202,6 +216,18 @@ function LoginForm() {
             <TabsContent value="register">
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
                 <div className="space-y-2">
+                  <Label htmlFor="register-username">Username</Label>
+                  <Input
+                    id="register-username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    disabled={isLoading || redirecting}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="register-email">Email</Label>
                   <Input
                     id="register-email"
@@ -227,6 +253,34 @@ function LoginForm() {
                   <p className="text-xs text-muted-foreground">
                     Password must be at least 6 characters
                   </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) =>
+                      setTermsAccepted(checked as boolean)
+                    }
+                    disabled={isLoading || redirecting}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I agree to the{' '}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      className="text-primary hover:underline"
+                    >
+                      Terms and Conditions
+                    </a>{' '}
+                    and{' '}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      className="text-primary hover:underline"
+                    >
+                      Privacy Policy
+                    </a>
+                  </Label>
                 </div>
                 <Button
                   type="submit"
