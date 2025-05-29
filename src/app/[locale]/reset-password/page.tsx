@@ -43,6 +43,7 @@ function ErrorMessage({
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
+  console.log('project_ref', searchParams.get('project_ref'));
   const supabase = createBrowserClient(
     getSupabaseEnvironment(searchParams.get('project_ref'))
   );
