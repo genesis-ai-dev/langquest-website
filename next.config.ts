@@ -18,8 +18,8 @@ const nextConfig: NextConfig = {
         destination: 'https://us.i.posthog.com/:path*'
       },
       {
-        source: '/ingest/decide',
-        destination: 'https://us.i.posthog.com/decide'
+        source: '/auth/v1/verify/:project*',
+        destination: 'https://:project.supabase.co/auth/v1/verify'
       }
     ];
   },
