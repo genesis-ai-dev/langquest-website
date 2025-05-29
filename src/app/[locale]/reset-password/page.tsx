@@ -131,7 +131,9 @@ export function ResetPasswordForm() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(t('success_message'));
+      toast.success(t('success_message'), {
+        duration: Infinity
+      });
     },
     onError: toastError
   });
