@@ -14,7 +14,7 @@ import { getSupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AuthError } from '@supabase/supabase-js';
+import { AuthError, SupabaseClient } from '@supabase/supabase-js';
 import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -42,10 +42,9 @@ function ErrorMessage({
 
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const { params } = getQueryParams(window.location.href);
-  const supabase = createBrowserClient(
-    getSupabaseEnvironment(params.project_ref)
-  );
+  const searchParams = useSearchParams();
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
+
   const t = useTranslations('reset_password');
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
@@ -76,6 +75,10 @@ export function ResetPasswordForm() {
     console.log('useEffect');
 
     const { params } = getQueryParams(window.location.href);
+
+    const supabase = createBrowserClient(
+      getSupabaseEnvironment(params.project_ref)
+    );
 
     const error_code = params.error_code;
     const error_description = params.error_description;
@@ -115,7 +118,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [supabase.auth, t]);
+  }, [t]);
 
   const {
     mutate: updatePassword,
@@ -123,6 +126,7 @@ export function ResetPasswordForm() {
     isSuccess
   } = useMutation({
     mutationFn: async ({ password }: FormValues) => {
+      if (!supabase) return;
       const { error } = await supabase.auth.updateUser({
         password: password
       });
