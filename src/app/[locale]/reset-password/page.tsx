@@ -43,7 +43,9 @@ function ErrorMessage({
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
+  const supabase = createBrowserClient(
+    getSupabaseEnvironment(searchParams.get('project_ref'))
+  );
 
   const t = useTranslations('reset_password');
 
@@ -75,10 +77,6 @@ export function ResetPasswordForm() {
     console.log('useEffect');
 
     const { params } = getQueryParams(window.location.href);
-
-    const supabase = createBrowserClient(
-      getSupabaseEnvironment(params.project_ref)
-    );
 
     const error_code = params.error_code;
     const error_description = params.error_description;
@@ -126,7 +124,6 @@ export function ResetPasswordForm() {
     isSuccess
   } = useMutation({
     mutationFn: async ({ password }: FormValues) => {
-      if (!supabase) return;
       const { error } = await supabase.auth.updateUser({
         password: password
       });
