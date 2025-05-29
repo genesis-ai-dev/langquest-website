@@ -49,7 +49,7 @@ export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   }
 };
 
-export const getSupabaseEnvironment = (project_ref: string) => {
+export const getSupabaseEnvironment = (project_ref?: string | null) => {
   console.log(
     '[SUPABASE INDEX] Getting environment for project_ref:',
     project_ref
@@ -65,22 +65,22 @@ export const getSupabaseEnvironment = (project_ref: string) => {
 
   console.log(
     '[SUPABASE INDEX] Checking if development URL includes project_ref:',
-    developmentUrl.includes(project_ref)
+    project_ref && developmentUrl.includes(project_ref)
   );
   console.log(
     '[SUPABASE INDEX] Checking if preview URL includes project_ref:',
-    previewUrl.includes(project_ref)
+    project_ref && previewUrl.includes(project_ref)
   );
   console.log(
     '[SUPABASE INDEX] Checking if production URL includes project_ref:',
-    productionUrl.includes(project_ref)
+    project_ref && productionUrl.includes(project_ref)
   );
 
-  if (developmentUrl.includes(project_ref)) {
+  if (project_ref && developmentUrl.includes(project_ref)) {
     console.log('[SUPABASE INDEX] Matched development environment');
     return 'development';
   }
-  if (previewUrl.includes(project_ref)) {
+  if (project_ref && previewUrl.includes(project_ref)) {
     console.log('[SUPABASE INDEX] Matched preview environment');
     return 'preview';
   }

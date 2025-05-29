@@ -10,7 +10,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { SupabaseEnvironment } from '@/lib/supabase';
+import { getSupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,7 +44,7 @@ export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
   const supabase = createBrowserClient(
-    searchParams.get('env') as SupabaseEnvironment
+    getSupabaseEnvironment(searchParams.get('project_ref'))
   );
   const t = useTranslations('reset_password');
 
