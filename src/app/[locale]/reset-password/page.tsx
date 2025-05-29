@@ -42,10 +42,9 @@ function ErrorMessage({
 
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const searchParams = useSearchParams();
-  console.log('project_ref', searchParams.get('project_ref'));
+  const { params } = getQueryParams(window.location.href);
   const supabase = createBrowserClient(
-    getSupabaseEnvironment(searchParams.get('project_ref'))
+    getSupabaseEnvironment(params.project_ref)
   );
   const t = useTranslations('reset_password');
 
