@@ -10,11 +10,11 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { SupabaseEnvironment } from '@/lib/supabase';
+import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AuthError } from '@supabase/supabase-js';
+import { AuthError, SupabaseClient } from '@supabase/supabase-js';
 import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -47,9 +47,14 @@ export function ResetPasswordForm() {
   const { environment } = useAuth();
   const t = useTranslations('reset_password');
 
-  // Use environment from auth context, but fall back to query param if needed
+  // Determine environment from multiple sources
+  const projectRef = searchParams.get('project_ref');
+  const envFromProjectRef = projectRef
+    ? getSupabaseEnvironment(projectRef)
+    : null;
   const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const activeEnvironment = environment || envParam || 'production';
+  const activeEnvironment =
+    environment || envFromProjectRef || envParam || 'production';
 
   const supabase = createBrowserClient(activeEnvironment);
 
@@ -135,7 +140,9 @@ export function ResetPasswordForm() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(t('success_message'));
+      toast.success(t('success_message'), {
+        duration: Infinity
+      });
     },
     onError: toastError
   });
