@@ -22,13 +22,14 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { X, CheckIcon } from 'lucide-react';
+import { useAuth } from '@/components/auth-provider';
 // import { cn } from '@/lib/utils';
 
 const questFormSchema = z.object({
@@ -59,12 +60,13 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
+  const { environment } = useAuth();
 
   // Fetch projects for the dropdown
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
           `
@@ -83,9 +85,9 @@ export function QuestForm({
 
   // Fetch tags for the multi-select
   const { data: tags = [], isLoading: tagsLoading } = useQuery({
-    queryKey: ['tags'],
+    queryKey: ['tags', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('tag')
         .select('id, name')
         .order('name');
@@ -116,7 +118,7 @@ export function QuestForm({
 
       if (initialData?.id) {
         // Update existing quest
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from('quest')
           .update({
             name: values.name,
@@ -132,7 +134,7 @@ export function QuestForm({
         toast.success('Quest updated successfully');
       } else {
         // Create new quest
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from('quest')
           .insert({
             name: values.name,
@@ -149,7 +151,10 @@ export function QuestForm({
 
       // Handle tags - first remove existing tags
       if (initialData?.id) {
-        await supabase.from('quest_tag_link').delete().eq('quest_id', questId);
+        await createBrowserClient(environment)
+          .from('quest_tag_link')
+          .delete()
+          .eq('quest_id', questId);
       }
 
       // Add new tags
@@ -159,7 +164,7 @@ export function QuestForm({
           tag_id: tagId
         }));
 
-        const { error: tagError } = await supabase
+        const { error: tagError } = await createBrowserClient(environment)
           .from('quest_tag_link')
           .insert(tagLinks);
 

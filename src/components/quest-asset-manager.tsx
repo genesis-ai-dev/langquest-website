@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/spinner';
@@ -47,6 +47,7 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import { BulkUpload } from '@/components/bulk-upload';
+import { useAuth } from '@/components/auth-provider';
 
 interface QuestAssetManagerProps {
   questId: string;
@@ -66,15 +67,16 @@ export function QuestAssetManager({
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const { environment } = useAuth();
 
   // Check if the device is mobile
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Fetch quest details
   const { data: quest, isLoading: questLoading } = useQuery({
-    queryKey: ['quest-details', questId],
+    queryKey: ['quest-details', questId, environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('quest')
         .select(
           `
@@ -105,9 +107,9 @@ export function QuestAssetManager({
     refetch: refetchLinkedAssets,
     error: linkedAssetsError
   } = useQuery({
-    queryKey: ['quest-assets', questId],
+    queryKey: ['quest-assets', questId, environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('quest_asset_link')
         .select(
           `
@@ -138,9 +140,9 @@ export function QuestAssetManager({
     isLoading: searchLoading,
     error: searchError
   } = useQuery({
-    queryKey: ['asset-search', searchTerm, questId, activeTab],
+    queryKey: ['asset-search', searchTerm, questId, activeTab, environment],
     queryFn: async () => {
-      let query = supabase.from('asset').select(`
+      let query = createBrowserClient(environment).from('asset').select(`
           id,
           name,
           images,
@@ -227,7 +229,7 @@ export function QuestAssetManager({
           active: true
         }));
 
-        const { error: addError } = await supabase
+        const { error: addError } = await createBrowserClient(environment)
           .from('quest_asset_link')
           .insert(newLinks);
 
@@ -236,7 +238,7 @@ export function QuestAssetManager({
 
       // Remove old links
       if (assetsToRemove.length > 0) {
-        const { error: removeError } = await supabase
+        const { error: removeError } = await createBrowserClient(environment)
           .from('quest_asset_link')
           .delete()
           .eq('quest_id', questId)
@@ -572,8 +574,10 @@ export function QuestAssetManager({
                               <div className="aspect-video w-full overflow-hidden bg-muted">
                                 <img
                                   src={
-                                    supabase.storage
-                                      .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                                    createBrowserClient(environment)
+                                      .storage.from(
+                                        env.NEXT_PUBLIC_SUPABASE_BUCKET
+                                      )
                                       .getPublicUrl(imagePaths[0]).data
                                       .publicUrl
                                   }
@@ -604,8 +608,8 @@ export function QuestAssetManager({
                                       >
                                         <img
                                           src={
-                                            supabase.storage
-                                              .from(
+                                            createBrowserClient(environment)
+                                              .storage.from(
                                                 env.NEXT_PUBLIC_SUPABASE_BUCKET
                                               )
                                               .getPublicUrl(imagePath).data
@@ -714,13 +718,13 @@ export function QuestAssetManager({
           style={!isMobile ? { width: '95vw', maxWidth: '1000px' } : undefined}
         >
           <SheetHeader className="mb-4">
-            <SheetTitle>Bulk Upload Assets</SheetTitle>
+            <SheetTitle>Bulk Upload Assets to Quest</SheetTitle>
             <SheetDescription>
-              Upload multiple assets to this quest using a CSV file.
+              Upload multiple assets to "{quest.name}" using a CSV file.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-auto">
             <BulkUpload
               mode="quest"
               questId={questId}

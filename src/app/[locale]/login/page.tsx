@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,13 +10,12 @@ import {
   Card,
   CardContent,
   CardDescription,
-  // CardFooter,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/components/auth-provider';
+import { SupabaseEnvironment } from '@/lib/supabase';
 
 // Main component that serves as the page
 export default function LoginPage() {
@@ -39,58 +38,39 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  // const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/admin';
+  const redirectTo =
+    searchParams.get('redirectTo') ||
+    `/admin${searchParams.get('env') && searchParams.get('env') !== 'production' ? `?env=${searchParams.get('env')}` : ''}`;
+  const envParam = searchParams.get('env') as SupabaseEnvironment;
+  const environment: SupabaseEnvironment = envParam || 'production';
   const [activeTab, setActiveTab] = useState('login');
-  const { user, isLoading: authLoading } = useAuth();
-
-  // Redirect if user is already logged in
-  useEffect(() => {
-    // Only redirect if we have a user and we're not already redirecting
-    if (user && !redirecting && !authLoading) {
-      console.log('User already logged in, redirecting to:', redirectTo);
-      setRedirecting(true);
-
-      // Use a timeout to prevent immediate redirect which can cause loops
-      setTimeout(() => {
-        window.location.href = redirectTo;
-      }, 100);
-    }
-  }, [user, redirectTo, redirecting, authLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Prevent multiple submissions
     if (isLoading || redirecting) return;
-
     setIsLoading(true);
 
     try {
-      console.log('Attempting to log in with email:', email);
-      const { error } = await supabase.auth.signInWithPassword({
+      const supabase = createBrowserClient(environment);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
-        throw error;
+        toast.error(`Login failed in ${environment}: ${error.message}`);
+        setIsLoading(false);
+        return;
       }
 
-      console.log('Login successful, redirecting to:', redirectTo);
-      toast.success('Logged in successfully');
-
-      // Set redirecting flag to prevent loops
+      toast.success(`Logged in successfully to ${environment} environment`);
       setRedirecting(true);
 
-      // Wait a moment for the session to be properly set
       setTimeout(() => {
-        // Force a hard navigation to the redirect URL
         window.location.href = redirectTo;
       }, 500);
     } catch (error: any) {
-      console.error('Login error:', error);
       toast.error(error.message || 'Failed to login');
       setIsLoading(false);
     }
@@ -98,47 +78,44 @@ function LoginForm() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Prevent multiple submissions
     if (isLoading || redirecting) return;
-
     setIsLoading(true);
 
     try {
-      console.log('Attempting to sign up with email:', email);
+      const supabase = createBrowserClient(environment);
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login?redirectTo=${redirectTo}`
+          emailRedirectTo: `${window.location.origin}/login?redirectTo=${redirectTo}&env=${environment}`
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Sign up successful');
       toast.success(
         'Registration successful! Please check your email to confirm your account.'
       );
       setActiveTab('login');
     } catch (error: any) {
-      console.error('Sign up error:', error);
       toast.error(error.message || 'Failed to register');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // If we're still loading auth state, show a loading message
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  const envColors = {
+    production: 'bg-green-500',
+    preview: 'bg-yellow-500',
+    development: 'bg-blue-500'
+  };
+
+  const environments: SupabaseEnvironment[] = [
+    'production',
+    'preview',
+    'development'
+  ];
+  const otherEnvironments = environments.filter((env) => env !== environment);
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
@@ -148,6 +125,14 @@ function LoginForm() {
           <CardDescription>
             Sign in or create an account to manage your projects
           </CardDescription>
+          <div className="flex items-center gap-2 mt-2">
+            <div
+              className={`w-2 h-2 rounded-full ${envColors[environment]}`}
+            ></div>
+            <span className="text-sm font-medium">
+              {environment} environment
+            </span>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs
@@ -238,6 +223,23 @@ function LoginForm() {
               </form>
             </TabsContent>
           </Tabs>
+
+          <div className="mt-4 pt-4 border-t text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Login to a different environment:
+            </p>
+            <div className="flex gap-2 justify-center">
+              {otherEnvironments.map((env) => (
+                <a
+                  key={env}
+                  href={`/login?env=${env}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {env.charAt(0).toUpperCase() + env.slice(1)}
+                </a>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

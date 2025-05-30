@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
@@ -26,6 +26,8 @@ import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
+import { LanguageCombobox, Language } from './language-combobox';
+import { useAuth } from '@/components/auth-provider';
 
 const assetFormSchema = z.object({
   name: z.string().min(2, {
@@ -68,38 +70,50 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   const [contentItems, setContentItems] = useState<
     { text: string; audio_id?: string }[]
   >(initialData?.content || [{ text: '', audio_id: undefined }]);
-  // const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-  //   {}
-  // );
+  const [uploadedImages, setUploadedImages] = useState<string[]>(
+    initialData?.images || []
+  );
+  const [uploadedAudio, setUploadedAudio] = useState<UploadedAudioFile[]>(
+    initialData?.audioFiles || []
+  );
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const { environment } = useAuth();
+
+  // Set quest from prop if provided
+  useEffect(() => {
+    if (questId && !selectedQuests.includes(questId)) {
+      setSelectedQuests((prev) => [...prev, questId]);
+    }
+  }, [questId, selectedQuests]);
 
   // Fetch tags for the multi-select
-  const { data: tags, isLoading: tagsLoading } = useQuery({
-    queryKey: ['tags'],
+  const { data: tags = [], isLoading: tagsLoading } = useQuery({
+    queryKey: ['tags', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('tag')
         .select('id, name')
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   // Fetch quests for the multi-select
-  const { data: quests, isLoading: questsLoading } = useQuery({
-    queryKey: ['quests'],
+  const { data: quests = [], isLoading: questsLoading } = useQuery({
+    queryKey: ['quests', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('quest')
         .select(
           `
-          id, 
-          name, 
+          id,
+          name,
           project:project_id(
-            id, 
-            name, 
-            source_language:source_language_id(english_name), 
+            id,
+            name,
+            source_language:source_language_id(id, english_name),
             target_language:target_language_id(english_name)
           )
         `
@@ -107,28 +121,22 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         .order('name');
 
       if (error) throw error;
-      return data;
-    },
-    enabled: !questId // Only fetch if questId is not provided
+      return data || [];
+    }
   });
 
-  // Fetch specific quest if questId is provided
-  const { data: specificQuest } = useQuery({
-    queryKey: ['quest', questId],
+  // Fetch source language from the quest
+  const { data: questLanguageData } = useQuery({
+    queryKey: ['quest-language', questId, environment],
     queryFn: async () => {
       if (!questId) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('quest')
         .select(
           `
-          id, 
-          name, 
           project:project_id(
-            id, 
-            name, 
-            source_language:source_language_id(english_name), 
-            target_language:target_language_id(english_name)
+            source_language:source_language_id(id)
           )
         `
         )
@@ -140,21 +148,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     },
     enabled: !!questId
   });
-
-  // Fetch English language ID - commenting out unused for now
-  // const { data: englishLanguage } = useQuery({
-  //   queryKey: ['language', 'english'],
-  //   queryFn: async () => {
-  //     const { data, error } = await supabase
-  //       .from('language')
-  //       .select('id')
-  //       .eq('iso639_3', 'eng')
-  //       .single();
-
-  //     if (error) throw error;
-  //     return data;
-  //   }
-  // });
 
   // Set up form with default values
   const form = useForm<AssetFormValues>({
@@ -242,8 +235,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
           // Simple upload without progress tracking
           const { data: uploadData, error: uploadError } =
-            await supabase.storage
-              .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+            await createBrowserClient(environment)
+              .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
               .upload(`images/${fileName}`, image);
 
           if (uploadError) throw uploadError;
@@ -270,9 +263,10 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         const fileName = `${Date.now()}-${file.name}`;
         // setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-          .upload(`audio/${fileName}`, file);
+        const { data: uploadData, error: uploadError } =
+          await createBrowserClient(environment)
+            .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+            .upload(`audio/${fileName}`, file);
 
         if (uploadError) throw uploadError;
         if (updatedContent[index]) {
@@ -290,7 +284,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       if (initialData?.id) {
         // Update existing asset
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from('asset')
           .update({
             name: values.name,
@@ -307,7 +301,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         assetId = data.id;
 
         // Delete existing content
-        await supabase
+        await createBrowserClient(environment)
           .from('asset_content_link')
           .delete()
           .eq('asset_id', assetId);
@@ -323,17 +317,18 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
             const selectedQuestId = selectedQuests[0];
 
             // Fetch the quest with its project and language details
-            const { data: questData, error: questError } = await supabase
-              .from('quest')
-              .select(
-                `
+            const { data: questData, error: questError } =
+              await createBrowserClient(environment)
+                .from('quest')
+                .select(
+                  `
                 project:project_id(
                   source_language_id
                 )
               `
-              )
-              .eq('id', selectedQuestId)
-              .single();
+                )
+                .eq('id', selectedQuestId)
+                .single();
 
             if (
               !questError &&
@@ -343,7 +338,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
               sourceLanguageId = (questData.project as any).source_language_id;
 
               // Create new asset with the language ID from the quest
-              const { data, error } = await supabase
+              const { data, error } = await createBrowserClient(environment)
                 .from('asset')
                 .insert({
                   name: values.name,
@@ -365,11 +360,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           }
 
           // Fallback: Try to get the English language ID
-          const { data: langData, error: langError } = await supabase
-            .from('language')
-            .select('id')
-            .eq('iso639_3', 'eng')
-            .single();
+          const { data: langData, error: langError } =
+            await createBrowserClient(environment)
+              .from('language')
+              .select('id')
+              .eq('iso639_3', 'eng')
+              .single();
 
           if (langError || !langData) {
             throw new Error('Could not fetch language ID for asset creation.');
@@ -378,7 +374,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           sourceLanguageId = langData.id;
 
           // Create new asset with the English language ID
-          const { data, error } = await supabase
+          const { data, error } = await createBrowserClient(environment)
             .from('asset')
             .insert({
               name: values.name,
@@ -414,7 +410,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           active: true
         }));
 
-        const { error: contentError } = await supabase
+        const { error: contentError } = await createBrowserClient(environment)
           .from('asset_content_link')
           .insert(contentLinks);
 
@@ -428,7 +424,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       // Handle tags - first remove existing tags
       if (initialData?.id) {
-        const { error: deleteTagsError } = await supabase
+        const { error: deleteTagsError } = await createBrowserClient(
+          environment
+        )
           .from('asset_tag_link')
           .delete()
           .eq('asset_id', assetId);
@@ -446,7 +444,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           active: true
         }));
 
-        const { error: tagError } = await supabase
+        const { error: tagError } = await createBrowserClient(environment)
           .from('asset_tag_link')
           .insert(tagLinks);
 
@@ -458,7 +456,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       // Handle quests - first remove existing quest links
       if (initialData?.id) {
-        const { error: deleteQuestsError } = await supabase
+        const { error: deleteQuestsError } = await createBrowserClient(
+          environment
+        )
           .from('quest_asset_link')
           .delete()
           .eq('asset_id', assetId);
@@ -493,10 +493,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           JSON.parse(JSON.stringify(questLinksPayload))
         );
 
-        const { data: insertedLinks, error: questError } = await supabase
-          .from('quest_asset_link')
-          .insert(questLinksPayload)
-          .select(); // Ask Supabase to return the inserted rows
+        const { data: insertedLinks, error: questError } =
+          await createBrowserClient(environment)
+            .from('quest_asset_link')
+            .insert(questLinksPayload)
+            .select(); // Ask Supabase to return the inserted rows
 
         if (questError) {
           console.error(
@@ -573,7 +574,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     return <Spinner />;
   }
 
-  const allQuests = questId && specificQuest ? [specificQuest] : quests || [];
+  const allQuests =
+    questId && questLanguageData ? [questLanguageData] : quests || [];
 
   return (
     <Form {...form}>
@@ -608,8 +610,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                     src={
                       url.startsWith('blob:')
                         ? url
-                        : supabase.storage
-                            .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                        : createBrowserClient(environment)
+                            .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                             .getPublicUrl(url).data.publicUrl
                     }
                     alt={`Asset image ${index}`}
@@ -693,8 +695,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                         <div className="flex items-center gap-2">
                           <AudioButton
                             src={
-                              supabase.storage
-                                .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                              createBrowserClient(environment)
+                                .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                                 .getPublicUrl(item.audio_id).data.publicUrl
                             }
                           />

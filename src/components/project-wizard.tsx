@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -44,6 +44,10 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { LanguageCombobox, Language } from './language-combobox';
+import { useAuth } from '@/components/auth-provider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -97,6 +101,7 @@ export function ProjectWizard({
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const { user, environment } = useAuth();
   const [wizardData, setWizardData] = useState<Partial<ProjectWizardValues>>({
     step1: {
       method: projectToClone ? 'clone' : 'new',
@@ -113,32 +118,32 @@ export function ProjectWizard({
 
   // Fetch all projects for cloning (not just templates)
   const { data: existingProjects, isLoading: projectsLoading } = useQuery({
-    queryKey: ['existing-projects'],
+    queryKey: ['existing-projects', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
           `
           id, 
           name, 
           description,
-          source_language_id,
-          source_language:language!source_language_id(english_name), 
-          target_language:language!target_language_id(english_name)
+          source_language:source_language_id(english_name), 
+          target_language:target_language_id(english_name),
+          quests:quest(count)
         `
         )
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   // Fetch languages for dropdowns
   const { data: languages, isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages'],
+    queryKey: ['languages', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('language')
         .select('id, english_name, native_name, iso639_3')
         .order('english_name');
@@ -148,12 +153,40 @@ export function ProjectWizard({
     }
   });
 
-  // Initialize project name from wizardData when component loads
+  // Simplified cloning logic - combine all the related effects
   useEffect(() => {
-    if (wizardData.step2?.name && !projectName) {
-      setProjectName(wizardData.step2.name);
+    if (!projectToClone || !existingProjects) return;
+
+    const projectData = existingProjects.find((p) => p.id === projectToClone);
+    if (!projectData) return;
+
+    const cloneData = {
+      name: `Clone of ${projectData.name}`,
+      description: projectData.description,
+      source_language_id: projectData.source_language_id,
+      target_language_id: ''
+    };
+
+    // Update everything at once
+    setProjectName(cloneData.name);
+    setWizardData((prev) => ({
+      ...prev,
+      step1: { method: 'clone', template_id: projectToClone },
+      step2: cloneData
+    }));
+    step2Form.reset(cloneData);
+
+    // Auto-advance to step 2
+    if (step === 1) setStep(2);
+  }, [projectToClone, existingProjects]);
+
+  // Simplified step 2 sync
+  useEffect(() => {
+    if (step === 2 && wizardData.step2 && !step2Form.getValues('name')) {
+      step2Form.reset(wizardData.step2);
+      if (wizardData.step2.name) setProjectName(wizardData.step2.name);
     }
-  }, [wizardData.step2?.name, projectName]);
+  }, [step]);
 
   // Step 1 form
   const step1Form = useForm<z.infer<typeof projectMethodSchema>>({
@@ -274,143 +307,6 @@ export function ProjectWizard({
     }
   });
 
-  // If projectToClone is provided, pre-fill the form when projects are loaded
-  useEffect(() => {
-    console.log(
-      '[ProjectWizard - Clone Effect Triggered] projectToClone:',
-      projectToClone,
-      'existingProjects loaded:',
-      !!existingProjects,
-      'current step:',
-      step
-    );
-
-    if (projectToClone && existingProjects) {
-      const projectData = existingProjects.find((p) => p.id === projectToClone);
-      if (projectData) {
-        console.log(
-          '[ProjectWizard - Clone] Found projectData to clone:',
-          JSON.parse(JSON.stringify(projectData))
-        );
-
-        // Update step1Form values if this is the initial setup for cloning
-        if (
-          step1Form.getValues('method') !== 'clone' ||
-          step1Form.getValues('template_id') !== projectToClone
-        ) {
-          step1Form.setValue('method', 'clone');
-          step1Form.setValue('template_id', projectToClone);
-        }
-
-        const initialName = `Clone of ${projectData.name}`;
-        const initialDescription = projectData.description;
-        const initialSourceLanguage = projectData.source_language_id;
-
-        console.log(
-          '[ProjectWizard - Clone] Generated initialName:',
-          initialName
-        );
-        console.log(
-          '[ProjectWizard - Clone] Generated initialDescription:',
-          initialDescription
-        );
-        console.log(
-          '[ProjectWizard - Clone] Generated initialSourceLanguage:',
-          initialSourceLanguage
-        );
-
-        // Set the local projectName state, which controls the input field
-        setProjectName(initialName);
-
-        // Prepare values for step2Form and wizardData.step2
-        const step2Values = {
-          name: initialName,
-          description: initialDescription,
-          source_language_id: initialSourceLanguage,
-          target_language_id: '' // User must specify target language
-        };
-
-        // Update wizardData first, as other effects might depend on it
-        setWizardData((prev) => ({
-          ...prev,
-          step1: {
-            // ensure step1 is also aligned
-            method: 'clone',
-            template_id: projectToClone
-          },
-          step2: { ...(prev.step2 || {}), ...step2Values }
-        }));
-
-        // Reset step2Form with the new values
-        // This should happen after wizardData is updated if other effects watch wizardData.step2 to reset the form
-        step2Form.reset(step2Values);
-        console.log(
-          '[ProjectWizard - Clone] step2Form reset with:',
-          JSON.parse(JSON.stringify(step2Values))
-        );
-
-        // If projectToClone is provided and we are in step 1, automatically move to step 2
-        if (step === 1) {
-          console.log(
-            '[ProjectWizard - Clone] Advancing from step 1 to step 2 due to cloning.'
-          );
-          setStep(2);
-        }
-      } else {
-        console.log(
-          '[ProjectWizard - Clone] projectToClone ID provided (' +
-            projectToClone +
-            '), but projectData NOT found in existingProjects.'
-        );
-      }
-    } else {
-      console.log(
-        '[ProjectWizard - Clone] useEffect for cloning condition not met (inside). projectToClone:',
-        projectToClone,
-        'existingProjects loaded:',
-        !!existingProjects
-      );
-    }
-    // Main dependencies are projectToClone and existingProjects. Others are for specific conditional logic inside.
-  }, [
-    projectToClone,
-    existingProjects,
-    step,
-    step1Form,
-    step2Form,
-    setProjectName,
-    setWizardData,
-    setStep
-  ]);
-
-  // Sync step2Form with wizardData.step2 when step changes to 2 or wizardData.step2 changes
-  // This helps ensure that if wizardData.step2 was populated by the cloning effect,
-  // the form reflects it when navigating to or re-entering step 2.
-  useEffect(() => {
-    if (step === 2 && wizardData.step2) {
-      console.log(
-        '[ProjectWizard - Step 2 Sync Effect] Resetting step2Form with wizardData.step2:',
-        JSON.parse(JSON.stringify(wizardData.step2))
-      );
-      step2Form.reset(wizardData.step2);
-      if (wizardData.step2.name) {
-        setProjectName(wizardData.step2.name); // Sync local projectName if it exists in wizardData
-      }
-    }
-  }, [step, wizardData.step2, step2Form]); // Added step2Form to dependencies
-
-  // Initialize project name from wizardData when component loads (if not already set by cloning)
-  useEffect(() => {
-    if (wizardData.step2?.name && !projectName && step === 2) {
-      console.log(
-        '[ProjectWizard - Initial projectName Sync] Setting projectName from wizardData.step2.name:',
-        wizardData.step2.name
-      );
-      setProjectName(wizardData.step2.name);
-    }
-    // Only run when wizardData.step2.name changes and projectName is not already set, specifically for step 2.
-  }, [wizardData.step2?.name, step, projectName]); // Added projectName to dependencies
-
   // Handle step 1 submission
   const onStep1Submit = async (values: z.infer<typeof projectMethodSchema>) => {
     setWizardData((prev) => ({ ...prev, step1: values }));
@@ -421,22 +317,16 @@ export function ProjectWizard({
   const onStep2Submit = async (
     values: z.infer<typeof projectDetailsSchema>
   ) => {
-    // Use our local state for the project name
     const formValues = {
       ...values,
-      name: projectName || values.name // Prefer our local state, fall back to form value
+      name: projectName || values.name
     };
 
-    // Log the values to verify they're being captured correctly
-    console.log('Step 2 form values on submit:', formValues);
-
-    // Update the wizard data with the current form values
     setWizardData((prev) => ({
       ...prev,
       step2: formValues
     }));
 
-    // Move to the next step
     setStep(3);
   };
 
@@ -444,12 +334,15 @@ export function ProjectWizard({
   const onStep3Submit = async (
     values: z.infer<typeof projectConfirmSchema>
   ) => {
-    setWizardData((prev) => ({ ...prev, step3: values }));
+    if (!user) {
+      toast.error('You must be logged in to create projects');
+      return;
+    }
 
-    // Final submission
+    setWizardData((prev) => ({ ...prev, step3: values }));
     setIsSubmitting(true);
+
     try {
-      // Get the latest values from wizardData and our local state
       const projectData = {
         name: projectName || wizardData.step2?.name || '',
         description: wizardData.step2?.description || '',
@@ -457,10 +350,7 @@ export function ProjectWizard({
         target_language_id: wizardData.step2?.target_language_id || ''
       };
 
-      console.log('Final project data being submitted:', projectData);
-
-      // Create new project
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('project')
         .insert(projectData)
         .select('id')
@@ -468,20 +358,19 @@ export function ProjectWizard({
 
       if (error) throw error;
 
-      // If cloning a template, also clone quests and assets
+      // Clone quests and assets if this is a clone operation
       if (
         wizardData.step1?.method === 'clone' &&
         wizardData.step1?.template_id
       ) {
-        // Clone quests from template
-        const { data: templateQuests, error: questsError } = await supabase
-          .from('quest')
-          .select('*')
-          .eq('project_id', wizardData.step1.template_id);
+        const { data: templateQuests, error: questsError } =
+          await createBrowserClient(environment)
+            .from('quest')
+            .select('*')
+            .eq('project_id', wizardData.step1.template_id);
 
         if (questsError) throw questsError;
 
-        // For each quest in the template, create a new quest in the new project
         for (const quest of templateQuests || []) {
           const newQuest = {
             name: quest.name,
@@ -490,88 +379,45 @@ export function ProjectWizard({
             active: quest.active
           };
 
-          const { data: newQuestData, error: newQuestError } = await supabase
-            .from('quest')
-            .insert(newQuest)
-            .select('id, name') // Select name for logging
-            .single();
+          const { data: newQuestData, error: newQuestError } =
+            await createBrowserClient(environment)
+              .from('quest')
+              .insert(newQuest)
+              .select('id')
+              .single();
 
           if (newQuestError) throw newQuestError;
 
-          // Clone asset links for this quest
-          console.log(
-            `[ProjectWizard Clone] Cloning links for template quest ID: ${quest.id}, Name: ${quest.name}`
-          );
-          const { data: assetLinksFromTemplate, error: assetLinksError } =
-            await supabase
+          // Clone asset links
+          const { data: assetLinks, error: assetLinksError } =
+            await createBrowserClient(environment)
               .from('quest_asset_link')
-              .select('asset_id, active') // Fetch active status for logging/debugging
+              .select('asset_id')
               .eq('quest_id', quest.id);
 
-          if (assetLinksError) {
-            console.error(
-              `[ProjectWizard Clone] Error fetching asset links for template quest ${quest.id}:`,
-              assetLinksError
-            );
-            throw assetLinksError;
-          }
+          if (assetLinksError) throw assetLinksError;
 
-          console.log(
-            `[ProjectWizard Clone] Found asset links for template quest ${quest.id}:`,
-            JSON.parse(JSON.stringify(assetLinksFromTemplate || []))
-          );
+          if (assetLinks && assetLinks.length > 0) {
+            const newLinks = assetLinks.map((link) => ({
+              quest_id: newQuestData.id,
+              asset_id: link.asset_id,
+              active: true
+            }));
 
-          // Create new asset links for the new quest
-          if (assetLinksFromTemplate && assetLinksFromTemplate.length > 0) {
-            for (const templateLink of assetLinksFromTemplate) {
-              console.log(
-                `[ProjectWizard Clone] Processing templateLink: asset_id=${templateLink.asset_id}, active=${templateLink.active} for template quest ${quest.id}`
-              );
-              const newLinkData = {
-                quest_id: newQuestData.id,
-                asset_id: templateLink.asset_id,
-                active: true // Always set to true for the new link, as per original logic
-              };
+            const { error: insertError } = await createBrowserClient(
+              environment
+            )
+              .from('quest_asset_link')
+              .insert(newLinks);
 
-              console.log(
-                '[ProjectWizard Clone] Attempting to insert new asset link:',
-                JSON.parse(JSON.stringify(newLinkData))
-              );
-              const { error: newLinkError } = await supabase
-                .from('quest_asset_link')
-                .insert(newLinkData);
-
-              if (newLinkError) {
-                console.error(
-                  `[ProjectWizard Clone] Error inserting new asset link for new quest ${newQuestData.id} (${newQuestData.name}) and asset ${templateLink.asset_id}:`,
-                  newLinkError
-                );
-                toast.error(
-                  `Failed to link asset ${templateLink.asset_id} to quest ${newQuestData.name}. Error: ${newLinkError.message}`
-                );
-                throw newLinkError;
-              } else {
-                console.log(
-                  `[ProjectWizard Clone] Successfully linked asset ${templateLink.asset_id} to new quest ${newQuestData.id} (${newQuestData.name})`
-                );
-              }
-            }
-          } else {
-            console.log(
-              `[ProjectWizard Clone] No asset links found in template for quest ${quest.id} (${quest.name}) to clone.`
-            );
+            if (insertError) throw insertError;
           }
         }
       }
 
       toast.success('Project created successfully');
-
-      // Call onSuccess callback with the result
-      if (onSuccess) {
-        onSuccess(data);
-      }
+      if (onSuccess) onSuccess(data);
     } catch (error) {
-      console.error('Error creating project:', error);
       toast.error('Failed to create project');
     } finally {
       setIsSubmitting(false);
@@ -942,12 +788,14 @@ export function ProjectWizard({
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !user}>
               {isSubmitting ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
                   Creating...
                 </>
+              ) : !user ? (
+                'Login Required'
               ) : (
                 'Create Project'
               )}
@@ -1000,6 +848,27 @@ export function ProjectWizard({
         </div>
         <div className="text-sm text-muted-foreground">Step {step} of 3</div>
       </div>
+
+      {user && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Project Creation</AlertTitle>
+          <AlertDescription>
+            Creating project as:{' '}
+            <span className="font-medium">{user.email}</span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!user && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>
+            You must be logged in to create projects
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>

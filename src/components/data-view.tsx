@@ -14,7 +14,7 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import { env } from '@/lib/env';
-import { supabase } from '@/lib/supabase/client';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue
 } from './ui/select';
+import { useAuth } from '@/components/auth-provider';
 
 export interface Root {
   assets: {
@@ -156,11 +157,12 @@ export function DataView() {
     parseAsInteger.withDefault(20)
   );
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(0));
+  const { environment } = useAuth();
 
   const { data, isLoading, error } = useQuery<Root>({
-    queryKey: ['assets', page, pageSize],
+    queryKey: ['assets', page, pageSize, environment],
     queryFn: async () => {
-      const { data, error, count } = await supabase
+      const { data, error, count } = await createBrowserClient(environment)
         .from('asset')
         .select(
           `
@@ -579,8 +581,8 @@ export function DataView() {
                           <CarouselItem key={index} className="basis-1/2">
                             <img
                               src={
-                                supabase.storage
-                                  .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                                createBrowserClient(environment)
+                                  .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                                   .getPublicUrl(image).data.publicUrl
                               }
                               alt={`Image ${index + 1}`}
@@ -688,8 +690,8 @@ export function DataView() {
                         {content.audio_id && (
                           <AudioButton
                             src={
-                              supabase.storage
-                                .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                              createBrowserClient(environment)
+                                .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                                 .getPublicUrl(content.audio_id).data.publicUrl
                             }
                             className="shrink-0"
@@ -736,8 +738,10 @@ export function DataView() {
                                 {translation.audio && (
                                   <AudioButton
                                     src={
-                                      supabase.storage
-                                        .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                                      createBrowserClient(environment)
+                                        .storage.from(
+                                          env.NEXT_PUBLIC_SUPABASE_BUCKET
+                                        )
                                         .getPublicUrl(translation.audio).data
                                         .publicUrl
                                     }

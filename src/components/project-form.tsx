@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Spinner } from './spinner';
@@ -28,6 +28,9 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip';
 import { LanguageCombobox, Language } from './language-combobox';
+import { useAuth } from '@/components/auth-provider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, {
@@ -51,12 +54,24 @@ interface ProjectFormProps {
 
 export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user, environment } = useAuth();
+
+  // Set up form with default values
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: initialData || {
+      name: '',
+      description: '',
+      source_language_id: '',
+      target_language_id: ''
+    }
+  });
 
   // Fetch languages for dropdowns
   const { data: languages, isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages'],
+    queryKey: ['languages', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('language')
         .select('id, english_name, native_name, iso639_3')
         .order('english_name');
@@ -72,39 +87,25 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
     // This is optional since we're already updating the UI optimistically
   };
 
-  // Set up form with default values
-  const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectFormSchema),
-    defaultValues: initialData || {
-      name: '',
-      description: '',
-      source_language_id: 'eng', // Default to English
-      target_language_id: 'eng' // Default to English
-    }
-  });
-
-  // Reset form when initialData changes
-  useEffect(() => {
-    if (initialData) {
-      form.reset(initialData);
-    }
-  }, [initialData, form]);
-
   async function onSubmit(values: ProjectFormValues) {
+    // Check if user is authenticated
+    if (!user) {
+      toast.error('You must be logged in to create projects');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      let result;
-
-      // Ensure we have values for required fields
       const projectData = {
-        ...values,
-        source_language_id: values.source_language_id || 'eng',
-        target_language_id: values.target_language_id || 'eng'
+        name: values.name,
+        description: values.description || null,
+        source_language_id: values.source_language_id,
+        target_language_id: values.target_language_id
       };
 
       if (initialData?.id) {
         // Update existing project
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from('project')
           .update(projectData)
           .eq('id', initialData.id)
@@ -112,19 +113,27 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           .single();
 
         if (error) throw error;
-        result = data;
         toast.success('Project updated successfully');
+
+        // Call onSuccess callback with the result
+        if (onSuccess && data) {
+          onSuccess(data);
+        }
       } else {
         // Create new project
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from('project')
           .insert(projectData)
           .select('id')
           .single();
 
         if (error) throw error;
-        result = data;
         toast.success('Project created successfully');
+
+        // Call onSuccess callback with the result
+        if (onSuccess && data) {
+          onSuccess(data);
+        }
       }
 
       // Reset form if not editing
@@ -132,14 +141,9 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         form.reset({
           name: '',
           description: '',
-          source_language_id: 'eng',
-          target_language_id: 'eng'
+          source_language_id: '',
+          target_language_id: ''
         });
-      }
-
-      // Call onSuccess callback with the result
-      if (onSuccess) {
-        onSuccess(result);
       }
     } catch (error) {
       console.error('Error saving project:', error);
@@ -152,6 +156,28 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {user && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Project {initialData ? 'Edit' : 'Creation'}</AlertTitle>
+            <AlertDescription>
+              {initialData ? 'Editing' : 'Creating'} project as:{' '}
+              <span className="font-medium">{user.email}</span>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!user && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertDescription>
+              You must be logged in to {initialData ? 'edit' : 'create'}{' '}
+              projects
+            </AlertDescription>
+          </Alert>
+        )}
+
         <FormField
           control={form.control}
           name="name"
@@ -269,12 +295,14 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           />
         </div>
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !user}>
           {isSubmitting ? (
             <>
               <Spinner className="mr-2 h-4 w-4" />
               Saving...
             </>
+          ) : !user ? (
+            'Login Required'
           ) : initialData ? (
             'Update Project'
           ) : (

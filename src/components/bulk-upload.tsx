@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Papa from 'papaparse';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth-provider';
 
 interface BulkUploadProps {
   mode: 'project' | 'quest';
@@ -77,6 +78,12 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
   });
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, environment } = useAuth();
+
+  // Get the supabase client for the current environment
+  const supabaseClient = useMemo(() => {
+    return createBrowserClient(environment);
+  }, [environment]);
 
   const downloadTemplate = useCallback(() => {
     const headers =
@@ -139,7 +146,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
     Papa.parse(selectedFile, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: async (results) => {
         setParsedData(results.data);
         setShowPreview(true);
       },
@@ -215,7 +222,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
           let targetLanguageId = languageCache.get(row.target_language);
 
           if (!sourceLanguageId) {
-            const { data: sourceLang } = await supabase
+            const { data: sourceLang } = await supabaseClient
               .from('language')
               .select('id')
               .eq('english_name', row.source_language)
@@ -233,7 +240,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
           }
 
           if (!targetLanguageId) {
-            const { data: targetLang } = await supabase
+            const { data: targetLang } = await supabaseClient
               .from('language')
               .select('id')
               .eq('english_name', row.target_language)
@@ -256,7 +263,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
           }
 
           // Check if project already exists
-          const { data: existingProject } = await supabase
+          const { data: existingProject } = await supabaseClient
             .from('project')
             .select('id')
             .eq('name', row.project_name)
@@ -267,7 +274,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             projectId = existingProject.id;
           } else {
             // Create new project
-            const { data: project, error: projectError } = await supabase
+            const { data: project, error: projectError } = await supabaseClient
               .from('project')
               .insert({
                 name: row.project_name,
@@ -296,7 +303,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             throw new Error('Project ID is required to create quest');
           }
 
-          const { data: quest, error: questError } = await supabase
+          const { data: quest, error: questError } = await supabaseClient
             .from('quest')
             .insert({
               name: row.quest_name,
@@ -322,14 +329,14 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
               .filter(Boolean);
             for (const tagName of tagNames) {
               // Get or create tag
-              let { data: tag } = await supabase
+              let { data: tag } = await supabaseClient
                 .from('tag')
                 .select('id')
                 .eq('name', tagName)
                 .single();
 
               if (!tag) {
-                const { data: newTag, error: tagError } = await supabase
+                const { data: newTag, error: tagError } = await supabaseClient
                   .from('tag')
                   .insert({ name: tagName })
                   .select('id')
@@ -340,7 +347,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
               }
 
               // Link tag to quest
-              await supabase.from('quest_tag_link').insert({
+              await supabaseClient.from('quest_tag_link').insert({
                 quest_id: questId,
                 tag_id: tag.id
               });
@@ -355,7 +362,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             `Source language ID not found for '${row.source_language}'`
           );
         }
-        const { data: asset, error: assetError } = await supabase
+        const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
             name: row.asset_name,
@@ -368,7 +375,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
 
         // Add asset content
         if (row.asset_content) {
-          await supabase.from('asset_content_link').insert({
+          await supabaseClient.from('asset_content_link').insert({
             asset_id: asset.id,
             text: row.asset_content,
             id: crypto.randomUUID()
@@ -382,14 +389,14 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             .map((t) => t.trim())
             .filter(Boolean);
           for (const tagName of tagNames) {
-            let { data: tag } = await supabase
+            let { data: tag } = await supabaseClient
               .from('tag')
               .select('id')
               .eq('name', tagName)
               .single();
 
             if (!tag) {
-              const { data: newTag, error: tagError } = await supabase
+              const { data: newTag, error: tagError } = await supabaseClient
                 .from('tag')
                 .insert({ name: tagName })
                 .select('id')
@@ -399,7 +406,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
               tag = newTag;
             }
 
-            await supabase.from('asset_tag_link').insert({
+            await supabaseClient.from('asset_tag_link').insert({
               asset_id: asset.id,
               tag_id: tag.id
             });
@@ -407,7 +414,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
         }
 
         // Link asset to quest
-        await supabase.from('quest_asset_link').insert({
+        await supabaseClient.from('quest_asset_link').insert({
           quest_id: questId,
           asset_id: asset.id
         });
@@ -453,7 +460,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
     }
 
     // Get quest details for language
-    const { data: quest, error: questError } = await supabase
+    const { data: quest, error: questError } = await supabaseClient
       .from('quest')
       .select(
         `
@@ -482,7 +489,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
 
       try {
         // Create asset
-        const { data: asset, error: assetError } = await supabase
+        const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
             name: row.asset_name,
@@ -495,7 +502,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
 
         // Add asset content
         if (row.asset_content) {
-          await supabase.from('asset_content_link').insert({
+          await supabaseClient.from('asset_content_link').insert({
             asset_id: asset.id,
             text: row.asset_content,
             id: crypto.randomUUID()
@@ -509,14 +516,14 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             .map((t) => t.trim())
             .filter(Boolean);
           for (const tagName of tagNames) {
-            let { data: tag } = await supabase
+            let { data: tag } = await supabaseClient
               .from('tag')
               .select('id')
               .eq('name', tagName)
               .single();
 
             if (!tag) {
-              const { data: newTag, error: tagError } = await supabase
+              const { data: newTag, error: tagError } = await supabaseClient
                 .from('tag')
                 .insert({ name: tagName })
                 .select('id')
@@ -526,7 +533,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
               tag = newTag;
             }
 
-            await supabase.from('asset_tag_link').insert({
+            await supabaseClient.from('asset_tag_link').insert({
               asset_id: asset.id,
               tag_id: tag.id
             });
@@ -534,7 +541,7 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
         }
 
         // Link asset to quest
-        await supabase.from('quest_asset_link').insert({
+        await supabaseClient.from('quest_asset_link').insert({
           quest_id: questId,
           asset_id: asset.id
         });
@@ -577,6 +584,12 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
   const handleUpload = async () => {
     if (!file || parsedData.length === 0) {
       toast.error('Please select and preview a CSV file first');
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!user) {
+      toast.error('You must be logged in to upload content');
       return;
     }
 
@@ -638,172 +651,212 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
-            Bulk {mode === 'project' ? 'Project' : 'Asset'} Upload
-          </CardTitle>
-          <CardDescription>
-            Upload multiple{' '}
-            {mode === 'project' ? 'projects with quests and assets' : 'assets'}{' '}
-            using a CSV file
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={downloadTemplate}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Template
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              Download a template CSV file to get started
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="csv-file">Select CSV File</Label>
-            <Input
-              ref={fileInputRef}
-              id="csv-file"
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
-          </div>
-
-          {file && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>File Selected</AlertTitle>
-              <AlertDescription>
-                {file.name} ({parsedData.length} rows)
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {showPreview && parsedData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Preview Data</CardTitle>
-            <CardDescription>
-              Review the first few rows before uploading
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-64 w-full rounded-md border">
-              <div className="p-4">
-                <div className="grid gap-2 text-sm">
-                  {parsedData.slice(0, 5).map((row, index) => (
-                    <div key={index} className="p-2 border rounded">
-                      <div className="font-medium">Row {index + 1}</div>
-                      <div className="grid grid-cols-2 gap-2 mt-1 text-xs">
-                        {Object.entries(row).map(([key, value]) => (
-                          <div key={key}>
-                            <span className="font-medium">{key}:</span>{' '}
-                            {String(value)}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  {parsedData.length > 5 && (
-                    <div className="text-center text-muted-foreground">
-                      ... and {parsedData.length - 5} more rows
-                    </div>
-                  )}
-                </div>
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-
-      {isUploading && (
+    <ScrollArea className="h-full">
+      <div className="space-y-6 pr-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Spinner className="h-4 w-4" />
-              Upload Progress
+              <FileSpreadsheet className="h-5 w-5" />
+              Bulk {mode === 'project' ? 'Project' : 'Upload Assets to Quest'}
             </CardTitle>
+            <CardDescription>
+              Upload multiple{' '}
+              {mode === 'project'
+                ? 'projects with quests and assets'
+                : 'assets to this quest'}{' '}
+              using a CSV file
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>{progress.current}</span>
-                <span>
-                  {progress.completed} / {progress.total}
-                </span>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={downloadTemplate}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download Template
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Download a template CSV file to get started
               </div>
-              <Progress value={(progress.completed / progress.total) * 100} />
             </div>
 
-            {(progress.errors.length > 0 || progress.warnings.length > 0) && (
-              <Tabs defaultValue="errors" className="w-full">
-                <TabsList>
-                  <TabsTrigger
-                    value="errors"
-                    className="flex items-center gap-2"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Errors ({progress.errors.length})
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="warnings"
-                    className="flex items-center gap-2"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Warnings ({progress.warnings.length})
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="errors">
-                  <ScrollArea className="h-32">
-                    {progress.errors.map((error, index) => (
-                      <div
-                        key={index}
-                        className="text-sm text-destructive mb-1"
-                      >
-                        Row {error.row}: {error.message}
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </TabsContent>
-                <TabsContent value="warnings">
-                  <ScrollArea className="h-32">
-                    {progress.warnings.map((warning, index) => (
-                      <div key={index} className="text-sm text-yellow-600 mb-1">
-                        Row {warning.row}: {warning.message}
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
+            {user && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Upload Information</AlertTitle>
+                <AlertDescription>
+                  Uploading as:{' '}
+                  <span className="font-medium">{user.email}</span> to{' '}
+                  <span className="font-medium capitalize">{environment}</span>{' '}
+                  environment
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!user && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Authentication Required</AlertTitle>
+                <AlertDescription>
+                  You must be logged in to upload content
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="csv-file">Select CSV File</Label>
+              <Input
+                ref={fileInputRef}
+                id="csv-file"
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </div>
+
+            {file && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>File Selected</AlertTitle>
+                <AlertDescription>
+                  {file.name} ({parsedData.length} rows)
+                </AlertDescription>
+              </Alert>
             )}
           </CardContent>
         </Card>
-      )}
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={resetUpload} disabled={isUploading}>
-          <X className="mr-2 h-4 w-4" />
-          Reset
-        </Button>
-        <Button
-          onClick={handleUpload}
-          disabled={!showPreview || isUploading || parsedData.length === 0}
-        >
-          <Upload className="mr-2 h-4 w-4" />
-          {isUploading ? 'Uploading...' : `Upload ${parsedData.length} Items`}
-        </Button>
+        {showPreview && parsedData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Preview Data</CardTitle>
+              <CardDescription>
+                Review the first few rows before uploading
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64 w-full rounded-md border">
+                <div className="p-4">
+                  <div className="grid gap-2 text-sm">
+                    {parsedData.slice(0, 5).map((row, index) => (
+                      <div key={index} className="p-2 border rounded">
+                        <div className="font-medium">Row {index + 1}</div>
+                        <div className="grid grid-cols-2 gap-2 mt-1 text-xs">
+                          {Object.entries(row).map(([key, value]) => (
+                            <div key={key}>
+                              <span className="font-medium">{key}:</span>{' '}
+                              {String(value)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {parsedData.length > 5 && (
+                      <div className="text-center text-muted-foreground">
+                        ... and {parsedData.length - 5} more rows
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        )}
+
+        {isUploading && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Spinner className="h-4 w-4" />
+                Upload Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>{progress.current}</span>
+                  <span>
+                    {progress.completed} / {progress.total}
+                  </span>
+                </div>
+                <Progress value={(progress.completed / progress.total) * 100} />
+              </div>
+
+              {(progress.errors.length > 0 || progress.warnings.length > 0) && (
+                <Tabs defaultValue="errors" className="w-full">
+                  <TabsList>
+                    <TabsTrigger
+                      value="errors"
+                      className="flex items-center gap-2"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      Errors ({progress.errors.length})
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="warnings"
+                      className="flex items-center gap-2"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      Warnings ({progress.warnings.length})
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="errors">
+                    <ScrollArea className="h-32">
+                      {progress.errors.map((error, index) => (
+                        <div
+                          key={index}
+                          className="text-sm text-destructive mb-1"
+                        >
+                          Row {error.row}: {error.message}
+                        </div>
+                      ))}
+                    </ScrollArea>
+                  </TabsContent>
+                  <TabsContent value="warnings">
+                    <ScrollArea className="h-32">
+                      {progress.warnings.map((warning, index) => (
+                        <div
+                          key={index}
+                          className="text-sm text-yellow-600 mb-1"
+                        >
+                          Row {warning.row}: {warning.message}
+                        </div>
+                      ))}
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={resetUpload}
+            disabled={isUploading}
+          >
+            <X className="mr-2 h-4 w-4" />
+            Reset
+          </Button>
+          <Button
+            onClick={handleUpload}
+            disabled={
+              !showPreview || isUploading || parsedData.length === 0 || !user
+            }
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {isUploading
+              ? 'Uploading...'
+              : !user
+                ? 'Login Required'
+                : `Upload ${parsedData.length} Items`}
+          </Button>
+        </div>
       </div>
-    </div>
+    </ScrollArea>
   );
 }

@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth-provider';
 
 function ErrorMessage({
   error
@@ -43,10 +44,14 @@ function ErrorMessage({
 export function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
-  const supabase = createBrowserClient(
-    searchParams.get('env') as SupabaseEnvironment
-  );
+  const { environment } = useAuth();
   const t = useTranslations('reset_password');
+
+  // Use environment from auth context, but fall back to query param if needed
+  const envParam = searchParams.get('env') as SupabaseEnvironment;
+  const activeEnvironment = environment || envParam || 'production';
+
+  const supabase = createBrowserClient(activeEnvironment);
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => <ErrorMessage error={error} />);
@@ -73,7 +78,7 @@ export function ResetPasswordForm() {
   });
 
   useEffect(() => {
-    console.log('useEffect');
+    console.log('useEffect - using environment:', activeEnvironment);
 
     const { params } = getQueryParams(window.location.href);
 
@@ -115,7 +120,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [supabase.auth, t]);
+  }, [supabase.auth, t, activeEnvironment]);
 
   const {
     mutate: updatePassword,

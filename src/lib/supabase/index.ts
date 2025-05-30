@@ -40,11 +40,10 @@ export const supabaseInstances = new Map<
   SupabaseClient<any, 'public', any>
 >();
 
-// Create and export a default Supabase browser client
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Function to clear all cached Supabase instances
+export const clearSupabaseInstances = () => {
+  console.log('[Supabase] Clearing all cached instances');
+  supabaseInstances.clear();
+};
 
-export const supabase = createSupabaseBrowserClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+// Remove the default export to prevent accidental usage of production client
