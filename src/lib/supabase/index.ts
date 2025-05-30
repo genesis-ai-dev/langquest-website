@@ -1,5 +1,4 @@
 import { env } from '@/lib/env';
-import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export type SupabaseEnvironment = 'production' | 'preview' | 'development';

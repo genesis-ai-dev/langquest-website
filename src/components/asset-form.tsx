@@ -1,9 +1,9 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Form,
   FormControl,
@@ -14,20 +14,18 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
-import { Spinner } from './spinner';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { Spinner } from './spinner';
+import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
-// import { cn } from '@/lib/utils';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
-import { LanguageCombobox, Language } from './language-combobox';
-import { useAuth } from '@/components/auth-provider';
 
 const assetFormSchema = z.object({
   name: z.string().min(2, {
@@ -49,15 +47,20 @@ const assetFormSchema = z.object({
 type AssetFormValues = z.infer<typeof assetFormSchema>;
 
 interface AssetFormProps {
-  initialData?: AssetFormValues & { id: string; images?: string[] };
+  initialData?: AssetFormValues & {
+    id: string;
+    images?: string[];
+    tags?: { id: string }[];
+  };
   onSuccess?: (data: { id: string }) => void;
   questId?: string; // Optional pre-selected quest ID
 }
 
 export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
+  const { environment } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(
-    initialData?.tags || []
+    initialData?.tags?.map((t) => t.id) || []
   );
   const [selectedQuests, setSelectedQuests] = useState<string[]>(
     questId ? [questId] : initialData?.quests || []
@@ -67,17 +70,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     initialData?.images || []
   );
   const [audioFiles, setAudioFiles] = useState<Record<number, File>>({});
-  const [contentItems, setContentItems] = useState<
+  const [contents, setContents] = useState<
     { text: string; audio_id?: string }[]
   >(initialData?.content || [{ text: '', audio_id: undefined }]);
-  const [uploadedImages, setUploadedImages] = useState<string[]>(
-    initialData?.images || []
-  );
-  const [uploadedAudio, setUploadedAudio] = useState<UploadedAudioFile[]>(
-    initialData?.audioFiles || []
-  );
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const { environment } = useAuth();
 
   // Set quest from prop if provided
   useEffect(() => {
@@ -87,7 +82,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   }, [questId, selectedQuests]);
 
   // Fetch tags for the multi-select
-  const { data: tags = [], isLoading: tagsLoading } = useQuery({
+  const { data: tagsData = [], isLoading: tagsLoading } = useQuery({
     queryKey: ['tags', environment],
     queryFn: async () => {
       const { data, error } = await createBrowserClient(environment)
@@ -101,7 +96,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   });
 
   // Fetch quests for the multi-select
-  const { data: quests = [], isLoading: questsLoading } = useQuery({
+  const { data: questsData = [], isLoading: questsLoading } = useQuery({
     queryKey: ['quests', environment],
     queryFn: async () => {
       const { data, error } = await createBrowserClient(environment)
@@ -136,7 +131,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         .select(
           `
           project:project_id(
-            source_language:source_language_id(id)
+            source_language_id
           )
         `
         )
@@ -187,11 +182,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   };
 
   const addContentItem = () => {
-    setContentItems((prev) => [...prev, { text: '', audio_id: undefined }]);
+    setContents((prev) => [...prev, { text: '', audio_id: undefined }]);
   };
 
   const removeContentItem = (index: number) => {
-    setContentItems((prev) => {
+    setContents((prev) => {
       const updated = prev.filter((_, i) => i !== index);
       // If all content items are removed, we still want to allow form submission
       return updated;
@@ -199,7 +194,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   };
 
   const updateContentItem = (index: number, text: string) => {
-    setContentItems((prev) => {
+    setContents((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], text };
       return updated;
@@ -210,7 +205,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     setIsSubmitting(true);
     try {
       // Filter out empty content items
-      const filteredContent = contentItems.filter(
+      const filteredContent = contents.filter(
         (item) => item.text.trim() !== ''
       );
       values.content = filteredContent.length > 0 ? filteredContent : [];
@@ -541,7 +536,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         setImages([]);
         setImageUrls([]);
         setAudioFiles({});
-        setContentItems([{ text: '', audio_id: undefined }]);
+        setContents([{ text: '', audio_id: undefined }]);
       }
 
       // Call onSuccess callback with the result
@@ -575,7 +570,15 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   }
 
   const allQuests =
-    questId && questLanguageData ? [questLanguageData] : quests || [];
+    questId && questLanguageData
+      ? [
+          {
+            id: questId,
+            name: 'Current Quest',
+            project: questLanguageData.project
+          }
+        ]
+      : questsData || [];
 
   return (
     <Form {...form}>
@@ -665,7 +668,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           </div>
 
           <div className="space-y-4">
-            {contentItems.map((item, index) => (
+            {contents.map((item, index) => (
               <div key={index} className="p-4 border rounded-md relative">
                 <Button
                   type="button"
@@ -773,7 +776,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                       <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[80px]">
                         {selectedTags.length > 0 ? (
                           selectedTags.map((tagId) => {
-                            const tag = tags?.find((t) => t.id === tagId);
+                            const tag = tagsData?.find((t) => t.id === tagId);
                             return (
                               <Badge
                                 key={tagId}
@@ -812,9 +815,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                           <div className="text-sm text-muted-foreground mb-2">
                             Click on tags to select/deselect them
                           </div>
-                          {tags && tags.length > 0 ? (
+                          {tagsData && tagsData.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
-                              {tags.map((tag) => (
+                              {tagsData.map((tag) => (
                                 <Badge
                                   key={tag.id}
                                   variant={
@@ -929,53 +932,61 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                             </div>
                             {allQuests && allQuests.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
-                                {allQuests.map((quest) => (
-                                  <Badge
-                                    key={quest.id}
-                                    variant={
-                                      selectedQuests.includes(quest.id)
-                                        ? 'default'
-                                        : 'outline'
-                                    }
-                                    className={`cursor-pointer ${
-                                      questId === quest.id ? 'opacity-70' : ''
-                                    }`}
-                                    onClick={() => {
-                                      if (questId !== quest.id) {
-                                        let newSelectedQuests;
-                                        if (
-                                          !selectedQuests.includes(quest.id)
-                                        ) {
-                                          newSelectedQuests = [
-                                            ...selectedQuests,
-                                            quest.id
-                                          ];
-                                        } else {
-                                          newSelectedQuests =
-                                            selectedQuests.filter(
-                                              (id) => id !== quest.id
-                                            );
-                                        }
-                                        setSelectedQuests(newSelectedQuests);
+                                {allQuests.map((quest) => {
+                                  const isFromQuestData =
+                                    'project' in quest &&
+                                    Array.isArray(quest.project);
+                                  const projectInfo =
+                                    isFromQuestData && quest.project[0];
+
+                                  return (
+                                    <Badge
+                                      key={quest.id}
+                                      variant={
+                                        selectedQuests.includes(quest.id)
+                                          ? 'default'
+                                          : 'outline'
                                       }
-                                    }}
-                                  >
-                                    {quest.name} (
-                                    {
-                                      (quest.project as any).source_language
-                                        ?.english_name
-                                    }{' '}
-                                    →{' '}
-                                    {
-                                      (quest.project as any).target_language
-                                        ?.english_name
-                                    }
-                                    )
-                                    {selectedQuests.includes(quest.id) && (
-                                      <CheckIcon className="ml-1 h-3 w-3" />
-                                    )}
-                                  </Badge>
-                                ))}
+                                      className={`cursor-pointer ${
+                                        questId === quest.id ? 'opacity-70' : ''
+                                      }`}
+                                      onClick={() => {
+                                        if (questId !== quest.id) {
+                                          let newSelectedQuests;
+                                          if (
+                                            !selectedQuests.includes(quest.id)
+                                          ) {
+                                            newSelectedQuests = [
+                                              ...selectedQuests,
+                                              quest.id
+                                            ];
+                                          } else {
+                                            newSelectedQuests =
+                                              selectedQuests.filter(
+                                                (id) => id !== quest.id
+                                              );
+                                          }
+                                          setSelectedQuests(newSelectedQuests);
+                                        }
+                                      }}
+                                    >
+                                      {quest.name} (
+                                      {
+                                        projectInfo?.source_language
+                                          ?.english_name
+                                      }{' '}
+                                      →{' '}
+                                      {
+                                        projectInfo?.target_language
+                                          ?.english_name
+                                      }
+                                      )
+                                      {selectedQuests.includes(quest.id) && (
+                                        <CheckIcon className="ml-1 h-3 w-3" />
+                                      )}
+                                    </Badge>
+                                  );
+                                })}
                               </div>
                             ) : (
                               <div className="text-center py-4 text-sm text-muted-foreground">

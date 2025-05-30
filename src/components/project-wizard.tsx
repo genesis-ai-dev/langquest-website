@@ -47,7 +47,6 @@ import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -116,27 +115,51 @@ export function ProjectWizard({
     step3: { confirmed: true }
   });
 
-  // Fetch all projects for cloning (not just templates)
-  const { data: existingProjects, isLoading: projectsLoading } = useQuery({
-    queryKey: ['existing-projects', environment],
+  // Step 1 form
+  const step1Form = useForm<z.infer<typeof projectMethodSchema>>({
+    resolver: zodResolver(projectMethodSchema),
+    defaultValues: wizardData.step1 || {
+      method: projectToClone ? 'clone' : 'new',
+      template_id: projectToClone || undefined
+    }
+  });
+
+  // Step 2 form
+  const step2Form = useForm<z.infer<typeof projectDetailsSchema>>({
+    resolver: zodResolver(projectDetailsSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      source_language_id: 'eng',
+      target_language_id: 'eng'
+    }
+  });
+
+  // Fetch existing projects for cloning
+  const { data: existingProjects } = useQuery({
+    queryKey: ['projects', environment],
     queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
+      const supabase = createBrowserClient(environment);
+      const { data, error } = await supabase
         .from('project')
         .select(
           `
-          id, 
-          name, 
-          description,
-          source_language:source_language_id(english_name), 
-          target_language:target_language_id(english_name),
-          quests:quest(count)
-        `
+        id,
+        name,
+        description,
+        source_language_id,
+        target_language_id,
+        source_language:source_language_id(id, english_name),
+        target_language:target_language_id(english_name),
+        quests:quest!project_id(count)
+      `
         )
-        .order('name');
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: step === 1
   });
 
   // Fetch languages for dropdowns
@@ -178,7 +201,7 @@ export function ProjectWizard({
 
     // Auto-advance to step 2
     if (step === 1) setStep(2);
-  }, [projectToClone, existingProjects]);
+  }, [projectToClone, existingProjects, step, step2Form]);
 
   // Simplified step 2 sync
   useEffect(() => {
@@ -186,27 +209,7 @@ export function ProjectWizard({
       step2Form.reset(wizardData.step2);
       if (wizardData.step2.name) setProjectName(wizardData.step2.name);
     }
-  }, [step]);
-
-  // Step 1 form
-  const step1Form = useForm<z.infer<typeof projectMethodSchema>>({
-    resolver: zodResolver(projectMethodSchema),
-    defaultValues: {
-      method: projectToClone ? 'clone' : 'new',
-      template_id: projectToClone || undefined
-    }
-  });
-
-  // Step 2 form
-  const step2Form = useForm<z.infer<typeof projectDetailsSchema>>({
-    resolver: zodResolver(projectDetailsSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      source_language_id: 'eng',
-      target_language_id: 'eng'
-    }
-  });
+  }, [step, wizardData.step2, step2Form]);
 
   // Sync the project name with the form
   useEffect(() => {
@@ -417,7 +420,7 @@ export function ProjectWizard({
 
       toast.success('Project created successfully');
       if (onSuccess) onSuccess(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to create project');
     } finally {
       setIsSubmitting(false);
@@ -513,11 +516,7 @@ export function ProjectWizard({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {projectsLoading ? (
-                        <div className="flex justify-center p-2">
-                          <Spinner className="h-4 w-4" />
-                        </div>
-                      ) : existingProjects?.length === 0 ? (
+                      {existingProjects?.length === 0 ? (
                         <div className="p-2 text-center text-sm text-muted-foreground">
                           No projects available to clone
                         </div>

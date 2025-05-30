@@ -551,7 +551,7 @@ export function QuestAssetManager({
             </div>
           ) : linkedAssets?.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              No assets added to this quest yet. Click &quot;Manage Assets&quot;
+              No assets added to this quest yet. Click {'"'}Manage Assets{'"'}
               to add some.
             </div>
           ) : (
@@ -720,7 +720,9 @@ export function QuestAssetManager({
           <SheetHeader className="mb-4">
             <SheetTitle>Bulk Upload Assets to Quest</SheetTitle>
             <SheetDescription>
-              Upload multiple assets to "{quest.name}" using a CSV file.
+              Upload multiple assets to {'"'}
+              {quest.name}
+              {'"'} using a CSV file.
             </SheetDescription>
           </SheetHeader>
 

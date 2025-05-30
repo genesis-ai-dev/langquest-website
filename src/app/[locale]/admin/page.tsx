@@ -32,7 +32,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { useAuth } from '@/components/auth-provider';
 // import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -73,7 +72,6 @@ function AdminContent() {
   });
 
   const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Check authentication for the specific environment
   useEffect(() => {
@@ -89,10 +87,8 @@ function AdminContent() {
         } else {
           setUser(authUser);
         }
-      } catch (error) {
+      } catch {
         window.location.href = `/login?redirectTo=/admin${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -106,7 +102,7 @@ function AdminContent() {
       await supabase.auth.signOut();
       toast.success('Logged out successfully');
       window.location.href = `/login?env=${environment}`;
-    } catch (error) {
+    } catch {
       toast.error('Failed to sign out');
     }
   };
