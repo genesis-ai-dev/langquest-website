@@ -1,9 +1,9 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Form,
   FormControl,
@@ -14,15 +14,15 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Spinner } from './spinner';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { Spinner } from './spinner';
+import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
-// import { cn } from '@/lib/utils';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
@@ -47,15 +47,25 @@ const assetFormSchema = z.object({
 type AssetFormValues = z.infer<typeof assetFormSchema>;
 
 interface AssetFormProps {
-  initialData?: AssetFormValues & { id: string; images?: string[] };
+  initialData?: AssetFormValues & {
+    id: string;
+    images?: string[];
+    tags?: { id: string }[];
+  };
   onSuccess?: (data: { id: string }) => void;
   questId?: string; // Optional pre-selected quest ID
 }
 
 export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
+  const { environment } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(
-    initialData?.tags || []
+    initialData?.tags
+      ? Array.isArray(initialData.tags) &&
+        typeof initialData.tags[0] === 'object'
+        ? (initialData.tags as { id: string }[]).map((t) => t.id)
+        : (initialData.tags as string[])
+      : []
   );
   const [selectedQuests, setSelectedQuests] = useState<string[]>(
     questId ? [questId] : initialData?.quests || []
@@ -65,41 +75,45 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     initialData?.images || []
   );
   const [audioFiles, setAudioFiles] = useState<Record<number, File>>({});
-  const [contentItems, setContentItems] = useState<
+  const [contents, setContents] = useState<
     { text: string; audio_id?: string }[]
   >(initialData?.content || [{ text: '', audio_id: undefined }]);
-  // const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-  //   {}
-  // );
+
+  // Set quest from prop if provided
+  useEffect(() => {
+    if (questId && !selectedQuests.includes(questId)) {
+      setSelectedQuests((prev) => [...prev, questId]);
+    }
+  }, [questId, selectedQuests]);
 
   // Fetch tags for the multi-select
-  const { data: tags, isLoading: tagsLoading } = useQuery({
-    queryKey: ['tags'],
+  const { data: tagsData = [], isLoading: tagsLoading } = useQuery({
+    queryKey: ['tags', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('tag')
         .select('id, name')
         .order('name');
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   // Fetch quests for the multi-select
-  const { data: quests, isLoading: questsLoading } = useQuery({
-    queryKey: ['quests'],
+  const { data: questsData = [], isLoading: questsLoading } = useQuery({
+    queryKey: ['quests', environment],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('quest')
         .select(
           `
-          id, 
-          name, 
+          id,
+          name,
           project:project_id(
-            id, 
-            name, 
-            source_language:source_language_id(english_name), 
+            id,
+            name,
+            source_language:source_language_id(id, english_name),
             target_language:target_language_id(english_name)
           )
         `
@@ -107,28 +121,22 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         .order('name');
 
       if (error) throw error;
-      return data;
-    },
-    enabled: !questId // Only fetch if questId is not provided
+      return data || [];
+    }
   });
 
-  // Fetch specific quest if questId is provided
-  const { data: specificQuest } = useQuery({
-    queryKey: ['quest', questId],
+  // Fetch source language from the quest
+  const { data: questLanguageData } = useQuery({
+    queryKey: ['quest-language', questId, environment],
     queryFn: async () => {
       if (!questId) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from('quest')
         .select(
           `
-          id, 
-          name, 
           project:project_id(
-            id, 
-            name, 
-            source_language:source_language_id(english_name), 
-            target_language:target_language_id(english_name)
+            source_language_id
           )
         `
         )
@@ -140,21 +148,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     },
     enabled: !!questId
   });
-
-  // Fetch English language ID - commenting out unused for now
-  // const { data: englishLanguage } = useQuery({
-  //   queryKey: ['language', 'english'],
-  //   queryFn: async () => {
-  //     const { data, error } = await supabase
-  //       .from('language')
-  //       .select('id')
-  //       .eq('iso639_3', 'eng')
-  //       .single();
-
-  //     if (error) throw error;
-  //     return data;
-  //   }
-  // });
 
   // Set up form with default values
   const form = useForm<AssetFormValues>({
@@ -194,11 +187,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   };
 
   const addContentItem = () => {
-    setContentItems((prev) => [...prev, { text: '', audio_id: undefined }]);
+    setContents((prev) => [...prev, { text: '', audio_id: undefined }]);
   };
 
   const removeContentItem = (index: number) => {
-    setContentItems((prev) => {
+    setContents((prev) => {
       const updated = prev.filter((_, i) => i !== index);
       // If all content items are removed, we still want to allow form submission
       return updated;
@@ -206,7 +199,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   };
 
   const updateContentItem = (index: number, text: string) => {
-    setContentItems((prev) => {
+    setContents((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], text };
       return updated;
@@ -217,7 +210,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     setIsSubmitting(true);
     try {
       // Filter out empty content items
-      const filteredContent = contentItems.filter(
+      const filteredContent = contents.filter(
         (item) => item.text.trim() !== ''
       );
       values.content = filteredContent.length > 0 ? filteredContent : [];
@@ -242,8 +235,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
           // Simple upload without progress tracking
           const { data: uploadData, error: uploadError } =
-            await supabase.storage
-              .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+            await createBrowserClient(environment)
+              .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
               .upload(`images/${fileName}`, image);
 
           if (uploadError) throw uploadError;
@@ -270,9 +263,10 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         const fileName = `${Date.now()}-${file.name}`;
         // setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-          .upload(`audio/${fileName}`, file);
+        const { data: uploadData, error: uploadError } =
+          await createBrowserClient(environment)
+            .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+            .upload(`audio/${fileName}`, file);
 
         if (uploadError) throw uploadError;
         if (updatedContent[index]) {
@@ -290,7 +284,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       if (initialData?.id) {
         // Update existing asset
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from('asset')
           .update({
             name: values.name,
@@ -307,7 +301,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         assetId = data.id;
 
         // Delete existing content
-        await supabase
+        await createBrowserClient(environment)
           .from('asset_content_link')
           .delete()
           .eq('asset_id', assetId);
@@ -323,17 +317,18 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
             const selectedQuestId = selectedQuests[0];
 
             // Fetch the quest with its project and language details
-            const { data: questData, error: questError } = await supabase
-              .from('quest')
-              .select(
-                `
+            const { data: questData, error: questError } =
+              await createBrowserClient(environment)
+                .from('quest')
+                .select(
+                  `
                 project:project_id(
                   source_language_id
                 )
               `
-              )
-              .eq('id', selectedQuestId)
-              .single();
+                )
+                .eq('id', selectedQuestId)
+                .single();
 
             if (
               !questError &&
@@ -343,7 +338,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
               sourceLanguageId = (questData.project as any).source_language_id;
 
               // Create new asset with the language ID from the quest
-              const { data, error } = await supabase
+              const { data, error } = await createBrowserClient(environment)
                 .from('asset')
                 .insert({
                   name: values.name,
@@ -365,11 +360,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           }
 
           // Fallback: Try to get the English language ID
-          const { data: langData, error: langError } = await supabase
-            .from('language')
-            .select('id')
-            .eq('iso639_3', 'eng')
-            .single();
+          const { data: langData, error: langError } =
+            await createBrowserClient(environment)
+              .from('language')
+              .select('id')
+              .eq('iso639_3', 'eng')
+              .single();
 
           if (langError || !langData) {
             throw new Error('Could not fetch language ID for asset creation.');
@@ -378,7 +374,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           sourceLanguageId = langData.id;
 
           // Create new asset with the English language ID
-          const { data, error } = await supabase
+          const { data, error } = await createBrowserClient(environment)
             .from('asset')
             .insert({
               name: values.name,
@@ -414,7 +410,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           active: true
         }));
 
-        const { error: contentError } = await supabase
+        const { error: contentError } = await createBrowserClient(environment)
           .from('asset_content_link')
           .insert(contentLinks);
 
@@ -428,7 +424,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       // Handle tags - first remove existing tags
       if (initialData?.id) {
-        const { error: deleteTagsError } = await supabase
+        const { error: deleteTagsError } = await createBrowserClient(
+          environment
+        )
           .from('asset_tag_link')
           .delete()
           .eq('asset_id', assetId);
@@ -446,7 +444,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           active: true
         }));
 
-        const { error: tagError } = await supabase
+        const { error: tagError } = await createBrowserClient(environment)
           .from('asset_tag_link')
           .insert(tagLinks);
 
@@ -458,7 +456,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       // Handle quests - first remove existing quest links
       if (initialData?.id) {
-        const { error: deleteQuestsError } = await supabase
+        const { error: deleteQuestsError } = await createBrowserClient(
+          environment
+        )
           .from('quest_asset_link')
           .delete()
           .eq('asset_id', assetId);
@@ -493,10 +493,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           JSON.parse(JSON.stringify(questLinksPayload))
         );
 
-        const { data: insertedLinks, error: questError } = await supabase
-          .from('quest_asset_link')
-          .insert(questLinksPayload)
-          .select(); // Ask Supabase to return the inserted rows
+        const { data: insertedLinks, error: questError } =
+          await createBrowserClient(environment)
+            .from('quest_asset_link')
+            .insert(questLinksPayload)
+            .select(); // Ask Supabase to return the inserted rows
 
         if (questError) {
           console.error(
@@ -540,7 +541,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         setImages([]);
         setImageUrls([]);
         setAudioFiles({});
-        setContentItems([{ text: '', audio_id: undefined }]);
+        setContents([{ text: '', audio_id: undefined }]);
       }
 
       // Call onSuccess callback with the result
@@ -573,7 +574,16 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     return <Spinner />;
   }
 
-  const allQuests = questId && specificQuest ? [specificQuest] : quests || [];
+  const allQuests =
+    questId && questLanguageData
+      ? [
+          {
+            id: questId,
+            name: 'Current Quest',
+            project: questLanguageData.project
+          }
+        ]
+      : questsData || [];
 
   return (
     <Form {...form}>
@@ -608,8 +618,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                     src={
                       url.startsWith('blob:')
                         ? url
-                        : supabase.storage
-                            .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                        : createBrowserClient(environment)
+                            .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                             .getPublicUrl(url).data.publicUrl
                     }
                     alt={`Asset image ${index}`}
@@ -663,7 +673,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           </div>
 
           <div className="space-y-4">
-            {contentItems.map((item, index) => (
+            {contents.map((item, index) => (
               <div key={index} className="p-4 border rounded-md relative">
                 <Button
                   type="button"
@@ -693,8 +703,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                         <div className="flex items-center gap-2">
                           <AudioButton
                             src={
-                              supabase.storage
-                                .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                              createBrowserClient(environment)
+                                .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                                 .getPublicUrl(item.audio_id).data.publicUrl
                             }
                           />
@@ -771,7 +781,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                       <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[80px]">
                         {selectedTags.length > 0 ? (
                           selectedTags.map((tagId) => {
-                            const tag = tags?.find((t) => t.id === tagId);
+                            const tag = tagsData?.find((t) => t.id === tagId);
                             return (
                               <Badge
                                 key={tagId}
@@ -810,9 +820,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                           <div className="text-sm text-muted-foreground mb-2">
                             Click on tags to select/deselect them
                           </div>
-                          {tags && tags.length > 0 ? (
+                          {tagsData && tagsData.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
-                              {tags.map((tag) => (
+                              {tagsData.map((tag) => (
                                 <Badge
                                   key={tag.id}
                                   variant={
@@ -927,53 +937,64 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                             </div>
                             {allQuests && allQuests.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
-                                {allQuests.map((quest) => (
-                                  <Badge
-                                    key={quest.id}
-                                    variant={
-                                      selectedQuests.includes(quest.id)
-                                        ? 'default'
-                                        : 'outline'
-                                    }
-                                    className={`cursor-pointer ${
-                                      questId === quest.id ? 'opacity-70' : ''
-                                    }`}
-                                    onClick={() => {
-                                      if (questId !== quest.id) {
-                                        let newSelectedQuests;
-                                        if (
-                                          !selectedQuests.includes(quest.id)
-                                        ) {
-                                          newSelectedQuests = [
-                                            ...selectedQuests,
-                                            quest.id
-                                          ];
-                                        } else {
-                                          newSelectedQuests =
-                                            selectedQuests.filter(
-                                              (id) => id !== quest.id
-                                            );
-                                        }
-                                        setSelectedQuests(newSelectedQuests);
+                                {allQuests.map((quest) => {
+                                  const isFromQuestData =
+                                    'project' in quest &&
+                                    Array.isArray(quest.project);
+                                  const projectInfo = isFromQuestData
+                                    ? quest.project[0]
+                                    : null;
+
+                                  return (
+                                    <Badge
+                                      key={quest.id}
+                                      variant={
+                                        selectedQuests.includes(quest.id)
+                                          ? 'default'
+                                          : 'outline'
                                       }
-                                    }}
-                                  >
-                                    {quest.name} (
-                                    {
-                                      (quest.project as any).source_language
-                                        ?.english_name
-                                    }{' '}
-                                    →{' '}
-                                    {
-                                      (quest.project as any).target_language
-                                        ?.english_name
-                                    }
-                                    )
-                                    {selectedQuests.includes(quest.id) && (
-                                      <CheckIcon className="ml-1 h-3 w-3" />
-                                    )}
-                                  </Badge>
-                                ))}
+                                      className={`cursor-pointer ${
+                                        questId === quest.id ? 'opacity-70' : ''
+                                      }`}
+                                      onClick={() => {
+                                        if (questId !== quest.id) {
+                                          let newSelectedQuests;
+                                          if (
+                                            !selectedQuests.includes(quest.id)
+                                          ) {
+                                            newSelectedQuests = [
+                                              ...selectedQuests,
+                                              quest.id
+                                            ];
+                                          } else {
+                                            newSelectedQuests =
+                                              selectedQuests.filter(
+                                                (id) => id !== quest.id
+                                              );
+                                          }
+                                          setSelectedQuests(newSelectedQuests);
+                                        }
+                                      }}
+                                    >
+                                      {quest.name} (
+                                      {projectInfo &&
+                                      'source_language' in projectInfo
+                                        ? projectInfo.source_language?.[0]
+                                            ?.english_name || 'Unknown'
+                                        : 'Unknown'}{' '}
+                                      →{' '}
+                                      {projectInfo &&
+                                      'target_language' in projectInfo
+                                        ? projectInfo.target_language?.[0]
+                                            ?.english_name || 'Unknown'
+                                        : 'Unknown'}
+                                      )
+                                      {selectedQuests.includes(quest.id) && (
+                                        <CheckIcon className="ml-1 h-3 w-3" />
+                                      )}
+                                    </Badge>
+                                  );
+                                })}
                               </div>
                             ) : (
                               <div className="text-center py-4 text-sm text-muted-foreground">

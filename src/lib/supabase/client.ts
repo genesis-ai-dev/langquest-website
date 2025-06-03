@@ -33,6 +33,3 @@ export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   supabaseInstances.set(env, newInstance);
   return newInstance;
 }
-
-// Export a default production instance
-export const supabase = createBrowserClient();

@@ -36,7 +36,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { env } from '@/lib/env';
-import { supabase } from '@/lib/supabase/client';
+import { createBrowserClient } from '@/lib/supabase/client';
 import { cn, toProperCase } from '@/lib/utils';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -88,9 +88,15 @@ import {
   SheetTitle,
   SheetTrigger
 } from './ui/sheet';
-
-// Import useTranslations from next-intl
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/components/auth-provider';
+import { SupabaseEnvironment } from '@/lib/supabase';
+
+// Custom hook to get environment-aware Supabase client
+function useSupabaseClient() {
+  const { environment } = useAuth();
+  return createBrowserClient(environment);
+}
 
 // Define base types
 
@@ -184,56 +190,25 @@ interface Operator {
 }
 
 const OPERATORS: Operator[] = [
-  {
-    value: '=',
-    label: 'equals'
-  },
-  {
-    value: '<>',
-    label: 'not equal'
-  },
-  {
-    value: '>',
-    label: 'greater than'
-  },
-  {
-    value: '<',
-    label: 'less than'
-  },
-  {
-    value: '>=',
-    label: 'greater than or equal'
-  },
-  {
-    value: '<=',
-    label: 'less than or equal'
-  },
-  {
-    value: 'LIKE',
-    label: 'like operator'
-  },
-  {
-    value: 'ILIKE',
-    label: 'ilike operator'
-  },
-  {
-    value: 'IN',
-    label: 'one of a list of values'
-  }
+  { value: '=', label: 'equals' },
+  { value: '<>', label: 'not equal' },
+  { value: '>', label: 'greater than' },
+  { value: '<', label: 'less than' },
+  { value: '>=', label: 'greater than or equal' },
+  { value: '<=', label: 'less than or equal' },
+  { value: 'LIKE', label: 'like operator' },
+  { value: 'ILIKE', label: 'ilike operator' },
+  { value: 'IN', label: 'one of a list of values' }
 ];
 
-// Add helper function to compute symbol
+// Simplified operator symbol function
 const getOperatorSymbol = (value: string) => {
-  switch (value) {
-    case 'LIKE':
-      return '[~~]';
-    case 'ILIKE':
-      return '[~~*]';
-    case 'IN':
-      return '[in]';
-    default:
-      return `[${value}]`;
-  }
+  const symbols: Record<string, string> = {
+    LIKE: '[~~]',
+    ILIKE: '[~~*]',
+    IN: '[in]'
+  };
+  return symbols[value] || `[${value}]`;
 };
 
 const getJavascriptEvaluationOperator = (operator: string) => {
@@ -462,9 +437,10 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
 const fetchTableData = async (
   tableName: string,
   page: number,
-  pageSize: number
+  pageSize: number,
+  supabaseClient: ReturnType<typeof createBrowserClient>
 ) => {
-  const { data, error, count } = await supabase
+  const { data, error, count } = await supabaseClient
     .from(tableName as keyof Database['public']['Tables'])
     .select('*', { count: 'exact' })
     .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -496,10 +472,12 @@ function RelatedRecordsCount({
   isLinkTable?: boolean;
 }) {
   const t = useTranslations('database_viewer');
+  const supabaseClient = useSupabaseClient();
+
   const { data, isLoading } = useQuery({
     queryKey: ['relatedRecordsCount', tableName, columnName, recordId],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { count, error } = await supabaseClient
         .from(tableName)
         .select('*', { count: 'exact', head: true })
         .eq(columnName, recordId);
@@ -531,6 +509,8 @@ function useTransformedColumns({
   tableSchemas?: Record<string, TableSchema>;
 }) {
   const t = useTranslations('database_viewer');
+  const { environment } = useAuth();
+
   return React.useMemo(() => {
     if (!schema) return [];
     return [
@@ -734,8 +714,8 @@ function useTransformedColumns({
             return (
               <div className="flex w-30 justify-center">
                 {imageSources.map((item, index) => {
-                  const source = supabase.storage
-                    .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                  const source = createBrowserClient(environment)
+                    .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                     .getPublicUrl(item).data.publicUrl;
 
                   return (
@@ -772,8 +752,8 @@ function useTransformedColumns({
                   <AudioButton
                     key={item}
                     src={
-                      supabase.storage
-                        .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                      createBrowserClient(environment)
+                        .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                         .getPublicUrl(item).data.publicUrl
                     }
                   />
@@ -842,7 +822,7 @@ function useTransformedColumns({
         }
       }))
     ];
-  }, [schema, onForeignKeySelect, isPreview, tableSchemas, t]);
+  }, [schema, onForeignKeySelect, isPreview, tableSchemas, t, environment]);
 }
 
 function PreviewTable({
@@ -855,6 +835,7 @@ function PreviewTable({
   filterValue: string;
 }) {
   const t = useTranslations('database_viewer');
+  const { environment } = useAuth();
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ['tableSchemas'],
     queryFn: fetchTableSchemas
@@ -863,7 +844,7 @@ function PreviewTable({
   const { data, isLoading } = useQuery({
     queryKey: ['previewData', tableName, filterColumn, filterValue],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await createBrowserClient(environment)
         .from(tableName)
         .select('*')
         .eq(filterColumn, filterValue);
@@ -1013,7 +994,8 @@ const downloadAsZip = async (
 
 const processAttachments = async (
   data: any[],
-  includeAttachments: boolean
+  includeAttachments: boolean,
+  environment: SupabaseEnvironment
 ): Promise<{
   transformedData: any[];
   attachments: { path: string; url: string }[];
@@ -1046,8 +1028,8 @@ const processAttachments = async (
 
               // Collect attachments for download
               sources.forEach((source: string) => {
-                const url = supabase.storage
-                  .from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                const url = createBrowserClient(environment)
+                  .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                   .getPublicUrl(source).data.publicUrl;
                 attachments.push({ path: `${source}.${fileExtension}`, url });
               });
@@ -1068,6 +1050,7 @@ const exportAllTables = async (
   format: 'json' | 'csv',
   includeAttachments: boolean,
   tables: string[],
+  environment: SupabaseEnvironment,
   onProgress?: (tableName: string) => void
 ) => {
   const zip = new JSZip();
@@ -1075,14 +1058,15 @@ const exportAllTables = async (
 
   for (const tableName of tables) {
     onProgress?.(tableName);
-    const { data } = await supabase
+    const { data } = await createBrowserClient(environment)
       .from(tableName as keyof Database['public']['Tables'])
       .select('*');
     if (!data) continue;
 
     const { transformedData, attachments } = await processAttachments(
       data,
-      includeAttachments
+      includeAttachments,
+      environment
     );
 
     // Add table data to zip
@@ -1140,11 +1124,13 @@ const exportAllTables = async (
 const exportToJson = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string
+  tableName: string,
+  environment: SupabaseEnvironment
 ) => {
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments
+    includeAttachments,
+    environment
   );
   const jsonStr = JSON.stringify(transformedData, null, 2);
 
@@ -1163,13 +1149,15 @@ const exportToJson = async (
 const exportToCsv = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string
+  tableName: string,
+  environment: SupabaseEnvironment
 ) => {
   if (!data.length) return;
 
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments
+    includeAttachments,
+    environment
   );
   const headers = Object.keys(transformedData[0]);
   const csvContent = [
@@ -1219,6 +1207,8 @@ function ReverseRelationshipPreview({
   throughTargetColumn?: string;
 }) {
   const t = useTranslations('database_viewer');
+  const { environment } = useAuth();
+
   const { data, isLoading } = useQuery({
     queryKey: [
       'reverseRelationship',
@@ -1240,7 +1230,7 @@ function ReverseRelationshipPreview({
       ) {
         // For link tables, we need to join through to the target table
         // First, get the foreign key table that the throughTargetColumn points to
-        const { data: schemaData } = await supabase
+        const { data: schemaData } = await createBrowserClient(environment)
           .from('_metadata')
           .select('*');
 
@@ -1251,26 +1241,28 @@ function ReverseRelationshipPreview({
 
         if (foreignKeyTable) {
           // Use a join to get the related records
-          const { data: linkData, error: linkError } = await supabase
-            .from(throughTable)
-            .select(`*, ${foreignKeyTable}(*)`)
-            .eq(throughSourceColumn, recordId);
+          const { data: linkData, error: linkError } =
+            await createBrowserClient(environment)
+              .from(throughTable)
+              .select(`*, ${foreignKeyTable}(*)`)
+              .eq(throughSourceColumn, recordId);
 
           if (linkError) throw linkError;
           return { linkData, foreignKeyTable };
         } else {
           // Fallback to just getting the link table records
-          const { data: linkData, error: linkError } = await supabase
-            .from(throughTable)
-            .select('*')
-            .eq(throughSourceColumn, recordId);
+          const { data: linkData, error: linkError } =
+            await createBrowserClient(environment)
+              .from(throughTable)
+              .select('*')
+              .eq(throughSourceColumn, recordId);
 
           if (linkError) throw linkError;
           return { linkData, foreignKeyTable: null };
         }
       } else {
         // For direct relationships
-        const { data, error } = await supabase
+        const { data, error } = await createBrowserClient(environment)
           .from(tableName)
           .select('*')
           .eq(columnName, recordId);
@@ -1419,6 +1411,7 @@ function ReverseRelationshipPreview({
 
 export function DatabaseViewer() {
   const t = useTranslations('database_viewer');
+  const { environment } = useAuth();
 
   // Fetch table schemas
   const {
@@ -1496,13 +1489,16 @@ export function DatabaseViewer() {
   }, [columnVisibility, selectedTable, setColumnVisibility]);
 
   // Fetch table data with pagination
+  const supabaseClient = useSupabaseClient();
+
   const {
     data: currentData,
     isLoading: dataLoading,
     error: dataError
   } = useQuery<TableData, Error>({
     queryKey: ['tableData', selectedTable, page, pageSize],
-    queryFn: () => fetchTableData(selectedTable, page, pageSize),
+    queryFn: () =>
+      fetchTableData(selectedTable, page, pageSize, supabaseClient),
     enabled: !!selectedTable && !!tableSchemas
   });
 
@@ -1842,6 +1838,7 @@ export function DatabaseViewer() {
                                 'json',
                                 includeAttachments,
                                 Object.keys(tableSchemas),
+                                environment,
                                 setExportProgress
                               ).finally(() => setExportProgress(null));
                             } else {
@@ -1850,7 +1847,8 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable
+                                selectedTable,
+                                environment
                               );
                             }
                           }}
@@ -1869,6 +1867,7 @@ export function DatabaseViewer() {
                                 'csv',
                                 includeAttachments,
                                 Object.keys(tableSchemas),
+                                environment,
                                 setExportProgress
                               ).finally(() => setExportProgress(null));
                             } else {
@@ -1877,7 +1876,8 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable
+                                selectedTable,
+                                environment
                               );
                             }
                           }}

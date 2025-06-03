@@ -1,7 +1,7 @@
 'use client';
 
-import Hero from '@/components/Hero';
-import PeerToPeerVisualization from '@/components/PeerToPeerVisualization';
+import ClientOnlyHero from '@/components/ClientOnlyHero';
+import ClientOnlyP2P from '@/components/ClientOnlyP2P';
 import { SubscribeForm } from '@/components/SubscribeForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,11 +31,32 @@ import { useTranslations } from 'next-intl';
 export default function LandingPage() {
   const t = useTranslations('homepage');
 
+  const environments = [
+    {
+      name: 'Production',
+      description: 'Main database with live data',
+      href: '/login?env=production',
+      color: 'bg-green-500'
+    },
+    {
+      name: 'Preview',
+      description: 'Staging environment for testing',
+      href: '/login?env=preview',
+      color: 'bg-yellow-500'
+    },
+    {
+      name: 'Development',
+      description: 'Local development environment',
+      href: '/login?env=development',
+      color: 'bg-blue-500'
+    }
+  ];
+
   return (
     <WebPageWrapper>
       <main className="flex-1">
         {/* Hero Section with Three.js Globe */}
-        <Hero>
+        <ClientOnlyHero>
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50">
               <div className="space-y-2">
@@ -72,7 +93,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </Hero>
+        </ClientOnlyHero>
 
         {/* Key Features */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
@@ -378,7 +399,7 @@ export default function LandingPage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex items-center justify-center">
                 <div className="relative h-[300px] w-full md:h-[400px] overflow-hidden rounded-lg border bg-background p-2">
-                  <PeerToPeerVisualization />
+                  <ClientOnlyP2P />
                 </div>
               </div>
               <div className="flex flex-col justify-center space-y-4">
@@ -434,6 +455,43 @@ export default function LandingPage() {
                   {t('cta.notification')}
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold mb-4">
+                LangQuest Project Management
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Select which environment you want to access
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {environments.map((env) => (
+                <Card
+                  key={env.name}
+                  className="hover:shadow-lg transition-shadow"
+                >
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className={`w-3 h-3 rounded-full ${env.color}`}
+                      ></div>
+                      <CardTitle>{env.name}</CardTitle>
+                    </div>
+                    <CardDescription>{env.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href={env.href}>
+                      <Button className="w-full">Login to {env.name}</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </section>

@@ -6,7 +6,7 @@ import { AuthProvider } from './auth-provider'; // Your Supabase auth provider
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import React from 'react';
+import React, { Suspense } from 'react';
 
 // Create a new QueryClient instance with specific default options
 const queryClient = new QueryClient({
@@ -32,7 +32,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             If you were using next-auth, SessionProvider would go here.
             For Supabase, AuthProvider handles the session/user context.
           */}
-          <AuthProvider>{children}</AuthProvider>
+          <Suspense fallback={<div>Loading...</div>}>
+            <AuthProvider>{children}</AuthProvider>
+          </Suspense>
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

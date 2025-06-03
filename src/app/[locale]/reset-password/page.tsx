@@ -10,11 +10,11 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { getSupabaseEnvironment } from '@/lib/supabase';
+import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AuthError, SupabaseClient } from '@supabase/supabase-js';
+import { AuthError } from '@supabase/supabase-js';
 import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth-provider';
 
 function ErrorMessage({
   error
@@ -40,14 +41,22 @@ function ErrorMessage({
   }
 }
 
-export function ResetPasswordForm() {
+function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
-  const supabase = createBrowserClient(
-    getSupabaseEnvironment(searchParams.get('project_ref'))
-  );
-
+  const { environment } = useAuth();
   const t = useTranslations('reset_password');
+
+  // Determine environment from multiple sources
+  const projectRef = searchParams.get('project_ref');
+  const envFromProjectRef = projectRef
+    ? getSupabaseEnvironment(projectRef)
+    : null;
+  const envParam = searchParams.get('env') as SupabaseEnvironment;
+  const activeEnvironment =
+    environment || envFromProjectRef || envParam || 'production';
+
+  const supabase = createBrowserClient(activeEnvironment);
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => <ErrorMessage error={error} />);
@@ -74,7 +83,7 @@ export function ResetPasswordForm() {
   });
 
   useEffect(() => {
-    console.log('useEffect');
+    console.log('useEffect - using environment:', activeEnvironment);
 
     const { params } = getQueryParams(window.location.href);
 
@@ -116,7 +125,7 @@ export function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [t]);
+  }, [supabase.auth, t, activeEnvironment]);
 
   const {
     mutate: updatePassword,
