@@ -1,7 +1,7 @@
 'use client';
 
-import Hero from '@/components/Hero';
-import PeerToPeerVisualization from '@/components/PeerToPeerVisualization';
+import ClientOnlyHero from '@/components/ClientOnlyHero';
+import ClientOnlyP2P from '@/components/ClientOnlyP2P';
 import { SubscribeForm } from '@/components/SubscribeForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ export default function LandingPage() {
     <WebPageWrapper>
       <main className="flex-1">
         {/* Hero Section with Three.js Globe */}
-        <Hero>
+        <ClientOnlyHero>
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50">
               <div className="space-y-2">
@@ -105,7 +105,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </Hero>
+        </ClientOnlyHero>
 
         {/* Key Features */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
@@ -411,7 +411,7 @@ export default function LandingPage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex items-center justify-center">
                 <div className="relative h-[300px] w-full md:h-[400px] overflow-hidden rounded-lg border bg-background p-2">
-                  <PeerToPeerVisualization />
+                  <ClientOnlyP2P />
                 </div>
               </div>
               <div className="flex flex-col justify-center space-y-4">
