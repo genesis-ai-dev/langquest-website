@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [environment]); // Re-run when environment changes
+  }, [environment, supabase.auth]); // Re-run when environment changes
 
   const signOut = async () => {
     try {

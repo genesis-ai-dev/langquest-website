@@ -41,7 +41,7 @@ function ErrorMessage({
   }
 }
 
-export function ResetPasswordForm() {
+function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
   const searchParams = useSearchParams();
   const { environment } = useAuth();

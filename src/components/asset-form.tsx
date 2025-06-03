@@ -60,7 +60,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   const { environment } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(
-    initialData?.tags?.map((t) => t.id) || []
+    initialData?.tags
+      ? Array.isArray(initialData.tags) &&
+        typeof initialData.tags[0] === 'object'
+        ? (initialData.tags as { id: string }[]).map((t) => t.id)
+        : (initialData.tags as string[])
+      : []
   );
   const [selectedQuests, setSelectedQuests] = useState<string[]>(
     questId ? [questId] : initialData?.quests || []
@@ -936,8 +941,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                   const isFromQuestData =
                                     'project' in quest &&
                                     Array.isArray(quest.project);
-                                  const projectInfo =
-                                    isFromQuestData && quest.project[0];
+                                  const projectInfo = isFromQuestData
+                                    ? quest.project[0]
+                                    : null;
 
                                   return (
                                     <Badge
@@ -971,15 +977,17 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                       }}
                                     >
                                       {quest.name} (
-                                      {
-                                        projectInfo?.source_language
-                                          ?.english_name
-                                      }{' '}
+                                      {projectInfo &&
+                                      'source_language' in projectInfo
+                                        ? projectInfo.source_language?.[0]
+                                            ?.english_name || 'Unknown'
+                                        : 'Unknown'}{' '}
                                       →{' '}
-                                      {
-                                        projectInfo?.target_language
-                                          ?.english_name
-                                      }
+                                      {projectInfo &&
+                                      'target_language' in projectInfo
+                                        ? projectInfo.target_language?.[0]
+                                            ?.english_name || 'Unknown'
+                                        : 'Unknown'}
                                       )
                                       {selectedQuests.includes(quest.id) && (
                                         <CheckIcon className="ml-1 h-3 w-3" />
