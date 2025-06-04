@@ -17,6 +17,9 @@ import {
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SupabaseEnvironment } from '@/lib/supabase';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 // Main component that serves as the page
 export default function LoginPage() {
@@ -200,6 +203,24 @@ function LoginForm() {
             </TabsContent>
 
             <TabsContent value="register">
+              {environment !== 'production' && (
+                <Alert className="mb-4 border-yellow-200 bg-yellow-50">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    <strong>Warning:</strong> You&apos;re registering in the{' '}
+                    <span className="font-semibold">{environment}</span>{' '}
+                    environment. Unless you&apos;re a developer/tester, you
+                    should{' '}
+                    <Link
+                      href="/login?env=production"
+                      className="underline hover:no-underline"
+                    >
+                      register in production instead
+                    </Link>
+                    .
+                  </AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label htmlFor="register-username">Username</Label>
@@ -251,21 +272,21 @@ function LoginForm() {
                   />
                   <Label htmlFor="terms" className="text-sm">
                     I agree to the{' '}
-                    <a
+                    <Link
                       href="/terms"
                       target="_blank"
                       className="text-primary hover:underline"
                     >
                       Terms and Conditions
-                    </a>{' '}
+                    </Link>{' '}
                     and{' '}
-                    <a
+                    <Link
                       href="/privacy"
                       target="_blank"
                       className="text-primary hover:underline"
                     >
                       Privacy Policy
-                    </a>
+                    </Link>
                   </Label>
                 </div>
                 <Button
@@ -285,13 +306,13 @@ function LoginForm() {
             </p>
             <div className="flex gap-2 justify-center">
               {otherEnvironments.map((env) => (
-                <a
+                <Link
                   key={env}
                   href={`/login?env=${env}`}
                   className="text-sm text-primary hover:underline"
                 >
                   {env.charAt(0).toUpperCase() + env.slice(1)}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
