@@ -22,7 +22,15 @@ import { toast } from 'sonner';
 import { Spinner } from './spinner';
 import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
-import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
+import { OwnershipAlert } from '@/components/ownership-alert';
+import {
+  X,
+  Plus,
+  Upload,
+  Image as ImageIcon,
+  CheckIcon,
+  AlertCircle
+} from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
@@ -57,7 +65,7 @@ interface AssetFormProps {
 }
 
 export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
-  const { environment } = useAuth();
+  const { user, environment } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags
@@ -100,10 +108,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     }
   });
 
-  // Fetch quests for the multi-select
+  // Fetch quests for the multi-select - from projects where user can edit (owned + unowned)
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
-    queryKey: ['quests', environment],
+    queryKey: ['editable-quests', user?.id, environment],
     queryFn: async () => {
+      if (!user?.id) return [];
+
       const { data, error } = await createBrowserClient(environment)
         .from('quest')
         .select(
@@ -114,15 +124,41 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
             id,
             name,
             source_language:source_language_id(id, english_name),
-            target_language:target_language_id(english_name)
+            target_language:target_language_id(english_name),
+            profile_project_link(
+              membership,
+              active,
+              profile_id
+            )
           )
         `
         )
         .order('name');
 
       if (error) throw error;
-      return data || [];
-    }
+
+      // Filter to only quests from projects the user can edit
+      const editableQuests = [];
+      for (const quest of data || []) {
+        if (quest.project && Array.isArray(quest.project) && quest.project[0]) {
+          const project = quest.project[0];
+          const userMembership = project.profile_project_link?.find(
+            (link: any) => link.profile_id === user.id && link.active
+          );
+          const hasAnyOwnership = project.profile_project_link?.some(
+            (link: any) => link.active && link.membership === 'owner'
+          );
+
+          // User can edit if they're owner OR if project is unowned
+          if (userMembership?.membership === 'owner' || !hasAnyOwnership) {
+            editableQuests.push(quest);
+          }
+        }
+      }
+
+      return editableQuests;
+    },
+    enabled: !!user?.id
   });
 
   // Fetch source language from the quest
@@ -207,6 +243,13 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   };
 
   async function onSubmit(values: AssetFormValues) {
+    if (!user) {
+      toast.error('You must be logged in to create assets');
+      return;
+    }
+
+    // Ownership validation is handled by filtering quests to only show owned ones
+
     setIsSubmitting(true);
     try {
       // Filter out empty content items
@@ -588,6 +631,11 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <OwnershipAlert
+          user={user}
+          contentType="asset"
+          isEditing={!!initialData}
+        />
         <FormField
           control={form.control}
           name="name"
@@ -1014,12 +1062,14 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           </TabsContent>
         </Tabs>
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !user}>
           {isSubmitting ? (
             <>
               <Spinner className="mr-2 h-4 w-4" />
               Saving...
             </>
+          ) : !user ? (
+            'Login Required'
           ) : initialData ? (
             'Update Asset'
           ) : (

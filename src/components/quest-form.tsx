@@ -28,8 +28,10 @@ import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
-import { X, CheckIcon } from 'lucide-react';
+import { X, CheckIcon, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
+import { canEditProject } from '@/lib/project-permissions';
+import { OwnershipAlert } from '@/components/ownership-alert';
 // import { cn } from '@/lib/utils';
 
 const questFormSchema = z.object({
@@ -60,12 +62,15 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
-  const { environment } = useAuth();
+  const { user, environment } = useAuth();
 
-  // Fetch projects for the dropdown
+  // Fetch projects for the dropdown - projects where user can edit (owned + unowned)
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects', environment],
+    queryKey: ['editable-projects', user?.id, environment],
     queryFn: async () => {
+      if (!user?.id) return [];
+
+      // Get all projects with their ownership info
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
@@ -73,14 +78,37 @@ export function QuestForm({
           id, 
           name, 
           source_language:source_language_id(english_name), 
-          target_language:target_language_id(english_name)
+          target_language:target_language_id(english_name),
+          profile_project_link(
+            membership,
+            active,
+            profile_id
+          )
         `
         )
         .order('name');
 
       if (error) throw error;
-      return data || [];
-    }
+
+      // Filter to only projects the user can edit (owned or unowned)
+      const editableProjects = [];
+      for (const project of data || []) {
+        const userMembership = project.profile_project_link?.find(
+          (link: any) => link.profile_id === user.id && link.active
+        );
+        const hasAnyOwnership = project.profile_project_link?.some(
+          (link: any) => link.active && link.membership === 'owner'
+        );
+
+        // User can edit if they're owner OR if project is unowned
+        if (userMembership?.membership === 'owner' || !hasAnyOwnership) {
+          editableProjects.push(project);
+        }
+      }
+
+      return editableProjects;
+    },
+    enabled: !!user?.id
   });
 
   // Fetch tags for the multi-select
@@ -109,6 +137,24 @@ export function QuestForm({
   });
 
   async function onSubmit(values: QuestFormValues) {
+    if (!user) {
+      toast.error('You must be logged in to create quests');
+      return;
+    }
+
+    // Check if user can edit the selected project (owner or unowned)
+    const canEdit = await canEditProject(
+      values.project_id,
+      user.id,
+      environment
+    );
+    if (!canEdit) {
+      toast.error(
+        'You can only create quests for projects you own or unowned projects'
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // We're now handling tags directly with selectedTags state
@@ -202,6 +248,11 @@ export function QuestForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <OwnershipAlert
+          user={user}
+          contentType="quest"
+          isEditing={!!initialData}
+        />
         <FormField
           control={form.control}
           name="name"
@@ -382,12 +433,14 @@ export function QuestForm({
           </p>
         </div>
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !user}>
           {isSubmitting ? (
             <>
               <Spinner className="mr-2 h-4 w-4" />
               Saving...
             </>
+          ) : !user ? (
+            'Login Required'
           ) : initialData ? (
             'Update Quest'
           ) : (

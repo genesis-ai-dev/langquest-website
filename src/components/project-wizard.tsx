@@ -47,6 +47,7 @@ import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { createProjectOwnership } from '@/lib/project-permissions';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -360,6 +361,15 @@ export function ProjectWizard({
         .single();
 
       if (error) throw error;
+
+      // Create ownership relationship
+      try {
+        await createProjectOwnership(data.id, user.id, environment);
+      } catch (ownershipError) {
+        console.error('Error creating project ownership:', ownershipError);
+        toast.error('Project created but ownership setup failed');
+        return;
+      }
 
       // Clone quests and assets if this is a clone operation
       if (

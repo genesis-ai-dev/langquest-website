@@ -17,7 +17,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Copy, LogOut } from 'lucide-react';
+import { PlusCircle, Copy, LogOut, Crown, Users } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
@@ -39,6 +39,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseEnvironment } from '@/lib/supabase';
+import { useAuth } from '@/components/auth-provider';
 
 export default function AdminPage() {
   return (
@@ -58,6 +59,7 @@ function AdminContent() {
   const searchParams = useSearchParams();
   const envParam = searchParams.get('env') as SupabaseEnvironment;
   const environment: SupabaseEnvironment = envParam || 'production';
+  const { user, isLoading } = useAuth();
 
   // Consolidate related state into a single object
   const [pageState, setPageState] = useState({
@@ -71,29 +73,12 @@ function AdminContent() {
     projectToClone: null as string | null
   });
 
-  const [user, setUser] = useState<any>(null);
-
   // Check authentication for the specific environment
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const supabase = createBrowserClient(environment);
-        const {
-          data: { user: authUser }
-        } = await supabase.auth.getUser();
-
-        if (!authUser) {
-          window.location.href = `/login?redirectTo=/admin${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
-        } else {
-          setUser(authUser);
-        }
-      } catch {
-        window.location.href = `/login?redirectTo=/admin${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
-      }
-    };
-
-    checkAuth();
-  }, [environment]);
+    if (!isLoading && !user) {
+      window.location.href = `/login?redirectTo=/admin${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
+    }
+  }, [user, isLoading, environment]);
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -123,14 +108,16 @@ function AdminContent() {
       setPageState((prevState) => ({ ...prevState, selectedQuestId: questId }));
   }, [searchParams]);
 
-  // Fetch projects
+  // Fetch projects with ownership information
   const {
     data: projects = [],
     isLoading: projectsLoading,
     refetch: refetchProjects
   } = useQuery({
-    queryKey: ['admin-projects', environment],
+    queryKey: ['admin-projects', user?.id, environment],
     queryFn: async () => {
+      if (!user?.id) return [];
+
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
@@ -140,14 +127,47 @@ function AdminContent() {
           description,
           source_language:source_language_id(english_name), 
           target_language:target_language_id(english_name),
-          quests:quest(id)
+          quests:quest(id),
+          profile_project_link(
+            membership,
+            active,
+            profile_id
+          )
         `
         )
         .order('name');
 
       if (error) throw error;
-      return data || [];
-    }
+
+      // Add ownership information to each project and sort by ownership
+      return (data || [])
+        .map((project) => {
+          const userMembership = project.profile_project_link?.find(
+            (link: any) => link.profile_id === user.id && link.active
+          );
+          const hasAnyOwnership = project.profile_project_link?.some(
+            (link: any) => link.active && link.membership === 'owner'
+          );
+
+          return {
+            ...project,
+            isOwner: userMembership?.membership === 'owner',
+            membership: userMembership?.membership || null,
+            isUnowned: !hasAnyOwnership, // No ownership links exist
+            canEdit: userMembership?.membership === 'owner' || !hasAnyOwnership
+          };
+        })
+        .sort((a, b) => {
+          // Sort owned projects first, then unowned, then view-only
+          if (a.isOwner && !b.isOwner) return -1;
+          if (!a.isOwner && b.isOwner) return 1;
+          if (a.isUnowned && !b.isUnowned) return -1;
+          if (!a.isUnowned && b.isUnowned) return 1;
+          // Then sort by name
+          return a.name.localeCompare(b.name);
+        });
+    },
+    enabled: !!user?.id
   });
 
   // Fetch quests for the selected project
@@ -198,6 +218,9 @@ function AdminContent() {
     (p) => p.id === pageState.selectedProjectId
   );
 
+  const isSelectedProjectOwner = selectedProject?.isOwner || false;
+  const canEditSelectedProject = selectedProject?.canEdit || false;
+
   // Project form dialog
   const handleProjectFormClose = () => {
     setPageState((prevState) => ({
@@ -233,6 +256,20 @@ function AdminContent() {
       activeTab: 'assets'
     }));
   };
+
+  // Show loading state while authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="container p-8 max-w-screen-xl mx-auto flex justify-center items-center min-h-screen">
+        <Spinner />
+      </div>
+    );
+  }
+
+  // Don't render anything if user is not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="container p-8 max-w-screen-xl mx-auto">
@@ -398,17 +435,41 @@ function AdminContent() {
                   </div>
                 ) : projects.length > 0 ? (
                   <ul className="space-y-4">
-                    {projects.map((project) => {
+                    {projects.map((project: any) => {
                       return (
                         <li
                           key={project.id}
-                          className="p-4 border rounded-lg flex justify-between items-center"
+                          className={cn(
+                            'p-4 border rounded-lg flex justify-between items-center',
+                            !project.canEdit && 'opacity-75 bg-muted/30'
+                          )}
                         >
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-lg font-semibold">
                                 {project.name}
                               </h3>
+                              {project.isOwner ? (
+                                <Badge
+                                  variant="default"
+                                  className="text-xs flex items-center gap-1"
+                                >
+                                  <Crown className="h-3 w-3" />
+                                  Owner
+                                </Badge>
+                              ) : project.isUnowned ? (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs flex items-center gap-1"
+                                >
+                                  <Users className="h-3 w-3" />
+                                  Unowned
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  View Only
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {project.description}
@@ -436,8 +497,11 @@ function AdminContent() {
                             <Button
                               size="sm"
                               onClick={() => handleSelectProject(project.id)}
+                              variant={project.canEdit ? 'default' : 'outline'}
                             >
-                              Manage Quests
+                              {project.canEdit
+                                ? 'Manage Quests'
+                                : 'Browse Quests'}
                             </Button>
                           </div>
                         </li>
@@ -471,13 +535,37 @@ function AdminContent() {
                         showQuestForm: true
                       }))
                     }
-                    disabled={!pageState.selectedProjectId}
+                    disabled={
+                      !pageState.selectedProjectId || !canEditSelectedProject
+                    }
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" /> Create New Quest
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {canEditSelectedProject ? 'Create New Quest' : 'Owner Only'}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
+                {!canEditSelectedProject && pageState.selectedProjectId && (
+                  <Alert className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>View Only Access</AlertTitle>
+                    <AlertDescription>
+                      You can view this project's content, but only project
+                      owners can create or edit quests and assets.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {selectedProject?.isUnowned && (
+                  <Alert className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Unowned Project</AlertTitle>
+                    <AlertDescription>
+                      This project was created before the ownership system.
+                      Anyone can edit it.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {questsLoading ? (
                   <div className="flex justify-center">
                     <Spinner />
@@ -576,7 +664,7 @@ function AdminContent() {
                   </TabsContent>
 
                   <TabsContent value="quest-upload" className="mt-6">
-                    {pageState.selectedQuestId ? (
+                    {pageState.selectedQuestId && canEditSelectedProject ? (
                       <BulkUpload
                         mode="quest"
                         questId={pageState.selectedQuestId}
@@ -585,6 +673,14 @@ function AdminContent() {
                           toast.success('Assets uploaded successfully!');
                         }}
                       />
+                    ) : pageState.selectedQuestId && !canEditSelectedProject ? (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Owner Only Feature</AlertTitle>
+                        <AlertDescription>
+                          Only project owners can upload assets to quests.
+                        </AlertDescription>
+                      </Alert>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         Please select a quest first to upload assets
