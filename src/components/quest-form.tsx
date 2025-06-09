@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { X, CheckIcon, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
-import { canEditProject } from '@/lib/project-permissions';
+import { checkProjectOwnership } from '@/lib/project-permissions';
 import { OwnershipAlert } from '@/components/ownership-alert';
 // import { cn } from '@/lib/utils';
 
@@ -64,13 +64,13 @@ export function QuestForm({
   );
   const { user, environment } = useAuth();
 
-  // Fetch projects for the dropdown - projects where user can edit (owned + unowned)
+  // Fetch projects for the dropdown - only projects where user is owner
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['editable-projects', user?.id, environment],
+    queryKey: ['owned-projects', user?.id, environment],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Get all projects with their ownership info
+      // Get all projects where user is an owner
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
@@ -79,34 +79,21 @@ export function QuestForm({
           name, 
           source_language:source_language_id(english_name), 
           target_language:target_language_id(english_name),
-          profile_project_link(
+          profile_project_link!inner(
             membership,
             active,
             profile_id
           )
         `
         )
+        .eq('profile_project_link.profile_id', user.id)
+        .eq('profile_project_link.membership', 'owner')
+        .eq('profile_project_link.active', true)
         .order('name');
 
       if (error) throw error;
 
-      // Filter to only projects the user can edit (owned or unowned)
-      const editableProjects = [];
-      for (const project of data || []) {
-        const userMembership = project.profile_project_link?.find(
-          (link: any) => link.profile_id === user.id && link.active
-        );
-        const hasAnyOwnership = project.profile_project_link?.some(
-          (link: any) => link.active && link.membership === 'owner'
-        );
-
-        // User can edit if they're owner OR if project is unowned
-        if (userMembership?.membership === 'owner' || !hasAnyOwnership) {
-          editableProjects.push(project);
-        }
-      }
-
-      return editableProjects;
+      return data || [];
     },
     enabled: !!user?.id
   });
@@ -142,16 +129,14 @@ export function QuestForm({
       return;
     }
 
-    // Check if user can edit the selected project (owner or unowned)
-    const canEdit = await canEditProject(
+    // Server-side check to ensure user is still an owner.
+    const isOwner = await checkProjectOwnership(
       values.project_id,
       user.id,
       environment
     );
-    if (!canEdit) {
-      toast.error(
-        'You can only create quests for projects you own or unowned projects'
-      );
+    if (!isOwner) {
+      toast.error('You must be an owner of the project to create quests.');
       return;
     }
 

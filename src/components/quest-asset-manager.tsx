@@ -48,6 +48,8 @@ import {
 } from '@/components/ui/carousel';
 import { BulkUpload } from '@/components/bulk-upload';
 import { useAuth } from '@/components/auth-provider';
+import { checkProjectOwnership } from '@/lib/project-permissions';
+import { OwnershipAlert } from '@/components/ownership-alert';
 
 interface QuestAssetManagerProps {
   questId: string;
@@ -67,10 +69,24 @@ export function QuestAssetManager({
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const { environment } = useAuth();
+  const { environment, user } = useAuth();
 
   // Check if the device is mobile
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Check ownership for the quest's project
+  const { data: isOwner, isLoading: ownershipLoading } = useQuery({
+    queryKey: ['project-ownership', quest?.project.id, user?.id, environment],
+    queryFn: async () => {
+      if (!quest?.project.id || !user?.id) return false;
+      return await checkProjectOwnership(
+        quest.project.id,
+        user.id,
+        environment
+      );
+    },
+    enabled: !!quest?.project.id && !!user?.id
+  });
 
   // Fetch quest details
   const { data: quest, isLoading: questLoading } = useQuery({
@@ -487,11 +503,19 @@ export function QuestAssetManager({
         </div>
 
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={onAddNewAsset}>
+          <Button
+            variant="outline"
+            onClick={onAddNewAsset}
+            disabled={!user || ownershipLoading || !isOwner}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create New Asset
           </Button>
-          <Button variant="outline" onClick={() => setShowBulkUpload(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setShowBulkUpload(true)}
+            disabled={!user || ownershipLoading || !isOwner}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Bulk Upload Assets
           </Button>
@@ -529,6 +553,13 @@ export function QuestAssetManager({
           </Sheet>
         </div>
       </div>
+
+      {user && !ownershipLoading && !isOwner && (
+        <OwnershipAlert
+          contentType="assets"
+          projectName={(quest.project as any)?.name}
+        />
+      )}
 
       <Card>
         <CardHeader>

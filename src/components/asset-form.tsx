@@ -34,6 +34,7 @@ import {
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
+import { checkProjectOwnership } from '@/lib/project-permissions';
 
 const assetFormSchema = z.object({
   name: z.string().min(2, {
@@ -108,9 +109,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     }
   });
 
-  // Fetch quests for the multi-select - from projects where user can edit (owned + unowned)
+  // Fetch quests for the multi-select - from projects where user is owner
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
-    queryKey: ['editable-quests', user?.id, environment],
+    queryKey: ['owned-quests', user?.id, environment],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -120,12 +121,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           `
           id,
           name,
-          project:project_id(
+          project:project_id!inner(
             id,
             name,
             source_language:source_language_id(id, english_name),
             target_language:target_language_id(english_name),
-            profile_project_link(
+            profile_project_link!inner(
               membership,
               active,
               profile_id
@@ -133,30 +134,17 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           )
         `
         )
+        .eq('project.profile_project_link.profile_id', user.id)
+        .eq('project.profile_project_link.membership', 'owner')
+        .eq('project.profile_project_link.active', true)
         .order('name');
 
-      if (error) throw error;
-
-      // Filter to only quests from projects the user can edit
-      const editableQuests = [];
-      for (const quest of data || []) {
-        if (quest.project && Array.isArray(quest.project) && quest.project[0]) {
-          const project = quest.project[0];
-          const userMembership = project.profile_project_link?.find(
-            (link: any) => link.profile_id === user.id && link.active
-          );
-          const hasAnyOwnership = project.profile_project_link?.some(
-            (link: any) => link.active && link.membership === 'owner'
-          );
-
-          // User can edit if they're owner OR if project is unowned
-          if (userMembership?.membership === 'owner' || !hasAnyOwnership) {
-            editableQuests.push(quest);
-          }
-        }
+      if (error) {
+        console.error('Error fetching owned quests:', error);
+        throw error;
       }
 
-      return editableQuests;
+      return (data || []).filter((quest) => quest.project); // Ensure quest has a project
     },
     enabled: !!user?.id
   });
@@ -248,7 +236,40 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       return;
     }
 
-    // Ownership validation is handled by filtering quests to only show owned ones
+    // --- Ownership Validation ---
+    if (selectedQuests.length === 0 && !initialData) {
+      toast.error('A new asset must be associated with at least one quest.');
+      return;
+    }
+
+    for (const questId of selectedQuests) {
+      const { data: questData, error } = await createBrowserClient(environment)
+        .from('quest')
+        .select('project_id')
+        .eq('id', questId)
+        .single();
+
+      if (error || !questData) {
+        toast.error(
+          'Could not verify project ownership for one of the quests.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const isOwner = await checkProjectOwnership(
+        questData.project_id,
+        user.id,
+        environment
+      );
+
+      if (!isOwner) {
+        toast.error('You can only add assets to quests in projects you own.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+    // --- End Validation ---
 
     setIsSubmitting(true);
     try {

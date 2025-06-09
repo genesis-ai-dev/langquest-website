@@ -26,8 +26,7 @@ export function OwnershipAlert({
           {contentType !== 'project' && (
             <>
               <br />
-              Only project owners can create or edit {contentType}s (or anyone
-              for unowned projects).
+              Only project owners can create or edit {contentType}s.
             </>
           )}
         </AlertDescription>

@@ -44,23 +44,5 @@ export async function canEditProject(
   userId: string,
   environment: 'preview' | 'production'
 ): Promise<boolean> {
-  if (!userId || !projectId) return false;
-
-  // Check if user is owner of the project
-  const isOwner = await checkProjectOwnership(projectId, userId, environment);
-  if (isOwner) return true;
-
-  // Check if project has any ownership (if not, it's unowned and editable by anyone)
-  const { data, error } = await createBrowserClient(environment)
-    .from('profile_project_link')
-    .select('membership')
-    .eq('project_id', projectId)
-    .eq('active', true)
-    .eq('membership', 'owner')
-    .limit(1);
-
-  if (error) return false;
-
-  // If no ownership records found, it's unowned and can be edited by anyone
-  return !data || data.length === 0;
+  return checkProjectOwnership(projectId, userId, environment);
 }

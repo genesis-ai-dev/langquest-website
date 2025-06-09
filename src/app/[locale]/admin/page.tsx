@@ -145,24 +145,17 @@ function AdminContent() {
           const userMembership = project.profile_project_link?.find(
             (link: any) => link.profile_id === user.id && link.active
           );
-          const hasAnyOwnership = project.profile_project_link?.some(
-            (link: any) => link.active && link.membership === 'owner'
-          );
 
           return {
             ...project,
             isOwner: userMembership?.membership === 'owner',
-            membership: userMembership?.membership || null,
-            isUnowned: !hasAnyOwnership, // No ownership links exist
-            canEdit: userMembership?.membership === 'owner' || !hasAnyOwnership
+            membership: userMembership?.membership || null
           };
         })
         .sort((a, b) => {
-          // Sort owned projects first, then unowned, then view-only
+          // Sort owned projects first, then view-only
           if (a.isOwner && !b.isOwner) return -1;
           if (!a.isOwner && b.isOwner) return 1;
-          if (a.isUnowned && !b.isUnowned) return -1;
-          if (!a.isUnowned && b.isUnowned) return 1;
           // Then sort by name
           return a.name.localeCompare(b.name);
         });
@@ -219,7 +212,6 @@ function AdminContent() {
   );
 
   const isSelectedProjectOwner = selectedProject?.isOwner || false;
-  const canEditSelectedProject = selectedProject?.canEdit || false;
 
   // Project form dialog
   const handleProjectFormClose = () => {
@@ -441,7 +433,7 @@ function AdminContent() {
                           key={project.id}
                           className={cn(
                             'p-4 border rounded-lg flex justify-between items-center',
-                            !project.canEdit && 'opacity-75 bg-muted/30'
+                            !project.isOwner && 'opacity-75 bg-muted/30'
                           )}
                         >
                           <div>
@@ -456,14 +448,6 @@ function AdminContent() {
                                 >
                                   <Crown className="h-3 w-3" />
                                   Owner
-                                </Badge>
-                              ) : project.isUnowned ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs flex items-center gap-1"
-                                >
-                                  <Users className="h-3 w-3" />
-                                  Unowned
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="text-xs">
@@ -497,9 +481,9 @@ function AdminContent() {
                             <Button
                               size="sm"
                               onClick={() => handleSelectProject(project.id)}
-                              variant={project.canEdit ? 'default' : 'outline'}
+                              variant={project.isOwner ? 'default' : 'outline'}
                             >
-                              {project.canEdit
+                              {project.isOwner
                                 ? 'Manage Quests'
                                 : 'Browse Quests'}
                             </Button>
@@ -536,16 +520,16 @@ function AdminContent() {
                       }))
                     }
                     disabled={
-                      !pageState.selectedProjectId || !canEditSelectedProject
+                      !pageState.selectedProjectId || !isSelectedProjectOwner
                     }
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    {canEditSelectedProject ? 'Create New Quest' : 'Owner Only'}
+                    {isSelectedProjectOwner ? 'Create New Quest' : 'Owner Only'}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                {!canEditSelectedProject && pageState.selectedProjectId && (
+                {!isSelectedProjectOwner && pageState.selectedProjectId && (
                   <Alert className="mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>View Only Access</AlertTitle>
@@ -556,16 +540,6 @@ function AdminContent() {
                   </Alert>
                 )}
 
-                {selectedProject?.isUnowned && (
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Unowned Project</AlertTitle>
-                    <AlertDescription>
-                      This project was created before the ownership system.
-                      Anyone can edit it.
-                    </AlertDescription>
-                  </Alert>
-                )}
                 {questsLoading ? (
                   <div className="flex justify-center">
                     <Spinner />
@@ -664,7 +638,7 @@ function AdminContent() {
                   </TabsContent>
 
                   <TabsContent value="quest-upload" className="mt-6">
-                    {pageState.selectedQuestId && canEditSelectedProject ? (
+                    {pageState.selectedQuestId && isSelectedProjectOwner ? (
                       <BulkUpload
                         mode="quest"
                         questId={pageState.selectedQuestId}
@@ -673,7 +647,7 @@ function AdminContent() {
                           toast.success('Assets uploaded successfully!');
                         }}
                       />
-                    ) : pageState.selectedQuestId && !canEditSelectedProject ? (
+                    ) : pageState.selectedQuestId && !isSelectedProjectOwner ? (
                       <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Owner Only Feature</AlertTitle>
@@ -698,8 +672,8 @@ function AdminContent() {
           open={pageState.showProjectForm}
           onOpenChange={handleProjectFormClose}
         >
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="sticky top-0 bg-background z-10 py-4">
               <DialogTitle>
                 {pageState.projectToClone
                   ? 'Clone Project'
@@ -728,8 +702,8 @@ function AdminContent() {
             }))
           }
         >
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="sticky top-0 bg-background z-10 py-4">
               <DialogTitle>Create New Quest</DialogTitle>
               <DialogDescription>
                 Fill in the details to create a new quest for project:
