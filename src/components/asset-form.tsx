@@ -23,14 +23,7 @@ import { Spinner } from './spinner';
 import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { OwnershipAlert } from '@/components/ownership-alert';
-import {
-  X,
-  Plus,
-  Upload,
-  Image as ImageIcon,
-  CheckIcon,
-  AlertCircle
-} from 'lucide-react';
+import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';

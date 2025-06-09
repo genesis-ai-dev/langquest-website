@@ -28,7 +28,7 @@ import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
-import { X, CheckIcon, AlertCircle } from 'lucide-react';
+import { X, CheckIcon } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { checkProjectOwnership } from '@/lib/project-permissions';
 import { OwnershipAlert } from '@/components/ownership-alert';

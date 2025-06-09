@@ -17,7 +17,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Copy, LogOut, Crown, Users } from 'lucide-react';
+import { PlusCircle, Copy, LogOut, Crown } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
@@ -534,7 +534,7 @@ function AdminContent() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>View Only Access</AlertTitle>
                     <AlertDescription>
-                      You can view this project's content, but only project
+                      You can view this project&apos;s content, but only project
                       owners can create or edit quests and assets.
                     </AlertDescription>
                   </Alert>
