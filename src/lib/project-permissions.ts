@@ -1,9 +1,10 @@
 import { createBrowserClient } from '@/lib/supabase/client';
+import { SupabaseEnvironment } from '@/lib/supabase';
 
 export async function checkProjectOwnership(
   projectId: string,
   userId: string,
-  environment: 'preview' | 'production'
+  environment: SupabaseEnvironment
 ): Promise<boolean> {
   if (!userId || !projectId) return false;
 
@@ -23,7 +24,7 @@ export async function checkProjectOwnership(
 export async function createProjectOwnership(
   projectId: string,
   userId: string,
-  environment: 'preview' | 'production'
+  environment: SupabaseEnvironment
 ): Promise<void> {
   const { error } = await createBrowserClient(environment)
     .from('profile_project_link')
@@ -42,7 +43,7 @@ export async function createProjectOwnership(
 export async function canEditProject(
   projectId: string,
   userId: string,
-  environment: 'preview' | 'production'
+  environment: SupabaseEnvironment
 ): Promise<boolean> {
   return checkProjectOwnership(projectId, userId, environment);
 }

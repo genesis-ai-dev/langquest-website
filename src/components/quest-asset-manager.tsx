@@ -74,20 +74,6 @@ export function QuestAssetManager({
   // Check if the device is mobile
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Check ownership for the quest's project
-  const { data: isOwner, isLoading: ownershipLoading } = useQuery({
-    queryKey: ['project-ownership', quest?.project.id, user?.id, environment],
-    queryFn: async () => {
-      if (!quest?.project.id || !user?.id) return false;
-      return await checkProjectOwnership(
-        quest.project.id,
-        user.id,
-        environment
-      );
-    },
-    enabled: !!quest?.project.id && !!user?.id
-  });
-
   // Fetch quest details
   const { data: quest, isLoading: questLoading } = useQuery({
     queryKey: ['quest-details', questId, environment],
@@ -114,6 +100,25 @@ export function QuestAssetManager({
       return data;
     },
     enabled: !!questId
+  });
+
+  // Check ownership for the quest's project
+  const { data: isOwner, isLoading: ownershipLoading } = useQuery({
+    queryKey: [
+      'project-ownership',
+      quest?.project[0]?.id,
+      user?.id,
+      environment
+    ],
+    queryFn: async () => {
+      if (!quest?.project[0]?.id || !user?.id) return false;
+      return await checkProjectOwnership(
+        quest.project[0].id,
+        user.id,
+        environment
+      );
+    },
+    enabled: !!quest?.project[0]?.id && !!user?.id
   });
 
   // Fetch assets already linked to this quest
@@ -555,10 +560,7 @@ export function QuestAssetManager({
       </div>
 
       {user && !ownershipLoading && !isOwner && (
-        <OwnershipAlert
-          contentType="assets"
-          projectName={(quest.project as any)?.name}
-        />
+        <OwnershipAlert user={user} contentType="asset" />
       )}
 
       <Card>
