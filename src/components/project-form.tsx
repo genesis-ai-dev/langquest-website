@@ -29,8 +29,8 @@ import {
 } from '@/components/ui/tooltip';
 import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { OwnershipAlert } from '@/components/ownership-alert';
+import { createProjectOwnership } from '@/lib/project-permissions';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, {
@@ -128,6 +128,16 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           .single();
 
         if (error) throw error;
+
+        // Create ownership relationship
+        try {
+          await createProjectOwnership(data.id, user.id, environment);
+        } catch (ownershipError) {
+          console.error('Error creating project ownership:', ownershipError);
+          toast.error('Project created but ownership setup failed');
+          return;
+        }
+
         toast.success('Project created successfully');
 
         // Call onSuccess callback with the result
@@ -156,27 +166,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {user && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Project {initialData ? 'Edit' : 'Creation'}</AlertTitle>
-            <AlertDescription>
-              {initialData ? 'Editing' : 'Creating'} project as:{' '}
-              <span className="font-medium">{user.email}</span>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {!user && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Authentication Required</AlertTitle>
-            <AlertDescription>
-              You must be logged in to {initialData ? 'edit' : 'create'}{' '}
-              projects
-            </AlertDescription>
-          </Alert>
-        )}
+        <OwnershipAlert
+          user={user}
+          contentType="project"
+          isEditing={!!initialData}
+        />
 
         <FormField
           control={form.control}

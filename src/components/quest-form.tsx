@@ -30,6 +30,8 @@ import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { X, CheckIcon } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
+import { checkProjectOwnership } from '@/lib/project-permissions';
+import { OwnershipAlert } from '@/components/ownership-alert';
 // import { cn } from '@/lib/utils';
 
 const questFormSchema = z.object({
@@ -60,12 +62,15 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
-  const { environment } = useAuth();
+  const { user, environment } = useAuth();
 
-  // Fetch projects for the dropdown
+  // Fetch projects for the dropdown - only projects where user is owner
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects', environment],
+    queryKey: ['owned-projects', user?.id, environment],
     queryFn: async () => {
+      if (!user?.id) return [];
+
+      // Get all projects where user is an owner
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
@@ -73,14 +78,24 @@ export function QuestForm({
           id, 
           name, 
           source_language:source_language_id(english_name), 
-          target_language:target_language_id(english_name)
+          target_language:target_language_id(english_name),
+          profile_project_link!inner(
+            membership,
+            active,
+            profile_id
+          )
         `
         )
+        .eq('profile_project_link.profile_id', user.id)
+        .eq('profile_project_link.membership', 'owner')
+        .eq('profile_project_link.active', true)
         .order('name');
 
       if (error) throw error;
+
       return data || [];
-    }
+    },
+    enabled: !!user?.id
   });
 
   // Fetch tags for the multi-select
@@ -109,6 +124,22 @@ export function QuestForm({
   });
 
   async function onSubmit(values: QuestFormValues) {
+    if (!user) {
+      toast.error('You must be logged in to create quests');
+      return;
+    }
+
+    // Server-side check to ensure user is still an owner.
+    const isOwner = await checkProjectOwnership(
+      values.project_id,
+      user.id,
+      environment
+    );
+    if (!isOwner) {
+      toast.error('You must be an owner of the project to create quests.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // We're now handling tags directly with selectedTags state
@@ -202,6 +233,11 @@ export function QuestForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <OwnershipAlert
+          user={user}
+          contentType="quest"
+          isEditing={!!initialData}
+        />
         <FormField
           control={form.control}
           name="name"
@@ -382,12 +418,14 @@ export function QuestForm({
           </p>
         </div>
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !user}>
           {isSubmitting ? (
             <>
               <Spinner className="mr-2 h-4 w-4" />
               Saving...
             </>
+          ) : !user ? (
+            'Login Required'
           ) : initialData ? (
             'Update Quest'
           ) : (
