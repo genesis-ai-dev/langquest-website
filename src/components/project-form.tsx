@@ -378,7 +378,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         <FormField
           control={form.control}
           name="image"
-          render={({ field }) => (
+          render={() => (
             <FormItem>
               <FormLabel>Project Image</FormLabel>
               <FormControl>

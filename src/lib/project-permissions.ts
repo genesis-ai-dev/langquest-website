@@ -47,4 +47,3 @@ export async function canEditProject(
 ): Promise<boolean> {
   return checkProjectOwnership(projectId, userId, environment);
 }
- 

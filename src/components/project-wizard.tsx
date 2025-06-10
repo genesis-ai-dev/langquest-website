@@ -812,7 +812,7 @@ export function ProjectWizard({
           <FormField
             control={step2Form.control}
             name="image"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel>Project Image</FormLabel>
                 <FormControl>
