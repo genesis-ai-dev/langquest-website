@@ -76,8 +76,8 @@ function AdminContent() {
   // Check authentication for the specific environment
   useEffect(() => {
     if (!isLoading && !user) {
-      window.location.href = `/login?redirectTo=/admin${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
-    }
+        window.location.href = `/login?redirectTo=/admin${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
+      }
   }, [user, isLoading, environment]);
 
   // Handle sign out
