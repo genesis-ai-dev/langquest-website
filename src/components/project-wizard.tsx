@@ -20,7 +20,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
-import { InfoIcon, ArrowRight, ArrowLeft, Copy, Plus } from 'lucide-react';
+import {
+  InfoIcon,
+  ArrowRight,
+  ArrowLeft,
+  Copy,
+  Plus,
+  Upload,
+  X
+} from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -66,7 +74,9 @@ const projectDetailsSchema = z.object({
   }),
   target_language_id: z.string().min(1, {
     message: 'Target language is required.'
-  })
+  }),
+  color: z.string().optional(),
+  image: z.any().optional()
 });
 
 // Step 3: Confirmation
@@ -101,6 +111,8 @@ export function ProjectWizard({
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user, environment } = useAuth();
   const [wizardData, setWizardData] = useState<Partial<ProjectWizardValues>>({
     step1: {
@@ -111,7 +123,8 @@ export function ProjectWizard({
       name: '',
       description: '',
       source_language_id: 'eng',
-      target_language_id: 'eng'
+      target_language_id: 'eng',
+      color: '#3b82f6'
     },
     step3: { confirmed: true }
   });
@@ -132,7 +145,8 @@ export function ProjectWizard({
       name: '',
       description: '',
       source_language_id: 'eng',
-      target_language_id: 'eng'
+      target_language_id: 'eng',
+      color: '#3b82f6'
     }
   });
 
@@ -468,6 +482,49 @@ export function ProjectWizard({
     // This is optional since we're already updating the UI optimistically
   };
 
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be smaller than 5MB');
+        return;
+      }
+
+      setSelectedImage(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Update form value
+      step2Form.setValue('image', file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    step2Form.setValue('image', undefined);
+
+    // Reset file input
+    const fileInput = document.getElementById(
+      'wizard-image-upload'
+    ) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
   // Render step 1: Choose project creation method
   const renderStep1 = () => {
     return (
@@ -717,6 +774,96 @@ export function ProjectWizard({
             />
           </div>
 
+          <FormField
+            control={step2Form.control}
+            name="color"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Project Color</FormLabel>
+                <FormControl>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg border-2 border-border shadow-sm"
+                      style={{ backgroundColor: field.value || '#3b82f6' }}
+                    />
+                    <input
+                      type="color"
+                      {...field}
+                      value={field.value || '#3b82f6'}
+                      className="sr-only"
+                      id="wizard-color-picker"
+                    />
+                    <label
+                      htmlFor="wizard-color-picker"
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer"
+                    >
+                      Choose Color
+                    </label>
+                  </div>
+                </FormControl>
+                <FormDescription>
+                  Choose a theme color for your project.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={step2Form.control}
+            name="image"
+            render={() => (
+              <FormItem>
+                <FormLabel>Project Image</FormLabel>
+                <FormControl>
+                  <div className="space-y-4">
+                    {imagePreview ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={imagePreview}
+                          alt="Project Image Preview"
+                          className="h-20 w-20 rounded-lg object-cover border-2 border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 h-6 w-6 flex items-center justify-center hover:bg-destructive/90"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-20 h-20 border-2 border-dashed border-border rounded-lg bg-muted/20">
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="wizard-image-upload"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="wizard-image-upload"
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {selectedImage ? 'Change Image' : 'Upload Image'}
+                      </label>
+                    </div>
+                  </div>
+                </FormControl>
+                <FormDescription>
+                  Upload a square icon image for your project (JPG, PNG, max
+                  5MB).
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="flex justify-between pt-4">
             <Button type="button" variant="outline" onClick={handleBack}>
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -784,6 +931,33 @@ export function ProjectWizard({
                 <span className="font-medium">Target Language:</span>{' '}
                 {getLanguageName(projectDetails?.target_language_id || '')}
               </div>
+
+              {projectDetails?.color && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Color:</span>
+                  <div
+                    className="w-6 h-6 rounded border border-border"
+                    style={{ backgroundColor: projectDetails.color }}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {projectDetails.color}
+                  </span>
+                </div>
+              )}
+
+              {imagePreview && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Image:</span>
+                  <img
+                    src={imagePreview}
+                    alt="Selected project image"
+                    className="w-8 h-8 rounded object-cover border border-border"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {selectedImage?.name}
+                  </span>
+                </div>
+              )}
             </div>
 
             <p className="text-sm text-muted-foreground">
