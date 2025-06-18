@@ -245,6 +245,51 @@ export type Database = {
           }
         ];
       };
+      profile_project_link: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          id: string;
+          last_updated: string;
+          membership: string;
+          profile_id: string;
+          project_id: string;
+        };
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          last_updated?: string;
+          membership: string;
+          profile_id: string;
+          project_id: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          id?: string;
+          last_updated?: string;
+          membership?: string;
+          profile_id?: string;
+          project_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'profile_project_link_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profile_project_link_project_id_fkey';
+            columns: ['project_id'];
+            isOneToOne: false;
+            referencedRelation: 'project';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       project: {
         Row: {
           active: boolean | null;
