@@ -29,8 +29,9 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
 interface BulkUploadProps {
-  mode: 'project' | 'quest';
+  mode: 'project' | 'quest' | 'questToProject';
   questId?: string; // Required for quest mode
+  projectId?: string; // Required for questToProject mode
   onSuccess?: () => void;
 }
 
@@ -57,6 +58,17 @@ interface QuestRow {
   asset_audio_urls?: string;
 }
 
+interface QuestToProjectRow {
+  quest_name: string;
+  quest_description?: string;
+  quest_tags?: string;
+  asset_name: string;
+  asset_content?: string;
+  asset_tags?: string;
+  asset_image_urls?: string;
+  asset_audio_urls?: string;
+}
+
 interface UploadProgress {
   total: number;
   completed: number;
@@ -65,7 +77,12 @@ interface UploadProgress {
   warnings: Array<{ row: number; message: string }>;
 }
 
-export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
+export function BulkUpload({
+  mode,
+  questId,
+  projectId,
+  onSuccess
+}: BulkUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -102,13 +119,24 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             'asset_image_urls',
             'asset_audio_urls'
           ]
-        : [
-            'asset_name',
-            'asset_content',
-            'asset_tags',
-            'asset_image_urls',
-            'asset_audio_urls'
-          ];
+        : mode === 'questToProject'
+          ? [
+              'quest_name',
+              'quest_description',
+              'quest_tags',
+              'asset_name',
+              'asset_content',
+              'asset_tags',
+              'asset_image_urls',
+              'asset_audio_urls'
+            ]
+          : [
+              'asset_name',
+              'asset_content',
+              'asset_tags',
+              'asset_image_urls',
+              'asset_audio_urls'
+            ];
 
     const sampleData =
       mode === 'project'
@@ -116,17 +144,32 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             'My Project,Description of my project,English,Spanish,Chapter 1,First section content,category1;tag1,Item A,Content for item A,tag1;tag2,https://example.com/image1.jpg,https://example.com/audio1.mp3',
             'My Project,Description of my project,English,Spanish,Chapter 1,First section content,category1;tag1,Item B,Content for item B,tag2;tag3,,https://example.com/audio2.mp3'
           ]
-        : [
-            'Asset Name 1,Text content for this asset,category;tag,https://example.com/img1.jpg,https://example.com/sound1.mp3',
-            'Asset Name 2,Another piece of content,tag;other,,https://example.com/sound2.mp3'
-          ];
+        : mode === 'questToProject'
+          ? [
+              'Chapter 1,First section content,category1;tag1,Item A,Content for item A,tag1;tag2,https://example.com/image1.jpg,https://example.com/audio1.mp3',
+              'Chapter 1,First section content,category1;tag1,Item B,Content for item B,tag2;tag3,,https://example.com/audio2.mp3',
+              'Chapter 2,Second section content,category2;tag1,Item C,Content for item C,tag3;tag4,https://example.com/image2.jpg,https://example.com/audio3.mp3'
+            ]
+          : [
+              'Asset Name 1,Text content for this asset,category;tag,https://example.com/img1.jpg,https://example.com/sound1.mp3',
+              'Asset Name 2,Another piece of content,tag;other,,https://example.com/sound2.mp3'
+            ];
 
     const csvContent = [headers.join(','), ...sampleData].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${mode}-upload-template.csv`;
+
+    // Give each mode a descriptive filename
+    const filename =
+      mode === 'project'
+        ? 'project-upload-template.csv'
+        : mode === 'questToProject'
+          ? 'quest-upload-template.csv'
+          : 'asset-upload-template.csv';
+
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   }, [mode]);
@@ -166,6 +209,9 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
       return { isValid: false, errors };
     }
 
+    const firstRow = data[0];
+    const csvColumns = Object.keys(firstRow);
+
     const requiredFields =
       mode === 'project'
         ? [
@@ -175,25 +221,81 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             'quest_name',
             'asset_name'
           ]
-        : ['asset_name'];
+        : mode === 'questToProject'
+          ? ['quest_name', 'asset_name']
+          : ['asset_name'];
 
-    // Check if required columns exist
-    const firstRow = data[0];
-    const missingColumns = requiredFields.filter(
-      (field) => !(field in firstRow)
-    );
-    if (missingColumns.length > 0) {
-      errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+    // Check if CSV format matches the expected mode
+    const hasProjectColumns =
+      csvColumns.includes('project_name') &&
+      csvColumns.includes('source_language');
+    const hasQuestColumns =
+      csvColumns.includes('quest_name') && !csvColumns.includes('project_name');
+    const hasOnlyAssetColumns =
+      csvColumns.includes('asset_name') && !csvColumns.includes('quest_name');
+
+    if (mode === 'project' && !hasProjectColumns) {
+      if (hasQuestColumns) {
+        errors.push(
+          'This appears to be a quest upload CSV. Please use the "Upload Quests" feature instead.'
+        );
+      } else if (hasOnlyAssetColumns) {
+        errors.push(
+          'This appears to be an asset upload CSV. Please use the "Upload Assets" feature instead.'
+        );
+      } else {
+        errors.push(
+          'Invalid CSV format for project upload. Please download the template to see the correct format.'
+        );
+      }
+    } else if (mode === 'questToProject' && !hasQuestColumns) {
+      if (hasProjectColumns) {
+        errors.push(
+          'This appears to be a project upload CSV. Please use the "Upload Project" feature instead.'
+        );
+      } else if (hasOnlyAssetColumns) {
+        errors.push(
+          'This appears to be an asset upload CSV. Please use the "Upload Assets" feature instead.'
+        );
+      } else {
+        errors.push(
+          'Invalid CSV format for quest upload. Please download the template to see the correct format.'
+        );
+      }
+    } else if (mode === 'quest' && !hasOnlyAssetColumns) {
+      if (hasProjectColumns) {
+        errors.push(
+          'This appears to be a project upload CSV. Please use the "Upload Project" feature instead.'
+        );
+      } else if (hasQuestColumns) {
+        errors.push(
+          'This appears to be a quest upload CSV. Please use the "Upload Quests" feature instead.'
+        );
+      } else {
+        errors.push(
+          'Invalid CSV format for asset upload. Please download the template to see the correct format.'
+        );
+      }
     }
 
-    // Validate each row
-    data.forEach((row, index) => {
-      requiredFields.forEach((field) => {
-        if (!row[field] || row[field].toString().trim() === '') {
-          errors.push(`Row ${index + 1}: Missing required field '${field}'`);
-        }
+    // Check if required columns exist (only if format validation passed)
+    if (errors.length === 0) {
+      const missingColumns = requiredFields.filter(
+        (field) => !(field in firstRow)
+      );
+      if (missingColumns.length > 0) {
+        errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+      }
+
+      // Validate each row
+      data.forEach((row, index) => {
+        requiredFields.forEach((field) => {
+          if (!row[field] || row[field].toString().trim() === '') {
+            errors.push(`Row ${index + 1}: Missing required field '${field}'`);
+          }
+        });
       });
-    });
+    }
 
     return { isValid: errors.length === 0, errors };
   };
@@ -308,7 +410,8 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
             .insert({
               name: row.quest_name,
               description: row.quest_description || null,
-              project_id: projectId
+              project_id: projectId,
+              creator_id: user?.id
             })
             .select('id')
             .single();
@@ -366,7 +469,8 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
           .from('asset')
           .insert({
             name: row.asset_name,
-            source_language_id: sourceLanguageId
+            source_language_id: sourceLanguageId,
+            creator_id: user?.id
           })
           .select('id')
           .single();
@@ -493,7 +597,8 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
           .from('asset')
           .insert({
             name: row.asset_name,
-            source_language_id: sourceLanguageId
+            source_language_id: sourceLanguageId,
+            creator_id: user?.id
           })
           .select('id')
           .single();
@@ -581,6 +686,234 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
     }));
   };
 
+  const processQuestToProjectUpload = async (data: QuestToProjectRow[]) => {
+    if (!projectId) {
+      throw new Error('Project ID is required for quest upload');
+    }
+
+    // Get project to determine source language (once for all assets)
+    const { data: project } = await supabaseClient
+      .from('project')
+      .select('source_language_id')
+      .eq('id', projectId)
+      .single();
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const questMap = new Map<string, string>(); // quest_name -> quest_id
+
+    setProgress((prev) => ({ ...prev, total: data.length }));
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      setProgress((prev) => ({
+        ...prev,
+        completed: i,
+        current: `Processing: ${row.asset_name}`
+      }));
+
+      try {
+        // Get or create quest
+        let questId = questMap.get(row.quest_name);
+        if (!questId) {
+          // First check if quest already exists in the project
+          const { data: existingQuest } = await supabaseClient
+            .from('quest')
+            .select('id')
+            .eq('name', row.quest_name)
+            .eq('project_id', projectId)
+            .single();
+
+          if (existingQuest) {
+            // Use existing quest
+            questId = existingQuest.id;
+          } else {
+            // Create new quest
+            const { data: quest, error: questError } = await supabaseClient
+              .from('quest')
+              .insert({
+                name: row.quest_name,
+                description: row.quest_description || null,
+                project_id: projectId,
+                creator_id: user?.id
+              })
+              .select('id')
+              .single();
+
+            if (questError) throw questError;
+            questId = quest.id;
+
+            // Handle tags if provided
+            if (row.quest_tags && questId) {
+              const tagNames = row.quest_tags.split(';').filter(Boolean);
+
+              for (const tagName of tagNames) {
+                try {
+                  // First, try to find existing tag
+                  const { data: existingTag } = await supabaseClient
+                    .from('tag')
+                    .select('id')
+                    .eq('name', tagName.trim())
+                    .single();
+
+                  let tagId: string;
+                  if (existingTag) {
+                    tagId = existingTag.id;
+                  } else {
+                    // Create new tag if it doesn't exist
+                    const { data: newTag, error: tagError } =
+                      await supabaseClient
+                        .from('tag')
+                        .insert({ name: tagName.trim() })
+                        .select('id')
+                        .single();
+
+                    if (tagError) throw tagError;
+                    tagId = newTag.id;
+                  }
+
+                  // Link tag to quest
+                  await supabaseClient.from('quest_tag_link').insert({
+                    quest_id: questId,
+                    tag_id: tagId
+                  });
+                } catch (tagError) {
+                  console.warn(`Failed to handle tag "${tagName}":`, tagError);
+                  // Don't fail the entire upload for tag issues
+                  setProgress((prev) => ({
+                    ...prev,
+                    warnings: [
+                      ...prev.warnings,
+                      {
+                        row: i + 1,
+                        message: `Failed to create/link tag "${tagName}"`
+                      }
+                    ]
+                  }));
+                }
+              }
+            }
+          }
+
+          if (!questId) {
+            throw new Error('Quest ID could not be resolved');
+          }
+          questMap.set(row.quest_name, questId);
+        }
+
+        // Create asset
+        const { data: asset, error: assetError } = await supabaseClient
+          .from('asset')
+          .insert({
+            name: row.asset_name,
+            source_language_id: project.source_language_id,
+            creator_id: user?.id
+          })
+          .select('id')
+          .single();
+
+        if (assetError) throw assetError;
+
+        // Add asset content
+        if (row.asset_content) {
+          await supabaseClient.from('asset_content_link').insert({
+            asset_id: asset.id,
+            text: row.asset_content,
+            id: crypto.randomUUID()
+          });
+        }
+
+        // Handle asset tags
+        if (row.asset_tags) {
+          const tagNames = row.asset_tags
+            .split(';')
+            .map((t) => t.trim())
+            .filter(Boolean);
+          for (const tagName of tagNames) {
+            try {
+              let { data: tag } = await supabaseClient
+                .from('tag')
+                .select('id')
+                .eq('name', tagName)
+                .single();
+
+              if (!tag) {
+                const { data: newTag, error: tagError } = await supabaseClient
+                  .from('tag')
+                  .insert({ name: tagName })
+                  .select('id')
+                  .single();
+
+                if (tagError) throw tagError;
+                tag = newTag;
+              }
+
+              await supabaseClient.from('asset_tag_link').insert({
+                asset_id: asset.id,
+                tag_id: tag.id
+              });
+            } catch (tagError) {
+              console.warn(
+                `Failed to handle asset tag "${tagName}":`,
+                tagError
+              );
+              setProgress((prev) => ({
+                ...prev,
+                warnings: [
+                  ...prev.warnings,
+                  {
+                    row: i + 1,
+                    message: `Failed to create/link asset tag "${tagName}"`
+                  }
+                ]
+              }));
+            }
+          }
+        }
+
+        // Link asset to quest
+        await supabaseClient.from('quest_asset_link').insert({
+          quest_id: questId,
+          asset_id: asset.id
+        });
+
+        // Handle image and audio URLs (validation warnings)
+        if (row.asset_image_urls || row.asset_audio_urls) {
+          setProgress((prev) => ({
+            ...prev,
+            warnings: [
+              ...prev.warnings,
+              {
+                row: i + 1,
+                message:
+                  'Image and audio URLs are noted but not processed in this version'
+              }
+            ]
+          }));
+        }
+      } catch (error: any) {
+        setProgress((prev) => ({
+          ...prev,
+          errors: [
+            ...prev.errors,
+            {
+              row: i + 1,
+              message: error.message || 'Unknown error'
+            }
+          ]
+        }));
+      }
+    }
+
+    setProgress((prev) => ({
+      ...prev,
+      completed: data.length,
+      current: 'Upload complete!'
+    }));
+  };
+
   const handleUpload = async () => {
     if (!file || parsedData.length === 0) {
       toast.error('Please select and preview a CSV file first');
@@ -611,6 +944,8 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
     try {
       if (mode === 'project') {
         await processProjectUpload(parsedData as ProjectRow[]);
+      } else if (mode === 'questToProject') {
+        await processQuestToProjectUpload(parsedData as QuestToProjectRow[]);
       } else {
         await processQuestUpload(parsedData as QuestRow[]);
       }
@@ -657,14 +992,18 @@ export function BulkUpload({ mode, questId, onSuccess }: BulkUploadProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5" />
-              Bulk {mode === 'project' ? 'Project' : 'Upload Assets to Quest'}
+              {mode === 'project'
+                ? 'Upload Project from CSV'
+                : mode === 'questToProject'
+                  ? 'Upload Quests to Project'
+                  : 'Upload Assets to Quest'}
             </CardTitle>
             <CardDescription>
-              Upload multiple{' '}
               {mode === 'project'
-                ? 'projects with quests and assets'
-                : 'assets to this quest'}{' '}
-              using a CSV file
+                ? 'Create a project with multiple quests and assets from a CSV file'
+                : mode === 'questToProject'
+                  ? 'Add multiple quests with their assets to the current project using a CSV file'
+                  : 'Add multiple assets to this quest using a CSV file'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

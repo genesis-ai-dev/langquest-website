@@ -5,7 +5,7 @@ import { QuestForm } from '@/components/quest-form';
 import { AssetForm } from '@/components/asset-form';
 import { ProjectWizard } from '@/components/project-wizard';
 import { DataView } from '@/components/data-view';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   Card,
   CardContent,
@@ -25,16 +25,14 @@ import {
   Crown,
   Eye,
   ArrowLeft,
-  Database,
-  Download,
-  Upload
+  Upload,
+  Plus
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
 // import Link from 'next/link';
-import { QuestAssetManager } from '@/components/quest-asset-manager';
-import { BulkUpload } from '@/components/bulk-upload';
+
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -51,7 +49,8 @@ import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
-import { ProjectDownload } from '@/components/project-download';
+import { ProjectDownloadButton } from '@/components/project-download-button';
+import { BulkUpload } from '@/components/bulk-upload';
 
 export default function AdminPage() {
   return (
@@ -75,14 +74,10 @@ function AdminContent() {
   const { user, isLoading } = useAuth();
 
   // Get initial state from URL
-  const getInitialViewState = ():
-    | 'projects'
-    | 'quests'
-    | 'assets'
-    | 'tools' => {
+  const getInitialViewState = (): 'projects' | 'quests' | 'assets' => {
     const view = searchParams.get('view');
-    if (view && ['projects', 'quests', 'assets', 'tools'].includes(view)) {
-      return view as 'projects' | 'quests' | 'assets' | 'tools';
+    if (view && ['projects', 'quests', 'assets'].includes(view)) {
+      return view as 'projects' | 'quests' | 'assets';
     }
     // Determine view based on URL params
     if (searchParams.get('questId')) return 'assets';
@@ -91,9 +86,9 @@ function AdminContent() {
   };
 
   // View state management
-  const [viewState, setViewState] = useState<
-    'projects' | 'quests' | 'assets' | 'tools'
-  >(getInitialViewState());
+  const [viewState, setViewState] = useState<'projects' | 'quests' | 'assets'>(
+    getInitialViewState()
+  );
 
   // Consolidated state management
   const [pageState, setPageState] = useState({
@@ -104,8 +99,10 @@ function AdminContent() {
     showProjectForm: false,
     showQuestForm: false,
     showAssetForm: false,
-    projectToClone: null as string | null,
-    toolsTab: searchParams.get('toolsTab') || 'content-view'
+    showBulkAssetUpload: false,
+    showProjectUpload: false,
+    showQuestUpload: false,
+    projectToClone: null as string | null
   });
 
   // Function to update URL with current state
@@ -114,7 +111,6 @@ function AdminContent() {
       view?: string;
       projectId?: string | null;
       questId?: string | null;
-      toolsTab?: string;
     }) => {
       const params = new URLSearchParams(searchParams.toString());
 
@@ -174,11 +170,10 @@ function AdminContent() {
     const projectId = searchParams.get('projectId');
     const questId = searchParams.get('questId');
     const view = searchParams.get('view');
-    const toolsTab = searchParams.get('toolsTab');
 
     // Update view state based on URL
-    if (view && ['projects', 'quests', 'assets', 'tools'].includes(view)) {
-      setViewState(view as 'projects' | 'quests' | 'assets' | 'tools');
+    if (view && ['projects', 'quests', 'assets'].includes(view)) {
+      setViewState(view as 'projects' | 'quests' | 'assets');
     } else {
       // Infer view from presence of parameters
       if (questId) {
@@ -194,8 +189,7 @@ function AdminContent() {
     setPageState((prevState) => ({
       ...prevState,
       selectedProjectId: projectId,
-      selectedQuestId: questId,
-      toolsTab: toolsTab || 'content-view'
+      selectedQuestId: questId
     }));
   }, [searchParams]);
 
@@ -396,20 +390,6 @@ function AdminContent() {
     });
   };
 
-  const handleToolsView = () => {
-    setViewState('tools');
-    updateURL({
-      view: 'tools'
-    });
-  };
-
-  const handleToolsTabChange = (tab: string) => {
-    setPageState((prev) => ({ ...prev, toolsTab: tab }));
-    updateURL({
-      toolsTab: tab
-    });
-  };
-
   // Clone project handler
   const handleCloneProject = (projectId: string) => {
     setPageState((prevState) => ({
@@ -548,18 +528,6 @@ function AdminContent() {
             }}
           />
 
-          {/* Quick Tools Access */}
-          <div className="flex gap-2">
-            <Button
-              variant={viewState === 'tools' ? 'default' : 'outline'}
-              size="sm"
-              onClick={handleToolsView}
-            >
-              <Database className="h-4 w-4 mr-2" />
-              Tools
-            </Button>
-          </div>
-
           <Separator />
         </div>
 
@@ -574,17 +542,31 @@ function AdminContent() {
                     Select a project to manage its quests and assets
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={() =>
-                    setPageState((prevState) => ({
-                      ...prevState,
-                      showProjectForm: true
-                    }))
-                  }
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create Project
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() =>
+                      setPageState((prevState) => ({
+                        ...prevState,
+                        showProjectForm: true
+                      }))
+                    }
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Project
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setPageState((prevState) => ({
+                        ...prevState,
+                        showProjectUpload: true
+                      }))
+                    }
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Project
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -685,19 +667,40 @@ function AdminContent() {
                     </CardDescription>
                   </div>
                 </div>
-                {isSelectedProjectOwner && (
-                  <Button
-                    onClick={() =>
-                      setPageState((prevState) => ({
-                        ...prevState,
-                        showQuestForm: true
-                      }))
-                    }
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Quest
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {pageState.selectedProjectId && (
+                    <ProjectDownloadButton
+                      projectId={pageState.selectedProjectId}
+                    />
+                  )}
+                  {isSelectedProjectOwner && (
+                    <>
+                      <Button
+                        onClick={() =>
+                          setPageState((prevState) => ({
+                            ...prevState,
+                            showQuestForm: true
+                          }))
+                        }
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Quest
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setPageState((prevState) => ({
+                            ...prevState,
+                            showQuestUpload: true
+                          }))
+                        }
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Quests
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -710,11 +713,13 @@ function AdminContent() {
                   {quests.map((quest) => (
                     <li
                       key={quest.id}
-                      className="p-4 border rounded-lg hover:border-primary/50 transition-colors cursor-pointer"
-                      onClick={() => handleSelectQuest(quest)}
+                      className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
                     >
                       <div className="flex justify-between items-center">
-                        <div>
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleSelectQuest(quest)}
+                        >
                           <h3 className="text-lg font-semibold">
                             {quest.name}
                           </h3>
@@ -722,9 +727,47 @@ function AdminContent() {
                             {quest.description}
                           </p>
                         </div>
-                        <Badge variant="secondary">
-                          {quest.assets?.length || 0} Asset(s)
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {quest.assets?.length || 0} Asset(s)
+                          </Badge>
+                          {isSelectedProjectOwner && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPageState((prev) => ({
+                                    ...prev,
+                                    selectedQuestId: quest.id,
+                                    selectedQuestName: quest.name,
+                                    showAssetForm: true
+                                  }));
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Asset
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPageState((prev) => ({
+                                    ...prev,
+                                    selectedQuestId: quest.id,
+                                    selectedQuestName: quest.name,
+                                    showBulkAssetUpload: true
+                                  }));
+                                }}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Bulk Upload
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </li>
                   ))}
@@ -744,86 +787,51 @@ function AdminContent() {
         {viewState === 'assets' && (
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToQuests}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Quests
-                </Button>
-                <div>
-                  <CardTitle>Assets in {pageState.selectedQuestName}</CardTitle>
-                  <CardDescription>
-                    Manage translation assets for this quest
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <QuestAssetManager
-                questId={pageState.selectedQuestId}
-                questName={pageState.selectedQuestName}
-                canEdit={isSelectedProjectOwner}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {viewState === 'tools' && (
-          <Card>
-            <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Tools</CardTitle>
-                  <CardDescription>
-                    Access data management and content tools
-                  </CardDescription>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackToQuests}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Quests
+                  </Button>
+                  <div>
+                    <CardTitle>
+                      Assets in {pageState.selectedQuestName}
+                    </CardTitle>
+                    <CardDescription>
+                      View and manage translation assets with their content and
+                      votes
+                    </CardDescription>
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBackToProjects}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Projects
-                </Button>
+                <div className="flex gap-2">
+                  {isSelectedProjectOwner && (
+                    <Button
+                      onClick={() =>
+                        setPageState((prev) => ({
+                          ...prev,
+                          showAssetForm: true
+                        }))
+                      }
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Asset
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <Tabs
-                value={pageState.toolsTab}
-                onValueChange={handleToolsTabChange}
-              >
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="content-view">
-                    <Database className="h-4 w-4 mr-2" />
-                    Content View
-                  </TabsTrigger>
-                  <TabsTrigger value="content-download">
-                    <Download className="h-4 w-4 mr-2" />
-                    Content Download
-                  </TabsTrigger>
-                  <TabsTrigger value="bulk-upload">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Bulk Upload
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="content-view" className="mt-6">
-                  <DataView
-                    showProjectFilter={true}
-                    projectId={pageState.selectedProjectId || undefined}
-                  />
-                </TabsContent>
-
-                <TabsContent value="content-download" className="mt-6">
-                  <ProjectDownload
-                    selectedProjectId={pageState.selectedProjectId || undefined}
-                  />
-                </TabsContent>
-
-                <TabsContent value="bulk-upload" className="mt-6">
-                  <BulkUpload />
-                </TabsContent>
-              </Tabs>
+              {pageState.selectedQuestId && (
+                <DataView
+                  projectId={pageState.selectedProjectId || undefined}
+                  questId={pageState.selectedQuestId}
+                  showProjectFilter={false}
+                />
+              )}
             </CardContent>
           </Card>
         )}
@@ -895,6 +903,104 @@ function AdminContent() {
             <AssetForm
               onSuccess={handleAssetSuccess}
               questId={pageState.selectedQuestId || undefined}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Asset Upload Modal */}
+        <Dialog
+          open={pageState.showBulkAssetUpload}
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showBulkAssetUpload: open
+            }))
+          }
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload Assets to Quest</DialogTitle>
+              <DialogDescription>
+                Add multiple assets to &quot;{pageState.selectedQuestName}&quot;
+                using a CSV file.
+              </DialogDescription>
+            </DialogHeader>
+            <BulkUpload
+              mode="quest"
+              questId={pageState.selectedQuestId || undefined}
+              onSuccess={() => {
+                setPageState((prev) => ({
+                  ...prev,
+                  showBulkAssetUpload: false
+                }));
+                refetchQuests();
+                toast.success('Assets uploaded successfully');
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Project Upload Modal */}
+        <Dialog
+          open={pageState.showProjectUpload}
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showProjectUpload: open
+            }))
+          }
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload Project from CSV</DialogTitle>
+              <DialogDescription>
+                Create a project with multiple quests and assets from a CSV
+                file.
+              </DialogDescription>
+            </DialogHeader>
+            <BulkUpload
+              mode="project"
+              onSuccess={() => {
+                setPageState((prev) => ({
+                  ...prev,
+                  showProjectUpload: false
+                }));
+                refetchProjects();
+                toast.success('Project uploaded successfully');
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Quest Upload Modal */}
+        <Dialog
+          open={pageState.showQuestUpload}
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showQuestUpload: open
+            }))
+          }
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload Quests to Project</DialogTitle>
+              <DialogDescription>
+                Add multiple quests with their assets to &quot;
+                {pageState.selectedProjectName}&quot; using a CSV file.
+              </DialogDescription>
+            </DialogHeader>
+            <BulkUpload
+              mode="questToProject"
+              projectId={pageState.selectedProjectId || undefined}
+              onSuccess={() => {
+                setPageState((prev) => ({
+                  ...prev,
+                  showQuestUpload: false
+                }));
+                refetchQuests();
+                toast.success('Quests uploaded successfully');
+              }}
             />
           </DialogContent>
         </Dialog>

@@ -13,12 +13,10 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
-import { env } from '@/lib/env';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import jsonata from 'jsonata';
 import {
   ArrowDownWideNarrowIcon,
   ArrowLeftIcon,
@@ -31,7 +29,6 @@ import {
   XIcon
 } from 'lucide-react';
 import { createParser, parseAsInteger, useQueryState } from 'nuqs';
-import { useEffect, useState } from 'react';
 import { Spinner } from './spinner';
 import { AudioButton } from './ui/audio-button';
 import { Badge } from './ui/badge';
@@ -166,11 +163,13 @@ const parseAsSorting = createParser({
 
 interface DataViewProps {
   projectId?: string; // Optional prop to filter by specific project
+  questId?: string; // Optional prop to filter by specific quest
   showProjectFilter?: boolean; // Whether to show project filter options
 }
 
 export function DataView({
   projectId,
+  questId,
   showProjectFilter = true
 }: DataViewProps = {}) {
   const t = useTranslations('data_view');
@@ -209,15 +208,17 @@ export function DataView({
         { count: 'exact' }
       );
 
-    // Apply project filter if specified
-    if (projectId) {
+    // Apply quest filter if specified (takes precedence over project filter)
+    if (questId) {
+      query = query.eq('quests.quest.id', questId);
+    } else if (projectId) {
       query = query.eq('quests.quest.project.id', projectId);
     } else if (filters.projects?.length) {
       query = query.in('quests.quest.project.id', filters.projects);
     }
 
-    // Apply other filters
-    if (filters.quests?.length) {
+    // Apply other filters (skip quest filter if questId is specified)
+    if (!questId && filters.quests?.length) {
       query = query.in('quests.quest.id', filters.quests);
     }
 
@@ -264,7 +265,16 @@ export function DataView({
   };
 
   const { data, isLoading, error } = useQuery<Root>({
-    queryKey: ['assets', page, pageSize, filters, sort, projectId, environment],
+    queryKey: [
+      'assets',
+      page,
+      pageSize,
+      filters,
+      sort,
+      projectId,
+      questId,
+      environment
+    ],
     queryFn: async () => {
       const query = buildQuery();
       const { data, error, count } = await query;
@@ -541,7 +551,7 @@ export function DataView({
                         </Badge>
                       );
                     }
-                    return values.map((value) => {
+                    return values.map((value: string) => {
                       let displayValue = value;
                       if (
                         filterType === 'projects' &&
@@ -639,8 +649,15 @@ export function DataView({
                   </div>
                   <div className="flex gap-2">
                     {asset.tags?.map((tag) => (
-                      <Badge variant="outline" key={tag.tag?.id || tag.tag}>
-                        {tag.tag?.name || 'Unknown Tag'}
+                      <Badge
+                        variant="outline"
+                        key={
+                          typeof tag.tag === 'string' ? tag.tag : tag.tag?.id
+                        }
+                      >
+                        {typeof tag.tag === 'string'
+                          ? tag.tag
+                          : tag.tag?.name || 'Unknown Tag'}
                       </Badge>
                     ))}
                   </div>
@@ -729,9 +746,8 @@ export function DataView({
                               <p>{content.text}</p>
                               {content.audio_id && (
                                 <AudioButton
-                                  audioId={content.audio_id}
-                                  variant="outline"
-                                  size="sm"
+                                  src={content.audio_id}
+                                  className="h-8 w-8"
                                 />
                               )}
                             </div>
@@ -783,9 +799,8 @@ export function DataView({
                               <div className="flex gap-2 items-center">
                                 {translation.audio && (
                                   <AudioButton
-                                    audioId={translation.audio}
-                                    variant="outline"
-                                    size="sm"
+                                    src={translation.audio}
+                                    className="h-8 w-8"
                                   />
                                 )}
                                 <div className="flex gap-4 items-center">
