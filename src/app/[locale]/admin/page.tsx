@@ -4,7 +4,8 @@
 import { QuestForm } from '@/components/quest-form';
 import { AssetForm } from '@/components/asset-form';
 import { ProjectWizard } from '@/components/project-wizard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataView } from '@/components/data-view';
+
 import {
   Card,
   CardContent,
@@ -13,17 +14,25 @@ import {
   CardTitle
   // CardFooter
 } from '@/components/ui/card';
-import { useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Copy, LogOut, Crown } from 'lucide-react';
+import {
+  PlusCircle,
+  Copy,
+  LogOut,
+  Crown,
+  Eye,
+  ArrowLeft,
+  Upload,
+  Plus
+} from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
 // import Link from 'next/link';
-import { QuestAssetManager } from '@/components/quest-asset-manager';
-import { BulkUpload } from '@/components/bulk-upload';
+
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -40,6 +49,8 @@ import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
+import { ProjectDownloadButton } from '@/components/project-download-button';
+import { BulkUpload } from '@/components/bulk-upload';
 
 export default function AdminPage() {
   return (
@@ -57,21 +68,83 @@ export default function AdminPage() {
 
 function AdminContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const envParam = searchParams.get('env') as SupabaseEnvironment;
   const environment: SupabaseEnvironment = envParam || 'production';
   const { user, isLoading } = useAuth();
 
-  // Consolidate related state into a single object
+  // Get initial state from URL
+  const getInitialViewState = (): 'projects' | 'quests' | 'assets' => {
+    const view = searchParams.get('view');
+    if (view && ['projects', 'quests', 'assets'].includes(view)) {
+      return view as 'projects' | 'quests' | 'assets';
+    }
+    // Determine view based on URL params
+    if (searchParams.get('questId')) return 'assets';
+    if (searchParams.get('projectId')) return 'quests';
+    return 'projects';
+  };
+
+  // View state management
+  const [viewState, setViewState] = useState<'projects' | 'quests' | 'assets'>(
+    getInitialViewState()
+  );
+
+  // Consolidated state management
   const [pageState, setPageState] = useState({
-    activeTab: 'projects',
-    selectedProjectId: null as string | null,
-    selectedQuestId: null as string | null,
-    selectedQuestName: 'Unnamed Quest',
+    selectedProjectId: searchParams.get('projectId') || null,
+    selectedProjectName: '',
+    selectedQuestId: searchParams.get('questId') || null,
+    selectedQuestName: '',
     showProjectForm: false,
     showQuestForm: false,
     showAssetForm: false,
+    showBulkAssetUpload: false,
+    showProjectUpload: false,
+    showQuestUpload: false,
     projectToClone: null as string | null
   });
+
+  // Function to update URL with current state
+  const updateURL = useCallback(
+    (updates: {
+      view?: string;
+      projectId?: string | null;
+      questId?: string | null;
+    }) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      // Update or remove parameters
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === undefined) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
+
+      // Clean up dependent parameters
+      if (updates.view === 'projects') {
+        params.delete('projectId');
+        params.delete('questId');
+      } else if (updates.view === 'quests') {
+        params.delete('questId');
+      }
+
+      if (updates.projectId === null) {
+        params.delete('questId');
+      }
+
+      // Keep environment parameter if it exists
+      if (envParam) {
+        params.set('env', envParam);
+      }
+
+      const newURL = `${window.location.pathname}?${params.toString()}`;
+      router.replace(newURL);
+    },
+    [searchParams, router, envParam]
+  );
 
   // Check authentication for the specific environment
   useEffect(() => {
@@ -92,20 +165,32 @@ function AdminContent() {
     }
   };
 
-  // Get query parameters
+  // Sync URL parameters with state
   useEffect(() => {
-    const tab = searchParams.get('tab');
     const projectId = searchParams.get('projectId');
     const questId = searchParams.get('questId');
+    const view = searchParams.get('view');
 
-    if (tab) setPageState((prevState) => ({ ...prevState, activeTab: tab }));
-    if (projectId)
-      setPageState((prevState) => ({
-        ...prevState,
-        selectedProjectId: projectId
-      }));
-    if (questId)
-      setPageState((prevState) => ({ ...prevState, selectedQuestId: questId }));
+    // Update view state based on URL
+    if (view && ['projects', 'quests', 'assets'].includes(view)) {
+      setViewState(view as 'projects' | 'quests' | 'assets');
+    } else {
+      // Infer view from presence of parameters
+      if (questId) {
+        setViewState('assets');
+      } else if (projectId) {
+        setViewState('quests');
+      } else {
+        setViewState('projects');
+      }
+    }
+
+    // Update page state
+    setPageState((prevState) => ({
+      ...prevState,
+      selectedProjectId: projectId,
+      selectedQuestId: questId
+    }));
   }, [searchParams]);
 
   // Fetch projects with ownership information
@@ -192,6 +277,39 @@ function AdminContent() {
     enabled: !!pageState.selectedProjectId
   });
 
+  // Update project name when projects load
+  useEffect(() => {
+    if (pageState.selectedProjectId && projects.length > 0) {
+      const selectedProject = projects.find(
+        (p) => p.id === pageState.selectedProjectId
+      );
+      if (
+        selectedProject &&
+        selectedProject.name !== pageState.selectedProjectName
+      ) {
+        setPageState((prev) => ({
+          ...prev,
+          selectedProjectName: selectedProject.name
+        }));
+      }
+    }
+  }, [pageState.selectedProjectId, projects, pageState.selectedProjectName]);
+
+  // Update quest name when quests load
+  useEffect(() => {
+    if (pageState.selectedQuestId && quests.length > 0) {
+      const selectedQuest = quests.find(
+        (q) => q.id === pageState.selectedQuestId
+      );
+      if (selectedQuest && selectedQuest.name !== pageState.selectedQuestName) {
+        setPageState((prev) => ({
+          ...prev,
+          selectedQuestName: selectedQuest.name || 'Unnamed Quest'
+        }));
+      }
+    }
+  }, [pageState.selectedQuestId, quests, pageState.selectedQuestName]);
+
   // Handle form success
   const handleProjectCreated = () => {
     setPageState((prevState) => ({ ...prevState, showProjectForm: false }));
@@ -213,16 +331,66 @@ function AdminContent() {
 
   const isSelectedProjectOwner = selectedProject?.isOwner || false;
 
-  // Project form dialog
-  const handleProjectFormClose = () => {
+  // Navigation handlers with URL updates
+  const handleSelectProject = (project: any) => {
     setPageState((prevState) => ({
       ...prevState,
-      showProjectForm: false,
-      projectToClone: null
+      selectedProjectId: project.id,
+      selectedProjectName: project.name,
+      selectedQuestId: null,
+      selectedQuestName: ''
     }));
+    setViewState('quests');
+    updateURL({
+      view: 'quests',
+      projectId: project.id,
+      questId: null
+    });
   };
 
-  // Clone project button handler
+  const handleSelectQuest = (quest: { id: string; name: string | null }) => {
+    setPageState((prevState) => ({
+      ...prevState,
+      selectedQuestId: quest.id,
+      selectedQuestName: quest.name || 'Unnamed Quest'
+    }));
+    setViewState('assets');
+    updateURL({
+      view: 'assets',
+      questId: quest.id
+    });
+  };
+
+  const handleBackToProjects = () => {
+    setPageState((prevState) => ({
+      ...prevState,
+      selectedProjectId: null,
+      selectedProjectName: '',
+      selectedQuestId: null,
+      selectedQuestName: ''
+    }));
+    setViewState('projects');
+    updateURL({
+      view: 'projects',
+      projectId: null,
+      questId: null
+    });
+  };
+
+  const handleBackToQuests = () => {
+    setPageState((prevState) => ({
+      ...prevState,
+      selectedQuestId: null,
+      selectedQuestName: ''
+    }));
+    setViewState('quests');
+    updateURL({
+      view: 'quests',
+      questId: null
+    });
+  };
+
+  // Clone project handler
   const handleCloneProject = (projectId: string) => {
     setPageState((prevState) => ({
       ...prevState,
@@ -231,21 +399,12 @@ function AdminContent() {
     }));
   };
 
-  const handleSelectProject = (projectId: string) => {
+  // Project form dialog
+  const handleProjectFormClose = () => {
     setPageState((prevState) => ({
       ...prevState,
-      selectedProjectId: projectId,
-      activeTab: 'quests'
-    }));
-  };
-
-  // Handle selecting a quest
-  const handleSelectQuest = (quest: { id: string; name: string | null }) => {
-    setPageState((prevState) => ({
-      ...prevState,
-      selectedQuestId: quest.id,
-      selectedQuestName: quest.name || 'Unnamed Quest',
-      activeTab: 'assets'
+      showProjectForm: false,
+      projectToClone: null
     }));
   };
 
@@ -305,19 +464,6 @@ function AdminContent() {
                   </Button>
                 </>
               )}
-              {pageState.activeTab !== 'projects' && (
-                <Button
-                  onClick={() =>
-                    setPageState((prevState) => ({
-                      ...prevState,
-                      activeTab: 'projects'
-                    }))
-                  }
-                  className="ml-4"
-                >
-                  View All Projects
-                </Button>
-              )}
             </div>
           </div>
 
@@ -343,18 +489,17 @@ function AdminContent() {
               {
                 label: 'Projects',
                 href: 'projects',
-                isActive:
-                  pageState.activeTab === 'projects' &&
-                  !pageState.selectedProjectId
+                isActive: viewState === 'projects'
               },
               ...(pageState.selectedProjectId
                 ? [
                     {
-                      label: selectedProject?.name || 'Selected Project',
-                      href: `projects?projectId=${pageState.selectedProjectId}`,
-                      isActive:
-                        pageState.activeTab === 'quests' &&
-                        !pageState.selectedQuestId
+                      label:
+                        pageState.selectedProjectName ||
+                        selectedProject?.name ||
+                        'Selected Project',
+                      href: 'quests',
+                      isActive: viewState === 'quests'
                     }
                   ]
                 : []),
@@ -362,49 +507,42 @@ function AdminContent() {
                 ? [
                     {
                       label: pageState.selectedQuestName,
-                      href: `projects?projectId=${pageState.selectedProjectId}&questId=${pageState.selectedQuestId}`,
-                      isActive: pageState.activeTab === 'assets'
+                      href: 'assets',
+                      isActive: viewState === 'assets'
                     }
                   ]
                 : [])
             ]}
+            onNavigate={(href) => {
+              switch (href) {
+                case 'projects':
+                  handleBackToProjects();
+                  break;
+                case 'quests':
+                  handleBackToQuests();
+                  break;
+                case 'assets':
+                  // Already on assets, no need to navigate
+                  break;
+              }
+            }}
           />
+
           <Separator />
         </div>
 
-        <Tabs
-          value={pageState.activeTab}
-          onValueChange={(value) =>
-            setPageState((prevState) => ({ ...prevState, activeTab: value }))
-          }
-        >
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger
-              value="projects"
-              disabled={!!pageState.selectedQuestId}
-            >
-              Projects
-            </TabsTrigger>
-            <TabsTrigger
-              value="quests"
-              disabled={
-                !pageState.selectedProjectId || !!pageState.selectedQuestId
-              }
-            >
-              Quests
-            </TabsTrigger>
-            <TabsTrigger value="assets" disabled={!pageState.selectedQuestId}>
-              Assets
-            </TabsTrigger>
-            <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
-          </TabsList>
-
-          {/* Projects Tab */}
-          <TabsContent value="projects">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Projects</CardTitle>
+        {/* Main Content Area */}
+        {viewState === 'projects' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Your Projects</CardTitle>
+                  <CardDescription>
+                    Select a project to manage its quests and assets
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     onClick={() =>
                       setPageState((prevState) => ({
@@ -413,29 +551,42 @@ function AdminContent() {
                       }))
                     }
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" /> Create New Project
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Project
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setPageState((prevState) => ({
+                        ...prevState,
+                        showProjectUpload: true
+                      }))
+                    }
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Project
                   </Button>
                 </div>
-                <CardDescription>
-                  Manage your translation projects.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {projectsLoading ? (
-                  <div className="flex justify-center">
-                    <Spinner />
-                  </div>
-                ) : projects.length > 0 ? (
-                  <ul className="space-y-4">
-                    {projects.map((project: any) => {
-                      return (
-                        <li
-                          key={project.id}
-                          className={cn(
-                            'p-4 border rounded-lg flex justify-between items-center',
-                            !project.isOwner && 'opacity-75 bg-muted/30'
-                          )}
-                        >
+              </div>
+            </CardHeader>
+            <CardContent>
+              {projectsLoading ? (
+                <div className="text-center p-4">
+                  <Spinner />
+                </div>
+              ) : projects.length > 0 ? (
+                <ul className="space-y-4">
+                  {projects.map((project) => {
+                    return (
+                      <li
+                        key={project.id}
+                        className={cn(
+                          'p-4 border rounded-lg hover:border-primary/50 transition-colors cursor-pointer',
+                          !project.isOwner && 'opacity-75 bg-muted/30'
+                        )}
+                        onClick={() => handleSelectProject(project)}
+                      >
+                        <div className="flex justify-between items-center">
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-lg font-semibold">
@@ -450,7 +601,11 @@ function AdminContent() {
                                   Owner
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs flex items-center gap-1"
+                                >
+                                  <Eye className="h-3 w-3" />
                                   View Only
                                 </Badge>
                               )}
@@ -459,99 +614,112 @@ function AdminContent() {
                               {project.description}
                             </p>
                             <p className="text-sm">
-                              Source:{' '}
-                              {(project.source_language as any)?.english_name}
-                            </p>
-                            <p className="text-sm">
-                              Target:{' '}
+                              {(project.source_language as any)?.english_name} →{' '}
                               {(project.target_language as any)?.english_name}
                             </p>
                           </div>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center gap-2">
                             <Badge variant="secondary">
                               {project.quests?.length || 0} Quest(s)
                             </Badge>
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
-                              onClick={() => handleCloneProject(project.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCloneProject(project.id);
+                              }}
                             >
-                              <Copy className="mr-2 h-4 w-4" /> Clone
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSelectProject(project.id)}
-                              variant={project.isOwner ? 'default' : 'outline'}
-                            >
-                              {project.isOwner
-                                ? 'Manage Quests'
-                                : 'Browse Quests'}
+                              <Copy className="h-4 w-4" />
                             </Button>
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p>No projects found. Create one to get started.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  No projects found. Create one to get started.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Quests Tab */}
-          <TabsContent value="quests">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
+        {viewState === 'quests' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackToProjects}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Projects
+                  </Button>
                   <div>
-                    <CardTitle>
-                      Quests for: {selectedProject?.name || 'Selected Project'}
-                    </CardTitle>
+                    <CardTitle>Quests in {selectedProject?.name}</CardTitle>
                     <CardDescription>
-                      Manage quests for the selected project.
+                      Select a quest to manage its assets
                     </CardDescription>
                   </div>
-                  <Button
-                    onClick={() =>
-                      setPageState((prevState) => ({
-                        ...prevState,
-                        showQuestForm: true
-                      }))
-                    }
-                    disabled={
-                      !pageState.selectedProjectId || !isSelectedProjectOwner
-                    }
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    {isSelectedProjectOwner ? 'Create New Quest' : 'Owner Only'}
-                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {!isSelectedProjectOwner && pageState.selectedProjectId && (
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>View Only Access</AlertTitle>
-                    <AlertDescription>
-                      You can view this project&apos;s content, but only project
-                      owners can create or edit quests and assets.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {questsLoading ? (
-                  <div className="flex justify-center">
-                    <Spinner />
-                  </div>
-                ) : quests.length > 0 ? (
-                  <ul className="space-y-4">
-                    {quests.map((quest) => (
-                      <li
-                        key={quest.id}
-                        className="p-4 border rounded-lg flex justify-between items-center"
+                <div className="flex gap-2">
+                  {pageState.selectedProjectId && (
+                    <ProjectDownloadButton
+                      projectId={pageState.selectedProjectId}
+                    />
+                  )}
+                  {isSelectedProjectOwner && (
+                    <>
+                      <Button
+                        onClick={() =>
+                          setPageState((prevState) => ({
+                            ...prevState,
+                            showQuestForm: true
+                          }))
+                        }
                       >
-                        <div>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Quest
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setPageState((prevState) => ({
+                            ...prevState,
+                            showQuestUpload: true
+                          }))
+                        }
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Quests
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {questsLoading ? (
+                <div className="text-center p-4">
+                  <Spinner />
+                </div>
+              ) : quests.length > 0 ? (
+                <ul className="space-y-4">
+                  {quests.map((quest) => (
+                    <li
+                      key={quest.id}
+                      className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleSelectQuest(quest)}
+                        >
                           <h3 className="text-lg font-semibold">
                             {quest.name}
                           </h3>
@@ -559,191 +727,281 @@ function AdminContent() {
                             {quest.description}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           <Badge variant="secondary">
                             {quest.assets?.length || 0} Asset(s)
                           </Badge>
-                          <Button
-                            size="sm"
-                            onClick={() => handleSelectQuest(quest)}
-                          >
-                            Manage Assets
-                          </Button>
+                          {isSelectedProjectOwner && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPageState((prev) => ({
+                                    ...prev,
+                                    selectedQuestId: quest.id,
+                                    selectedQuestName: quest.name,
+                                    showAssetForm: true
+                                  }));
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Asset
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPageState((prev) => ({
+                                    ...prev,
+                                    selectedQuestId: quest.id,
+                                    selectedQuestName: quest.name,
+                                    showBulkAssetUpload: true
+                                  }));
+                                }}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Bulk Upload
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>
-                    No quests found for this project. Create one to get started.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Assets Tab */}
-          <TabsContent value="assets">
-            {pageState.selectedQuestId ? (
-              <QuestAssetManager
-                questId={pageState.selectedQuestId}
-                onSuccess={handleAssetSuccess}
-                onAddNewAsset={() => {
-                  if (pageState.selectedQuestId) {
-                    setPageState((prevState) => ({
-                      ...prevState,
-                      showAssetForm: true
-                    }));
-                  } else {
-                    toast.error('Please select a quest first.');
-                  }
-                }}
-              />
-            ) : (
-              <p>Please select a quest to manage its assets.</p>
-            )}
-          </TabsContent>
-
-          {/* Bulk Upload Tab */}
-          <TabsContent value="bulk-upload">
-            <Card>
-              <CardHeader>
-                <CardTitle>Bulk Upload</CardTitle>
-                <CardDescription>
-                  Upload multiple projects or assets using CSV files
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="project-upload" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="project-upload">
-                      Project Upload
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="quest-upload"
-                      disabled={!pageState.selectedQuestId}
-                    >
-                      Quest Asset Upload
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="project-upload" className="mt-6">
-                    <BulkUpload
-                      mode="project"
-                      onSuccess={() => {
-                        refetchProjects();
-                        toast.success('Projects uploaded successfully!');
-                      }}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="quest-upload" className="mt-6">
-                    {pageState.selectedQuestId && isSelectedProjectOwner ? (
-                      <BulkUpload
-                        mode="quest"
-                        questId={pageState.selectedQuestId}
-                        onSuccess={() => {
-                          handleAssetSuccess();
-                          toast.success('Assets uploaded successfully!');
-                        }}
-                      />
-                    ) : pageState.selectedQuestId && !isSelectedProjectOwner ? (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Owner Only Feature</AlertTitle>
-                        <AlertDescription>
-                          Only project owners can upload assets to quests.
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Please select a quest first to upload assets
                       </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  No quests found.{' '}
+                  {isSelectedProjectOwner
+                    ? 'Create one to get started.'
+                    : 'This project has no quests yet.'}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Project Form Dialog */}
+        {viewState === 'assets' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackToQuests}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Quests
+                  </Button>
+                  <div>
+                    <CardTitle>
+                      Assets in {pageState.selectedQuestName}
+                    </CardTitle>
+                    <CardDescription>
+                      View and manage translation assets with their content and
+                      votes
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {isSelectedProjectOwner && (
+                    <Button
+                      onClick={() =>
+                        setPageState((prev) => ({
+                          ...prev,
+                          showAssetForm: true
+                        }))
+                      }
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Asset
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {pageState.selectedQuestId && (
+                <DataView
+                  projectId={pageState.selectedProjectId || undefined}
+                  questId={pageState.selectedQuestId}
+                  showProjectFilter={false}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Project Creation Modal */}
         <Dialog
           open={pageState.showProjectForm}
           onOpenChange={handleProjectFormClose}
         >
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="sticky top-0 bg-background z-10 py-4">
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
               <DialogTitle>
-                {pageState.projectToClone
-                  ? 'Clone Project'
-                  : 'Create New Project'}
+                {pageState.projectToClone ? 'Clone Project' : 'Create Project'}
               </DialogTitle>
               <DialogDescription>
-                {pageState.projectToClone
-                  ? `Cloning project: ${projects.find((p) => p.id === pageState.projectToClone)?.name}`
-                  : 'Fill in the details to create a new project.'}
+                Set up your new translation project with languages and basic
+                information.
               </DialogDescription>
             </DialogHeader>
             <ProjectWizard
               onSuccess={handleProjectCreated}
+              onCancel={handleProjectFormClose}
               projectToClone={pageState.projectToClone || undefined}
             />
           </DialogContent>
         </Dialog>
 
-        {/* Quest Form Dialog */}
+        {/* Quest Creation Modal */}
         <Dialog
           open={pageState.showQuestForm}
-          onOpenChange={(value) =>
+          onOpenChange={(open) =>
             setPageState((prevState) => ({
               ...prevState,
-              showQuestForm: value
+              showQuestForm: open
             }))
           }
         >
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="sticky top-0 bg-background z-10 py-4">
-              <DialogTitle>Create New Quest</DialogTitle>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Quest</DialogTitle>
               <DialogDescription>
-                Fill in the details to create a new quest for project:
-                {selectedProject?.name || 'Selected Project'}
+                Add a new quest to organize your translation assets.
               </DialogDescription>
             </DialogHeader>
-            {pageState.selectedProjectId && (
-              <QuestForm
-                projectId={pageState.selectedProjectId}
-                onSuccess={handleQuestSuccess}
-              />
-            )}
+            <QuestForm
+              onSuccess={handleQuestSuccess}
+              projectId={pageState.selectedProjectId || undefined}
+            />
           </DialogContent>
         </Dialog>
 
-        {/* Asset Form Dialog - This might be managed within QuestAssetManager now */}
-        {/* Consider if this explicit dialog is still needed or if QuestAssetManager handles its own modals */}
+        {/* Asset Creation Modal */}
         <Dialog
           open={pageState.showAssetForm}
-          onOpenChange={(value) =>
+          onOpenChange={(open) =>
             setPageState((prevState) => ({
               ...prevState,
-              showAssetForm: value
+              showAssetForm: open
             }))
           }
         >
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="sticky top-0 bg-background z-10 py-4">
-              <DialogTitle>Create New Asset</DialogTitle>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Asset</DialogTitle>
               <DialogDescription>
-                Fill in the details to create a new asset for quest:
-                {pageState.selectedQuestName || 'Selected Quest'}
+                Add a new asset to your selected quest.
               </DialogDescription>
             </DialogHeader>
-            {pageState.selectedQuestId && (
-              <AssetForm
-                questId={pageState.selectedQuestId}
-                onSuccess={handleAssetSuccess}
-              />
-            )}
+            <AssetForm
+              onSuccess={handleAssetSuccess}
+              questId={pageState.selectedQuestId || undefined}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Asset Upload Modal */}
+        <Dialog
+          open={pageState.showBulkAssetUpload}
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showBulkAssetUpload: open
+            }))
+          }
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload Assets to Quest</DialogTitle>
+              <DialogDescription>
+                Add multiple assets to &quot;{pageState.selectedQuestName}&quot;
+                using a CSV file.
+              </DialogDescription>
+            </DialogHeader>
+            <BulkUpload
+              mode="quest"
+              questId={pageState.selectedQuestId || undefined}
+              onSuccess={() => {
+                setPageState((prev) => ({
+                  ...prev,
+                  showBulkAssetUpload: false
+                }));
+                refetchQuests();
+                toast.success('Assets uploaded successfully');
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Project Upload Modal */}
+        <Dialog
+          open={pageState.showProjectUpload}
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showProjectUpload: open
+            }))
+          }
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload Project from CSV</DialogTitle>
+              <DialogDescription>
+                Create a project with multiple quests and assets from a CSV
+                file.
+              </DialogDescription>
+            </DialogHeader>
+            <BulkUpload
+              mode="project"
+              onSuccess={() => {
+                setPageState((prev) => ({
+                  ...prev,
+                  showProjectUpload: false
+                }));
+                refetchProjects();
+                toast.success('Project uploaded successfully');
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Quest Upload Modal */}
+        <Dialog
+          open={pageState.showQuestUpload}
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showQuestUpload: open
+            }))
+          }
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload Quests to Project</DialogTitle>
+              <DialogDescription>
+                Add multiple quests with their assets to &quot;
+                {pageState.selectedProjectName}&quot; using a CSV file.
+              </DialogDescription>
+            </DialogHeader>
+            <BulkUpload
+              mode="questToProject"
+              projectId={pageState.selectedProjectId || undefined}
+              onSuccess={() => {
+                setPageState((prev) => ({
+                  ...prev,
+                  showQuestUpload: false
+                }));
+                refetchQuests();
+                toast.success('Quests uploaded successfully');
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>

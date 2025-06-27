@@ -13,12 +13,10 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
-import { env } from '@/lib/env';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import jsonata from 'jsonata';
 import {
   ArrowDownWideNarrowIcon,
   ArrowLeftIcon,
@@ -31,7 +29,6 @@ import {
   XIcon
 } from 'lucide-react';
 import { createParser, parseAsInteger, useQueryState } from 'nuqs';
-import { useEffect, useState } from 'react';
 import { Spinner } from './spinner';
 import { AudioButton } from './ui/audio-button';
 import { Badge } from './ui/badge';
@@ -112,17 +109,31 @@ export interface TargetLanguage {
   english_name: string;
 }
 
-const pathMap = {
-  name: 'name',
-  // Text: "translations.text",
-  // Votes: "translations.votes.polarity",
-  // Tags: "tags.name",
-  tags: 'tags.tag.name',
-  quests: 'quests.quest.name',
-  projects: 'quests.quest.project.name',
-  sourceLanguage: 'quests.quest.project.source_language.english_name',
-  targetLanguage: 'quests.quest.project.target_language.english_name'
-};
+interface FilterState {
+  projects?: string[];
+  quests?: string[];
+  tags?: string[];
+  sourceLanguage?: string;
+  targetLanguage?: string;
+}
+
+const parseAsFilters = createParser({
+  parse(queryValue) {
+    if (!queryValue) return {};
+    try {
+      return JSON.parse(queryValue);
+    } catch {
+      return {};
+    }
+  },
+  serialize(value) {
+    if (!value || Object.keys(value).length === 0) return '';
+    return JSON.stringify(value);
+  },
+  eq(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+});
 
 const parseAsSorting = createParser({
   parse(queryValue) {
@@ -131,7 +142,7 @@ const parseAsSorting = createParser({
       return queryValue.split(',').map((part) => {
         const [path, direction] = part.split(':');
         return {
-          path: path as keyof typeof pathMap,
+          path: path as string,
           sort: direction as 'asc' | 'desc'
         };
       });
@@ -150,152 +161,349 @@ const parseAsSorting = createParser({
   }
 });
 
-export function DataView() {
+interface DataViewProps {
+  projectId?: string; // Optional prop to filter by specific project
+  questId?: string; // Optional prop to filter by specific quest
+  showProjectFilter?: boolean; // Whether to show project filter options
+}
+
+export function DataView({
+  projectId,
+  questId,
+  showProjectFilter = true
+}: DataViewProps = {}) {
   const t = useTranslations('data_view');
   const [pageSize, setPageSize] = useQueryState(
     'size',
     parseAsInteger.withDefault(20)
   );
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(0));
+  const [filters, setFilters] = useQueryState<FilterState>(
+    'filters',
+    parseAsFilters.withDefault({})
+  );
+  const [sort, setSort] = useQueryState<
+    { path: string; sort: 'asc' | 'desc' }[]
+  >('sort', parseAsSorting.withDefault([]));
+
   const { environment } = useAuth();
 
   const { data, isLoading, error } = useQuery<Root>({
-    queryKey: ['assets', page, pageSize, environment],
+    queryKey: [
+      'assets',
+      page,
+      pageSize,
+      filters,
+      sort,
+      projectId,
+      questId,
+      environment
+    ],
     queryFn: async () => {
-      const { data, error, count } = await createBrowserClient(environment)
-        .from('asset')
-        .select(
+      try {
+        const supabase = createBrowserClient(environment);
+
+        // Step 1: Get filtered asset IDs using simpler queries
+        let assetIds: string[] = [];
+
+        if (questId) {
+          // Filter by specific quest
+          const { data: questAssets } = await supabase
+            .from('quest_asset_link')
+            .select('asset_id')
+            .eq('quest_id', questId);
+          assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+        } else if (projectId) {
+          // Filter by specific project
+          const { data: projectQuests } = await supabase
+            .from('quest')
+            .select('id')
+            .eq('project_id', projectId);
+
+          if (projectQuests?.length) {
+            const questIds = projectQuests.map((q) => q.id);
+            const { data: questAssets } = await supabase
+              .from('quest_asset_link')
+              .select('asset_id')
+              .in('quest_id', questIds);
+            assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+          }
+        } else {
+          // Apply project filter if any
+          let filteredAssetIds: string[] = [];
+
+          if (filters.projects?.length) {
+            const { data: projectQuests } = await supabase
+              .from('quest')
+              .select('id')
+              .in('project_id', filters.projects);
+
+            if (projectQuests?.length) {
+              const questIds = projectQuests.map((q) => q.id);
+              const { data: questAssets } = await supabase
+                .from('quest_asset_link')
+                .select('asset_id')
+                .in('quest_id', questIds);
+              filteredAssetIds = questAssets?.map((qa) => qa.asset_id) || [];
+            }
+          }
+
+          // Apply quest filter
+          if (filters.quests?.length) {
+            const { data: questAssets } = await supabase
+              .from('quest_asset_link')
+              .select('asset_id')
+              .in('quest_id', filters.quests);
+            const questFilteredIds =
+              questAssets?.map((qa) => qa.asset_id) || [];
+
+            if (filteredAssetIds.length > 0) {
+              // Intersect with existing filters
+              filteredAssetIds = filteredAssetIds.filter((id) =>
+                questFilteredIds.includes(id)
+              );
+            } else {
+              filteredAssetIds = questFilteredIds;
+            }
+          }
+
+          // Apply tag filter
+          if (filters.tags?.length) {
+            const { data: tagAssets } = await supabase
+              .from('asset_tag_link')
+              .select('asset_id, tag!inner(name)')
+              .in('tag.name', filters.tags);
+            const tagFilteredIds = tagAssets?.map((ta) => ta.asset_id) || [];
+
+            if (filteredAssetIds.length > 0) {
+              // Intersect with existing filters
+              filteredAssetIds = filteredAssetIds.filter((id) =>
+                tagFilteredIds.includes(id)
+              );
+            } else {
+              filteredAssetIds = tagFilteredIds;
+            }
+          }
+
+          // Apply language filters
+          if (filters.sourceLanguage || filters.targetLanguage) {
+            let languageQuery = supabase
+              .from('quest')
+              .select(
+                'id, project!inner(source_language!inner(english_name), target_language!inner(english_name))'
+              );
+
+            if (filters.sourceLanguage) {
+              languageQuery = languageQuery.eq(
+                'project.source_language.english_name',
+                filters.sourceLanguage
+              );
+            }
+
+            if (filters.targetLanguage) {
+              languageQuery = languageQuery.eq(
+                'project.target_language.english_name',
+                filters.targetLanguage
+              );
+            }
+
+            const { data: languageQuests } = await languageQuery;
+
+            if (languageQuests?.length) {
+              const questIds = languageQuests.map((q) => q.id);
+              const { data: questAssets } = await supabase
+                .from('quest_asset_link')
+                .select('asset_id')
+                .in('quest_id', questIds);
+              const languageFilteredIds =
+                questAssets?.map((qa) => qa.asset_id) || [];
+
+              if (filteredAssetIds.length > 0) {
+                // Intersect with existing filters
+                filteredAssetIds = filteredAssetIds.filter((id) =>
+                  languageFilteredIds.includes(id)
+                );
+              } else {
+                filteredAssetIds = languageFilteredIds;
+              }
+            } else {
+              // No quests match language criteria, return empty
+              return { assets: [], count: 0 } as Root;
+            }
+          }
+
+          // If no filters applied, get all assets
+          if (
+            filteredAssetIds.length === 0 &&
+            Object.keys(filters).length === 0
+          ) {
+            const { data: allAssets } = await supabase
+              .from('asset')
+              .select('id');
+            assetIds = allAssets?.map((a) => a.id) || [];
+          } else {
+            assetIds = filteredAssetIds;
+          }
+        }
+
+        // Step 2: Get paginated asset data for the filtered IDs
+        if (assetIds.length === 0) {
+          return { assets: [], count: 0 } as Root;
+        }
+
+        const totalCount = assetIds.length;
+        const paginatedIds = assetIds.slice(
+          page * pageSize,
+          (page + 1) * pageSize
+        );
+
+        if (paginatedIds.length === 0) {
+          return { assets: [], count: totalCount } as Root;
+        }
+
+        let query = supabase
+          .from('asset')
+          .select(
+            `
+            id, 
+            name, 
+            images,
+            translations:translation(id, text, audio, target_language:target_language_id(id, english_name), votes:vote(id, polarity)),
+            content:asset_content_link(id, audio_id, text),
+            tags:asset_tag_link(tag(id, name)),
+            quests:quest_asset_link(quest(id, name, description, 
+              project(id, name, description, source_language:language!source_language_id(id, english_name), target_language:language!target_language_id(id, english_name)),
+              tags:quest_tag_link(tag(id, name))
+            ))
           `
-          id, 
-          name, 
-          images,
-          translations:translation(id, text, audio, target_language:target_language_id(id, english_name), votes:vote(id, polarity)),
-          content:asset_content_link(id, audio_id, text),
-          tags:asset_tag_link(tag(id, name)),
-          quests:quest_asset_link(quest(id, name, description, 
-            project(id, name, description, source_language:language!source_language_id(id, english_name), target_language:language!target_language_id(id, english_name)),
-            tags:quest_tag_link(tag(id, name))
-          ))
-        `,
-          { count: 'exact' }
-        )
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-      if (error) throw error;
-      return {
-        assets: data.map((asset) => ({
-          ...asset,
-          images: asset.images
-            ? (JSON.parse(asset.images) as string[])
-            : undefined
-        })),
-        count
-      } as unknown as Root;
+          )
+          .in('id', paginatedIds);
+
+        // Apply sorting
+        if (sort.length > 0) {
+          sort.forEach((sortItem) => {
+            const ascending = sortItem.sort === 'asc';
+            switch (sortItem.path) {
+              case 'name':
+                query = query.order('name', { ascending });
+                break;
+              default:
+                query = query.order('name', { ascending });
+                break;
+            }
+          });
+        } else {
+          query = query.order('name');
+        }
+
+        const { data: assets, error } = await query;
+
+        if (error) {
+          console.error('Supabase query error:', error);
+          throw error;
+        }
+
+        console.log(
+          'Filter query successful, returned:',
+          assets?.length,
+          'assets'
+        );
+
+        return {
+          assets:
+            assets?.map((asset) => ({
+              ...asset,
+              images: asset.images
+                ? (JSON.parse(asset.images) as string[])
+                : undefined
+            })) || [],
+          count: totalCount
+        } as unknown as Root;
+      } catch (error) {
+        console.error('Query execution error:', error);
+        throw error;
+      }
     }
   });
 
-  console.log(data);
+  // Fetch filter options
+  const { data: filterOptions } = useQuery({
+    queryKey: ['filter-options', environment],
+    queryFn: async () => {
+      const supabase = createBrowserClient(environment);
+
+      const [projectsRes, questsRes, tagsRes, languagesRes] = await Promise.all(
+        [
+          supabase.from('project').select('id, name').order('name'),
+          supabase
+            .from('quest')
+            .select('id, name, project:project_id(name)')
+            .order('name'),
+          supabase.from('tag').select('id, name').order('name'),
+          supabase
+            .from('language')
+            .select('id, english_name')
+            .order('english_name')
+        ]
+      );
+
+      return {
+        projects: projectsRes.data || [],
+        quests: questsRes.data || [],
+        tags: tagsRes.data || [],
+        languages: languagesRes.data || []
+      };
+    }
+  });
 
   const assets = data?.assets;
   const count = data?.count;
 
-  const [filter, setFilter] = useState<
-    { path: keyof typeof pathMap; value: string }[]
-  >([]);
-  const [sort, setSort] = useQueryState<
-    { path: keyof typeof pathMap; sort: 'asc' | 'desc' }[]
-  >('sort', parseAsSorting.withDefault([]));
-
-  const [selectedFilter, setSelectedFilter] = useState<keyof typeof pathMap>();
-  const [selectedSort, setSelectedSort] = useState<keyof typeof pathMap>();
-
-  const [selectedFilterPathResults, setSelectedFilterPathResults] = useState<
-    string[]
-  >([]);
-  const [selectedTagResults, setSelectedTagResults] = useState<string[]>([]);
-  const [filteredAssets, setFilteredAssets] = useState<typeof assets>();
-
-  useEffect(() => {
-    if (!selectedFilter || !assets) return;
-    jsonata(pathMap[selectedFilter])
-      .evaluate(assets)
-      .then((result) => {
-        const uniqueResult = Array.from(new Set(result));
-        setSelectedFilterPathResults(uniqueResult as string[]);
-      });
-  }, [selectedFilter, assets]);
-
-  const filterAndSortAssets = async (
-    assetsToFilter: typeof assets,
-    toFilter: typeof filter,
-    toSort: typeof sort
-  ) => {
-    const copiedSort = [...toSort];
-    const computedPath = `$[${toFilter.reduce((acc, { path, value }) => {
-      return `${acc ? `${acc} and ` : ''}${
-        path === 'tags'
-          ? `"${value}" in ${pathMap[path]}`
-          : `${pathMap[path]} = "${value}"`
-      }`;
-    }, '')}]${copiedSort
-      .reverse()
-      .map(
-        ({ path, sort }) =>
-          `${sort === 'asc' ? `^(${pathMap[path]})` : `^(>$.${pathMap[path]})`}`
-      )
-      .join('')}`;
-    const result = (await jsonata(computedPath).evaluate(assetsToFilter)) as
-      | ({
-          sequence: number;
-        } & typeof assetsToFilter)
-      | undefined;
-    if (result) delete (result as Partial<typeof result>).sequence;
-    console.log(computedPath);
-    return result;
+  const addFilter = (filterType: keyof FilterState, value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterType]:
+        filterType === 'sourceLanguage' || filterType === 'targetLanguage'
+          ? value
+          : [...(prev[filterType] || []), value]
+    }));
+    setPage(0); // Reset to first page when filtering
   };
 
-  const addFilter = (path: keyof typeof pathMap, value: string) => {
-    const newFilter = [
-      ...filter.filter((f) => f.path !== path),
-      { path, value }
-    ];
-
-    setFilter(newFilter);
-    filterAndSortAssets(assets, newFilter, sort).then(setFilteredAssets);
+  const removeFilter = (filterType: keyof FilterState, value?: string) => {
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      if (filterType === 'sourceLanguage' || filterType === 'targetLanguage') {
+        delete newFilters[filterType];
+      } else if (value && newFilters[filterType]) {
+        newFilters[filterType] = newFilters[filterType]!.filter(
+          (v) => v !== value
+        );
+        if (newFilters[filterType]!.length === 0) {
+          delete newFilters[filterType];
+        }
+      }
+      return newFilters;
+    });
   };
 
-  const removeFilter = (path: keyof typeof pathMap) => {
-    const newFilter = filter.filter((f) => f.path !== path);
-    setFilter(newFilter);
-    if (!newFilter.length && !sort.length) setFilteredAssets(undefined);
-    else filterAndSortAssets(assets, newFilter, sort).then(setFilteredAssets);
-  };
-
-  const addSort = (path: keyof typeof pathMap, direction: 'asc' | 'desc') => {
-    const newSort = [
-      ...sort.filter((s) => s.path !== path),
+  const addSort = (path: string, direction: 'asc' | 'desc') => {
+    setSort((prev) => [
+      ...prev.filter((s) => s.path !== path),
       { path, sort: direction }
-    ];
-
-    setSort(newSort);
-    filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
+    ]);
   };
 
-  const removeSort = (path: keyof typeof pathMap) => {
-    const newSort = sort.filter((s) => s.path !== path);
-    setSort(newSort);
-    if (!newSort.length && !filter.length) setFilteredAssets(undefined);
-    else filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
+  const removeSort = (path: string) => {
+    setSort((prev) => prev.filter((s) => s.path !== path));
   };
 
-  const toggleSortDirection = (path: keyof typeof pathMap) => {
-    const newSort = sort.map((f) =>
-      f.path === path
-        ? ({ ...f, sort: f.sort === 'asc' ? 'desc' : 'asc' } as const)
-        : f
+  const toggleSortDirection = (path: string) => {
+    setSort((prev) =>
+      prev.map((s) =>
+        s.path === path ? { ...s, sort: s.sort === 'asc' ? 'desc' : 'asc' } : s
+      )
     );
-    console.log(newSort);
-    setSort(newSort);
-    filterAndSortAssets(assets, filter, newSort).then(setFilteredAssets);
   };
 
   if (isLoading)
@@ -316,200 +524,224 @@ export function DataView() {
           <div className="flex gap-2 items-center">
             <h1 className="font-semibold">Assets</h1>
             <div className="flex flex-1 justify-end gap-2">
-              <Popover
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setSelectedFilter(undefined);
-                    setSelectedFilterPathResults([]);
-                    setSelectedTagResults([]);
-                  }
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      filter?.length > 0 &&
-                        'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                    )}
-                  >
-                    <FilterIcon className="size-4" />
-                    <span className="hidden sm:block">
-                      {filter.length > 0
-                        ? t('filteredBy', { count: filter.length })
-                        : t('filter')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="flex gap-2 flex-wrap w-72 justify-end"
-                >
-                  {!selectedFilter &&
-                    Object.keys(pathMap)
-                      .filter((key) => key !== 'name')
-                      .sort()
-                      .map((key) => (
-                        <Button
-                          variant="outline"
-                          key={key}
-                          onClick={() =>
-                            setSelectedFilter(key as keyof typeof pathMap)
-                          }
-                        >
-                          {camelToProperCase(key)}
-                        </Button>
-                      ))}
+              {/* Hide filters when viewing a specific quest - context is already filtered enough */}
+              {!questId && (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          Object.keys(filters).length > 0 &&
+                            'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                        )}
+                      >
+                        <FilterIcon className="size-4" />
+                        <span className="hidden sm:block">
+                          {Object.keys(filters).length > 0
+                            ? t('filteredBy', {
+                                count: Object.keys(filters).length
+                              })
+                            : t('filter')}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      className="w-80 max-h-96 overflow-y-auto"
+                    >
+                      <div className="space-y-4">
+                        {showProjectFilter && (
+                          <div>
+                            <h4 className="font-medium mb-2">Projects</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {filterOptions?.projects
+                                .filter((project) => project && project.name)
+                                .map((project) => (
+                                  <Button
+                                    key={project.id}
+                                    variant={
+                                      filters.projects?.includes(project.id)
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() => {
+                                      if (
+                                        filters.projects?.includes(project.id)
+                                      ) {
+                                        removeFilter('projects', project.id);
+                                      } else {
+                                        addFilter('projects', project.id);
+                                      }
+                                    }}
+                                  >
+                                    {project.name}
+                                  </Button>
+                                ))}
+                            </div>
+                          </div>
+                        )}
 
-                  {selectedFilter &&
-                    !selectedTagResults.length &&
-                    Array.from(
-                      new Set(
-                        selectedFilterPathResults.map((value) =>
-                          selectedFilter === 'tags'
-                            ? value.split(':')[0]
-                            : value
-                        )
-                      )
-                    ).map((value, index) => (
-                      <Button
-                        variant="outline"
-                        key={index}
-                        onClick={() => {
-                          if (selectedFilter === 'tags') {
-                            setSelectedTagResults(
-                              Array.from(
-                                new Set(
-                                  selectedFilterPathResults.filter((v) =>
-                                    v.startsWith(value)
-                                  )
-                                )
-                              )
-                            );
-                          } else addFilter(selectedFilter, value);
-                        }}
-                      >
-                        {value}
-                      </Button>
-                    ))}
+                        <div>
+                          <h4 className="font-medium mb-2">Tags</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {filterOptions?.tags
+                              .filter((tag) => tag && tag.name)
+                              .slice(0, 10)
+                              .map((tag) => (
+                                <Button
+                                  key={tag.id}
+                                  variant={
+                                    filters.tags?.includes(tag.name)
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  size="sm"
+                                  onClick={() => {
+                                    if (filters.tags?.includes(tag.name)) {
+                                      removeFilter('tags', tag.name);
+                                    } else {
+                                      addFilter('tags', tag.name);
+                                    }
+                                  }}
+                                >
+                                  {tag.name}
+                                </Button>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
 
-                  {selectedFilter &&
-                    selectedTagResults.map((value, index) => (
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
-                        variant="outline"
-                        key={index}
-                        onClick={() => addFilter(selectedFilter, value)}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          sort?.length > 0 &&
+                            'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                        )}
                       >
-                        {value.split(':')[1]}
+                        <ListIcon className="size-4" />
+                        <span className="hidden sm:block">
+                          {sort.length > 0
+                            ? t('sortedBy', { count: sort.length })
+                            : t('sort')}
+                        </span>
                       </Button>
-                    ))}
-                </PopoverContent>
-              </Popover>
-              <Popover
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setSelectedSort(undefined);
-                  }
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      sort?.length > 0 &&
-                        'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                    )}
-                  >
-                    <ListIcon className="size-4" />
-                    <span className="hidden sm:block">
-                      {sort.length > 0
-                        ? t('sortedBy', { count: sort.length })
-                        : t('sort')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="flex gap-2 flex-wrap w-72 justify-end"
-                >
-                  {!selectedSort &&
-                    Object.keys(pathMap)
-                      .filter((key) => key !== 'tags')
-                      .sort()
-                      .reverse()
-                      .map((key) => (
-                        <Button
-                          variant="outline"
-                          key={key}
-                          onClick={() =>
-                            setSelectedSort(key as keyof typeof pathMap)
-                          }
-                        >
-                          {camelToProperCase(key)}
-                        </Button>
-                      ))}
-
-                  {selectedSort && (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() => addSort(selectedSort, 'asc')}
-                      >
-                        {t('ascending')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => addSort(selectedSort, 'desc')}
-                      >
-                        {t('descending')}
-                      </Button>
-                    </>
-                  )}
-                </PopoverContent>
-              </Popover>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72">
+                      <div className="space-y-2">
+                        {['name', 'projects', 'quests'].map((key) => (
+                          <div key={key} className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSort(key, 'asc')}
+                            >
+                              {camelToProperCase(key)} ↑
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSort(key, 'desc')}
+                            >
+                              {camelToProperCase(key)} ↓
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </>
+              )}
             </div>
           </div>
+
+          {/* Active Filters Display */}
           <div className="flex flex-col gap-2">
-            {!!filter.length && (
+            {!questId && Object.keys(filters).length > 0 && (
               <div className="flex gap-4 flex-1 items-center">
                 <FilterIcon className="size-4 text-muted-foreground flex-shrink-0" />
                 <div className="overflow-x-auto flex gap-2 scrollbar-none">
-                  {filter.map(({ path, value }) => (
-                    <Badge
-                      variant="outline"
-                      key={`${path.toLowerCase()}-${value.toLowerCase()}`}
-                      className="flex gap-2 items-center"
-                    >
-                      <span>
-                        <span className="hidden sm:inline">
-                          {camelToProperCase(path)}:{' '}
-                        </span>
-                        {value}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFilter(path)}
-                        className="size-5 rounded-sm"
-                      >
-                        <XIcon className="size-4" />
-                      </Button>
-                    </Badge>
-                  ))}
+                  {Object.entries(filters).map(([filterType, values]) => {
+                    if (typeof values === 'string') {
+                      return (
+                        <Badge
+                          key={filterType}
+                          variant="outline"
+                          className="flex gap-2 items-center"
+                        >
+                          <span>
+                            {camelToProperCase(filterType)}: {values}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              removeFilter(filterType as keyof FilterState)
+                            }
+                            className="size-5 rounded-sm"
+                          >
+                            <XIcon className="size-4" />
+                          </Button>
+                        </Badge>
+                      );
+                    }
+                    return values.map((value: string) => {
+                      let displayValue = value;
+                      if (
+                        filterType === 'projects' &&
+                        filterOptions?.projects
+                      ) {
+                        const project = filterOptions.projects.find(
+                          (p) => p?.id === value
+                        );
+                        displayValue = project?.name || value;
+                      }
+
+                      return (
+                        <Badge
+                          key={`${filterType}-${value}`}
+                          variant="outline"
+                          className="flex gap-2 items-center"
+                        >
+                          <span>
+                            {camelToProperCase(filterType)}: {displayValue}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              removeFilter(
+                                filterType as keyof FilterState,
+                                value
+                              )
+                            }
+                            className="size-5 rounded-sm"
+                          >
+                            <XIcon className="size-4" />
+                          </Button>
+                        </Badge>
+                      );
+                    });
+                  })}
                 </div>
               </div>
             )}
 
-            {!!sort.length && (
+            {sort.length > 0 && (
               <div className="flex gap-4 flex-1 items-center">
                 <ListIcon className="size-4 text-muted-foreground flex-shrink-0" />
                 <div className="overflow-x-auto flex gap-2 scrollbar-none">
                   {sort.map((s) => (
                     <Badge
                       variant="secondary"
-                      key={`${s.path.toLowerCase()}-${s.sort.toLowerCase()}`}
+                      key={`${s.path}-${s.sort}`}
                       className="flex gap-1 items-center"
                     >
                       {camelToProperCase(s.path)}{' '}
@@ -541,17 +773,16 @@ export function DataView() {
           </div>
         </div>
       </div>
+
       <Accordion type="single" collapsible>
-        {(filteredAssets ?? assets)?.map((asset, index) => (
+        {assets?.map((asset, index) => (
           <AccordionItem
             key={`${asset.id}-${index}`}
             value={asset.id}
-            // className="hover:bg-secondary/30"
             className="first:border-t-0"
           >
             <AccordionTrigger>{asset.name}</AccordionTrigger>
             <AccordionContent>
-              {/* <pre>{JSON.stringify(asset, undefined, 4)}</pre> */}
               <div className="flex flex-col gap-8 p-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2 justify-between">
@@ -559,192 +790,158 @@ export function DataView() {
                   </div>
                   <div className="flex gap-2">
                     {asset.tags?.map((tag) => (
-                      <Badge variant="outline" key={tag.tag.id}>
-                        {tag.tag.name}
+                      <Badge
+                        variant="outline"
+                        key={
+                          typeof tag.tag === 'string' ? tag.tag : tag.tag?.id
+                        }
+                      >
+                        {typeof tag.tag === 'string'
+                          ? tag.tag
+                          : tag.tag?.name || 'Unknown Tag'}
                       </Badge>
                     ))}
                   </div>
                 </div>
 
+                {/* Display images if available */}
                 {asset.images && asset.images.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-lg font-bold">
+                    <h3 className="text-lg font-semibold">
                       {t('images', { count: asset.images.length })}
                     </h3>
-                    <Carousel
-                      opts={{
-                        loop: true
-                      }}
-                    >
+                    <Carousel className="w-full max-w-md">
                       <CarouselContent>
-                        {asset.images.map((image: string, index: number) => (
-                          <CarouselItem key={index} className="basis-1/2">
+                        {asset.images.map((image, index) => (
+                          <CarouselItem key={index}>
                             <img
-                              src={
-                                createBrowserClient(environment)
-                                  .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-                                  .getPublicUrl(image).data.publicUrl
-                              }
-                              alt={`Image ${index + 1}`}
-                              className="w-full aspect-video object-cover rounded-lg"
+                              src={image}
+                              alt={`${asset.name} - Image ${index + 1}`}
+                              className="w-full h-auto rounded-lg"
                             />
                           </CarouselItem>
                         ))}
                       </CarouselContent>
-                      <CarouselPrevious className="absolute left-5" />
-                      <CarouselNext className="absolute right-5" />
+                      <CarouselPrevious />
+                      <CarouselNext />
                     </Carousel>
                   </div>
                 )}
 
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-lg font-bold">
-                    {t('quests', { count: asset.quests?.length })}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {asset.quests?.map((quest) => (
-                      <div
-                        className={`flex flex-col gap-2 bg-secondary/30 p-4 rounded-md w-full ${
-                          asset.quests?.length === 1 && 'col-span-2'
-                        }`}
-                        key={`${quest.quest?.id}-${asset.id}`}
-                      >
-                        <div className="flex flex-col gap-6">
-                          <div>
-                            <span className="flex flex-1 text-lg font-semibold">
-                              {quest.quest?.name}
-                            </span>
-                            <span className="text-secondary-foreground">
-                              {
-                                quest.quest?.project.source_language
-                                  .english_name
-                              }{' '}
-                              →{' '}
-                              {
-                                quest.quest?.project.target_language
-                                  .english_name
-                              }
-                            </span>
-                          </div>
-                          <div className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex gap-2">
-                                <span className="font-semibold w-20">
-                                  {t('description')}
-                                </span>{' '}
-                                <span className="text-muted-foreground">
-                                  {quest.quest?.description}
-                                </span>
+                {/* Display quests */}
+                {asset.quests && asset.quests.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-lg font-semibold">
+                      {t('quests', { count: asset.quests.length })}
+                    </h3>
+                    {asset.quests.map((questLink, index) =>
+                      questLink.quest ? (
+                        <div key={index} className="border p-4 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold">
+                                {questLink.quest.name || 'Unnamed Quest'}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {questLink.quest.description}
+                              </p>
+                              <div className="mt-2">
+                                <Badge variant="secondary">
+                                  {t('project')}:{' '}
+                                  {questLink.quest.project?.name ||
+                                    'Unknown Project'}
+                                </Badge>
                               </div>
-                              <div className="flex gap-2">
-                                <span className="font-semibold w-20">
-                                  {t('tags', {
-                                    count: quest.quest?.tags.length ?? 0
-                                  })}
-                                </span>
-                                {quest.quest?.tags.map((tag) => (
-                                  <Badge variant="outline" key={tag.tag.id}>
-                                    {tag.tag.name}
+                            </div>
+                          </div>
+                          {questLink.quest.tags &&
+                            questLink.quest.tags.length > 0 && (
+                              <div className="mt-2 flex gap-1">
+                                {questLink.quest.tags.map((tag, tagIndex) => (
+                                  <Badge variant="outline" key={tagIndex}>
+                                    {tag.tag?.name || 'Unknown Tag'}
                                   </Badge>
                                 ))}
                               </div>
-                            </div>
-
-                            <div className="flex flex-col gap-1">
-                              <div className="flex gap-2">
-                                <span className="font-semibold w-20">
-                                  {t('project')}
-                                </span>{' '}
-                                <span className="text-muted-foreground">
-                                  {quest.quest?.project.name}
-                                </span>
-                              </div>
-                              <div className="flex gap-2">
-                                <span className="font-semibold w-20">
-                                  {t('description')}
-                                </span>{' '}
-                                <span className="text-muted-foreground">
-                                  {quest.quest?.project.description}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                            )}
                         </div>
-                      </div>
-                    ))}
+                      ) : null
+                    )}
                   </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-lg font-bold">
-                    {t('sourceContent', { count: asset.content?.length })}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    {asset.content?.map((content) => (
-                      <div
-                        className={`flex gap-2 bg-secondary/30 p-4 rounded-md w-full ${
-                          asset.content?.length === 1 && 'col-span-2'
-                        }`}
-                        key={content.id}
-                      >
-                        <p className="flex flex-1">{content.text}</p>
-                        {content.audio_id && (
-                          <AudioButton
-                            src={
-                              createBrowserClient(environment)
-                                .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-                                .getPublicUrl(content.audio_id).data.publicUrl
-                            }
-                            className="shrink-0"
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {asset.translations?.length > 0 && (
+                )}
+
+                {/* Display source content */}
+                {asset.content && asset.content.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-lg font-semibold">
+                      {t('sourceContent', { count: asset.content.length })}
+                    </h3>
                     <Accordion type="single" collapsible>
-                      <AccordionItem
-                        value={asset.id}
-                        className="bg-secondary/30 border-none rounded-lg"
-                      >
-                        <AccordionTrigger>
-                          <h3 className="text-md font-bold">
-                            {t('translations', {
-                              count: asset.translations?.length
-                            })}
-                          </h3>
-                        </AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-2 pb-4 px-4">
-                          {asset.translations?.map((translation) => (
-                            <div
-                              key={translation.id}
-                              className="flex justify-between w-full gap-2 px-2 items-center h-10 bg-secondary/50 rounded-md"
-                            >
-                              <span
-                                className={cn(
-                                  !translation.text &&
-                                    'text-muted-foreground italic truncate'
-                                )}
-                              >
-                                {!!translation.text
-                                  ? translation.text
-                                  : t('noText')}{' '}
+                      {asset.content.map((content, index) => (
+                        <AccordionItem key={index} value={content.id}>
+                          <AccordionTrigger>
+                            {content.text || t('noText')}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="flex flex-col gap-2">
+                              <p>{content.text}</p>
+                              {content.audio_id && (
+                                <AudioButton
+                                  src={content.audio_id}
+                                  className="h-8 w-8"
+                                />
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+                )}
+
+                {/* Display translations */}
+                {asset.translations && asset.translations.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-lg font-semibold">
+                      {t('translations', { count: asset.translations.length })}
+                    </h3>
+                    <Accordion type="single" collapsible>
+                      {asset.translations.map((translation, index) => (
+                        <AccordionItem key={index} value={translation.id}>
+                          <AccordionTrigger>
+                            <div className="flex justify-between items-center w-full mr-4">
+                              <span>
+                                {translation.text || t('noText')} (
+                                {translation.target_language.english_name})
                               </span>
                               <div className="flex gap-4 items-center">
-                                <span className="text-muted-foreground text-nowrap">
-                                  {translation.target_language.english_name}
-                                </span>
+                                <div className="flex gap-1 items-center tabular-nums">
+                                  <ThumbsUpIcon className="size-4" />
+                                  {
+                                    translation.votes.filter(
+                                      (vote) => vote.polarity === 'up'
+                                    ).length
+                                  }
+                                </div>
+                                <div className="flex gap-1 items-center tabular-nums">
+                                  <ThumbsDownIcon className="size-4" />
+                                  {
+                                    translation.votes.filter(
+                                      (vote) => vote.polarity === 'down'
+                                    ).length
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="flex flex-col gap-2">
+                              <p>{translation.text}</p>
+                              <div className="flex gap-2 items-center">
                                 {translation.audio && (
                                   <AudioButton
-                                    src={
-                                      createBrowserClient(environment)
-                                        .storage.from(
-                                          env.NEXT_PUBLIC_SUPABASE_BUCKET
-                                        )
-                                        .getPublicUrl(translation.audio).data
-                                        .publicUrl
-                                    }
+                                    src={translation.audio}
+                                    className="h-8 w-8"
                                   />
                                 )}
                                 <div className="flex gap-4 items-center">
@@ -767,17 +964,18 @@ export function DataView() {
                                 </div>
                               </div>
                             </div>
-                          ))}
-                        </AccordionContent>
-                      </AccordionItem>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
                     </Accordion>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
+
       <div className="flex justify-end p-4 gap-2">
         <Select
           value={pageSize.toString()}
