@@ -188,82 +188,6 @@ export function DataView({
 
   const { environment } = useAuth();
 
-  // Build Supabase query with filters
-  const buildQuery = () => {
-    let query = createBrowserClient(environment)
-      .from('asset')
-      .select(
-        `
-        id, 
-        name, 
-        images,
-        translations:translation(id, text, audio, target_language:target_language_id(id, english_name), votes:vote(id, polarity)),
-        content:asset_content_link(id, audio_id, text),
-        tags:asset_tag_link(tag(id, name)),
-        quests:quest_asset_link(quest(id, name, description, 
-          project(id, name, description, source_language:language!source_language_id(id, english_name), target_language:language!target_language_id(id, english_name)),
-          tags:quest_tag_link(tag(id, name))
-        ))
-      `,
-        { count: 'exact' }
-      );
-
-    // Apply quest filter if specified (takes precedence over project filter)
-    if (questId) {
-      query = query.eq('quests.quest.id', questId);
-    } else if (projectId) {
-      query = query.eq('quests.quest.project.id', projectId);
-    } else if (filters.projects?.length) {
-      query = query.in('quests.quest.project.id', filters.projects);
-    }
-
-    // Apply other filters (skip quest filter if questId is specified)
-    if (!questId && filters.quests?.length) {
-      query = query.in('quests.quest.id', filters.quests);
-    }
-
-    if (filters.tags?.length) {
-      query = query.in('tags.tag.name', filters.tags);
-    }
-
-    if (filters.sourceLanguage) {
-      query = query.eq(
-        'quests.quest.project.source_language.english_name',
-        filters.sourceLanguage
-      );
-    }
-
-    if (filters.targetLanguage) {
-      query = query.eq(
-        'quests.quest.project.target_language.english_name',
-        filters.targetLanguage
-      );
-    }
-
-    // Apply sorting
-    if (sort.length > 0) {
-      sort.forEach((sortItem) => {
-        const ascending = sortItem.sort === 'asc';
-        switch (sortItem.path) {
-          case 'name':
-            query = query.order('name', { ascending });
-            break;
-          case 'projects':
-            query = query.order('quests.quest.project.name', { ascending });
-            break;
-          case 'quests':
-            query = query.order('quests.quest.name', { ascending });
-            break;
-          // Add more sorting options as needed
-        }
-      });
-    } else {
-      query = query.order('name'); // default sort
-    }
-
-    return query.range(page * pageSize, (page + 1) * pageSize - 1);
-  };
-
   const { data, isLoading, error } = useQuery<Root>({
     queryKey: [
       'assets',
@@ -276,19 +200,229 @@ export function DataView({
       environment
     ],
     queryFn: async () => {
-      const query = buildQuery();
-      const { data, error, count } = await query;
+      try {
+        const supabase = createBrowserClient(environment);
 
-      if (error) throw error;
-      return {
-        assets: data.map((asset) => ({
-          ...asset,
-          images: asset.images
-            ? (JSON.parse(asset.images) as string[])
-            : undefined
-        })),
-        count
-      } as unknown as Root;
+        // Step 1: Get filtered asset IDs using simpler queries
+        let assetIds: string[] = [];
+
+        if (questId) {
+          // Filter by specific quest
+          const { data: questAssets } = await supabase
+            .from('quest_asset_link')
+            .select('asset_id')
+            .eq('quest_id', questId);
+          assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+        } else if (projectId) {
+          // Filter by specific project
+          const { data: projectQuests } = await supabase
+            .from('quest')
+            .select('id')
+            .eq('project_id', projectId);
+
+          if (projectQuests?.length) {
+            const questIds = projectQuests.map((q) => q.id);
+            const { data: questAssets } = await supabase
+              .from('quest_asset_link')
+              .select('asset_id')
+              .in('quest_id', questIds);
+            assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+          }
+        } else {
+          // Apply project filter if any
+          let filteredAssetIds: string[] = [];
+
+          if (filters.projects?.length) {
+            const { data: projectQuests } = await supabase
+              .from('quest')
+              .select('id')
+              .in('project_id', filters.projects);
+
+            if (projectQuests?.length) {
+              const questIds = projectQuests.map((q) => q.id);
+              const { data: questAssets } = await supabase
+                .from('quest_asset_link')
+                .select('asset_id')
+                .in('quest_id', questIds);
+              filteredAssetIds = questAssets?.map((qa) => qa.asset_id) || [];
+            }
+          }
+
+          // Apply quest filter
+          if (filters.quests?.length) {
+            const { data: questAssets } = await supabase
+              .from('quest_asset_link')
+              .select('asset_id')
+              .in('quest_id', filters.quests);
+            const questFilteredIds =
+              questAssets?.map((qa) => qa.asset_id) || [];
+
+            if (filteredAssetIds.length > 0) {
+              // Intersect with existing filters
+              filteredAssetIds = filteredAssetIds.filter((id) =>
+                questFilteredIds.includes(id)
+              );
+            } else {
+              filteredAssetIds = questFilteredIds;
+            }
+          }
+
+          // Apply tag filter
+          if (filters.tags?.length) {
+            const { data: tagAssets } = await supabase
+              .from('asset_tag_link')
+              .select('asset_id, tag!inner(name)')
+              .in('tag.name', filters.tags);
+            const tagFilteredIds = tagAssets?.map((ta) => ta.asset_id) || [];
+
+            if (filteredAssetIds.length > 0) {
+              // Intersect with existing filters
+              filteredAssetIds = filteredAssetIds.filter((id) =>
+                tagFilteredIds.includes(id)
+              );
+            } else {
+              filteredAssetIds = tagFilteredIds;
+            }
+          }
+
+          // Apply language filters
+          if (filters.sourceLanguage || filters.targetLanguage) {
+            let languageQuery = supabase
+              .from('quest')
+              .select(
+                'id, project!inner(source_language!inner(english_name), target_language!inner(english_name))'
+              );
+
+            if (filters.sourceLanguage) {
+              languageQuery = languageQuery.eq(
+                'project.source_language.english_name',
+                filters.sourceLanguage
+              );
+            }
+
+            if (filters.targetLanguage) {
+              languageQuery = languageQuery.eq(
+                'project.target_language.english_name',
+                filters.targetLanguage
+              );
+            }
+
+            const { data: languageQuests } = await languageQuery;
+
+            if (languageQuests?.length) {
+              const questIds = languageQuests.map((q) => q.id);
+              const { data: questAssets } = await supabase
+                .from('quest_asset_link')
+                .select('asset_id')
+                .in('quest_id', questIds);
+              const languageFilteredIds =
+                questAssets?.map((qa) => qa.asset_id) || [];
+
+              if (filteredAssetIds.length > 0) {
+                // Intersect with existing filters
+                filteredAssetIds = filteredAssetIds.filter((id) =>
+                  languageFilteredIds.includes(id)
+                );
+              } else {
+                filteredAssetIds = languageFilteredIds;
+              }
+            } else {
+              // No quests match language criteria, return empty
+              return { assets: [], count: 0 } as Root;
+            }
+          }
+
+          // If no filters applied, get all assets
+          if (
+            filteredAssetIds.length === 0 &&
+            Object.keys(filters).length === 0
+          ) {
+            const { data: allAssets } = await supabase
+              .from('asset')
+              .select('id');
+            assetIds = allAssets?.map((a) => a.id) || [];
+          } else {
+            assetIds = filteredAssetIds;
+          }
+        }
+
+        // Step 2: Get paginated asset data for the filtered IDs
+        if (assetIds.length === 0) {
+          return { assets: [], count: 0 } as Root;
+        }
+
+        const totalCount = assetIds.length;
+        const paginatedIds = assetIds.slice(
+          page * pageSize,
+          (page + 1) * pageSize
+        );
+
+        if (paginatedIds.length === 0) {
+          return { assets: [], count: totalCount } as Root;
+        }
+
+        let query = supabase
+          .from('asset')
+          .select(
+            `
+            id, 
+            name, 
+            images,
+            translations:translation(id, text, audio, target_language:target_language_id(id, english_name), votes:vote(id, polarity)),
+            content:asset_content_link(id, audio_id, text),
+            tags:asset_tag_link(tag(id, name)),
+            quests:quest_asset_link(quest(id, name, description, 
+              project(id, name, description, source_language:language!source_language_id(id, english_name), target_language:language!target_language_id(id, english_name)),
+              tags:quest_tag_link(tag(id, name))
+            ))
+          `
+          )
+          .in('id', paginatedIds);
+
+        // Apply sorting
+        if (sort.length > 0) {
+          sort.forEach((sortItem) => {
+            const ascending = sortItem.sort === 'asc';
+            switch (sortItem.path) {
+              case 'name':
+                query = query.order('name', { ascending });
+                break;
+              default:
+                query = query.order('name', { ascending });
+                break;
+            }
+          });
+        } else {
+          query = query.order('name');
+        }
+
+        const { data: assets, error } = await query;
+
+        if (error) {
+          console.error('Supabase query error:', error);
+          throw error;
+        }
+
+        console.log(
+          'Filter query successful, returned:',
+          assets?.length,
+          'assets'
+        );
+
+        return {
+          assets:
+            assets?.map((asset) => ({
+              ...asset,
+              images: asset.images
+                ? (JSON.parse(asset.images) as string[])
+                : undefined
+            })) || [],
+          count: totalCount
+        } as unknown as Root;
+      } catch (error) {
+        console.error('Query execution error:', error);
+        throw error;
+      }
     }
   });
 
@@ -390,140 +524,147 @@ export function DataView({
           <div className="flex gap-2 items-center">
             <h1 className="font-semibold">Assets</h1>
             <div className="flex flex-1 justify-end gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      Object.keys(filters).length > 0 &&
-                        'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                    )}
-                  >
-                    <FilterIcon className="size-4" />
-                    <span className="hidden sm:block">
-                      {Object.keys(filters).length > 0
-                        ? t('filteredBy', {
-                            count: Object.keys(filters).length
-                          })
-                        : t('filter')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-80 max-h-96 overflow-y-auto"
-                >
-                  <div className="space-y-4">
-                    {showProjectFilter && (
-                      <div>
-                        <h4 className="font-medium mb-2">Projects</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {filterOptions?.projects
-                            .filter((project) => project && project.name)
-                            .map((project) => (
-                              <Button
-                                key={project.id}
-                                variant={
-                                  filters.projects?.includes(project.id)
-                                    ? 'default'
-                                    : 'outline'
-                                }
-                                size="sm"
-                                onClick={() => {
-                                  if (filters.projects?.includes(project.id)) {
-                                    removeFilter('projects', project.id);
-                                  } else {
-                                    addFilter('projects', project.id);
+              {/* Hide filters when viewing a specific quest - context is already filtered enough */}
+              {!questId && (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          Object.keys(filters).length > 0 &&
+                            'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                        )}
+                      >
+                        <FilterIcon className="size-4" />
+                        <span className="hidden sm:block">
+                          {Object.keys(filters).length > 0
+                            ? t('filteredBy', {
+                                count: Object.keys(filters).length
+                              })
+                            : t('filter')}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      className="w-80 max-h-96 overflow-y-auto"
+                    >
+                      <div className="space-y-4">
+                        {showProjectFilter && (
+                          <div>
+                            <h4 className="font-medium mb-2">Projects</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {filterOptions?.projects
+                                .filter((project) => project && project.name)
+                                .map((project) => (
+                                  <Button
+                                    key={project.id}
+                                    variant={
+                                      filters.projects?.includes(project.id)
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() => {
+                                      if (
+                                        filters.projects?.includes(project.id)
+                                      ) {
+                                        removeFilter('projects', project.id);
+                                      } else {
+                                        addFilter('projects', project.id);
+                                      }
+                                    }}
+                                  >
+                                    {project.name}
+                                  </Button>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <h4 className="font-medium mb-2">Tags</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {filterOptions?.tags
+                              .filter((tag) => tag && tag.name)
+                              .slice(0, 10)
+                              .map((tag) => (
+                                <Button
+                                  key={tag.id}
+                                  variant={
+                                    filters.tags?.includes(tag.name)
+                                      ? 'default'
+                                      : 'outline'
                                   }
-                                }}
-                              >
-                                {project.name}
-                              </Button>
-                            ))}
+                                  size="sm"
+                                  onClick={() => {
+                                    if (filters.tags?.includes(tag.name)) {
+                                      removeFilter('tags', tag.name);
+                                    } else {
+                                      addFilter('tags', tag.name);
+                                    }
+                                  }}
+                                >
+                                  {tag.name}
+                                </Button>
+                              ))}
+                          </div>
                         </div>
                       </div>
-                    )}
+                    </PopoverContent>
+                  </Popover>
 
-                    <div>
-                      <h4 className="font-medium mb-2">Tags</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {filterOptions?.tags
-                          .filter((tag) => tag && tag.name)
-                          .slice(0, 10)
-                          .map((tag) => (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          sort?.length > 0 &&
+                            'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
+                        )}
+                      >
+                        <ListIcon className="size-4" />
+                        <span className="hidden sm:block">
+                          {sort.length > 0
+                            ? t('sortedBy', { count: sort.length })
+                            : t('sort')}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72">
+                      <div className="space-y-2">
+                        {['name', 'projects', 'quests'].map((key) => (
+                          <div key={key} className="flex gap-2">
                             <Button
-                              key={tag.id}
-                              variant={
-                                filters.tags?.includes(tag.name)
-                                  ? 'default'
-                                  : 'outline'
-                              }
+                              variant="outline"
                               size="sm"
-                              onClick={() => {
-                                if (filters.tags?.includes(tag.name)) {
-                                  removeFilter('tags', tag.name);
-                                } else {
-                                  addFilter('tags', tag.name);
-                                }
-                              }}
+                              onClick={() => addSort(key, 'asc')}
                             >
-                              {tag.name}
+                              {camelToProperCase(key)} ↑
                             </Button>
-                          ))}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSort(key, 'desc')}
+                            >
+                              {camelToProperCase(key)} ↓
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      sort?.length > 0 &&
-                        'dark:text-green-400 text-green-700 hover:text-green-700 hover:bg-green-500/20 transition-[background-color] duration-100'
-                    )}
-                  >
-                    <ListIcon className="size-4" />
-                    <span className="hidden sm:block">
-                      {sort.length > 0
-                        ? t('sortedBy', { count: sort.length })
-                        : t('sort')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-72">
-                  <div className="space-y-2">
-                    {['name', 'projects', 'quests'].map((key) => (
-                      <div key={key} className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addSort(key, 'asc')}
-                        >
-                          {camelToProperCase(key)} ↑
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addSort(key, 'desc')}
-                        >
-                          {camelToProperCase(key)} ↓
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                    </PopoverContent>
+                  </Popover>
+                </>
+              )}
             </div>
           </div>
 
           {/* Active Filters Display */}
           <div className="flex flex-col gap-2">
-            {Object.keys(filters).length > 0 && (
+            {!questId && Object.keys(filters).length > 0 && (
               <div className="flex gap-4 flex-1 items-center">
                 <FilterIcon className="size-4 text-muted-foreground flex-shrink-0" />
                 <div className="overflow-x-auto flex gap-2 scrollbar-none">
