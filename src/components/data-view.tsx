@@ -42,6 +42,8 @@ import {
   SelectValue
 } from './ui/select';
 import { useAuth } from '@/components/auth-provider';
+import { getSupabaseCredentials } from '@/lib/supabase';
+import { env } from '@/lib/env';
 
 export interface Root {
   assets: {
@@ -187,6 +189,7 @@ export function DataView({
   >('sort', parseAsSorting.withDefault([]));
 
   const { environment } = useAuth();
+  const credentials = getSupabaseCredentials(environment);
 
   const { data, isLoading, error } = useQuery<Root>({
     queryKey: [
@@ -887,7 +890,7 @@ export function DataView({
                               <p>{content.text}</p>
                               {content.audio_id && (
                                 <AudioButton
-                                  src={content.audio_id}
+                                  src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio_id}`}
                                   className="h-8 w-8"
                                 />
                               )}
