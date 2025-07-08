@@ -28,7 +28,7 @@ import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
-import { X, CheckIcon } from 'lucide-react';
+import { X, CheckIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { checkProjectOwnership } from '@/lib/project-permissions';
 import { OwnershipAlert } from '@/components/ownership-alert';
@@ -62,6 +62,8 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
+  const [isTagsExpanded, setIsTagsExpanded] = useState(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState('');
   const { user, environment } = useAuth();
 
   // Fetch projects for the dropdown - only projects where user is owner
@@ -122,6 +124,14 @@ export function QuestForm({
       tags: []
     }
   });
+
+  // Filter tags based on search query
+  const filteredTags = tags.filter((tag) =>
+    tag.name.toLowerCase().includes(tagSearchQuery.toLowerCase())
+  );
+
+  // Determine which tags to show (filtered and then sliced if not expanded)
+  const tagsToShow = isTagsExpanded ? filteredTags : filteredTags.slice(0, 3);
 
   async function onSubmit(values: QuestFormValues) {
     if (!user) {
@@ -319,13 +329,35 @@ export function QuestForm({
         />
 
         <div className="space-y-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Tags
             </label>
+            {filteredTags.length > 3 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsTagsExpanded(!isTagsExpanded)}
+                className="h-auto p-1"
+              >
+                {isTagsExpanded ? (
+                  <>
+                    Show Less <ChevronUp className="ml-1 h-3 w-3" />
+                  </>
+                ) : (
+                  <>
+                    Show All ({filteredTags.length}){' '}
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
+
           <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[60px]">
+            {/* Selected tags display */}
+            <div className="flex flex-wrap gap-1 p-3 border rounded-md min-h-[60px] bg-muted/20">
               {selectedTags.length > 0 ? (
                 selectedTags.map((tagId) => {
                   const tag = tags.find((t) => t.id === tagId);
@@ -333,15 +365,15 @@ export function QuestForm({
                     <Badge key={tagId} variant="secondary" className="m-1">
                       {tag?.name}
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-auto p-0 ml-2"
+                        className="h-auto p-0 ml-2 hover:bg-destructive/20"
                         onClick={() => {
                           const newSelectedTags = selectedTags.filter(
                             (id) => id !== tagId
                           );
                           setSelectedTags(newSelectedTags);
-                          // Update form value
                           form.setValue('tags', newSelectedTags);
                         }}
                       >
@@ -357,19 +389,33 @@ export function QuestForm({
               )}
             </div>
 
-            {/* Only render the Popover when tags are available or loading is complete */}
+            {/* Available tags */}
             {!tagsLoading ? (
               <div className="border rounded-md p-4">
-                <div className="mb-4">
+                <div className="mb-3">
                   <label className="text-sm font-medium mb-2 block">
                     Available Tags
                   </label>
-                  <div className="text-sm text-muted-foreground mb-2">
+                  <div className="text-sm text-muted-foreground mb-3">
                     Click on tags to select/deselect them
                   </div>
-                  {tags.length > 0 ? (
+
+                  {/* Search input */}
+                  {tags.length > 5 && (
+                    <div className="mb-3">
+                      <Input
+                        type="text"
+                        placeholder="Search tags..."
+                        value={tagSearchQuery}
+                        onChange={(e) => setTagSearchQuery(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {tagsToShow.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {tags.map((tag) => (
+                      {tagsToShow.map((tag) => (
                         <Badge
                           key={tag.id}
                           variant={
@@ -377,7 +423,7 @@ export function QuestForm({
                               ? 'default'
                               : 'outline'
                           }
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:scale-105 transition-transform"
                           onClick={() => {
                             let newSelectedTags;
                             if (!selectedTags.includes(tag.id)) {
@@ -388,7 +434,6 @@ export function QuestForm({
                               );
                             }
                             setSelectedTags(newSelectedTags);
-                            // Update form value
                             form.setValue('tags', newSelectedTags);
                           }}
                         >
@@ -398,6 +443,21 @@ export function QuestForm({
                           )}
                         </Badge>
                       ))}
+                      {!isTagsExpanded && filteredTags.length > 3 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsTagsExpanded(true)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          +{filteredTags.length - 3} more
+                        </Button>
+                      )}
+                    </div>
+                  ) : tagSearchQuery ? (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No tags found matching &quot;{tagSearchQuery}&quot;
                     </div>
                   ) : (
                     <div className="text-center py-4 text-sm text-muted-foreground">

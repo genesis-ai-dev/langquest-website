@@ -1043,6 +1043,7 @@ export function ProjectWizard({
         </Alert>
       )}
 
+      {/* Login warning */}
       {!user && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
@@ -1066,7 +1067,9 @@ export function ProjectWizard({
             {step === 3 && 'Review and confirm your project details'}
           </CardDescription>
         </CardHeader>
-        <CardContent>{renderCurrentStep()}</CardContent>
+        <CardContent className="max-h-[60vh] overflow-y-auto">
+          {renderCurrentStep()}
+        </CardContent>
       </Card>
     </div>
   );

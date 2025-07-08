@@ -869,7 +869,7 @@ function AdminContent() {
             }))
           }
         >
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Quest</DialogTitle>
               <DialogDescription>
@@ -893,7 +893,7 @@ function AdminContent() {
             }))
           }
         >
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Asset</DialogTitle>
               <DialogDescription>
