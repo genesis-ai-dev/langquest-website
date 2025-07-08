@@ -457,7 +457,7 @@ export function QuestForm({
                     </div>
                   ) : tagSearchQuery ? (
                     <div className="text-center py-4 text-sm text-muted-foreground">
-                      No tags found matching "{tagSearchQuery}"
+                      No tags found matching &quot;{tagSearchQuery}&quot;
                     </div>
                   ) : (
                     <div className="text-center py-4 text-sm text-muted-foreground">
