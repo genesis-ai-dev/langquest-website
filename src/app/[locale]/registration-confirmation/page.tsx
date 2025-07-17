@@ -77,7 +77,7 @@ function RegistrationConfirmation() {
       }
 
       // Mobile deep linking
-      const deepLink = `langquest:///#access_token=${access_token}&refresh_token=${refresh_token}}`;
+      const deepLink = `langquest:///#access_token=${access_token}&refresh_token=${refresh_token}`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
