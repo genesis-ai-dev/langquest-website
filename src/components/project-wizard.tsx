@@ -193,6 +193,9 @@ export function ProjectWizard({
 
   // Simplified cloning logic - combine all the related effects
   useEffect(() => {
+    // Only run this effect when we're on step 1 or 2, not after
+    if (step > 2) return;
+
     if (!projectToClone || !existingProjects) return;
 
     const projectData = existingProjects.find((p) => p.id === projectToClone);
@@ -257,46 +260,42 @@ export function ProjectWizard({
     const subscription = step2Form.watch((value) => {
       if (step === 2 && Object.keys(value).length > 0) {
         // Only update if we have actual values and we're on step 2
-        // 'value' is the current state of the form from the watch callback
-        if (value.name) {
-          // Only update if name exists (to avoid empty updates)
-          setWizardData((prev) => {
-            const prevStep2 = prev.step2 || {
-              name: '',
-              description: undefined, // explicit undefined for clarity if not present
-              source_language_id: 'eng',
-              target_language_id: 'eng'
-            };
+        setWizardData((prev) => {
+          const prevStep2 = prev.step2 || {
+            name: '',
+            description: undefined,
+            source_language_id: 'eng',
+            target_language_id: 'eng'
+          };
 
-            // Construct the potential new step2 data from current form values
-            // Ensure it strictly matches the type z.infer<typeof projectDetailsSchema>
-            const newStep2Data: z.infer<typeof projectDetailsSchema> = {
-              name: value.name!, // Assert non-null as it's checked by the if (value.name) guard
-              description: value.description, // This is string | undefined, matching the schema
-              source_language_id:
-                value.source_language_id || prevStep2.source_language_id,
-              target_language_id:
-                value.target_language_id || prevStep2.target_language_id
-            };
+          // Construct the potential new step2 data from current form values
+          const newStep2Data: z.infer<typeof projectDetailsSchema> = {
+            name: value.name || prevStep2.name,
+            description: value.description,
+            source_language_id:
+              value.source_language_id || prevStep2.source_language_id,
+            target_language_id:
+              value.target_language_id !== undefined
+                ? value.target_language_id
+                : prevStep2.target_language_id
+          };
 
-            // Compare new data with previous step2 data
-            if (
-              prevStep2.name === newStep2Data.name &&
-              prevStep2.description === newStep2Data.description &&
-              prevStep2.source_language_id ===
-                newStep2Data.source_language_id &&
-              prevStep2.target_language_id === newStep2Data.target_language_id
-            ) {
-              return prev; // No actual change in values, return the existing state object to prevent loop
-            }
+          // Compare new data with previous step2 data
+          if (
+            prevStep2.name === newStep2Data.name &&
+            prevStep2.description === newStep2Data.description &&
+            prevStep2.source_language_id === newStep2Data.source_language_id &&
+            prevStep2.target_language_id === newStep2Data.target_language_id
+          ) {
+            return prev; // No actual change in values, return the existing state object to prevent loop
+          }
 
-            // If there are changes, update wizardData.step2
-            return {
-              ...prev,
-              step2: newStep2Data
-            };
-          });
-        }
+          // If there are changes, update wizardData.step2
+          return {
+            ...prev,
+            step2: newStep2Data
+          };
+        });
       }
     });
 
