@@ -12,7 +12,10 @@
     "lint:fix": "next lint --fix",
     "format": "prettier --check . --cache",
     "format:fix": "prettier --write . --cache",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "functions:serve": "npx supabase functions serve",
+    "functions:deploy": "npx supabase functions deploy --project-ref $SUPABASE_PROJECT_REF",
+    "functions:deploy-clone": "npx supabase functions deploy deep-clone-project --project-ref $SUPABASE_PROJECT_REF"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.3",

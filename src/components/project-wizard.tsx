@@ -56,6 +56,41 @@ import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { createProjectOwnership } from '@/lib/project-permissions';
+import { getSupabaseCredentials } from '@/lib/supabase';
+
+// Helper function to call deep clone edge function
+const callDeepCloneFunction = async (
+  environment: any,
+  sourceProjectId: string,
+  newProjectData: any,
+  userId: string
+) => {
+  const credentials = getSupabaseCredentials(environment);
+  const edgeFunctionUrl = `${credentials.url}/functions/v1/deep-clone-project`;
+  
+  console.log('Calling deep clone edge function:', edgeFunctionUrl);
+  
+  const response = await fetch(edgeFunctionUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${credentials.key}`
+    },
+    body: JSON.stringify({
+      sourceProjectId,
+      newProjectData,
+      userId
+    })
+  });
+  
+  const result = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(result.error || 'Deep clone failed');
+  }
+  
+  return result;
+};
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -367,6 +402,30 @@ export function ProjectWizard({
         target_language_id: wizardData.step2?.target_language_id || ''
       };
 
+      // Check if this is a clone operation
+      if (
+        wizardData.step1?.method === 'clone' &&
+        wizardData.step1?.template_id
+      ) {
+        console.log('Using deep clone edge function for project cloning');
+        
+        // Use the deep clone edge function
+        const result = await callDeepCloneFunction(
+          environment,
+          wizardData.step1.template_id,
+          projectData,
+          user.id
+        );
+        
+        console.log('Deep clone completed:', result);
+        toast.success('Project cloned successfully with deep duplication');
+        
+        // Use the returned project ID from the edge function
+        if (onSuccess) onSuccess({ id: result.projectId });
+        return;
+      }
+
+      // For non-clone operations, use the original logic
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .insert(projectData)
@@ -384,67 +443,17 @@ export function ProjectWizard({
         return;
       }
 
-      // Clone quests and assets if this is a clone operation
-      if (
-        wizardData.step1?.method === 'clone' &&
-        wizardData.step1?.template_id
-      ) {
-        const { data: templateQuests, error: questsError } =
-          await createBrowserClient(environment)
-            .from('quest')
-            .select('*')
-            .eq('project_id', wizardData.step1.template_id);
-
-        if (questsError) throw questsError;
-
-        for (const quest of templateQuests || []) {
-          const newQuest = {
-            name: quest.name,
-            description: quest.description,
-            project_id: data.id,
-            active: quest.active
-          };
-
-          const { data: newQuestData, error: newQuestError } =
-            await createBrowserClient(environment)
-              .from('quest')
-              .insert(newQuest)
-              .select('id')
-              .single();
-
-          if (newQuestError) throw newQuestError;
-
-          // Clone asset links
-          const { data: assetLinks, error: assetLinksError } =
-            await createBrowserClient(environment)
-              .from('quest_asset_link')
-              .select('asset_id')
-              .eq('quest_id', quest.id);
-
-          if (assetLinksError) throw assetLinksError;
-
-          if (assetLinks && assetLinks.length > 0) {
-            const newLinks = assetLinks.map((link) => ({
-              quest_id: newQuestData.id,
-              asset_id: link.asset_id,
-              active: true
-            }));
-
-            const { error: insertError } = await createBrowserClient(
-              environment
-            )
-              .from('quest_asset_link')
-              .insert(newLinks);
-
-            if (insertError) throw insertError;
-          }
-        }
-      }
-
       toast.success('Project created successfully');
       if (onSuccess) onSuccess(data);
-    } catch {
-      toast.error('Failed to create project');
+    } catch (error) {
+      console.error('Project creation/cloning error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (wizardData.step1?.method === 'clone') {
+        toast.error(`Failed to clone project: ${errorMessage}`);
+      } else {
+        toast.error(`Failed to create project: ${errorMessage}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -899,7 +908,7 @@ export function ProjectWizard({
             <div className="rounded-md border p-4 space-y-3">
               <div>
                 <span className="font-medium">Creation Method:</span>{' '}
-                {isCloning ? 'Cloning from project' : 'New project'}
+                {isCloning ? 'Deep cloning from project (assets will be duplicated)' : 'New project'}
               </div>
 
               {isCloning && sourceProject && (
