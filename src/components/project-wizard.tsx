@@ -58,7 +58,7 @@ import { AlertCircle } from 'lucide-react';
 import { createProjectOwnership } from '@/lib/project-permissions';
 import { getSupabaseCredentials } from '@/lib/supabase';
 
-// Helper function to call deep clone edge function
+// Helper function to call atomic deep clone edge function (v2)
 const callDeepCloneFunction = async (
   environment: any,
   sourceProjectId: string,
@@ -66,15 +66,15 @@ const callDeepCloneFunction = async (
   userId: string
 ) => {
   const credentials = getSupabaseCredentials(environment);
-  const edgeFunctionUrl = `${credentials.url}/functions/v1/deep-clone-project`;
-  
-  console.log('Calling deep clone edge function:', edgeFunctionUrl);
-  
+  const edgeFunctionUrl = `${credentials.url}/functions/v1/deep-clone-project-v2`;
+
+  console.log('Calling optimized deep clone edge function:', edgeFunctionUrl);
+
   const response = await fetch(edgeFunctionUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${credentials.key}`
+      Authorization: `Bearer ${credentials.key}`
     },
     body: JSON.stringify({
       sourceProjectId,
@@ -82,13 +82,34 @@ const callDeepCloneFunction = async (
       userId
     })
   });
-  
-  const result = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(result.error || 'Deep clone failed');
+
+  // Handle async job response (202 Accepted)
+  if (response.status === 202) {
+    const { jobLocation } = await response.json();
+    console.log('Clone job started. Polling:', jobLocation);
+
+    const poll = async (): Promise<any> => {
+      const jobResp = await fetch(jobLocation!, {
+        headers: { Authorization: `Bearer ${credentials.key}` }
+      });
+      if (jobResp.status === 202) {
+        await new Promise((res) => setTimeout(res, 4000)); // wait 4s
+        return poll();
+      }
+      const data = await jobResp.json();
+      if (!jobResp.ok) {
+        throw new Error(data.error || 'Clone job failed');
+      }
+      return data;
+    };
+
+    return await poll();
   }
-  
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || 'Clone failed');
+  }
   return result;
 };
 
@@ -407,19 +428,30 @@ export function ProjectWizard({
         wizardData.step1?.method === 'clone' &&
         wizardData.step1?.template_id
       ) {
-        console.log('Using deep clone edge function for project cloning');
-        
-        // Use the deep clone edge function
+        console.log(
+          'Using optimized batch deep clone function for project cloning'
+        );
+
+        toast.info(
+          'Cloning project... This may take a few minutes for large projects',
+          {
+            duration: 10000
+          }
+        );
+
+        // Use the optimized deep clone edge function (calls database function)
         const result = await callDeepCloneFunction(
           environment,
           wizardData.step1.template_id,
           projectData,
           user.id
         );
-        
-        console.log('Deep clone completed:', result);
-        toast.success('Project cloned successfully with deep duplication');
-        
+
+        console.log('Optimized batch deep clone completed:', result);
+        toast.success(
+          'Project cloned successfully! All quests and assets have been duplicated.'
+        );
+
         // Use the returned project ID from the edge function
         if (onSuccess) onSuccess({ id: result.projectId });
         return;
@@ -447,8 +479,9 @@ export function ProjectWizard({
       if (onSuccess) onSuccess(data);
     } catch (error) {
       console.error('Project creation/cloning error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       if (wizardData.step1?.method === 'clone') {
         toast.error(`Failed to clone project: ${errorMessage}`);
       } else {
@@ -908,7 +941,9 @@ export function ProjectWizard({
             <div className="rounded-md border p-4 space-y-3">
               <div>
                 <span className="font-medium">Creation Method:</span>{' '}
-                {isCloning ? 'Deep cloning from project (assets will be duplicated)' : 'New project'}
+                {isCloning
+                  ? 'Atomic deep cloning (assets duplicated in single transaction)'
+                  : 'New project'}
               </div>
 
               {isCloning && sourceProject && (
