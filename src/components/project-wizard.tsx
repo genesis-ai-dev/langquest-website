@@ -83,29 +83,6 @@ const callDeepCloneFunction = async (
     })
   });
 
-  // Handle async job response (202 Accepted)
-  if (response.status === 202) {
-    const { jobLocation } = await response.json();
-    console.log('Clone job started. Polling:', jobLocation);
-
-    const poll = async (): Promise<any> => {
-      const jobResp = await fetch(jobLocation!, {
-        headers: { Authorization: `Bearer ${credentials.key}` }
-      });
-      if (jobResp.status === 202) {
-        await new Promise((res) => setTimeout(res, 4000)); // wait 4s
-        return poll();
-      }
-      const data = await jobResp.json();
-      if (!jobResp.ok) {
-        throw new Error(data.error || 'Clone job failed');
-      }
-      return data;
-    };
-
-    return await poll();
-  }
-
   const result = await response.json();
   if (!response.ok) {
     throw new Error(result.error || 'Clone failed');
