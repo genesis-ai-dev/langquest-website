@@ -119,6 +119,47 @@ interface FilterState {
   targetLanguage?: string;
 }
 
+function parseImages(value: unknown): string[] | undefined {
+  if (value == null) return undefined;
+  if (Array.isArray(value)) {
+    const arr = (value as unknown[]).map((v) => String(v)).filter(Boolean);
+    return arr.length ? arr : undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    // Try JSON array first
+    if (trimmed.startsWith('[')) {
+      try {
+        const arr = JSON.parse(trimmed);
+        return Array.isArray(arr) ? arr.map((v) => String(v)) : undefined;
+      } catch {
+        // fall through
+      }
+    }
+    // Try Postgres array format: {a,b,c}
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      const inner = trimmed.slice(1, -1);
+      if (!inner) return undefined;
+      const parts = inner
+        .split(',')
+        .map((p) => p.trim().replace(/^"|"$/g, ''))
+        .filter(Boolean);
+      return parts.length ? parts : undefined;
+    }
+    // Try comma-separated list or single string path
+    if (trimmed.includes(',')) {
+      const parts = trimmed
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean);
+      return parts.length ? parts : undefined;
+    }
+    return trimmed ? [trimmed] : undefined;
+  }
+  // Unknown format
+  return undefined;
+}
+
 const parseAsFilters = createParser({
   parse(queryValue) {
     if (!queryValue) return {};
@@ -416,9 +457,7 @@ export function DataView({
           assets:
             assets?.map((asset) => ({
               ...asset,
-              images: asset.images
-                ? (JSON.parse(asset.images) as string[])
-                : undefined
+              images: parseImages(asset.images)
             })) || [],
           count: totalCount
         } as unknown as Root;

@@ -114,6 +114,12 @@ export function ProjectWizard({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user, environment } = useAuth();
+  const [cloneJob, setCloneJob] = useState<{
+    id?: string;
+    status?: string;
+    stage?: string;
+    dstProjectId?: string;
+  } | null>(null);
   const [wizardData, setWizardData] = useState<Partial<ProjectWizardValues>>({
     step1: {
       method: projectToClone ? 'clone' : 'new',
@@ -202,7 +208,7 @@ export function ProjectWizard({
     if (!projectData) return;
 
     const cloneData = {
-      name: `Clone of ${projectData.name}`,
+      name: '',
       description: projectData.description,
       source_language_id: projectData.source_language_id,
       target_language_id: ''
@@ -360,6 +366,92 @@ export function ProjectWizard({
     setIsSubmitting(true);
 
     try {
+      const isCloning =
+        wizardData.step1?.method === 'clone' && wizardData.step1?.template_id;
+
+      if (isCloning) {
+        // Validate required fields for clone path
+        const rootProjectId = wizardData.step1?.template_id as string;
+        const newName = (projectName || wizardData.step2?.name || '').trim();
+        const targetLang = (wizardData.step2?.target_language_id || '').trim();
+
+        if (!newName) {
+          toast.error('Please enter a name for the cloned project');
+          return;
+        }
+        if (!targetLang) {
+          toast.error('Please select a target language');
+          return;
+        }
+
+        const supabase = createBrowserClient(environment);
+
+        // Start clone job via RPC
+        const { data: jobIdData, error: startErr } = await supabase.rpc(
+          'start_clone',
+          {
+            p_root_project_id: rootProjectId,
+            p_new_project_name: newName,
+            p_target_language_id: targetLang,
+            p_creator_id: user.id,
+            p_batch_size: 25
+          }
+        );
+        if (startErr) throw startErr;
+        const jobId = jobIdData as string;
+
+        toast.success('Clone started');
+        setCloneJob({ id: jobId, status: 'queued', stage: 'seed_project' });
+
+        // No dashboard persistence; keep progress local to the dialog
+
+        // Poll job status
+        let attempts = 0;
+        let dstProjectId: string | undefined;
+        while (attempts < 120) {
+          const { data: statusData, error: statusErr } = await supabase.rpc(
+            'get_clone_status',
+            { p_job_id: jobId }
+          );
+          if (statusErr) throw statusErr;
+
+          const status = statusData?.status as string | undefined;
+          const progress = statusData?.progress as any;
+          if (progress && typeof progress === 'object') {
+            dstProjectId = progress.dst_project_id || dstProjectId;
+          }
+
+          setCloneJob({
+            id: jobId,
+            status,
+            stage: progress?.stage,
+            dstProjectId
+          });
+
+          // No dashboard persistence; keep progress local to the dialog
+
+          if (status === 'done') {
+            toast.success('Project cloned successfully');
+            if (onSuccess) onSuccess({ id: dstProjectId || '' });
+            return;
+          }
+          if (status === 'failed') {
+            toast.error('Project clone failed');
+            return;
+          }
+
+          // wait 2s between polls
+          await new Promise((r) => setTimeout(r, 2000));
+          attempts += 1;
+        }
+
+        toast.error(
+          'Clone timed out. It may still complete in the background.'
+        );
+        return;
+      }
+
+      // Non-clone path: create a fresh project directly
       const projectData = {
         name: projectName || wizardData.step2?.name || '',
         description: wizardData.step2?.description || '',
@@ -375,70 +467,12 @@ export function ProjectWizard({
 
       if (error) throw error;
 
-      // Create ownership relationship
       try {
         await createProjectOwnership(data.id, user.id, environment);
       } catch (ownershipError) {
         console.error('Error creating project ownership:', ownershipError);
         toast.error('Project created but ownership setup failed');
         return;
-      }
-
-      // Clone quests and assets if this is a clone operation
-      if (
-        wizardData.step1?.method === 'clone' &&
-        wizardData.step1?.template_id
-      ) {
-        const { data: templateQuests, error: questsError } =
-          await createBrowserClient(environment)
-            .from('quest')
-            .select('*')
-            .eq('project_id', wizardData.step1.template_id);
-
-        if (questsError) throw questsError;
-
-        for (const quest of templateQuests || []) {
-          const newQuest = {
-            name: quest.name,
-            description: quest.description,
-            project_id: data.id,
-            active: quest.active
-          };
-
-          const { data: newQuestData, error: newQuestError } =
-            await createBrowserClient(environment)
-              .from('quest')
-              .insert(newQuest)
-              .select('id')
-              .single();
-
-          if (newQuestError) throw newQuestError;
-
-          // Clone asset links
-          const { data: assetLinks, error: assetLinksError } =
-            await createBrowserClient(environment)
-              .from('quest_asset_link')
-              .select('asset_id')
-              .eq('quest_id', quest.id);
-
-          if (assetLinksError) throw assetLinksError;
-
-          if (assetLinks && assetLinks.length > 0) {
-            const newLinks = assetLinks.map((link) => ({
-              quest_id: newQuestData.id,
-              asset_id: link.asset_id,
-              active: true
-            }));
-
-            const { error: insertError } = await createBrowserClient(
-              environment
-            )
-              .from('quest_asset_link')
-              .insert(newLinks);
-
-            if (insertError) throw insertError;
-          }
-        }
       }
 
       toast.success('Project created successfully');
@@ -702,30 +736,19 @@ export function ProjectWizard({
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    {(function () {
-                      console.log(
-                        '[ProjectWizard - renderStep2] Source LanguageCombobox value:',
-                        field.value
-                      );
-                      console.log(
-                        '[ProjectWizard - renderStep2] Source LanguageCombobox wizardData.step2.source_language_id:',
-                        wizardData.step2?.source_language_id
-                      );
-                      return (
-                        <LanguageCombobox
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Select source language"
-                          languages={(languages as Language[]) || []}
-                          isLoading={languagesLoading}
-                          onCreateSuccess={handleLanguageCreated}
-                        />
-                      );
-                    })()}
+                    <LanguageCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select source language"
+                      languages={(languages as Language[]) || []}
+                      isLoading={languagesLoading}
+                      onCreateSuccess={handleLanguageCreated}
+                      disabled={wizardData.step1?.method === 'clone'}
+                    />
                   </FormControl>
                   <FormDescription>
                     {wizardData.step1?.method === 'clone'
-                      ? 'Defaults to the cloned project&apos;s source language, but can be changed.'
+                      ? "Locked to the source project's source language."
                       : 'The original language of the content.'}
                   </FormDescription>
                   <FormMessage />
@@ -1068,6 +1091,25 @@ export function ProjectWizard({
         </CardHeader>
         <CardContent className="max-h-[60vh] overflow-y-auto">
           {renderCurrentStep()}
+          {step === 3 && cloneJob && (
+            <div className="mt-4 rounded-md border p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">Clone status</div>
+                  <div className="text-muted-foreground">
+                    {cloneJob.status || 'queued'}
+                    {cloneJob.stage ? ` • ${cloneJob.stage}` : ''}
+                  </div>
+                </div>
+                {cloneJob.dstProjectId && (
+                  <div className="text-muted-foreground">
+                    New project id:{' '}
+                    <span className="font-mono">{cloneJob.dstProjectId}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
