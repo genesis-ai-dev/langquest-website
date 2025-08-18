@@ -248,6 +248,8 @@ function AdminContent() {
     enabled: !!user?.id
   });
 
+  // (Removed) clone job tracking from localStorage
+
   // Fetch quests for the selected project
   const {
     data: quests = [],
