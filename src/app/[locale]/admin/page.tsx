@@ -72,6 +72,30 @@ function AdminContent() {
   const envParam = searchParams.get('env') as SupabaseEnvironment;
   const environment: SupabaseEnvironment = envParam || 'production';
   const { user, isLoading } = useAuth();
+  const [cloningByProjectId, setCloningByProjectId] = useState<
+    Record<string, { status?: string; stage?: string; percent: number }>
+  >({});
+
+  const getStagePercent = (stage?: string) => {
+    switch (stage) {
+      case 'seed_project':
+        return 5;
+      case 'clone_quests':
+        return 20;
+      case 'clone_assets':
+        return 65;
+      case 'clone_acl':
+        return 85;
+      case 'recreate_links':
+        return 95;
+      case 'recompute_closures':
+        return 98;
+      case 'done':
+        return 100;
+      default:
+        return 0;
+    }
+  };
 
   // Get initial state from URL
   const getInitialViewState = (): 'projects' | 'quests' | 'assets' => {
@@ -104,6 +128,41 @@ function AdminContent() {
     showQuestUpload: false,
     projectToClone: null as string | null
   });
+
+  // Poll in-progress clone jobs and map to destination project ids
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createBrowserClient(environment);
+    let isCancelled = false;
+    const tick = async () => {
+      const { data } = await supabase
+        .from('clone_job')
+        .select('status, progress')
+        .in('status', ['queued', 'running']);
+      if (isCancelled) return;
+      const map: Record<
+        string,
+        { status?: string; stage?: string; percent: number }
+      > = {};
+      (data || []).forEach((row: any) => {
+        const dstId = row?.progress?.dst_project_id as string | undefined;
+        const stage = row?.progress?.stage as string | undefined;
+        if (dstId)
+          map[dstId] = {
+            status: row.status,
+            stage,
+            percent: getStagePercent(stage)
+          };
+      });
+      setCloningByProjectId(map);
+    };
+    tick();
+    const id = setInterval(tick, 4000);
+    return () => {
+      isCancelled = true;
+      clearInterval(id);
+    };
+  }, [environment, user]);
 
   // Function to update URL with current state
   const updateURL = useCallback(
@@ -579,14 +638,24 @@ function AdminContent() {
               ) : projects.length > 0 ? (
                 <ul className="space-y-4">
                   {projects.map((project) => {
+                    const cloning = cloningByProjectId[project.id];
                     return (
                       <li
                         key={project.id}
                         className={cn(
-                          'p-4 border rounded-lg hover:border-primary/50 transition-colors cursor-pointer',
-                          !project.isOwner && 'opacity-75 bg-muted/30'
+                          'p-4 border rounded-lg transition-colors',
+                          cloning
+                            ? 'opacity-60 bg-muted/30 pointer-events-none'
+                            : 'hover:border-primary/50 cursor-pointer',
+                          !project.isOwner &&
+                            !cloning &&
+                            'opacity-75 bg-muted/30'
                         )}
-                        onClick={() => handleSelectProject(project)}
+                        onClick={
+                          cloning
+                            ? undefined
+                            : () => handleSelectProject(project)
+                        }
                       >
                         <div className="flex justify-between items-center">
                           <div>
@@ -594,7 +663,12 @@ function AdminContent() {
                               <h3 className="text-lg font-semibold">
                                 {project.name}
                               </h3>
-                              {project.isOwner ? (
+                              {cloning ? (
+                                <Badge variant="outline" className="text-xs">
+                                  Cloning • {cloning.stage || 'running'} (
+                                  {cloning.percent}%)
+                                </Badge>
+                              ) : project.isOwner ? (
                                 <Badge
                                   variant="default"
                                   className="text-xs flex items-center gap-1"
@@ -621,19 +695,23 @@ function AdminContent() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary">
-                              {project.quests?.length || 0} Quest(s)
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCloneProject(project.id);
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
+                            {!cloning && (
+                              <>
+                                <Badge variant="secondary">
+                                  {project.quests?.length || 0} Quest(s)
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCloneProject(project.id);
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </li>
