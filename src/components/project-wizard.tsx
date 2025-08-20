@@ -357,6 +357,17 @@ export function ProjectWizard({
   const onStep3Submit = async (
     values: z.infer<typeof projectConfirmSchema>
   ) => {
+    // Prevent re-entrancy / double submits
+    if (isSubmitting) return;
+    if (
+      wizardData.step1?.method === 'clone' &&
+      cloneJob?.id &&
+      cloneJob.status !== 'failed' &&
+      cloneJob.status !== 'done'
+    ) {
+      // A clone is already in progress for this dialog
+      return;
+    }
     if (!user) {
       toast.error('You must be logged in to create projects');
       return;
@@ -386,6 +397,34 @@ export function ProjectWizard({
 
         const supabase = createBrowserClient(environment);
 
+        // Resolve profile.id for creator_id (not auth uid)
+        let profileId: string | undefined;
+        try {
+          const { data: profByAuth } = await supabase
+            .from('profile')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .single();
+          if (profByAuth?.id) {
+            profileId = profByAuth.id;
+          } else {
+            // Fallback if schema uses id = auth uid
+            const { data: profById } = await supabase
+              .from('profile')
+              .select('id')
+              .eq('id', user.id)
+              .single();
+            profileId = profById?.id;
+          }
+        } catch {
+          profileId = undefined;
+        }
+
+        if (!profileId) {
+          toast.error('Could not resolve your profile');
+          return;
+        }
+
         // Start clone job via RPC
         const { data: jobIdData, error: startErr } = await supabase.rpc(
           'start_clone',
@@ -393,7 +432,7 @@ export function ProjectWizard({
             p_root_project_id: rootProjectId,
             p_new_project_name: newName,
             p_target_language_id: targetLang,
-            p_creator_id: user.id,
+            p_creator_id: profileId,
             p_batch_size: 25
           }
         );
@@ -403,20 +442,30 @@ export function ProjectWizard({
         toast.success('Clone started');
         setCloneJob({ id: jobId, status: 'queued', stage: 'seed_project' });
 
-        // No dashboard persistence; keep progress local to the dialog
+        // Persist minimal job tracking so dashboard can gray out destination once visible
+        try {
+          const storageKey = `cloneJobs:${environment}:${user.id}`;
+          const existingRaw = localStorage.getItem(storageKey);
+          const existing: any[] = existingRaw ? JSON.parse(existingRaw) : [];
+          const entry = { jobId, name: newName };
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify([entry, ...existing])
+          );
+        } catch {}
 
         // Poll job status
         let attempts = 0;
         let dstProjectId: string | undefined;
         while (attempts < 120) {
-          const { data: statusData, error: statusErr } = await supabase.rpc(
-            'get_clone_status',
-            { p_job_id: jobId }
-          );
-          if (statusErr) throw statusErr;
+          const { data, error } = await supabase.rpc('get_clone_status', {
+            p_job_id: jobId
+          });
+          if (error) throw error;
 
-          const status = statusData?.status as string | undefined;
-          const progress = statusData?.progress as any;
+          const row = Array.isArray(data) ? (data as any[])[0] : (data as any);
+          const status = row?.status as string | undefined;
+          const progress = row?.progress as any;
           if (progress && typeof progress === 'object') {
             dstProjectId = progress.dst_project_id || dstProjectId;
           }
@@ -428,7 +477,7 @@ export function ProjectWizard({
             dstProjectId
           });
 
-          // No dashboard persistence; keep progress local to the dialog
+          // Keep local to dialog; dashboard effect will poll get_clone_status by jobId
 
           if (status === 'done') {
             toast.success('Project cloned successfully');
