@@ -400,7 +400,7 @@ export function ProjectWizard({
         // Resolve profile.id for creator_id (not auth uid)
         let profileId: string | undefined;
         try {
-          const { data: profByAuth, error: profAuthErr } = await supabase
+          const { data: profByAuth } = await supabase
             .from('profile')
             .select('id')
             .eq('auth_user_id', user.id)
