@@ -1,0 +1,183 @@
+{
+  "reset_password": {
+    "title": "Atur Ulang Kata Sandi Anda",
+    "password_input": "Masukkan kata sandi Anda",
+    "confirm_password_input": "Konfirmasi kata sandi Anda",
+    "submit_button": "Atur Ulang Kata Sandi",
+    "success_message": "Kata sandi berhasil diperbarui! Anda sekarang dapat menutup jendela ini dan masuk ke aplikasi.",
+    "validation": {
+      "required": "Harus berisi setidaknya 1 karakter",
+      "passwords_match": "Kata sandi tidak cocok."
+    },
+    "error_message": {
+      "same_password": "Kata sandi baru harus berbeda dari kata sandi lama.",
+      "otp_expired": "Tautan email tidak valid atau telah kedaluwarsa.",
+      "default": "{message}"
+    },
+    "redirecting": "Mengalihkan ke aplikasi LangQuest..."
+  },
+  "registration_confirmation": {
+    "title": "Pendaftaran LangQuest",
+    "processing": "Memproses pendaftaran Anda...",
+    "success_message": "Pendaftaran Anda telah dikonfirmasi! Anda sekarang dapat masuk ke aplikasi LangQuest.",
+    "missing_params": "Parameter yang diperlukan tidak ada.",
+    "download_section": {
+      "message": "Unduh aplikasi LangQuest untuk memulai perjalanan bahasa Anda:",
+      "button": "Unduh dari Google Play"
+    }
+  },
+  "header": {
+    "title": "LangQuest",
+    "sourceCode": "Kode Sumber",
+    "allData": "Semua Data",
+    "userFriendlyData": "Data Ramah Pengguna"
+  },
+  "footer": {
+    "mitLicense": "Lisensi MIT",
+    "terms": "Ketentuan",
+    "privacy": "Privasi",
+    "frontierRND": "Frontier R&D"
+  },
+  "subscribe_form": {
+    "emailPlaceholder": "Masukkan email Anda",
+    "getNotified": "Dapatkan Notifikasi",
+    "subscribing": "Sedang berlangganan...",
+    "success": "Anda berhasil berlangganan!",
+    "errors": {
+      "failed": "Gagal berlangganan",
+      "tryAgain": "Gagal berlangganan. Silakan coba lagi."
+    }
+  },
+  "homepage": {
+    "title": "LangQuest",
+    "about": "Tentang",
+    "comingSoon": "Segera Hadir",
+    "hero": {
+      "title": "Terjemahkan, Lestarikan, dan Terhubung",
+      "subtitle": "Terjemahkan dan lestarikan bahasa yang terancam punah di mana saja, bahkan tanpa internet."
+    },
+    "allData": "Semua Data",
+    "userFriendlyData": "Data Ramah Pengguna",
+    "features": {
+      "title": "Dirancang untuk Penerjemahan di Daerah Terpencil",
+      "subtitle": "LangQuest memungkinkan penerjemahan bahkan dalam lingkungan yang paling menantang.",
+      "offline": {
+        "title": "Tahan Luring",
+        "description": "Bekerja tanpa internet untuk jangka waktu lama. Data Anda disimpan aman secara lokal hingga Anda dapat sinkron."
+      },
+      "ai": {
+        "title": "Penerjemahan Dibantu AI",
+        "description": "Gunakan AI untuk menghasilkan terjemahan awal, yang dapat ditinjau dan diberi suara oleh pengguna, sehingga mempercepat proses."
+      },
+      "gamification": {
+        "title": "Gamifikasi",
+        "description": "Fitur seperti papan peringkat dan hadiah membuat penerjemahan menyenangkan dan mendorong partisipasi."
+      },
+      "openData": {
+        "title": "Data Terbuka",
+        "description": "Semua terjemahan tervalidasi menjadi bagian dari basis data berlisensi terbuka, membantu melatih model AI di masa depan."
+      }
+    },
+    "howItWorks": {
+      "title": "Cara Kerja LangQuest",
+      "subtitle": "Kelola terjemahan dalam proyek, misi, dan aset untuk manajemen yang efisien.",
+      "projects": {
+        "title": "Buat Proyek",
+        "description": "Organisasikan pekerjaan terjemahan Anda ke dalam proyek, seperti menerjemahkan Alkitab atau teks budaya penting."
+      },
+      "collaborate": {
+        "title": "Berkolaborasi",
+        "description": "Undang anggota komunitas untuk berkontribusi terjemahan dan memberikan suara atas karya satu sama lain."
+      },
+      "validate": {
+        "title": "Validasi & Bagikan",
+        "description": "Validasi terjemahan melalui pemungutan suara komunitas dan bagikan dengan dunia."
+      }
+    },
+    "useCases": {
+      "title": "Sangat Cocok Untuk",
+      "subtitle": "LangQuest dirancang untuk berbagai kebutuhan penerjemahan."
+    },
+    "future": {
+      "badge": "Segera Hadir",
+      "title": "Masa Depan: Konektivitas Peer-to-Peer",
+      "subtitle": "Kami sedang meneliti solusi untuk memungkinkan berbagi data terjemahan langsung antar perangkat tanpa internet.",
+      "features": {
+        "share": "Bagikan pembaruan antar perangkat saat anggota tim bertemu",
+        "sync": "Sinkronkan progres di banyak perangkat tanpa internet",
+        "collaborate": "Memungkinkan kolaborasi nyata di lokasi paling terpencil"
+      }
+    },
+    "cta": {
+      "title": "Bergabung dengan Komunitas LangQuest",
+      "subtitle": "Jadilah yang pertama menggunakan LangQuest dan bantu melestarikan bahasa berdaya dukung rendah.",
+      "notification": "Kami akan memberi tahu Anda ketika LangQuest siap untuk pengujian beta."
+    }
+  },
+  "data_view": {
+    "errorLoading": "Kesalahan memuat aset: {error}",
+    "noAssets": "Tidak ada aset yang ditemukan",
+    "filter": "Filter",
+    "filteredBy": "{count, plural, one {Difilter oleh # bidang} other {Difilter oleh # bidang}}",
+    "sort": "Urutkan",
+    "sortedBy": "{count, plural, one {Diurutkan oleh # bidang} other {Diurutkan oleh # bidang}}",
+    "ascending": "Naik",
+    "descending": "Turun",
+    "images": "{count, plural, one {# Gambar} other {# Gambar}}",
+    "quests": "{count, plural, one {# Misi} other {# Misi}}",
+    "description": "Deskripsi",
+    "tags": "{count, plural, one {# Tag} other {# Tag}}",
+    "project": "Proyek",
+    "sourceContent": "{count, plural, one {# Konten Sumber} other {# Konten Sumber}}",
+    "translations": "{count, plural, one {# Terjemahan} other {# Terjemahan}}",
+    "noText": "Tidak ada teks",
+    "rowsDisplay": "{count} baris"
+  },
+  "database_viewer": {
+    "oneRecord": "1 catatan",
+    "manyRecords": "{count} catatan",
+    "relatedRecordsFrom": "Catatan terkait dari",
+    "referencingRecordsFrom": "Catatan mereferensi dari",
+    "referencingRecordFrom": "Catatan mereferensi dari",
+    "openTable": "Buka tabel",
+    "noMatchingRecords": "Tidak ada catatan yang cocok.",
+    "noRelatedRecords": "Tidak ada catatan terkait.",
+    "unableToDisplayRecords": "Tidak dapat menampilkan catatan terkait.",
+    "moreRecords": "{count} catatan lagi...",
+    "errorOccurred": "Terjadi kesalahan",
+    "tables": "Tabel",
+    "export": "Ekspor",
+    "currentTable": "Tabel Saat Ini",
+    "allTables": "Semua Tabel",
+    "downloadAttachments": "Unduh lampiran",
+    "exporting": "Mengekspor {table}...",
+    "sort": "Urutkan",
+    "sortedBy": "{count, plural, one {Diurutkan oleh # aturan} other {Diurutkan oleh # aturan}}",
+    "noSortsApplied": "Tidak ada pengurutan diterapkan pada tampilan ini",
+    "sortBy": "urutkan berdasarkan",
+    "thenBy": "kemudian",
+    "ascending": "naik",
+    "pickColumnToSortBy": "Pilih kolom untuk diurutkan",
+    "allColumnsAdded": "Semua kolom telah ditambahkan",
+    "applySorting": "Terapkan pengurutan",
+    "filter": "Filter",
+    "filteredBy": "{count, plural, one {Difilter oleh # aturan} other {Difilter oleh # aturan}}",
+    "noFiltersApplied": "Tidak ada filter diterapkan pada tampilan ini",
+    "pickDate": "Pilih tanggal",
+    "enterValue": "Masukkan nilai",
+    "addFilter": "Tambahkan filter",
+    "applyFilter": "Terapkan filter",
+    "columns": "Kolom",
+    "noResults": "Tidak ada hasil.",
+    "page": "Halaman",
+    "of": "dari",
+    "rows": "baris",
+    "rowsSelected": "baris dipilih",
+    "showLinkTables": "Tampilkan tabel tautan"
+  },
+  "ui": {
+    "close": "Tutup",
+    "previousSlide": "Slide sebelumnya",
+    "nextSlide": "Slide berikutnya"
+  }
+}
