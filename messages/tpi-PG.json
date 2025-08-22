@@ -1,0 +1,183 @@
+{
+  "reset_password": {
+    "title": "Senisim Paswod Bilong Yu",
+    "password_input": "Raitim paswod bilong yu",
+    "confirm_password_input": "Raitim gen paswod bilong yu",
+    "submit_button": "Senisim Paswod",
+    "success_message": "Yu senisim paswod gut! Yu inap klosim dispela windo na login long app nau.",
+    "validation": {
+      "required": "Mas gat wanpela leta o namba",
+      "passwords_match": "Tupela paswod i no wankain."
+    },
+    "error_message": {
+      "same_password": "Nupela paswod i no ken wankain olsem olpela paswod.",
+      "otp_expired": "Email link i no stret o em i pinis taim.",
+      "default": "{message}"
+    },
+    "redirecting": "Wok long go long LangQuest app..."
+  },
+  "registration_confirmation": {
+    "title": "Raistrais Bilong LangQuest",
+    "processing": "Wok long stretim raistrais bilong yu...",
+    "success_message": "Mipela i kamapim klia raistrais bilong yu! Yu inap login long LangQuest app nau.",
+    "missing_params": "Sampela samting i lus.",
+    "download_section": {
+      "message": "Daunlodim LangQuest app na statim wok long tokples bilong yu:",
+      "button": "Daunlod long Google Play"
+    }
+  },
+  "header": {
+    "title": "LangQuest",
+    "sourceCode": "Sos Kod",
+    "allData": "Olgeta Data",
+    "userFriendlyData": "Isi-Long-Yusa Data"
+  },
+  "footer": {
+    "mitLicense": "MIT Laisens",
+    "terms": "Lo Bilong Yusim",
+    "privacy": "Praivasi",
+    "frontierRND": "Frontier R&D"
+  },
+  "subscribe_form": {
+    "emailPlaceholder": "Raitim email bilong yu",
+    "getNotified": "Larim Mi Save",
+    "subscribing": "Wok long makim nem...",
+    "success": "Yu bin makim nem gut pinis!",
+    "errors": {
+      "failed": "Makim nem i pundaun",
+      "tryAgain": "Makim nem i pundaun. Traim gen plis."
+    }
+  },
+  "homepage": {
+    "title": "LangQuest",
+    "about": "Long Wanem",
+    "comingSoon": "Bai i Kam Hariap",
+    "hero": {
+      "title": "Trenslet, Lukautim, na Konektim",
+      "subtitle": "Trenslet na lukautim tokples bilong dai nating long olgeta hap, maski nogat intanet."
+    },
+    "allData": "Olgeta Data",
+    "userFriendlyData": "Isi-Long-Yusa Data",
+    "features": {
+      "title": "Mekim Gut Long Wok Trenslet Long Ples We i Tambu",
+      "subtitle": "LangQuest i helpim wok trenslet long ol hevi ples tu.",
+      "offline": {
+        "title": "Wok Maski Nogat Intanet",
+        "description": "Yu inap wok longtaim maski intanet i no stap. Data bilong yu i stap seif long insait long devaes inap yu inap long sinkim."
+      },
+      "ai": {
+        "title": "AI i Helpim Trenslet",
+        "description": "Yusim AI long kamapim nambawan tok, na ol yusa i ken lukim na vot long en, na wok i go hariap."
+      },
+      "gamification": {
+        "title": "Ple-Stail (Gamification)",
+        "description": "Ol samting olsem lis bilong ol i go antap na ol prais i mekim wok i amamas na i kirapim ol manmeri long join."
+      },
+      "openData": {
+        "title": "Opendata",
+        "description": "Ol trenslet we ol man i bin makim klia bai i go insait long wanpela opelaisens databes na bai i helpim trenim ol AI model bihain."
+      }
+    },
+    "howItWorks": {
+      "title": "Ol Rot Bilong Wok Bilong LangQuest",
+      "subtitle": "Ranim ol trenslet long ol projek, kwes, na aset bilong ranim isi.",
+      "projects": {
+        "title": "Wokim Ol Projek",
+        "description": "Ranim wok trenslet bilong yu insait long ol projek, olsem trensletim Baibel o ol bikpela skripsa bilong kastom."
+      },
+      "collaborate": {
+        "title": "Wok Wantaim",
+        "description": "Singautim ol memba bilong komyuniti long givim ol trenslet na vot long wok bilong narapela."
+      },
+      "validate": {
+        "title": "Makim Klia & Salim",
+        "description": "Makim klia ol trenslet long rot bilong vot na salim i go long olgeta manmeri."
+      }
+    },
+    "useCases": {
+      "title": "Gutpela Long",
+      "subtitle": "LangQuest i stret long kain kain nid bilong trenslet."
+    },
+    "future": {
+      "badge": "Bai i Kam Hariap",
+      "title": "Bihain: Koneksen Namel Long Ol Devaes",
+      "subtitle": "Mipela i wok long painim rot bilong mekim ol devaes i ken serim data stret wantaim nating intanet.",
+      "features": {
+        "share": "Serim ol nius namel long ol devaes taim ol memba i bung",
+        "sync": "Sinkronaisim wok namel long planti devaes nating intanet",
+        "collaborate": "Mekim tru tru wok wantaim long ples i stap longwe"
+      }
+    },
+    "cta": {
+      "title": "Joinim Kmuniti Bilong LangQuest",
+      "subtitle": "Yu ken kam pastaim na helpim lukautim ol tokples we i sot long sapot.",
+      "notification": "Mipela bai tokim yu taim LangQuest i redi long beta test."
+    }
+  },
+  "data_view": {
+    "errorLoading": "Problem long loadim ol aset: {error}",
+    "noAssets": "Nogat aset i stap",
+    "filter": "Fila",
+    "filteredBy": "{count, plural, one {Fila long # fild} other {Fila long # fild}}",
+    "sort": "Sotim",
+    "sortedBy": "{count, plural, one {Sotim long # fild} other {Sotim long # fild}}",
+    "ascending": "Go Antap",
+    "descending": "Go Daun",
+    "images": "{count, plural, one {# Piksa} other {# Piksa}}",
+    "quests": "{count, plural, one {# Kwes} other {# Kwes}}",
+    "description": "Tok Klia",
+    "tags": "{count, plural, one {# Tag} other {# Tag}}",
+    "project": "Projek",
+    "sourceContent": "{count, plural, one {# Tok Bilong Sores} other {# Tok Bilong Sores}}",
+    "translations": "{count, plural, one {# Trenslet} other {# Trenslet}}",
+    "noText": "Nogat tok i stap",
+    "rowsDisplay": "{count} ro"
+  },
+  "database_viewer": {
+    "oneRecord": "1 rekod",
+    "manyRecords": "{count} rekod",
+    "relatedRecordsFrom": "Ol rekod i gat lain long",
+    "referencingRecordsFrom": "Ol rekod i makim long",
+    "referencingRecordFrom": "Rekod i makim long",
+    "openTable": "Opim tebol",
+    "noMatchingRecords": "Nogat rekod i wankain.",
+    "noRelatedRecords": "Nogat rekod i gat lain.",
+    "unableToDisplayRecords": "Nogat rot long soim ol rekod i gat lain.",
+    "moreRecords": "{count} moa rekod...",
+    "errorOccurred": "I gat rong i kamap",
+    "tables": "Ol Tebols",
+    "export": "Ekspot",
+    "currentTable": "Tebol Nau",
+    "allTables": "Olgeta Tebols",
+    "downloadAttachments": "Daunlodim ol atasmen",
+    "exporting": "Wok long ekspotim {table}...",
+    "sort": "Sotim",
+    "sortedBy": "{count, plural, one {Sotim long # rul} other {Sotim long # rul}}",
+    "noSortsApplied": "Nogat sot i wok long dispela luksave",
+    "sortBy": "sot long",
+    "thenBy": "na bihain",
+    "ascending": "go antap",
+    "pickColumnToSortBy": "Makim kolom bilong sot",
+    "allColumnsAdded": "Olgeta kolom i go insait pinis",
+    "applySorting": "Yusim sot",
+    "filter": "Fila",
+    "filteredBy": "{count, plural, one {Fila long # rul} other {Fila long # rul}}",
+    "noFiltersApplied": "Nogat fila i wok long dispela luksave",
+    "pickDate": "Makim deit",
+    "enterValue": "Raitim wanpela valiu",
+    "addFilter": "Putim fila",
+    "applyFilter": "Yusim fila",
+    "columns": "Ol Kolom",
+    "noResults": "Nogat samting.",
+    "page": "Pej",
+    "of": "bilong",
+    "rows": "ro",
+    "rowsSelected": "ro i makim",
+    "showLinkTables": "Soim ol link tebol"
+  },
+  "ui": {
+    "close": "Klos",
+    "previousSlide": "Slait Bipo",
+    "nextSlide": "Neks Slait"
+  }
+}
