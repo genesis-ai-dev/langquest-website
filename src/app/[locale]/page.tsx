@@ -27,6 +27,7 @@ import {
   WifiOff
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 export default function LandingPage() {
   const t = useTranslations('homepage');
@@ -60,36 +61,28 @@ export default function LandingPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50">
               <div className="space-y-2">
-                <Badge className="inline-flex mb-2" variant="outline">
-                  {t('comingSoon')}
-                </Badge>
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   {t('hero.title')}
                 </h1>
                 <p className="max-w-[600px] md:text-xl">{t('hero.subtitle')}</p>
               </div>
-              <div className="flex flex-col gap-4">
-                <SubscribeForm />
-                <div className="flex gap-2">
-                  <Link href="/database">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className=" hover:bg-white/20 hover:text-white"
-                    >
-                      {t('allData')}
-                    </Button>
-                  </Link>
-                  <Link href="/data-view">
-                    <Button
-                      size="lg"
-                      variant="secondary"
-                      className=" hover:bg-white/20 hover:text-white"
-                    >
-                      {t('userFriendlyData')}
-                    </Button>
-                  </Link>
-                </div>
+              <div className="flex justify-center">
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.etengenesis.langquest&hl=en_CA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Get LangQuest on Google Play"
+                  className="inline-flex items-center rounded-lg bg-black p-2 shadow-sm border overflow-hidden"
+                >
+                  <Image
+                    src="/get-it-on-google-play-logo-png-transparent.jpg"
+                    alt="Get it on Google Play"
+                    width={300}
+                    height={90}
+                    priority
+                    className="h-16 md:h-20 w-auto rounded-md"
+                  />
+                </a>
               </div>
             </div>
           </div>
@@ -451,9 +444,6 @@ export default function LandingPage() {
               </div>
               <div className="w-full max-w-sm space-y-2">
                 <SubscribeForm />
-                <p className="text-xs text-muted-foreground">
-                  {t('cta.notification')}
-                </p>
               </div>
             </div>
           </div>
