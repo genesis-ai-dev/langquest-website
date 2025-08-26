@@ -147,7 +147,8 @@ function AdminContent() {
       (data || []).forEach((row: any) => {
         const dstId = row?.progress?.dst_project_id as string | undefined;
         const stage = row?.progress?.stage as string | undefined;
-        if (dstId)
+        // Skip projects where the stage is 'done' - they should be available
+        if (dstId && stage !== 'done')
           map[dstId] = {
             status: row.status,
             stage,
