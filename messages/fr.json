@@ -173,7 +173,7 @@
     "of": "sur",
     "rows": "lignes",
     "rowsSelected": "ligne(s) sélectionnée(s)",
-    "showLinkTables": "Afficher les tables de liens"
+    "showHiddenTables": "Afficher les tables cachées"
   },
   "ui": {
     "close": "Fermer",

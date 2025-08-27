@@ -173,7 +173,7 @@
     "of": "of",
     "rows": "rows",
     "rowsSelected": "row(s) selected",
-    "showLinkTables": "Show link tables"
+    "showHiddenTables": "Show hidden tables"
   },
   "ui": {
     "close": "Close",
