@@ -173,7 +173,7 @@
     "of": "共",
     "rows": "行",
     "rowsSelected": "已选择 {count} 行",
-    "showLinkTables": "显示链接表格"
+    "showHiddenTables": "显示隐藏表格"
   },
   "ui": {
     "close": "关闭",

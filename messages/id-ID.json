@@ -173,7 +173,7 @@
     "of": "dari",
     "rows": "baris",
     "rowsSelected": "baris dipilih",
-    "showLinkTables": "Tampilkan tabel tautan"
+    "showHiddenTables": "Tampilkan tabel tersembunyi"
   },
   "ui": {
     "close": "Tutup",

@@ -173,7 +173,7 @@
     "of": "bilong",
     "rows": "ro",
     "rowsSelected": "ro i makim",
-    "showLinkTables": "Soim ol link tebol"
+    "showHiddenTables": "Soim ol hait tebol"
   },
   "ui": {
     "close": "Klos",

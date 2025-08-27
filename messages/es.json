@@ -173,7 +173,7 @@
     "of": "de",
     "rows": "filas",
     "rowsSelected": "fila(s) seleccionada(s)",
-    "showLinkTables": "Mostrar tablas de enlaces"
+    "showHiddenTables": "Mostrar tablas ocultas"
   },
   "ui": {
     "close": "Cerrar",

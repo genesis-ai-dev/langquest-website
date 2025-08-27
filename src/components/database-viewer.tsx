@@ -92,7 +92,26 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/auth-provider';
 import { SupabaseEnvironment } from '@/lib/supabase';
 
-// Custom hook to get environment-aware Supabase client
+// Tables to exclude from the database viewer
+const EXCLUDED_TABLES = [
+  'invite',
+  'request',
+  'subscription',
+  'notification',
+  'flag',
+  'reports',
+  'profile',
+  'blocked_users',
+  'blocked_content',
+  'project_closure',
+  'quest_closure',
+  'asset_tag_categories',
+  'quest_tag_categories'
+];
+
+// Columns to exclude from all database tables
+const EXCLUDED_COLUMNS = ['download_profiles', 'ingest_batch_id'];
+
 function useSupabaseClient() {
   const { environment } = useAuth();
   return createBrowserClient(environment);
@@ -100,7 +119,13 @@ function useSupabaseClient() {
 
 // Define base types
 
-type ColumnType = 'string' | 'number' | 'boolean' | 'timestamp' | 'uuid';
+type ColumnType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'timestamp'
+  | 'timestamptz'
+  | 'uuid';
 
 const visibilityStateSchema = z.record(z.boolean());
 
@@ -166,7 +191,7 @@ const convertJsonSchemaToTableSchema = (
         key,
         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
         type,
-        required: schema.required.includes(key),
+        required: schema.required?.includes(key) ?? false,
         foreignKey
       };
     }
@@ -543,48 +568,239 @@ function useTransformedColumns({
               enableColumnFilter: false
             }
           ]),
-      ...schema.columns.map((col) => ({
-        accessorKey: col.key,
-        header:
-          col.isVirtual &&
-          col.reverseRelationship?.isLinkTable &&
-          col.reverseRelationship?.throughTargetColumn &&
-          tableSchemas
-            ? (() => {
-                // Get the actual target table name from the foreign key
-                const throughTable = col.reverseRelationship.throughTable!;
-                const throughTargetColumn =
-                  col.reverseRelationship.throughTargetColumn!;
-                const foreignKeyInfo = tableSchemas[throughTable]?.columns.find(
-                  (c) => c.key === throughTargetColumn
-                )?.foreignKey;
+      ...schema.columns
+        .filter((col) => !EXCLUDED_COLUMNS.includes(col.key))
+        .map((col) => ({
+          accessorKey: col.key,
+          header:
+            col.isVirtual &&
+            col.reverseRelationship?.isLinkTable &&
+            col.reverseRelationship?.throughTargetColumn &&
+            tableSchemas
+              ? (() => {
+                  // Get the actual target table name from the foreign key
+                  const throughTable = col.reverseRelationship.throughTable!;
+                  const throughTargetColumn =
+                    col.reverseRelationship.throughTargetColumn!;
+                  const foreignKeyInfo = tableSchemas[
+                    throughTable
+                  ]?.columns.find(
+                    (c) => c.key === throughTargetColumn
+                  )?.foreignKey;
 
-                if (foreignKeyInfo) {
-                  return foreignKeyInfo.table;
+                  if (foreignKeyInfo) {
+                    return foreignKeyInfo.table;
+                  }
+
+                  return col.key;
+                })()
+              : col.key,
+          cell: ({ row }: { row: any }) => {
+            // For virtual reverse relationship columns
+            if (col.isVirtual && col.reverseRelationship) {
+              const recordId = row.getValue('id');
+              if (!recordId) return 'N/A';
+
+              return (
+                <div className="flex items-center gap-2">
+                  <RelatedRecordsCount
+                    tableName={col.reverseRelationship.sourceTable}
+                    columnName={col.reverseRelationship.sourceColumn}
+                    recordId={String(recordId)}
+                    isLinkTable={col.reverseRelationship.isLinkTable}
+                  />
+
+                  {!isPreview && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="size-6">
+                          <ChevronRight className="size-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-100 p-0 flex flex-col"
+                        align="end"
+                      >
+                        <div className="p-2 border-b border-border text-sm">
+                          <span className="text-muted-foreground">
+                            {col.reverseRelationship.isLinkTable
+                              ? t('relatedRecordsFrom')
+                              : t('referencingRecordsFrom')}
+                          </span>{' '}
+                          {(() => {
+                            if (
+                              col.reverseRelationship.isLinkTable &&
+                              col.reverseRelationship.throughTable &&
+                              col.reverseRelationship.throughTargetColumn &&
+                              tableSchemas
+                            ) {
+                              // Get the actual target table name from the foreign key
+                              const throughTable =
+                                col.reverseRelationship.throughTable;
+                              const throughTargetColumn =
+                                col.reverseRelationship.throughTargetColumn;
+                              const foreignKeyInfo = tableSchemas[
+                                throughTable
+                              ]?.columns.find(
+                                (c) => c.key === throughTargetColumn
+                              )?.foreignKey;
+
+                              if (foreignKeyInfo) {
+                                return foreignKeyInfo.table;
+                              }
+                            }
+
+                            // Fallback to the source table name
+                            return col.reverseRelationship.sourceTable;
+                          })()}
+                          :
+                        </div>
+                        <ReverseRelationshipPreview
+                          tableName={col.reverseRelationship.sourceTable}
+                          columnName={col.reverseRelationship.sourceColumn}
+                          recordId={String(recordId)}
+                          isLinkTable={col.reverseRelationship.isLinkTable}
+                          throughTable={col.reverseRelationship.throughTable}
+                          throughSourceColumn={
+                            col.reverseRelationship.throughSourceColumn
+                          }
+                          throughTargetColumn={
+                            col.reverseRelationship.throughTargetColumn
+                          }
+                        />
+
+                        <div className="flex justify-end p-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-sm"
+                            onClick={() => {
+                              // For link tables, we want to navigate to the target table, not the link table
+                              if (
+                                col.reverseRelationship!.isLinkTable &&
+                                col.reverseRelationship!.throughTable &&
+                                col.reverseRelationship!.throughTargetColumn &&
+                                tableSchemas
+                              ) {
+                                // Find the foreign key that this column points to
+                                const throughTable =
+                                  col.reverseRelationship!.throughTable;
+                                const throughTargetColumn =
+                                  col.reverseRelationship!.throughTargetColumn;
+                                const foreignKeyInfo = tableSchemas[
+                                  throughTable
+                                ]?.columns.find(
+                                  (c) => c.key === throughTargetColumn
+                                )?.foreignKey;
+
+                                if (foreignKeyInfo) {
+                                  // Navigate to the target table
+                                  onForeignKeySelect?.({
+                                    table: foreignKeyInfo.table,
+                                    column: foreignKeyInfo.column,
+                                    value: '' // We don't have a specific value to filter by
+                                  });
+                                  return;
+                                }
+                              }
+
+                              // Default behavior for non-link tables
+                              onForeignKeySelect?.({
+                                table: col.reverseRelationship!.sourceTable,
+                                column: col.reverseRelationship!.sourceColumn,
+                                value: String(recordId)
+                              });
+                            }}
+                          >
+                            {t('openTable')}
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+              );
+            }
+
+            const value = row.getValue(col.key);
+            if (value === null || value === undefined) return 'NULL';
+            if (col.type === 'timestamp') {
+              return new Date(value as string).toLocaleString();
+            }
+            if (col.type === 'boolean')
+              return <Checkbox checked={value} disabled />;
+            if (col.key.includes('image')) {
+              let imageSources: string[] = [];
+              try {
+                const json = JSON.parse(value as string);
+                if (Array.isArray(json)) {
+                  imageSources = json;
                 }
+              } catch {
+                if (!value.includes('[')) imageSources = [value as string];
+              }
 
-                return col.key;
-              })()
-            : col.key,
-        cell: ({ row }: { row: any }) => {
-          // For virtual reverse relationship columns
-          if (col.isVirtual && col.reverseRelationship) {
-            const recordId = row.getValue('id');
-            if (!recordId) return 'N/A';
+              return (
+                <div className="flex w-30 justify-center">
+                  {imageSources.map((item, index) => {
+                    const source = createBrowserClient(environment)
+                      .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                      .getPublicUrl(item).data.publicUrl;
 
-            return (
-              <div className="flex items-center gap-2">
-                <RelatedRecordsCount
-                  tableName={col.reverseRelationship.sourceTable}
-                  columnName={col.reverseRelationship.sourceColumn}
-                  recordId={String(recordId)}
-                  isLinkTable={col.reverseRelationship.isLinkTable}
-                />
-
-                {!isPreview && (
+                    return (
+                      <a
+                        key={index}
+                        href={source}
+                        target="_blank"
+                        className="size-8 block not-last:-mr-4 hover:mr-0 hover:z-10 transition-[margin]"
+                      >
+                        <img
+                          className="size-full rounded-md"
+                          src={source}
+                          alt={col.key}
+                        />
+                      </a>
+                    );
+                  })}
+                </div>
+              );
+            }
+            if (col.key.includes('audio')) {
+              let audioSources: string[] = [];
+              try {
+                const json = JSON.parse(value as string);
+                if (Array.isArray(json)) {
+                  audioSources = json;
+                }
+              } catch {
+                if (!value.includes('[')) audioSources = [value as string];
+              }
+              return (
+                <div className="flex gap-2">
+                  {audioSources.map((item) => (
+                    <AudioButton
+                      key={item}
+                      src={
+                        createBrowserClient(environment)
+                          .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
+                          .getPublicUrl(item).data.publicUrl
+                      }
+                    />
+                  ))}
+                </div>
+              );
+            }
+            if (col.foreignKey && !isPreview) {
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{String(value)}</span>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="size-6">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="size-6 ml-auto"
+                      >
                         <ChevronRight className="size-4" />
                       </Button>
                     </PopoverTrigger>
@@ -594,50 +810,14 @@ function useTransformedColumns({
                     >
                       <div className="p-2 border-b border-border text-sm">
                         <span className="text-muted-foreground">
-                          {col.reverseRelationship.isLinkTable
-                            ? t('relatedRecordsFrom')
-                            : t('referencingRecordsFrom')}
+                          {t('referencingRecordFrom')}
                         </span>{' '}
-                        {(() => {
-                          if (
-                            col.reverseRelationship.isLinkTable &&
-                            col.reverseRelationship.throughTable &&
-                            col.reverseRelationship.throughTargetColumn &&
-                            tableSchemas
-                          ) {
-                            // Get the actual target table name from the foreign key
-                            const throughTable =
-                              col.reverseRelationship.throughTable;
-                            const throughTargetColumn =
-                              col.reverseRelationship.throughTargetColumn;
-                            const foreignKeyInfo = tableSchemas[
-                              throughTable
-                            ]?.columns.find(
-                              (c) => c.key === throughTargetColumn
-                            )?.foreignKey;
-
-                            if (foreignKeyInfo) {
-                              return foreignKeyInfo.table;
-                            }
-                          }
-
-                          // Fallback to the source table name
-                          return col.reverseRelationship.sourceTable;
-                        })()}
-                        :
+                        {col.foreignKey.table}:
                       </div>
-                      <ReverseRelationshipPreview
-                        tableName={col.reverseRelationship.sourceTable}
-                        columnName={col.reverseRelationship.sourceColumn}
-                        recordId={String(recordId)}
-                        isLinkTable={col.reverseRelationship.isLinkTable}
-                        throughTable={col.reverseRelationship.throughTable}
-                        throughSourceColumn={
-                          col.reverseRelationship.throughSourceColumn
-                        }
-                        throughTargetColumn={
-                          col.reverseRelationship.throughTargetColumn
-                        }
+                      <PreviewTable
+                        tableName={col.foreignKey.table}
+                        filterColumn={col.foreignKey.column}
+                        filterValue={String(value)}
                       />
 
                       <div className="flex justify-end p-2">
@@ -646,40 +826,13 @@ function useTransformedColumns({
                           size="sm"
                           className="rounded-sm"
                           onClick={() => {
-                            // For link tables, we want to navigate to the target table, not the link table
-                            if (
-                              col.reverseRelationship!.isLinkTable &&
-                              col.reverseRelationship!.throughTable &&
-                              col.reverseRelationship!.throughTargetColumn &&
-                              tableSchemas
-                            ) {
-                              // Find the foreign key that this column points to
-                              const throughTable =
-                                col.reverseRelationship!.throughTable;
-                              const throughTargetColumn =
-                                col.reverseRelationship!.throughTargetColumn;
-                              const foreignKeyInfo = tableSchemas[
-                                throughTable
-                              ]?.columns.find(
-                                (c) => c.key === throughTargetColumn
-                              )?.foreignKey;
-
-                              if (foreignKeyInfo) {
-                                // Navigate to the target table
-                                onForeignKeySelect?.({
-                                  table: foreignKeyInfo.table,
-                                  column: foreignKeyInfo.column,
-                                  value: '' // We don't have a specific value to filter by
-                                });
-                                return;
-                              }
-                            }
-
-                            // Default behavior for non-link tables
                             onForeignKeySelect?.({
-                              table: col.reverseRelationship!.sourceTable,
-                              column: col.reverseRelationship!.sourceColumn,
-                              value: String(recordId)
+                              table: col.foreignKey!.table,
+                              column: col.foreignKey!.column,
+                              value: String(value),
+                              sourceTable: col.foreignKey!.table,
+                              sourceColumn: col.key,
+                              sourceValue: String(value)
                             });
                           }}
                         >
@@ -688,139 +841,15 @@ function useTransformedColumns({
                       </div>
                     </PopoverContent>
                   </Popover>
-                )}
-              </div>
-            );
-          }
-
-          const value = row.getValue(col.key);
-          if (value === null || value === undefined) return 'NULL';
-          if (col.type === 'timestamp') {
-            return new Date(value as string).toLocaleString();
-          }
-          if (col.type === 'boolean')
-            return <Checkbox checked={value} disabled />;
-          if (col.key.includes('image')) {
-            let imageSources: string[] = [];
-            try {
-              const json = JSON.parse(value as string);
-              if (Array.isArray(json)) {
-                imageSources = json;
-              }
-            } catch {
-              if (!value.includes('[')) imageSources = [value as string];
+                </div>
+              );
+            } else if (col.foreignKey && isPreview) {
+              // For foreign keys in preview mode, just show the value without the popover button
+              return <span className="truncate">{String(value)}</span>;
             }
-
-            return (
-              <div className="flex w-30 justify-center">
-                {imageSources.map((item, index) => {
-                  const source = createBrowserClient(environment)
-                    .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-                    .getPublicUrl(item).data.publicUrl;
-
-                  return (
-                    <a
-                      key={index}
-                      href={source}
-                      target="_blank"
-                      className="size-8 block not-last:-mr-4 hover:mr-0 hover:z-10 transition-[margin]"
-                    >
-                      <img
-                        className="size-full rounded-md"
-                        src={source}
-                        alt={col.key}
-                      />
-                    </a>
-                  );
-                })}
-              </div>
-            );
+            return String(value);
           }
-          if (col.key.includes('audio')) {
-            let audioSources: string[] = [];
-            try {
-              const json = JSON.parse(value as string);
-              if (Array.isArray(json)) {
-                audioSources = json;
-              }
-            } catch {
-              if (!value.includes('[')) audioSources = [value as string];
-            }
-            return (
-              <div className="flex gap-2">
-                {audioSources.map((item) => (
-                  <AudioButton
-                    key={item}
-                    src={
-                      createBrowserClient(environment)
-                        .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-                        .getPublicUrl(item).data.publicUrl
-                    }
-                  />
-                ))}
-              </div>
-            );
-          }
-          if (col.foreignKey && !isPreview) {
-            return (
-              <div className="flex items-center gap-2">
-                <span className="truncate">{String(value)}</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="size-6 ml-auto"
-                    >
-                      <ChevronRight className="size-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-100 p-0 flex flex-col"
-                    align="end"
-                  >
-                    <div className="p-2 border-b border-border text-sm">
-                      <span className="text-muted-foreground">
-                        {t('referencingRecordFrom')}
-                      </span>{' '}
-                      {col.foreignKey.table}:
-                    </div>
-                    <PreviewTable
-                      tableName={col.foreignKey.table}
-                      filterColumn={col.foreignKey.column}
-                      filterValue={String(value)}
-                    />
-
-                    <div className="flex justify-end p-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-sm"
-                        onClick={() => {
-                          onForeignKeySelect?.({
-                            table: col.foreignKey!.table,
-                            column: col.foreignKey!.column,
-                            value: String(value),
-                            sourceTable: col.foreignKey!.table,
-                            sourceColumn: col.key,
-                            sourceValue: String(value)
-                          });
-                        }}
-                      >
-                        {t('openTable')}
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            );
-          } else if (col.foreignKey && isPreview) {
-            // For foreign keys in preview mode, just show the value without the popover button
-            return <span className="truncate">{String(value)}</span>;
-          }
-          return String(value);
-        }
-      }))
+        }))
     ];
   }, [schema, onForeignKeySelect, isPreview, tableSchemas, t, environment]);
 }
@@ -1424,12 +1453,16 @@ export function DatabaseViewer() {
   });
 
   const [selectedTable, setSelectedTable] = useQueryState('table', {
-    defaultValue: tableSchemas ? Object.keys(tableSchemas)[0] : ''
+    defaultValue: tableSchemas
+      ? Object.keys(tableSchemas).filter(
+          (table) => !EXCLUDED_TABLES.includes(table)
+        )[0]
+      : ''
   });
 
-  // Add state for showing link tables
-  const [showLinkTables, setShowLinkTables] = useQueryState(
-    'showLinks',
+  // Add state for showing hidden tables (link tables + excluded tables)
+  const [showHiddenTables, setShowHiddenTables] = useQueryState(
+    'showHidden',
     parseAsBoolean.withDefault(false)
   );
 
@@ -1504,27 +1537,59 @@ export function DatabaseViewer() {
 
   const queryClient = useQueryClient();
 
+  // Helper function to get exportable tables based on current visibility settings
+  const getExportableTables = React.useCallback(
+    (tableSchemas: Record<string, TableSchema>) => {
+      const linkTablesSet = new Set<string>();
+      const hiddenTablesSet = new Set<string>();
+
+      Object.entries(tableSchemas).forEach(([tableName, schema]) => {
+        if (schema.name.includes('_link') || schema.name.includes('_download'))
+          linkTablesSet.add(tableName);
+      });
+
+      // Add both link tables and excluded tables to hidden set
+      [...linkTablesSet, ...EXCLUDED_TABLES].forEach((tableName) => {
+        hiddenTablesSet.add(tableName);
+      });
+
+      return Object.keys(tableSchemas).filter(
+        (name) => showHiddenTables || !hiddenTablesSet.has(name)
+      );
+    },
+    [showHiddenTables]
+  );
+
   // Convert table schemas to table info list
   const tables = React.useMemo(() => {
     if (!tableSchemas) return [];
 
-    // Identify link tables
+    // Identify link tables and excluded tables as "hidden" tables
     const linkTablesSet = new Set<string>();
+    const hiddenTablesSet = new Set<string>();
+
     Object.entries(tableSchemas).forEach(([tableName, schema]) => {
       if (schema.name.includes('_link') || schema.name.includes('_download'))
         linkTablesSet.add(tableName);
     });
 
+    // Add both link tables and excluded tables to hidden set
+    [...linkTablesSet, ...EXCLUDED_TABLES].forEach((tableName) => {
+      hiddenTablesSet.add(tableName);
+    });
+
     return Object.keys(tableSchemas)
       .filter(
         (name) =>
-          showLinkTables || !linkTablesSet.has(name) || name === selectedTable
+          showHiddenTables ||
+          !hiddenTablesSet.has(name) ||
+          name === selectedTable
       )
       .map((name) => ({
         name,
-        isLinkTable: linkTablesSet.has(name)
+        isLinkTable: hiddenTablesSet.has(name) // Now represents "hidden" tables
       }));
-  }, [tableSchemas, showLinkTables, selectedTable]);
+  }, [tableSchemas, showHiddenTables, selectedTable]);
 
   // Get the schema for the selected table
   const currentSchema = React.useMemo(
@@ -1715,13 +1780,16 @@ export function DatabaseViewer() {
     return (
       <div className="p-3 border-t border-border">
         <div className="flex items-center justify-between">
-          <Label htmlFor="show-link-tables" className="text-sm cursor-pointer">
-            {t('showLinkTables')}
+          <Label
+            htmlFor="show-hidden-tables"
+            className="text-sm cursor-pointer"
+          >
+            {t('showHiddenTables')}
           </Label>
           <Switch
-            id="show-link-tables"
-            checked={showLinkTables}
-            onCheckedChange={setShowLinkTables}
+            id="show-hidden-tables"
+            checked={showHiddenTables}
+            onCheckedChange={setShowHiddenTables}
           />
         </div>
       </div>
@@ -1837,7 +1905,7 @@ export function DatabaseViewer() {
                               exportAllTables(
                                 'json',
                                 includeAttachments,
-                                Object.keys(tableSchemas),
+                                getExportableTables(tableSchemas),
                                 environment,
                                 setExportProgress
                               ).finally(() => setExportProgress(null));
@@ -1866,7 +1934,7 @@ export function DatabaseViewer() {
                               exportAllTables(
                                 'csv',
                                 includeAttachments,
-                                Object.keys(tableSchemas),
+                                getExportableTables(tableSchemas),
                                 environment,
                                 setExportProgress
                               ).finally(() => setExportProgress(null));
@@ -2118,7 +2186,7 @@ export function DatabaseViewer() {
                                   <Button
                                     variant="outline"
                                     className={cn(
-                                      'w-[240px] justify-start text-left font-normal h-8',
+                                      'w-fit justify-start text-left font-normal h-8',
                                       !filter.value && 'text-muted-foreground'
                                     )}
                                   >
