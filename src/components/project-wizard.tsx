@@ -308,11 +308,9 @@ export function ProjectWizard({
     return () => subscription.unsubscribe();
   }, [step, step2Form]); // Dependencies: step and step2Form (which is stable)
 
-  // Reset form when step changes to 2
+  // Reset form once when entering step 2 (avoid resetting on each wizardData change)
   useEffect(() => {
     if (step === 2 && wizardData.step2) {
-      // Only reset the form with wizardData if it's the first time we're entering step 2
-      // and there's no user input yet
       const currentName = step2Form.getValues('name');
       const isFirstTimeInStep2 = currentName === '';
 
@@ -320,7 +318,7 @@ export function ProjectWizard({
         step2Form.reset(wizardData.step2);
       }
     }
-  }, [step, wizardData.step2, step2Form]);
+  }, [step, step2Form]);
 
   // Step 3 form
   const step3Form = useForm<z.infer<typeof projectConfirmSchema>>({
