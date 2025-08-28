@@ -345,10 +345,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           .from('asset')
           .update({
             name: values.name,
-            images:
-              finalImagePaths.length > 0
-                ? JSON.stringify(finalImagePaths)
-                : null
+            images: finalImagePaths.length > 0 ? finalImagePaths : null
           })
           .eq('id', initialData.id)
           .select('id')
@@ -399,10 +396,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                 .from('asset')
                 .insert({
                   name: values.name,
-                  images:
-                    finalImagePaths.length > 0
-                      ? JSON.stringify(finalImagePaths)
-                      : null,
+                  images: finalImagePaths.length > 0 ? finalImagePaths : null,
                   active: true,
                   source_language_id: sourceLanguageId
                 })
@@ -435,10 +429,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
             .from('asset')
             .insert({
               name: values.name,
-              images:
-                finalImagePaths.length > 0
-                  ? JSON.stringify(finalImagePaths)
-                  : null,
+              images: finalImagePaths.length > 0 ? finalImagePaths : null,
               active: true,
               source_language_id: sourceLanguageId
             })
