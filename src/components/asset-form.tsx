@@ -117,19 +117,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           project:project_id!inner(
             id,
             name,
+            creator_id,
             source_language:source_language_id(id, english_name),
-            target_language:target_language_id(english_name),
-            profile_project_link!inner(
-              membership,
-              active,
-              profile_id
-            )
+            target_language:target_language_id(english_name)
           )
         `
         )
-        .eq('project.profile_project_link.profile_id', user.id)
-        .eq('project.profile_project_link.membership', 'owner')
-        .eq('project.profile_project_link.active', true)
         .order('name');
 
       if (error) {
@@ -137,7 +130,9 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         throw error;
       }
 
-      return (data || []).filter((quest) => quest.project); // Ensure quest has a project
+      return (data || []).filter(
+        (quest) => quest.project && quest.project[0]?.creator_id === user.id
+      );
     },
     enabled: !!user?.id
   });

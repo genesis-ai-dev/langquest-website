@@ -30,7 +30,6 @@ import {
 import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { OwnershipAlert } from '@/components/ownership-alert';
-import { createProjectOwnership } from '@/lib/project-permissions';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, {
@@ -150,14 +149,16 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         source_language_id: values.source_language_id,
         target_language_id: values.target_language_id,
         color: values.color,
-        image: values.image
+        image: values.image,
+        creator_id: user.id // Set creator_id to auth user ID (profile.id = auth.users.id)
       };
 
       if (initialData?.id) {
-        // Update existing project
+        // Update existing project (exclude creator_id from updates)
+        const { creator_id, ...updateData } = projectData;
         const { data, error } = await createBrowserClient(environment)
           .from('project')
-          .update(projectData)
+          .update(updateData)
           .eq('id', initialData.id)
           .select('id')
           .single();
@@ -178,15 +179,6 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           .single();
 
         if (error) throw error;
-
-        // Create ownership relationship
-        try {
-          await createProjectOwnership(data.id, user.id, environment);
-        } catch (ownershipError) {
-          console.error('Error creating project ownership:', ownershipError);
-          toast.error('Project created but ownership setup failed');
-          return;
-        }
 
         toast.success('Project created successfully');
 

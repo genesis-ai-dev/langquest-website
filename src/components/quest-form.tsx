@@ -66,36 +66,29 @@ export function QuestForm({
   const [tagSearchQuery, setTagSearchQuery] = useState('');
   const { user, environment } = useAuth();
 
-  // Fetch projects for the dropdown - only projects where user is owner
+  // Fetch projects for the dropdown - only projects where user is creator/owner
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['owned-projects', user?.id, environment],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Get all projects where user is an owner
+      // Get projects where user is the creator
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
           `
           id, 
           name, 
+          creator_id,
           source_language:source_language_id(english_name), 
-          target_language:target_language_id(english_name),
-          profile_project_link!inner(
-            membership,
-            active,
-            profile_id
-          )
+          target_language:target_language_id(english_name)
         `
         )
-        .eq('profile_project_link.profile_id', user.id)
-        .eq('profile_project_link.membership', 'owner')
-        .eq('profile_project_link.active', true)
         .order('name');
 
       if (error) throw error;
 
-      return data || [];
+      return (data || []).filter((p) => p.creator_id === user.id);
     },
     enabled: !!user?.id
   });

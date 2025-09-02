@@ -270,6 +270,7 @@ function AdminContent() {
           id, 
           name, 
           description,
+          creator_id,
           source_language:source_language_id(english_name), 
           target_language:target_language_id(english_name),
           quests:quest(id),
@@ -291,10 +292,14 @@ function AdminContent() {
             (link: any) => link.profile_id === user.id && link.active
           );
 
+          const isOwner =
+            project.creator_id === user.id ||
+            userMembership?.membership === 'owner';
+
           return {
             ...project,
-            isOwner: userMembership?.membership === 'owner',
-            membership: userMembership?.membership || null
+            isOwner,
+            membership: isOwner ? 'owner' : userMembership?.membership || null
           };
         })
         .sort((a, b) => {
