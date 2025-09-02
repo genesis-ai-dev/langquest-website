@@ -55,6 +55,7 @@ import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { createProjectOwnership } from '@/lib/project-permissions';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -353,7 +354,7 @@ export function ProjectWizard({
         description: step2Values.description || null,
         source_language_id: step2Values.source_language_id || '',
         target_language_id: step2Values.target_language_id || '',
-        creator_id: user.id // Set creator_id to auth user ID (profile.id = auth.users.id)
+        creator_id: user.id // Set creator_id; ACL link will also be added via RPC
       };
 
       const { data, error } = await createBrowserClient(environment)
@@ -365,6 +366,13 @@ export function ProjectWizard({
       if (error) {
         console.error('Project creation error:', error);
         throw error;
+      }
+
+      try {
+        await createProjectOwnership(data.id, user.id, environment);
+      } catch (ownershipError) {
+        console.error('Error creating project ownership:', ownershipError);
+        // Non-fatal: creator_id still grants ownership; continue
       }
 
       toast.success('Project created successfully');

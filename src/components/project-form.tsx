@@ -30,6 +30,7 @@ import {
 import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { OwnershipAlert } from '@/components/ownership-alert';
+import { createProjectOwnership } from '@/lib/project-permissions';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, {
@@ -179,6 +180,13 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           .single();
 
         if (error) throw error;
+
+        try {
+          await createProjectOwnership(data.id, user.id, environment);
+        } catch (ownershipError) {
+          console.error('Error creating project ownership:', ownershipError);
+          // Non-fatal: creator_id still grants ownership
+        }
 
         toast.success('Project created successfully');
 
