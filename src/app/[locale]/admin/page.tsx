@@ -50,6 +50,8 @@ import { cn } from '@/lib/utils';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import { ProjectDownloadButton } from '@/components/project-download-button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProjectMembers } from '@/components/project-members';
 import { BulkUpload } from '@/components/bulk-upload';
 
 export default function AdminPage() {
@@ -747,125 +749,138 @@ function AdminContent() {
                     Back to Projects
                   </Button>
                   <div>
-                    <CardTitle>Quests in {selectedProject?.name}</CardTitle>
+                    <CardTitle>Project: {selectedProject?.name}</CardTitle>
                     <CardDescription>
-                      Select a quest to manage its assets
+                      Manage quests and membership for this project
                     </CardDescription>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  {pageState.selectedProjectId && (
-                    <ProjectDownloadButton
-                      projectId={pageState.selectedProjectId}
-                    />
-                  )}
-                  {isSelectedProjectOwner && (
-                    <>
-                      <Button
-                        onClick={() =>
-                          setPageState((prevState) => ({
-                            ...prevState,
-                            showQuestForm: true
-                          }))
-                        }
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create Quest
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setPageState((prevState) => ({
-                            ...prevState,
-                            showQuestUpload: true
-                          }))
-                        }
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload Quests
-                      </Button>
-                    </>
-                  )}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {questsLoading ? (
-                <div className="text-center p-4">
-                  <Spinner />
-                </div>
-              ) : quests.length > 0 ? (
-                <ul className="space-y-4">
-                  {quests.map((quest) => (
-                    <li
-                      key={quest.id}
-                      className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div
-                          className="flex-1 cursor-pointer"
-                          onClick={() => handleSelectQuest(quest)}
+              <Tabs defaultValue="quests">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="quests">Quests</TabsTrigger>
+                  <TabsTrigger value="members">Members</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="quests" className="mt-0">
+                  <div className="flex justify-end gap-2 mb-4">
+                    {pageState.selectedProjectId && (
+                      <ProjectDownloadButton projectId={pageState.selectedProjectId} />
+                    )}
+                    {isSelectedProjectOwner && (
+                      <>
+                        <Button
+                          onClick={() =>
+                            setPageState((prevState) => ({
+                              ...prevState,
+                              showQuestForm: true
+                            }))
+                          }
                         >
-                          <h3 className="text-lg font-semibold">
-                            {quest.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {quest.description}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">
-                            {quest.assets?.length || 0} Asset(s)
-                          </Badge>
-                          {isSelectedProjectOwner && (
-                            <div className="flex gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPageState((prev) => ({
-                                    ...prev,
-                                    selectedQuestId: quest.id,
-                                    selectedQuestName: quest.name,
-                                    showAssetForm: true
-                                  }));
-                                }}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Asset
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPageState((prev) => ({
-                                    ...prev,
-                                    selectedQuestId: quest.id,
-                                    selectedQuestName: quest.name,
-                                    showBulkAssetUpload: true
-                                  }));
-                                }}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                Bulk Upload
-                              </Button>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Create Quest
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            setPageState((prevState) => ({
+                              ...prevState,
+                              showQuestUpload: true
+                            }))
+                          }
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Quests
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  {questsLoading ? (
+                    <div className="text-center p-4">
+                      <Spinner />
+                    </div>
+                  ) : quests.length > 0 ? (
+                    <ul className="space-y-4">
+                      {quests.map((quest) => (
+                        <li
+                          key={quest.id}
+                          className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div
+                              className="flex-1 cursor-pointer"
+                              onClick={() => handleSelectQuest(quest)}
+                            >
+                              <h3 className="text-lg font-semibold">
+                                {quest.name}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {quest.description}
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-muted-foreground">
-                  No quests found.{' '}
-                  {isSelectedProjectOwner
-                    ? 'Create one to get started.'
-                    : 'This project has no quests yet.'}
-                </p>
-              )}
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary">
+                                {quest.assets?.length || 0} Asset(s)
+                              </Badge>
+                              {isSelectedProjectOwner && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPageState((prev) => ({
+                                        ...prev,
+                                        selectedQuestId: quest.id,
+                                        selectedQuestName: quest.name,
+                                        showAssetForm: true
+                                      }));
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Asset
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPageState((prev) => ({
+                                        ...prev,
+                                        selectedQuestId: quest.id,
+                                        selectedQuestName: quest.name,
+                                        showBulkAssetUpload: true
+                                      }));
+                                    }}
+                                  >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Bulk Upload
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-center text-muted-foreground">
+                      No quests found.{' '}
+                      {isSelectedProjectOwner
+                        ? 'Create one to get started.'
+                        : 'This project has no quests yet.'}
+                    </p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="members" className="mt-0">
+                  {pageState.selectedProjectId && (
+                    <ProjectMembers projectId={pageState.selectedProjectId} />
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         )}
