@@ -45,13 +45,19 @@ const ADMIN_PERMISSIONS: Permission[] = [
 
 const OWNER_PERMISSIONS: Permission[] = [...ADMIN_PERMISSIONS];
 
-const PERMISSION_LOOKUP: Record<Exclude<MembershipRole, null>, Set<Permission>> = {
+const PERMISSION_LOOKUP: Record<
+  Exclude<MembershipRole, null>,
+  Set<Permission>
+> = {
   member: new Set(MEMBER_PERMISSIONS),
   admin: new Set(ADMIN_PERMISSIONS),
   owner: new Set(OWNER_PERMISSIONS)
 };
 
-export function useProjectPermission(projectId: string | null | undefined, action: Permission) {
+export function useProjectPermission(
+  projectId: string | null | undefined,
+  action: Permission
+) {
   const { user, environment } = useAuth();
 
   const { data: membership, isLoading } = useQuery<MembershipRole>({
@@ -73,7 +79,12 @@ export function useProjectPermission(projectId: string | null | undefined, actio
     }
   });
 
-  const hasAccess = Boolean(membership && PERMISSION_LOOKUP[membership as Exclude<MembershipRole, null>]?.has(action));
+  const hasAccess = Boolean(
+    membership &&
+      PERMISSION_LOOKUP[membership as Exclude<MembershipRole, null>]?.has(
+        action
+      )
+  );
 
   return {
     hasAccess,
@@ -81,5 +92,3 @@ export function useProjectPermission(projectId: string | null | undefined, actio
     isLoading
   };
 }
-
-

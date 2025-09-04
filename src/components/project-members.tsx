@@ -10,7 +10,15 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useProjectPermission } from '@/hooks/use-project-permission';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Crown, Mail, RefreshCcw, Trash2, UserMinus, UserPlus, UserRound } from 'lucide-react';
+import {
+  Crown,
+  Mail,
+  RefreshCcw,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  UserRound
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   Dialog,
@@ -45,11 +53,13 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   const supabase = createBrowserClient(environment);
   const queryClient = useQueryClient();
 
-  const canManage = useProjectPermission(projectId, 'manage');
   const canSendInvites = useProjectPermission(projectId, 'send_invite_section');
   const canPromote = useProjectPermission(projectId, 'promote_member_button');
   const canRemove = useProjectPermission(projectId, 'remove_member_button');
-  const canWithdrawInvite = useProjectPermission(projectId, 'withdraw_invite_button');
+  const canWithdrawInvite = useProjectPermission(
+    projectId,
+    'withdraw_invite_button'
+  );
 
   const { data: memberLinks = [], isLoading: memberLinksLoading } = useQuery({
     queryKey: ['project-member-links', projectId, environment],
@@ -60,7 +70,11 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
         .select('profile_id, membership, active')
         .eq('project_id', projectId);
       if (error) throw error;
-      return data as Array<{ profile_id: string; membership: 'owner' | 'member'; active: boolean }>;
+      return data as Array<{
+        profile_id: string;
+        membership: 'owner' | 'member';
+        active: boolean;
+      }>;
     }
   });
 
@@ -170,8 +184,12 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
 
   const handleLeaveProject = async () => {
     if (!user?.id) return;
-    const activeOwnerCount = members.filter((m) => m.role === 'owner' && m.active).length;
-    const isCurrentUserOwner = members.some((m) => m.id === user.id && m.role === 'owner' && m.active);
+    const activeOwnerCount = members.filter(
+      (m) => m.role === 'owner' && m.active
+    ).length;
+    const isCurrentUserOwner = members.some(
+      (m) => m.id === user.id && m.role === 'owner' && m.active
+    );
     if (isCurrentUserOwner && activeOwnerCount <= 1) {
       // Block leaving if the only owner
       alert('You are the only owner. Add another owner before leaving.');
@@ -210,7 +228,8 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
     refetchAll();
   };
 
-  const isValidEmail = (email: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
+  const isValidEmail = (email: string) =>
+    /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
 
   const handleSendInvitation = async () => {
     if (!canSendInvites.hasAccess) return;
@@ -224,9 +243,9 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
         .select('receiver_profile_id')
         .eq('project_id', projectId)
         .eq('email', inviteEmail.trim());
-      const receiverId = (priorInvites || []).find((pi) => pi.receiver_profile_id)?.receiver_profile_id as
-        | string
-        | undefined;
+      const receiverId = (priorInvites || []).find(
+        (pi) => pi.receiver_profile_id
+      )?.receiver_profile_id as string | undefined;
       if (receiverId) {
         const { data: existingLink } = await supabase
           .from('profile_project_link')
@@ -261,208 +280,260 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
 
   return (
     <>
-    <Card>
-      <CardContent className="pt-6">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="invited">Invited</TabsTrigger>
-          </TabsList>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <TabsList>
+              <TabsTrigger value="members">Members</TabsTrigger>
+              <TabsTrigger value="invited">Invited</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="members" className="mt-4">
-            <div className="space-y-3">
-              {memberLinksLoading ? (
-                <div className="text-sm text-muted-foreground">Loading members…</div>
-              ) : members.length > 0 ? (
-                members.map((m) => {
-                  const isCurrentUser = m.id === user?.id;
-                  return (
-                    <div key={m.id} className="flex items-center justify-between border rounded-md p-3">
+            <TabsContent value="members" className="mt-4">
+              <div className="space-y-3">
+                {memberLinksLoading ? (
+                  <div className="text-sm text-muted-foreground">
+                    Loading members…
+                  </div>
+                ) : members.length > 0 ? (
+                  members.map((m) => {
+                    const isCurrentUser = m.id === user?.id;
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex items-center justify-between border rounded-md p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center">
+                            <UserRound
+                              className={cn(
+                                'size-4',
+                                m.role === 'owner' && 'text-primary'
+                              )}
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {m.username || m.email || 'User'}
+                              </span>
+                              {m.role === 'owner' && (
+                                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
+                                  <Crown className="size-3" /> Owner
+                                </span>
+                              )}
+                              {isCurrentUser && (
+                                <span className="text-xs text-muted-foreground">
+                                  (You)
+                                </span>
+                              )}
+                            </div>
+                            {m.email && (
+                              <div className="text-xs text-muted-foreground">
+                                {m.email}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!isCurrentUser &&
+                            m.role === 'member' &&
+                            canPromote.hasAccess && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setConfirmState({
+                                    type: 'promote',
+                                    memberId: m.id,
+                                    memberName: m.username || m.email || 'User'
+                                  })
+                                }
+                              >
+                                <Crown className="size-4 mr-2" /> Promote
+                              </Button>
+                            )}
+                          {!isCurrentUser && canRemove.hasAccess && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={m.role === 'owner'}
+                              onClick={() =>
+                                setConfirmState({
+                                  type: 'remove',
+                                  memberId: m.id,
+                                  memberName: m.username || m.email || 'User'
+                                })
+                              }
+                            >
+                              <UserMinus className="size-4 mr-2" /> Remove
+                            </Button>
+                          )}
+                          {isCurrentUser && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleLeaveProject}
+                            >
+                              <Trash2 className="size-4 mr-2" /> Leave
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No members found.
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="invited" className="mt-4 space-y-6">
+              <div className="space-y-3">
+                {visibleInvitations.length > 0 ? (
+                  visibleInvitations.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="flex items-center justify-between border rounded-md p-3"
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center">
-                          <UserRound className={cn('size-4', m.role === 'owner' && 'text-primary')} />
+                        <div className="size-9 rounded-full bg-muted flex items-center justify-center">
+                          <Mail className="size-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{m.username || m.email || 'User'}</span>
-                            {m.role === 'owner' && (
+                            <span className="font-medium">{inv.email}</span>
+                            {inv.as_owner && (
                               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
                                 <Crown className="size-3" /> Owner
                               </span>
                             )}
-                            {isCurrentUser && (
-                              <span className="text-xs text-muted-foreground">(You)</span>
-                            )}
                           </div>
-                          {m.email && (
-                            <div className="text-xs text-muted-foreground">{m.email}</div>
-                          )}
+                          <div className="text-xs text-muted-foreground capitalize">
+                            {inv.status}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {!isCurrentUser && m.role === 'member' && canPromote.hasAccess && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              setConfirmState({ type: 'promote', memberId: m.id, memberName: m.username || m.email || 'User' })
-                            }
-                          >
-                            <Crown className="size-4 mr-2" /> Promote
-                          </Button>
-                        )}
-                        {!isCurrentUser && canRemove.hasAccess && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={m.role === 'owner'}
-                            onClick={() =>
-                              setConfirmState({ type: 'remove', memberId: m.id, memberName: m.username || m.email || 'User' })
-                            }
-                          >
-                            <UserMinus className="size-4 mr-2" /> Remove
-                          </Button>
-                        )}
-                        {isCurrentUser && (
-                          <Button variant="destructive" size="sm" onClick={handleLeaveProject}>
-                            <Trash2 className="size-4 mr-2" /> Leave
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-sm text-muted-foreground">No members found.</div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="invited" className="mt-4 space-y-6">
-            <div className="space-y-3">
-              {visibleInvitations.length > 0 ? (
-                visibleInvitations.map((inv) => (
-                  <div key={inv.id} className="flex items-center justify-between border rounded-md p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="size-9 rounded-full bg-muted flex items-center justify-center">
-                        <Mail className="size-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{inv.email}</span>
-                          {inv.as_owner && (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">
-                              <Crown className="size-3" /> Owner
-                            </span>
+                        {inv.status === 'expired' &&
+                          canWithdrawInvite.hasAccess && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResendInvitation(inv)}
+                            >
+                              <RefreshCcw className="size-4 mr-2" /> Resend
+                            </Button>
                           )}
-                        </div>
-                        <div className="text-xs text-muted-foreground capitalize">{inv.status}</div>
+                        {inv.status === 'pending' &&
+                          canWithdrawInvite.hasAccess && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleWithdrawInvitation(inv.id)}
+                            >
+                              <Trash2 className="size-4 mr-2" /> Withdraw
+                            </Button>
+                          )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {inv.status === 'expired' && canWithdrawInvite.hasAccess && (
-                        <Button variant="outline" size="sm" onClick={() => handleResendInvitation(inv)}>
-                          <RefreshCcw className="size-4 mr-2" /> Resend
-                        </Button>
-                      )}
-                      {inv.status === 'pending' && canWithdrawInvite.hasAccess && (
-                        <Button variant="destructive" size="sm" onClick={() => handleWithdrawInvitation(inv.id)}>
-                          <Trash2 className="size-4 mr-2" /> Withdraw
-                        </Button>
-                      )}
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No invitations.
                   </div>
-                ))
-              ) : (
-                <div className="text-sm text-muted-foreground">No invitations.</div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {canSendInvites.hasAccess && (
-              <div className="border rounded-md p-4 space-y-3">
-                <div className="font-medium">Invite member</div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                  <div className="sm:col-span-2 space-y-2">
-                    <Label htmlFor="invite-email">Email</Label>
-                    <Input
-                      id="invite-email"
-                      placeholder="user@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="invite-as-owner"
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={inviteAsOwner}
-                        onChange={(e) => setInviteAsOwner(e.target.checked)}
+              {canSendInvites.hasAccess && (
+                <div className="border rounded-md p-4 space-y-3">
+                  <div className="font-medium">Invite member</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    <div className="sm:col-span-2 space-y-2">
+                      <Label htmlFor="invite-email">Email</Label>
+                      <Input
+                        id="invite-email"
+                        placeholder="user@example.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
                       />
-                      <Label htmlFor="invite-as-owner" className="text-sm">
-                        Invite as owner
-                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="invite-as-owner"
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={inviteAsOwner}
+                          onChange={(e) => setInviteAsOwner(e.target.checked)}
+                        />
+                        <Label htmlFor="invite-as-owner" className="text-sm">
+                          Invite as owner
+                        </Label>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <Button
-                      className="w-full"
-                      onClick={handleSendInvitation}
-                      disabled={!isValidEmail(inviteEmail) || isSubmitting}
-                    >
-                      <UserPlus className="size-4 mr-2" />
-                      {isSubmitting ? 'Sending…' : 'Send Invite'}
-                    </Button>
+                    <div>
+                      <Button
+                        className="w-full"
+                        onClick={handleSendInvitation}
+                        disabled={!isValidEmail(inviteEmail) || isSubmitting}
+                      >
+                        <UserPlus className="size-4 mr-2" />
+                        {isSubmitting ? 'Sending…' : 'Send Invite'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={!!confirmState}
+        onOpenChange={(open) => !open && setConfirmState(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmState?.type === 'remove'
+                ? 'Remove member'
+                : 'Promote to owner'}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmState?.type === 'remove'
+                ? 'Are you sure you want to remove this member from the project? This will set their membership to inactive.'
+                : 'Promoting to owner cannot be undone in-app (owners cannot be demoted). Proceed?'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">{confirmState?.memberName}</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmState(null)}>
+              Cancel
+            </Button>
+            {confirmState?.type === 'remove' ? (
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  await handleRemoveMember(confirmState.memberId);
+                  setConfirmState(null);
+                }}
+              >
+                Remove member
+              </Button>
+            ) : (
+              <Button
+                onClick={async () => {
+                  await handlePromoteToOwner(confirmState!.memberId);
+                  setConfirmState(null);
+                }}
+              >
+                Promote
+              </Button>
             )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-    {/* Confirmation Dialog */}
-    <Dialog open={!!confirmState} onOpenChange={(open) => !open && setConfirmState(null)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {confirmState?.type === 'remove' ? 'Remove member' : 'Promote to owner'}
-          </DialogTitle>
-          <DialogDescription>
-            {confirmState?.type === 'remove'
-              ? 'Are you sure you want to remove this member from the project? This will set their membership to inactive.'
-              : 'Promoting to owner cannot be undone in-app (owners cannot be demoted). Proceed?'}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-2">
-          {confirmState?.memberName}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setConfirmState(null)}>Cancel</Button>
-          {confirmState?.type === 'remove' ? (
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                await handleRemoveMember(confirmState.memberId);
-                setConfirmState(null);
-              }}
-            >
-              Remove member
-            </Button>
-          ) : (
-            <Button
-              onClick={async () => {
-                await handlePromoteToOwner(confirmState!.memberId);
-                setConfirmState(null);
-              }}
-            >
-              Promote
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-
-
