@@ -318,7 +318,7 @@ export function ProjectWizard({
         step2Form.reset(wizardData.step2);
       }
     }
-  }, [step, step2Form]);
+  }, [step, step2Form, wizardData.step2]);
 
   // Step 3 form
   const step3Form = useForm<z.infer<typeof projectConfirmSchema>>({
