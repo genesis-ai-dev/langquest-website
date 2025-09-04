@@ -26,7 +26,8 @@ import {
   Eye,
   ArrowLeft,
   Upload,
-  Plus
+  Plus,
+  UserRound
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -134,6 +135,8 @@ function AdminContent() {
   // Poll in-progress clone jobs and map to destination project ids
   useEffect(() => {
     if (!user) return;
+    // clone_job exists only in preview; skip polling elsewhere to avoid 404 noise
+    // if (environment !== 'preview') return;
     const supabase = createBrowserClient(environment);
     let isCancelled = false;
     const tick = async () => {
@@ -638,9 +641,29 @@ function AdminContent() {
                 <div className="text-center p-4">
                   <Spinner />
                 </div>
-              ) : projects.length > 0 ? (
+              ) : (
+                <Tabs defaultValue="mine">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="mine">My Projects</TabsTrigger>
+                    <TabsTrigger value="others">Other Projects</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="mine" className="mt-0">
+                    {(() => {
+                      const myProjects = projects
+                        .filter((p: any) => Boolean(p.membership))
+                        .sort((a: any, b: any) => {
+                          if (a.isOwner && !b.isOwner) return -1;
+                          if (!a.isOwner && b.isOwner) return 1;
+                          return a.name.localeCompare(b.name);
+                        });
+                      if (myProjects.length === 0)
+                        return (
+                          <p className="text-center text-muted-foreground">No projects yet.</p>
+                        );
+                      return (
                 <ul className="space-y-4">
-                  {projects.map((project) => {
+                          {myProjects.map((project: any) => {
                     const cloning = cloningByProjectId[project.id];
                     return (
                       <li
@@ -649,49 +672,31 @@ function AdminContent() {
                           'p-4 border rounded-lg transition-colors',
                           cloning
                             ? 'opacity-60 bg-muted/30 pointer-events-none'
-                            : 'hover:border-primary/50 cursor-pointer',
-                          !project.isOwner &&
-                            !cloning &&
-                            'opacity-75 bg-muted/30'
+                                    : 'hover:border-primary/50 cursor-pointer'
                         )}
                         onClick={
-                          cloning
-                            ? undefined
-                            : () => handleSelectProject(project)
+                                  cloning ? undefined : () => handleSelectProject(project)
                         }
                       >
                         <div className="flex justify-between items-center">
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-semibold">
-                                {project.name}
-                              </h3>
+                                      <h3 className="text-lg font-semibold">{project.name}</h3>
                               {cloning ? (
                                 <Badge variant="outline" className="text-xs">
-                                  Cloning • {cloning.stage || 'running'} (
-                                  {cloning.percent}%)
+                                          Cloning • {cloning.stage || 'running'} ({cloning.percent}%)
                                 </Badge>
                               ) : project.isOwner ? (
-                                <Badge
-                                  variant="default"
-                                  className="text-xs flex items-center gap-1"
-                                >
-                                  <Crown className="h-3 w-3" />
-                                  Owner
+                                        <Badge variant="default" className="text-xs flex items-center gap-1">
+                                          <Crown className="h-3 w-3" /> Owner
                                 </Badge>
                               ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs flex items-center gap-1"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                  View Only
+                                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                          <UserRound className="h-3 w-3" /> Member
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {project.description}
-                            </p>
+                                    <p className="text-sm text-muted-foreground">{project.description}</p>
                             <p className="text-sm">
                               {(project.source_language as any)?.english_name} →{' '}
                               {(project.target_language as any)?.english_name}
@@ -721,10 +726,72 @@ function AdminContent() {
                     );
                   })}
                 </ul>
-              ) : (
-                <p className="text-center text-muted-foreground">
-                  No projects found. Create one to get started.
-                </p>
+                      );
+                    })()}
+                  </TabsContent>
+
+                  <TabsContent value="others" className="mt-0">
+                    {(() => {
+                      const otherProjects = projects
+                        .filter((p: any) => !p.membership)
+                        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+                      if (otherProjects.length === 0)
+                        return (
+                          <p className="text-center text-muted-foreground">No other projects.</p>
+                        );
+                      return (
+                        <ul className="space-y-4">
+                          {otherProjects.map((project: any) => {
+                            const cloning = cloningByProjectId[project.id];
+                            return (
+                              <li
+                                key={project.id}
+                                className={cn(
+                                  'p-4 border rounded-lg transition-colors',
+                                  cloning
+                                    ? 'opacity-60 bg-muted/30 pointer-events-none'
+                                    : 'hover:border-primary/50 cursor-pointer'
+                                )}
+                                onClick={
+                                  cloning ? undefined : () => handleSelectProject(project)
+                                }
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h3 className="text-lg font-semibold">{project.name}</h3>
+                                      {cloning ? (
+                                        <Badge variant="outline" className="text-xs">
+                                          Cloning • {cloning.stage || 'running'} ({cloning.percent}%)
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                          <Eye className="h-3 w-3" /> View Only
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{project.description}</p>
+                                    <p className="text-sm">
+                                      {(project.source_language as any)?.english_name} →{' '}
+                                      {(project.target_language as any)?.english_name}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {!cloning && (
+                                      <Badge variant="secondary">
+                                        {project.quests?.length || 0} Quest(s)
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      );
+                    })()}
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>
@@ -761,113 +828,113 @@ function AdminContent() {
 
                 <TabsContent value="quests" className="mt-0">
                   <div className="flex justify-end gap-2 mb-4">
-                    {pageState.selectedProjectId && (
+                  {pageState.selectedProjectId && (
                       <ProjectDownloadButton projectId={pageState.selectedProjectId} />
-                    )}
-                    {isSelectedProjectOwner && (
-                      <>
-                        <Button
-                          onClick={() =>
-                            setPageState((prevState) => ({
-                              ...prevState,
-                              showQuestForm: true
-                            }))
-                          }
-                        >
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Create Quest
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            setPageState((prevState) => ({
-                              ...prevState,
-                              showQuestUpload: true
-                            }))
-                          }
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload Quests
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {questsLoading ? (
-                    <div className="text-center p-4">
-                      <Spinner />
-                    </div>
-                  ) : quests.length > 0 ? (
-                    <ul className="space-y-4">
-                      {quests.map((quest) => (
-                        <li
-                          key={quest.id}
-                          className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div
-                              className="flex-1 cursor-pointer"
-                              onClick={() => handleSelectQuest(quest)}
-                            >
-                              <h3 className="text-lg font-semibold">
-                                {quest.name}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                {quest.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary">
-                                {quest.assets?.length || 0} Asset(s)
-                              </Badge>
-                              {isSelectedProjectOwner && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPageState((prev) => ({
-                                        ...prev,
-                                        selectedQuestId: quest.id,
-                                        selectedQuestName: quest.name,
-                                        showAssetForm: true
-                                      }));
-                                    }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Asset
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPageState((prev) => ({
-                                        ...prev,
-                                        selectedQuestId: quest.id,
-                                        selectedQuestName: quest.name,
-                                        showBulkAssetUpload: true
-                                      }));
-                                    }}
-                                  >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Bulk Upload
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-center text-muted-foreground">
-                      No quests found.{' '}
-                      {isSelectedProjectOwner
-                        ? 'Create one to get started.'
-                        : 'This project has no quests yet.'}
-                    </p>
                   )}
+                  {isSelectedProjectOwner && (
+                    <>
+                      <Button
+                        onClick={() =>
+                          setPageState((prevState) => ({
+                            ...prevState,
+                            showQuestForm: true
+                          }))
+                        }
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Quest
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setPageState((prevState) => ({
+                            ...prevState,
+                            showQuestUpload: true
+                          }))
+                        }
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Quests
+                      </Button>
+                    </>
+                  )}
+                </div>
+              {questsLoading ? (
+                <div className="text-center p-4">
+                  <Spinner />
+                </div>
+              ) : quests.length > 0 ? (
+                <ul className="space-y-4">
+                  {quests.map((quest) => (
+                    <li
+                      key={quest.id}
+                      className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleSelectQuest(quest)}
+                        >
+                          <h3 className="text-lg font-semibold">
+                            {quest.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {quest.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {quest.assets?.length || 0} Asset(s)
+                          </Badge>
+                          {isSelectedProjectOwner && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPageState((prev) => ({
+                                    ...prev,
+                                    selectedQuestId: quest.id,
+                                    selectedQuestName: quest.name,
+                                    showAssetForm: true
+                                  }));
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Asset
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPageState((prev) => ({
+                                    ...prev,
+                                    selectedQuestId: quest.id,
+                                    selectedQuestName: quest.name,
+                                    showBulkAssetUpload: true
+                                  }));
+                                }}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Bulk Upload
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  No quests found.{' '}
+                  {isSelectedProjectOwner
+                    ? 'Create one to get started.'
+                    : 'This project has no quests yet.'}
+                </p>
+              )}
                 </TabsContent>
 
                 <TabsContent value="members" className="mt-0">

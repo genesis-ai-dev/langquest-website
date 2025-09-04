@@ -12,6 +12,14 @@ import { useProjectPermission } from '@/hooks/use-project-permission';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Crown, Mail, RefreshCcw, Trash2, UserMinus, UserPlus, UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 
 type Member = {
   id: string;
@@ -128,6 +136,11 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteAsOwner, setInviteAsOwner] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmState, setConfirmState] = useState<
+    | { type: 'remove'; memberId: string; memberName: string }
+    | { type: 'promote'; memberId: string; memberName: string }
+    | null
+  >(null);
 
   const refetchAll = () => {
     queryClient.invalidateQueries({ queryKey: ['project-member-links'] });
@@ -139,7 +152,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
     if (!canRemove.hasAccess) return;
     await supabase
       .from('profile_project_link')
-      .update({ active: false, membership: 'member' })
+      .update({ active: false, last_updated: new Date().toISOString() })
       .eq('project_id', projectId)
       .eq('profile_id', memberId);
     refetchAll();
@@ -149,7 +162,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
     if (!canPromote.hasAccess) return;
     await supabase
       .from('profile_project_link')
-      .update({ membership: 'owner' })
+      .update({ membership: 'owner', last_updated: new Date().toISOString() })
       .eq('project_id', projectId)
       .eq('profile_id', memberId);
     refetchAll();
@@ -157,9 +170,16 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
 
   const handleLeaveProject = async () => {
     if (!user?.id) return;
+    const activeOwnerCount = members.filter((m) => m.role === 'owner' && m.active).length;
+    const isCurrentUserOwner = members.some((m) => m.id === user.id && m.role === 'owner' && m.active);
+    if (isCurrentUserOwner && activeOwnerCount <= 1) {
+      // Block leaving if the only owner
+      alert('You are the only owner. Add another owner before leaving.');
+      return;
+    }
     await supabase
       .from('profile_project_link')
-      .update({ active: false, membership: 'member' })
+      .update({ active: false, last_updated: new Date().toISOString() })
       .eq('project_id', projectId)
       .eq('profile_id', user.id);
     refetchAll();
@@ -169,7 +189,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
     if (!canWithdrawInvite.hasAccess) return;
     await supabase
       .from('invite')
-      .update({ status: 'withdrawn' })
+      .update({ status: 'withdrawn', last_updated: new Date().toISOString() })
       .eq('id', inviteId);
     refetchAll();
   };
@@ -180,7 +200,12 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
     if ((inv.count || 0) >= MAX_INVITE_ATTEMPTS) return;
     await supabase
       .from('invite')
-      .update({ status: 'pending', count: (inv.count || 0) + 1 })
+      .update({
+        status: 'pending',
+        count: (inv.count || 0) + 1,
+        last_updated: new Date().toISOString(),
+        sender_profile_id: user?.id || undefined
+      })
       .eq('id', inv.id);
     refetchAll();
   };
@@ -190,15 +215,42 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   const handleSendInvitation = async () => {
     if (!canSendInvites.hasAccess) return;
     if (!inviteEmail.trim() || !isValidEmail(inviteEmail)) return;
+    if (!user?.id) return;
     setIsSubmitting(true);
     try {
-      await supabase.from('invite').insert({
+      // Prevent inviting users who are already active members/owners when resolvable via prior invite linkage
+      const { data: priorInvites } = await supabase
+        .from('invite')
+        .select('receiver_profile_id')
+        .eq('project_id', projectId)
+        .eq('email', inviteEmail.trim());
+      const receiverId = (priorInvites || []).find((pi) => pi.receiver_profile_id)?.receiver_profile_id as
+        | string
+        | undefined;
+      if (receiverId) {
+        const { data: existingLink } = await supabase
+          .from('profile_project_link')
+          .select('active')
+          .eq('project_id', projectId)
+          .eq('profile_id', receiverId)
+          .eq('active', true)
+          .maybeSingle();
+        if (existingLink) {
+          alert('This user is already a member of the project.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      const { error } = await supabase.from('invite').insert({
         email: inviteEmail.trim(),
         project_id: projectId,
         status: 'pending',
         as_owner: inviteAsOwner,
-        count: 1
+        count: 1,
+        last_updated: new Date().toISOString(),
+        sender_profile_id: user.id
       } as any);
+      if (error) throw error;
       setInviteEmail('');
       setInviteAsOwner(false);
       refetchAll();
@@ -208,6 +260,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   };
 
   return (
+    <>
     <Card>
       <CardContent className="pt-6">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -248,12 +301,25 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
                       </div>
                       <div className="flex items-center gap-2">
                         {!isCurrentUser && m.role === 'member' && canPromote.hasAccess && (
-                          <Button variant="outline" size="sm" onClick={() => handlePromoteToOwner(m.id)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setConfirmState({ type: 'promote', memberId: m.id, memberName: m.username || m.email || 'User' })
+                            }
+                          >
                             <Crown className="size-4 mr-2" /> Promote
                           </Button>
                         )}
                         {!isCurrentUser && canRemove.hasAccess && (
-                          <Button variant="destructive" size="sm" onClick={() => handleRemoveMember(m.id)}>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={m.role === 'owner'}
+                            onClick={() =>
+                              setConfirmState({ type: 'remove', memberId: m.id, memberName: m.username || m.email || 'User' })
+                            }
+                          >
                             <UserMinus className="size-4 mr-2" /> Remove
                           </Button>
                         )}
@@ -354,6 +420,48 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
         </Tabs>
       </CardContent>
     </Card>
+    {/* Confirmation Dialog */}
+    <Dialog open={!!confirmState} onOpenChange={(open) => !open && setConfirmState(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {confirmState?.type === 'remove' ? 'Remove member' : 'Promote to owner'}
+          </DialogTitle>
+          <DialogDescription>
+            {confirmState?.type === 'remove'
+              ? 'Are you sure you want to remove this member from the project? This will set their membership to inactive.'
+              : 'Promoting to owner cannot be undone in-app (owners cannot be demoted). Proceed?'}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-2">
+          {confirmState?.memberName}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setConfirmState(null)}>Cancel</Button>
+          {confirmState?.type === 'remove' ? (
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                await handleRemoveMember(confirmState.memberId);
+                setConfirmState(null);
+              }}
+            >
+              Remove member
+            </Button>
+          ) : (
+            <Button
+              onClick={async () => {
+                await handlePromoteToOwner(confirmState!.memberId);
+                setConfirmState(null);
+              }}
+            >
+              Promote
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
