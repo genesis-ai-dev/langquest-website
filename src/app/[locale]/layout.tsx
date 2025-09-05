@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '../../components/client-providers';
+import { LoadingOverlay } from '../../components/loading-overlay';
 import { Toaster } from '@/components/ui/sonner';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { notFound } from 'next/navigation';
@@ -60,7 +61,10 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider>
-          <ClientProviders>{children}</ClientProviders>
+          <ClientProviders>
+            {children}
+            <LoadingOverlay />
+          </ClientProviders>
           <Toaster position="top-center" />
         </NextIntlClientProvider>
       </body>

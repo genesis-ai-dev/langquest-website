@@ -3,6 +3,7 @@
 import { ThemeProvider } from 'next-themes';
 // import { SessionProvider } from 'next-auth/react'; // Assuming this might still be here or planned
 import { AuthProvider } from './auth-provider'; // Your Supabase auth provider
+import { LoadingProvider } from './loading-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -33,7 +34,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             For Supabase, AuthProvider handles the session/user context.
           */}
           <Suspense fallback={<div>Loading...</div>}>
-            <AuthProvider>{children}</AuthProvider>
+            <LoadingProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </LoadingProvider>
           </Suspense>
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />

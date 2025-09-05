@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createBrowserClient, clearAllSupabaseSessions } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,8 +40,10 @@ export default function LoginPage() {
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const searchParams = useSearchParams();
@@ -52,13 +54,32 @@ function LoginForm() {
   const environment: SupabaseEnvironment = envParam || 'production';
   const [activeTab, setActiveTab] = useState('login');
 
+  // Load remembered email on component mount
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const shouldRemember = localStorage.getItem('shouldRemember') === 'true';
+    
+    console.log('🔍 [LOGIN FORM] Loading remembered data:', { rememberedEmail, shouldRemember });
+    
+    if (rememberedEmail && shouldRemember) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+      console.log('🔍 [LOGIN FORM] Pre-filled email and checked remember me');
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || redirecting) return;
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment);
+      // Clear any existing sessions before creating new one with different storage preference
+      clearAllSupabaseSessions();
+      
+      // Create Supabase client with appropriate session persistence
+      const supabase = createBrowserClient(environment, rememberMe);
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -68,6 +89,20 @@ function LoginForm() {
         toast.error(`Login failed in ${environment}: ${error.message}`);
         setIsLoading(false);
         return;
+      }
+
+      // Store email preference for future logins (non-sensitive data)
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('shouldRemember', 'true');
+        console.log('🔍 [LOGIN] Set remember me preference: true');
+        console.log('🔍 [LOGIN] Stored email:', email);
+      } else {
+        // Clear stored email if remember me is unchecked
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('shouldRemember');
+        console.log('🔍 [LOGIN] Set remember me preference: false');
+        console.log('🔍 [LOGIN] Cleared stored email and remember preference');
       }
 
       toast.success(`Logged in successfully to ${environment} environment`);
@@ -86,6 +121,12 @@ function LoginForm() {
     e.preventDefault();
     if (isLoading || redirecting) return;
 
+    // Validate password confirmation
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match. Please check and try again.');
+      return;
+    }
+
     // Validate terms acceptance
     if (!termsAccepted) {
       toast.error('Please accept the terms and conditions to continue');
@@ -95,7 +136,11 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment);
+      // Clear any existing sessions before creating new one
+      clearAllSupabaseSessions();
+      
+      // Create Supabase client with session persistence (default to true for signup)
+      const supabase = createBrowserClient(environment, true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -188,6 +233,19 @@ function LoginForm() {
                     disabled={isLoading || redirecting}
                   />
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember-me"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) =>
+                      setRememberMe(checked as boolean)
+                    }
+                    disabled={isLoading || redirecting}
+                  />
+                  <Label htmlFor="remember-me" className="text-sm">
+                    Remember me
+                  </Label>
+                </div>
                 <Button
                   type="submit"
                   className="w-full"
@@ -260,6 +318,35 @@ function LoginForm() {
                   <p className="text-xs text-muted-foreground">
                     Password must be at least 6 characters
                   </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-confirm-password">Confirm Password</Label>
+                  <Input
+                    id="register-confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    disabled={isLoading || redirecting}
+                    className={
+                      confirmPassword && password !== confirmPassword
+                        ? 'border-red-500 focus:border-red-500'
+                        : confirmPassword && password === confirmPassword
+                        ? 'border-green-500 focus:border-green-500'
+                        : ''
+                    }
+                  />
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-xs text-red-500">
+                      Passwords do not match
+                    </p>
+                  )}
+                  {confirmPassword && password === confirmPassword && (
+                    <p className="text-xs text-green-600">
+                      Passwords match
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox

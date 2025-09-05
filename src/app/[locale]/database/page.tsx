@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 
 export default function Database() {
   return (
-    <Suspense>
+    <Suspense fallback={<div>Loading...</div>}>
       <DatabaseViewer />
     </Suspense>
   );

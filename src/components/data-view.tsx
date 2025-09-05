@@ -29,6 +29,7 @@ import {
   XIcon
 } from 'lucide-react';
 import { createParser, parseAsInteger, useQueryState } from 'nuqs';
+import { useEffect } from 'react';
 import { Spinner } from './spinner';
 import { AudioButton } from './ui/audio-button';
 import { Badge } from './ui/badge';
@@ -42,6 +43,7 @@ import {
   SelectValue
 } from './ui/select';
 import { useAuth } from '@/components/auth-provider';
+import { useLoading } from '@/components/loading-provider';
 import { getSupabaseCredentials } from '@/lib/supabase';
 import { env } from '@/lib/env';
 
@@ -216,11 +218,17 @@ export function DataView({
   showProjectFilter = true
 }: DataViewProps = {}) {
   const t = useTranslations('data_view');
+  const { setLoading } = useLoading();
   const [pageSize, setPageSize] = useQueryState(
     'size',
     parseAsInteger.withDefault(20)
   );
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(0));
+
+  // Clear loading state when component mounts
+  useEffect(() => {
+    setLoading(false);
+  }, [setLoading]);
   const [filters, setFilters] = useQueryState<FilterState>(
     'filters',
     parseAsFilters.withDefault({})

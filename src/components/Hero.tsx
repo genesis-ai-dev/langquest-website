@@ -209,7 +209,7 @@ export function safeLerpVectors(
   alpha: number
 ): THREE.Vector3 {
   if (!v1 || !v2) {
-    console.warn('Attempted to lerpVectors with undefined vectors', { v1, v2 });
+    // console.warn('Attempted to lerpVectors with undefined vectors', { v1, v2 });
     return new THREE.Vector3(); // Return a default vector to avoid breaking the render
   }
   return new THREE.Vector3().lerpVectors(v1, v2, alpha);

@@ -1,13 +1,21 @@
 'use client';
 
-import { Globe, Menu } from 'lucide-react';
+import { Globe, Menu, UserRound, LogOut } from 'lucide-react';
 import { buttonVariants, Button } from './ui/button';
 import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from './ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import GithubIcon from './icons/github-icon';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
+import { LoadingLink } from './loading-link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from './auth-provider';
 
@@ -16,7 +24,24 @@ const Header = () => {
   const [DEV_ADMIN_MODE, setDEV_ADMIN_MODE] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
   const t = useTranslations('header');
-  const { user } = useAuth();
+  const { user, environment, signOut } = useAuth();
+
+  // Environment color mapping
+  const envColors = {
+    production: 'border-green-500',
+    preview: 'border-yellow-500',
+    development: 'border-blue-500'
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('Logged out successfully');
+    } catch (error) {
+      toast.error('Failed to log out');
+    }
+  };
 
   // Check localStorage for devAdmin flag when component mounts
   useEffect(() => {
@@ -85,27 +110,69 @@ const Header = () => {
                 {t('sourceCode')}
               </Link>
               <div className="border-t my-2"></div>
-              <Link
+              <LoadingLink
                 href="/database"
                 className={buttonVariants({ variant: 'outline' })}
+                loadingMessage="Loading database viewer..."
               >
                 {t('allData')}
-              </Link>
-              <Link
+              </LoadingLink>
+              <LoadingLink
                 href="/data-view"
                 className={buttonVariants({
                   variant: 'secondary',
                   class: 'bg-accent1 hover:bg-accent1-hover text-white'
                 })}
+                loadingMessage="Loading user-friendly data..."
               >
                 {t('userFriendlyData')}
-              </Link>
+              </LoadingLink>
               {(!!user || DEV_ADMIN_MODE) && (
-                <Link href="/admin">
+                <LoadingLink href="/admin" loadingMessage="Loading project management...">
                   <Button variant="outline" className="w-full mt-2">
                     {!!user ? 'Project Management' : t('adminDashboard')}
                   </Button>
+                </LoadingLink>
+              )}
+              {!user && !DEV_ADMIN_MODE && (
+                <Link href="/login">
+                  <Button variant="outline" className="w-full mt-2">
+                    Login
+                  </Button>
                 </Link>
+              )}
+              {user && (
+                <div className="mt-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className={cn(
+                          'w-10 h-10 rounded-full border-2',
+                          envColors[environment]
+                        )}
+                      >
+                        <UserRound className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem disabled>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{user.email}</span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {environment} environment
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               )}
             </nav>
           </SheetContent>
@@ -120,13 +187,14 @@ const Header = () => {
           >
             <GithubIcon />
           </Link>
-          <Link
+          <LoadingLink
             href="/database"
             className={buttonVariants({ variant: 'outline' })}
+            loadingMessage="Loading database viewer..."
           >
             {t('allData')}
-          </Link>
-          <Link
+          </LoadingLink>
+          <LoadingLink
             href="/data-view"
             className={cn(
               buttonVariants({
@@ -134,15 +202,52 @@ const Header = () => {
               }),
               'bg-accent4 text-white hover:bg-accent4/90'
             )}
+            loadingMessage="Loading user-friendly data..."
           >
             {t('userFriendlyData')}
-          </Link>
+          </LoadingLink>
           {(!!user || DEV_ADMIN_MODE) && (
-            <Link href="/admin">
+            <LoadingLink href="/admin" loadingMessage="Loading project management...">
               <Button variant="outline">
                 {!!user ? 'Project Management' : t('admin')}
               </Button>
+            </LoadingLink>
+          )}
+          {!user && !DEV_ADMIN_MODE && (
+            <Link href="/login">
+              <Button variant="outline">Login</Button>
             </Link>
+          )}
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    'w-10 h-10 rounded-full border-2',
+                    envColors[environment]
+                  )}
+                >
+                  <UserRound className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem disabled>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{user.email}</span>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {environment} environment
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </nav>
       </div>

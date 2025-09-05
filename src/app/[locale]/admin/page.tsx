@@ -50,6 +50,7 @@ import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
+import { useLoading } from '@/components/loading-provider';
 import { ProjectDownloadButton } from '@/components/project-download-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectMembers } from '@/components/project-members';
@@ -75,6 +76,12 @@ function AdminContent() {
   const envParam = searchParams.get('env') as SupabaseEnvironment;
   const environment: SupabaseEnvironment = envParam || 'production';
   const { user, isLoading } = useAuth();
+  const { setLoading } = useLoading();
+
+  // Clear loading state when component mounts
+  useEffect(() => {
+    setLoading(false);
+  }, [setLoading]);
   const [cloningByProjectId, setCloningByProjectId] = useState<
     Record<string, { status?: string; stage?: string; percent: number }>
   >({});
@@ -223,6 +230,11 @@ function AdminContent() {
     try {
       const supabase = createBrowserClient(environment);
       await supabase.auth.signOut();
+      
+      // Clear remember me preferences on sign out
+      localStorage.removeItem('rememberedEmail');
+      localStorage.removeItem('shouldRemember');
+      
       toast.success('Logged out successfully');
       window.location.href = `/login?env=${environment}`;
     } catch {

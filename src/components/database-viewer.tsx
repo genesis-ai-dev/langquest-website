@@ -78,6 +78,7 @@ import {
   useQueryState
 } from 'nuqs';
 import * as React from 'react';
+import { useEffect } from 'react';
 import { z } from 'zod';
 import { Database } from '../../database.types';
 import { Spinner } from './spinner';
@@ -90,6 +91,7 @@ import {
 } from './ui/sheet';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/auth-provider';
+import { useLoading } from '@/components/loading-provider';
 import { SupabaseEnvironment } from '@/lib/supabase';
 
 // Tables to exclude from the database viewer
@@ -1441,6 +1443,12 @@ function ReverseRelationshipPreview({
 export function DatabaseViewer() {
   const t = useTranslations('database_viewer');
   const { environment } = useAuth();
+  const { setLoading } = useLoading();
+
+  // Clear loading state when component mounts
+  useEffect(() => {
+    setLoading(false);
+  }, [setLoading]);
 
   // Fetch table schemas
   const {

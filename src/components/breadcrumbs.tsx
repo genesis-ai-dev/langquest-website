@@ -1,5 +1,6 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface BreadcrumbItem {
   label: string;
@@ -24,6 +25,13 @@ export function Breadcrumbs({ items, onNavigate }: BreadcrumbsProps) {
       aria-label="Breadcrumb"
       className="flex items-center gap-1 text-sm text-muted-foreground"
     >
+      <Link href="/" className="flex items-center gap-1 hover:text-primary transition-colors">
+        <Home className="h-4 w-4" />
+        <span className="sr-only">Home</span>
+      </Link>
+      {items.length > 0 && (
+        <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />
+      )}
       {items.map((item, index) => (
         <div key={index} className="flex items-center">
           {index > 0 && (

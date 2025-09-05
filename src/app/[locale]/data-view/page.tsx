@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 
 export default function DataViewPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div>Loading...</div>}>
       <DataView />
     </Suspense>
   );
