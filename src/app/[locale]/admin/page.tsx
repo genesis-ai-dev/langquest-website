@@ -5,6 +5,7 @@ import { QuestForm } from '@/components/quest-form';
 import { AssetForm } from '@/components/asset-form';
 import { ProjectWizard } from '@/components/project-wizard';
 import { DataView } from '@/components/data-view';
+import { MembershipRequestButton } from '@/components/membership-request-button';
 
 import {
   Card,
@@ -838,9 +839,15 @@ function AdminContent() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {!cloning && (
-                                      <Badge variant="secondary">
-                                        {project.quests?.length || 0} Quest(s)
-                                      </Badge>
+                                      <>
+                                        <Badge variant="secondary">
+                                          {project.quests?.length || 0} Quest(s)
+                                        </Badge>
+                                        <MembershipRequestButton
+                                          projectId={project.id}
+                                          projectName={project.name}
+                                        />
+                                      </>
                                     )}
                                   </div>
                                 </div>

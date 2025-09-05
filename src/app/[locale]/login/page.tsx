@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Home } from 'lucide-react';
 import Link from 'next/link';
 
 // Main component that serves as the page
@@ -184,10 +184,20 @@ function LoginForm() {
     <div className="flex items-center justify-center min-h-[80vh]">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Project Management Dashboard</CardTitle>
-          <CardDescription>
-            Sign in or create an account to manage your projects
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Project Management Dashboard</CardTitle>
+              <CardDescription>
+                Sign in or create an account to manage your projects
+              </CardDescription>
+            </div>
+            <Link href="/">
+              <Button variant="outline" size="sm">
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+            </Link>
+          </div>
           <div className="flex items-center gap-2 mt-2">
             <div
               className={`w-2 h-2 rounded-full ${envColors[environment]}`}

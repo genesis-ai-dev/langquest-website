@@ -48,6 +48,26 @@
       "tryAgain": "Failed to subscribe. Please try again."
     }
   },
+  "membership_request": {
+    "requestMembership": "Request Membership",
+    "requestSent": "Request Sent",
+    "withdrawRequest": "Withdraw Request",
+    "requesting": "Requesting...",
+    "withdrawing": "Withdrawing...",
+    "requestAgain": "Request Again",
+    "noAttemptsLeft": "No attempts left",
+    "attemptsLeft": "{count} left",
+    "success": {
+      "requestSent": "Membership request sent successfully",
+      "requestWithdrawn": "Membership request withdrawn",
+      "requestSentAgain": "Membership request sent again"
+    },
+    "errors": {
+      "failedToSend": "Failed to send membership request",
+      "failedToWithdraw": "Failed to withdraw membership request",
+      "unauthorized": "You must be logged in to request membership"
+    }
+  },
   "homepage": {
     "title": "LangQuest",
     "about": "About",
