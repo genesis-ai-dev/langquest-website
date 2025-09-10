@@ -187,7 +187,6 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           console.error('Error creating project ownership:', ownershipError);
           // Non-fatal: creator_id still grants ownership
         }
-
         toast.success('Project created successfully');
 
         // Call onSuccess callback with the result
