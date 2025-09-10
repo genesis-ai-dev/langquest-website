@@ -275,6 +275,7 @@ function AdminContent() {
           id, 
           name, 
           description,
+          creator_id,
           source_language:source_language_id(english_name), 
           target_language:target_language_id(english_name),
           quests:quest(id),
@@ -296,10 +297,14 @@ function AdminContent() {
             (link: any) => link.profile_id === user.id && link.active
           );
 
+          const isOwner =
+            project.creator_id === user.id ||
+            userMembership?.membership === 'owner';
+
           return {
             ...project,
-            isOwner: userMembership?.membership === 'owner',
-            membership: userMembership?.membership || null
+            isOwner,
+            membership: isOwner ? 'owner' : userMembership?.membership || null
           };
         })
         .sort((a, b) => {
@@ -826,9 +831,21 @@ function AdminContent() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {!cloning && (
-                                      <Badge variant="secondary">
-                                        {project.quests?.length || 0} Quest(s)
-                                      </Badge>
+                                      <>
+                                        <Badge variant="secondary">
+                                          {project.quests?.length || 0} Quest(s)
+                                        </Badge>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCloneProject(project.id);
+                                          }}
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                      </>
                                     )}
                                   </div>
                                 </div>

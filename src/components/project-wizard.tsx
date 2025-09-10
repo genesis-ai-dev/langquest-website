@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,7 +59,7 @@ import { createProjectOwnership } from '@/lib/project-permissions';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
-  method: z.enum(['new', 'clone']),
+  creationMethod: z.enum(['create', 'clone']),
   template_id: z.string().optional()
 });
 
@@ -91,11 +91,7 @@ const projectConfirmSchema = z.object({
 //   step3: projectConfirmSchema
 // });
 
-type ProjectWizardValues = {
-  step1?: z.infer<typeof projectMethodSchema>;
-  step2?: z.infer<typeof projectDetailsSchema>;
-  step3?: z.infer<typeof projectConfirmSchema>;
-};
+// Removed unused ProjectWizardValues type
 
 interface ProjectWizardProps {
   onSuccess?: (data: { id: string }) => void;
@@ -108,9 +104,8 @@ export function ProjectWizard({
   onCancel,
   projectToClone
 }: ProjectWizardProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(projectToClone ? 2 : 1); // Skip to step 2 if cloning
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [projectName, setProjectName] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user, environment } = useAuth();
@@ -120,41 +115,6 @@ export function ProjectWizard({
     stage?: string;
     dstProjectId?: string;
   } | null>(null);
-  const [wizardData, setWizardData] = useState<Partial<ProjectWizardValues>>({
-    step1: {
-      method: projectToClone ? 'clone' : 'new',
-      template_id: projectToClone || undefined
-    },
-    step2: {
-      name: '',
-      description: '',
-      source_language_id: 'eng',
-      target_language_id: 'eng',
-      color: '#3b82f6'
-    },
-    step3: { confirmed: true }
-  });
-
-  // Step 1 form
-  const step1Form = useForm<z.infer<typeof projectMethodSchema>>({
-    resolver: zodResolver(projectMethodSchema),
-    defaultValues: wizardData.step1 || {
-      method: projectToClone ? 'clone' : 'new',
-      template_id: projectToClone || undefined
-    }
-  });
-
-  // Step 2 form
-  const step2Form = useForm<z.infer<typeof projectDetailsSchema>>({
-    resolver: zodResolver(projectDetailsSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      source_language_id: 'eng',
-      target_language_id: 'eng',
-      color: '#3b82f6'
-    }
-  });
 
   // Fetch existing projects for cloning
   const { data: existingProjects } = useQuery({
@@ -170,8 +130,8 @@ export function ProjectWizard({
         description,
         source_language_id,
         target_language_id,
-        source_language:source_language_id(id, english_name),
-        target_language:target_language_id(english_name),
+        source_language:language!source_language_id(id, english_name),
+        target_language:language!target_language_id(id, english_name),
         quests:quest!project_id(count)
       `
         )
@@ -180,8 +140,53 @@ export function ProjectWizard({
       if (error) throw error;
       return data || [];
     },
-    enabled: step === 1
+    enabled: step === 1 || projectToClone !== undefined
   });
+
+  // Step 1 form
+  const step1Form = useForm<z.infer<typeof projectMethodSchema>>({
+    resolver: zodResolver(projectMethodSchema),
+    defaultValues: {
+      creationMethod: projectToClone ? 'clone' : 'create',
+      template_id: projectToClone || undefined
+    }
+  });
+
+  const creationMethod = step1Form.watch('creationMethod');
+  const templateId = step1Form.watch('template_id');
+
+  // Step 2 form - always clean initialization
+  const step2Form = useForm<z.infer<typeof projectDetailsSchema>>({
+    resolver: zodResolver(projectDetailsSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      source_language_id: 'eng',
+      target_language_id: '',
+      color: '#3b82f6'
+    },
+    mode: 'onChange'
+  });
+
+  // Get clone project data and populate form when available
+  const projectForCloning = useMemo(() => {
+    const id = projectToClone || templateId;
+    if (creationMethod === 'clone' && id) {
+      return existingProjects?.find((p) => p.id === id);
+    }
+    return undefined;
+  }, [existingProjects, projectToClone, templateId, creationMethod]);
+
+  // When projectToClone prop is provided, pre-populate fields for cloning
+  useEffect(() => {
+    if (projectToClone && projectForCloning) {
+      step2Form.setValue('description', projectForCloning.description || '');
+      step2Form.setValue(
+        'source_language_id',
+        projectForCloning.source_language_id
+      );
+    }
+  }, [projectToClone, projectForCloning, step2Form]);
 
   // Fetch languages for dropdowns
   const { data: languages, isLoading: languagesLoading } = useQuery({
@@ -197,168 +202,35 @@ export function ProjectWizard({
     }
   });
 
-  // Simplified cloning logic - combine all the related effects
-  useEffect(() => {
-    // Only run this effect when we're on step 1 or 2, not after
-    if (step > 2) return;
-
-    if (!projectToClone || !existingProjects) return;
-
-    const projectData = existingProjects.find((p) => p.id === projectToClone);
-    if (!projectData) return;
-
-    const cloneData = {
-      name: '',
-      description: projectData.description,
-      source_language_id: projectData.source_language_id,
-      target_language_id: ''
-    };
-
-    // Update everything at once
-    setProjectName(cloneData.name);
-    setWizardData((prev) => ({
-      ...prev,
-      step1: { method: 'clone', template_id: projectToClone },
-      step2: cloneData
-    }));
-    step2Form.reset(cloneData);
-
-    // Auto-advance to step 2
-    if (step === 1) setStep(2);
-  }, [projectToClone, existingProjects, step, step2Form]);
-
-  // Simplified step 2 sync
-  useEffect(() => {
-    if (step === 2 && wizardData.step2 && !step2Form.getValues('name')) {
-      step2Form.reset(wizardData.step2);
-      if (wizardData.step2.name) setProjectName(wizardData.step2.name);
-    }
-  }, [step, wizardData.step2, step2Form]);
-
-  // Sync the project name with the form
-  useEffect(() => {
-    if (projectName) {
-      step2Form.setValue('name', projectName);
-
-      // Also update the wizard data
-      setWizardData((prev) => {
-        // Make sure we have all required properties
-        const currentStep2 = prev.step2 || {
-          name: '',
-          source_language_id: 'eng',
-          target_language_id: 'eng',
-          description: ''
-        };
-
-        return {
-          ...prev,
-          step2: {
-            ...currentStep2,
-            name: projectName
-          }
-        };
-      });
-    }
-  }, [projectName, step2Form]);
-
-  // Watch for changes in the form and update wizardData
-  useEffect(() => {
-    const subscription = step2Form.watch((value) => {
-      if (step === 2 && Object.keys(value).length > 0) {
-        // Only update if we have actual values and we're on step 2
-        setWizardData((prev) => {
-          const prevStep2 = prev.step2 || {
-            name: '',
-            description: undefined,
-            source_language_id: 'eng',
-            target_language_id: 'eng'
-          };
-
-          // Construct the potential new step2 data from current form values
-          const newStep2Data: z.infer<typeof projectDetailsSchema> = {
-            name: value.name || prevStep2.name,
-            description: value.description,
-            source_language_id:
-              value.source_language_id || prevStep2.source_language_id,
-            target_language_id:
-              value.target_language_id !== undefined
-                ? value.target_language_id
-                : prevStep2.target_language_id
-          };
-
-          // Compare new data with previous step2 data
-          if (
-            prevStep2.name === newStep2Data.name &&
-            prevStep2.description === newStep2Data.description &&
-            prevStep2.source_language_id === newStep2Data.source_language_id &&
-            prevStep2.target_language_id === newStep2Data.target_language_id
-          ) {
-            return prev; // No actual change in values, return the existing state object to prevent loop
-          }
-
-          // If there are changes, update wizardData.step2
-          return {
-            ...prev,
-            step2: newStep2Data
-          };
-        });
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [step, step2Form]); // Dependencies: step and step2Form (which is stable)
-
-  // Reset form once when entering step 2 (avoid resetting on each wizardData change)
-  useEffect(() => {
-    if (step === 2 && wizardData.step2) {
-      const currentName = step2Form.getValues('name');
-      const isFirstTimeInStep2 = currentName === '';
-
-      if (isFirstTimeInStep2) {
-        step2Form.reset(wizardData.step2);
-      }
-    }
-  }, [step, step2Form, wizardData.step2]);
+  // No complex state management needed - forms handle their own state
 
   // Step 3 form
   const step3Form = useForm<z.infer<typeof projectConfirmSchema>>({
     resolver: zodResolver(projectConfirmSchema),
-    defaultValues: wizardData.step3 || {
+    defaultValues: {
       confirmed: true
     }
   });
 
   // Handle step 1 submission
-  const onStep1Submit = async (values: z.infer<typeof projectMethodSchema>) => {
-    setWizardData((prev) => ({ ...prev, step1: values }));
+  const onStep1Submit = async () => {
     setStep(2);
   };
 
   // Handle step 2 submission
-  const onStep2Submit = async (
-    values: z.infer<typeof projectDetailsSchema>
-  ) => {
-    const formValues = {
-      ...values,
-      name: projectName || values.name
-    };
-
-    setWizardData((prev) => ({
-      ...prev,
-      step2: formValues
-    }));
-
+  const onStep2Submit = async () => {
     setStep(3);
   };
 
   // Handle step 3 submission (final submission)
-  const onStep3Submit = async (
-    values: z.infer<typeof projectConfirmSchema>
-  ) => {
+  const onStep3Submit = async () => {
+    const isCloning =
+      projectToClone && step1Form.getValues('creationMethod') === 'clone';
+
     // Prevent re-entrancy / double submits
     if (isSubmitting) return;
     if (
-      wizardData.step1?.method === 'clone' &&
+      isCloning &&
       cloneJob?.id &&
       cloneJob.status !== 'failed' &&
       cloneJob.status !== 'done'
@@ -371,18 +243,16 @@ export function ProjectWizard({
       return;
     }
 
-    setWizardData((prev) => ({ ...prev, step3: values }));
     setIsSubmitting(true);
 
     try {
-      const isCloning =
-        wizardData.step1?.method === 'clone' && wizardData.step1?.template_id;
+      const step2Values = step2Form.getValues();
 
       if (isCloning) {
         // Validate required fields for clone path
-        const rootProjectId = wizardData.step1?.template_id as string;
-        const newName = (projectName || wizardData.step2?.name || '').trim();
-        const targetLang = (wizardData.step2?.target_language_id || '').trim();
+        const rootProjectId = projectToClone;
+        const newName = step2Values.name.trim();
+        const targetLang = step2Values.target_language_id.trim();
 
         if (!newName) {
           toast.error('Please enter a name for the cloned project');
@@ -395,34 +265,6 @@ export function ProjectWizard({
 
         const supabase = createBrowserClient(environment);
 
-        // Resolve profile.id for creator_id (not auth uid)
-        let profileId: string | undefined;
-        try {
-          const { data: profByAuth } = await supabase
-            .from('profile')
-            .select('id')
-            .eq('auth_user_id', user.id)
-            .single();
-          if (profByAuth?.id) {
-            profileId = profByAuth.id;
-          } else {
-            // Fallback if schema uses id = auth uid
-            const { data: profById } = await supabase
-              .from('profile')
-              .select('id')
-              .eq('id', user.id)
-              .single();
-            profileId = profById?.id;
-          }
-        } catch {
-          profileId = undefined;
-        }
-
-        if (!profileId) {
-          toast.error('Could not resolve your profile');
-          return;
-        }
-
         // Start clone job via RPC
         const { data: jobIdData, error: startErr } = await supabase.rpc(
           'start_clone',
@@ -430,7 +272,7 @@ export function ProjectWizard({
             p_root_project_id: rootProjectId,
             p_new_project_name: newName,
             p_target_language_id: targetLang,
-            p_creator_id: profileId,
+            p_creator_id: user.id, // profile.id = auth.users.id
             p_batch_size: 25
           }
         );
@@ -500,10 +342,11 @@ export function ProjectWizard({
 
       // Non-clone path: create a fresh project directly
       const projectData = {
-        name: projectName || wizardData.step2?.name || '',
-        description: wizardData.step2?.description || '',
-        source_language_id: wizardData.step2?.source_language_id || '',
-        target_language_id: wizardData.step2?.target_language_id || ''
+        name: step2Values.name || '',
+        description: step2Values.description || null,
+        source_language_id: step2Values.source_language_id || '',
+        target_language_id: step2Values.target_language_id || '',
+        creator_id: user.id // Set creator_id; ACL link will also be added via RPC
       };
 
       const { data, error } = await createBrowserClient(environment)
@@ -512,14 +355,16 @@ export function ProjectWizard({
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Project creation error:', error);
+        throw error;
+      }
 
       try {
         await createProjectOwnership(data.id, user.id, environment);
       } catch (ownershipError) {
         console.error('Error creating project ownership:', ownershipError);
-        toast.error('Project created but ownership setup failed');
-        return;
+        // Non-fatal: creator_id still grants ownership; continue
       }
 
       toast.success('Project created successfully');
@@ -615,7 +460,7 @@ export function ProjectWizard({
         >
           <FormField
             control={step1Form.control}
-            name="method"
+            name="creationMethod"
             render={({ field }) => (
               <FormItem className="space-y-3">
                 <FormLabel>Project Creation Method</FormLabel>
@@ -626,8 +471,8 @@ export function ProjectWizard({
                     className="flex flex-col space-y-1"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="new" id="new" />
-                      <Label htmlFor="new" className="flex items-center">
+                      <RadioGroupItem value="create" id="create" />
+                      <Label htmlFor="create" className="flex items-center">
                         <Plus className="mr-2 h-4 w-4" />
                         Create a new project from scratch
                       </Label>
@@ -646,7 +491,7 @@ export function ProjectWizard({
             )}
           />
 
-          {step1Form.watch('method') === 'clone' && (
+          {step1Form.watch('creationMethod') === 'clone' && (
             <FormField
               control={step1Form.control}
               name="template_id"
@@ -707,6 +552,7 @@ export function ProjectWizard({
     return (
       <Form {...step2Form}>
         <form
+          key={`project-form-${creationMethod}`}
           onSubmit={step2Form.handleSubmit(onStep2Submit)}
           className="space-y-6"
         >
@@ -719,13 +565,8 @@ export function ProjectWizard({
                 <FormControl>
                   <Input
                     placeholder="Enter project name"
-                    value={projectName}
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      setProjectName(newValue);
-                      // Also update the form value
-                      field.onChange(newValue);
-                    }}
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}
@@ -750,7 +591,6 @@ export function ProjectWizard({
                     placeholder="Enter project description"
                     className="min-h-[100px]"
                     {...field}
-                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormDescription>
@@ -790,11 +630,11 @@ export function ProjectWizard({
                       languages={(languages as Language[]) || []}
                       isLoading={languagesLoading}
                       onCreateSuccess={handleLanguageCreated}
-                      disabled={wizardData.step1?.method === 'clone'}
+                      disabled={projectToClone !== undefined}
                     />
                   </FormControl>
                   <FormDescription>
-                    {wizardData.step1?.method === 'clone'
+                    {projectToClone
                       ? "Locked to the source project's source language."
                       : 'The original language of the content.'}
                   </FormDescription>
@@ -950,11 +790,11 @@ export function ProjectWizard({
 
   // Render step 3: Confirmation
   const renderStep3 = () => {
-    const projectDetails = wizardData.step2;
-    const isCloning = wizardData.step1?.method === 'clone';
-    const sourceProjectId = wizardData.step1?.template_id;
+    const projectDetails = step2Form.getValues();
+    const isCloning =
+      projectToClone && step1Form.getValues('creationMethod') === 'clone';
     const sourceProject = existingProjects?.find(
-      (p) => p.id === sourceProjectId
+      (p) => p.id === projectToClone
     );
 
     return (
@@ -969,7 +809,7 @@ export function ProjectWizard({
             <div className="rounded-md border p-4 space-y-3">
               <div>
                 <span className="font-medium">Creation Method:</span>{' '}
-                {isCloning ? 'Cloning from project' : 'New project'}
+                {isCloning ? 'Cloning from project' : 'Create new project'}
               </div>
 
               {isCloning && sourceProject && (
@@ -981,7 +821,7 @@ export function ProjectWizard({
 
               <div>
                 <span className="font-medium">Name:</span>{' '}
-                {projectName || projectDetails?.name}
+                {projectDetails?.name}
               </div>
 
               {projectDetails?.description && (
