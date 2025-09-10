@@ -41,32 +41,26 @@ LangQuest's purpose is twofold: (1) to gather linguistic data from native speake
 For users organizing translation projects in remote, low-resource settings, LangQuest offers several key benefits:
 
 1. **Offline Capability**:
-
    - The app is designed to function offline, crucial for areas with poor internet. Users can register and log in while online, then work offline, safely storing their data locally until they can sync when connectivity is available.
    - This resilience to connectivity issues ensures that no work is lost during extended offline periods, a critical feature for fieldwork in remote areas.
 
 2. **Open Data for AI Advancement**:
-
    - All validated translations become part of an openly licensed database that contributes to training the next generation of AI tools, helping these technologies support every language.
    - This creates a virtuous cycle where user contributions directly improve future AI capabilities for low-resource languages.
 
 3. **AI Integration for Efficiency**:
-
    - The app integrates AI to generate initial translations, which users can review and vote on. This feature can significantly speed up progress, especially for lengthy projects.
    - This is particularly valuable for low-resource languages where training data is scarce, as the community's contributions help improve the AI over time, creating a symbiotic relationship.
 
 4. **Gamification to Enhance Engagement**:
-
    - Gamification elements, such as rewards, leaderboards, and achievements, are included to provoke an emotional sense of accomplishment. For instance, users see their scores increase and climb the leaderboard, which motivates continued participation.
    - This is unexpected for a translation tool but crucial for retaining users in long-term projects, especially in remote settings where motivation can wane due to isolation.
 
 5. **Flexible Project and Content Management**:
-
    - Projects can be public or private, with owners managing membership and content creation. Users can duplicate projects or quests, facilitating scalability, such as translating from Spanish to Popoluca.
    - The ability to create and edit content on mobile devices, despite limited screen real estate, ensures accessibility for field workers, enhancing usability in remote areas.
 
 6. **Community Ownership and Open Access**:
-
    - All translations produced are community-owned and not copyright-protected, ensuring that the content belongs to the public. This aligns with the ethos of open access, appealing to communities valuing collective ownership.
    - End users have open access to all submitted content, fostering collaboration and transparency, which is vital for trust in remote, community-driven projects.
 
@@ -102,34 +96,28 @@ These questions could refine the strategy, but based on the provided information
 The landing page should be clean, engaging, and benefit-oriented, inspired by platforms like [Devin AI](https://www.devin.ai/) and [Onlook](https://onlook.com/). Using ShadCN components, we can design:
 
 - **Hero Section**:
-
   - Headline: "Translate, Preserve, and Connect with LangQuest"
   - Subheadline: "The offline-tolerant, AI-assisted translation app for low-resource languages."
   - Call to Action: A prominent button for "Sign up for updates," styled with ShadCN's Button component.
   - Custom Touch: A background image of a remote community using mobile devices, symbolizing accessibility, with a subtle animation of text fading in.
 
 - **Key Features Section**:
-
   - Use ShadCN's Card component to display features like offline tolerance, AI assistance, and gamification, each with an icon (e.g., Wi-Fi off for offline, robot for AI).
   - Custom Touch: Interactive cards that expand on hover, revealing brief user stories (e.g., "Miguel translated 50 verses while offline for three days").
 
 - **How it Works Section**:
-
   - A step-by-step guide using ShadCN's Steps component, detailing project creation, contribution, and voting.
   - Custom Touch: Include a small diagram (e.g., a flowchart) showing the flow from project to translation, with tooltips for each step, enhancing user understanding.
 
 - **Why LangQuest Section**:
-
   - Highlight pain points (e.g., "Struggling with internet in remote areas?") and solutions, using ShadCN's Alert component for emphasis.
   - Custom Touch: A testimonial slider (if beta testing is done) or a placeholder for future user quotes, with a fade-in effect.
 
 - **Open Data Impact Section**:
-
   - Highlight how contributions help train AI models for low-resource languages, using ShadCN's Card or Callout components.
   - Custom Touch: A visual representation of how data flows from user contributions to AI training, perhaps with a simple animated graphic.
 
 - **Future Roadmap Section**:
-
   - Use ShadCN's Timeline component to showcase planned features, including P2P connectivity research.
   - Custom Touch: Allow users to vote on or express interest in specific future features.
 

@@ -91,11 +91,7 @@ const projectConfirmSchema = z.object({
 //   step3: projectConfirmSchema
 // });
 
-type ProjectWizardValues = {
-  step1?: z.infer<typeof projectMethodSchema>;
-  step2?: z.infer<typeof projectDetailsSchema>;
-  step3?: z.infer<typeof projectConfirmSchema>;
-};
+// Removed unused ProjectWizardValues type
 
 interface ProjectWizardProps {
   onSuccess?: (data: { id: string }) => void;
@@ -217,21 +213,17 @@ export function ProjectWizard({
   });
 
   // Handle step 1 submission
-  const onStep1Submit = async (values: z.infer<typeof projectMethodSchema>) => {
+  const onStep1Submit = async () => {
     setStep(2);
   };
 
   // Handle step 2 submission
-  const onStep2Submit = async (
-    values: z.infer<typeof projectDetailsSchema>
-  ) => {
+  const onStep2Submit = async () => {
     setStep(3);
   };
 
   // Handle step 3 submission (final submission)
-  const onStep3Submit = async (
-    values: z.infer<typeof projectConfirmSchema>
-  ) => {
+  const onStep3Submit = async () => {
     const isCloning =
       projectToClone && step1Form.getValues('creationMethod') === 'clone';
 
