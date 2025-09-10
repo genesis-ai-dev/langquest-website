@@ -831,9 +831,21 @@ function AdminContent() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {!cloning && (
-                                      <Badge variant="secondary">
-                                        {project.quests?.length || 0} Quest(s)
-                                      </Badge>
+                                      <>
+                                        <Badge variant="secondary">
+                                          {project.quests?.length || 0} Quest(s)
+                                        </Badge>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCloneProject(project.id);
+                                          }}
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                      </>
                                     )}
                                   </div>
                                 </div>
