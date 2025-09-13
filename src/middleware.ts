@@ -148,7 +148,7 @@ export const config = {
      * - static files (e.g. /favicon.ico)
      * - ingest (PostHog ingestion)
      */
-    '/((?!api|static|.*\\..*|_next|ingest|supabase).*)',
+    '/((?!api|static|relay-Mx9k|.*\\..*|_next|ingest|supabase).*)',
     '/relay-Mx9k/:path*'
   ]
 };
