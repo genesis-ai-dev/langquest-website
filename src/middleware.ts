@@ -7,32 +7,66 @@ import { createClient } from '@supabase/supabase-js';
 // Assumes `routing` object is the configuration for createNextIntlMiddleware
 const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
+// CORS configuration for relay endpoint
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://yourdomain.com' // Replace with your production domain
+];
+
+const corsOptions = {
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'Content-Type, Authorization, X-Requested-With'
+};
+
 export default async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
+
+  // Handle relay endpoint with proper CORS
   if (url.pathname.startsWith('/relay-Mx9k')) {
+    const origin = request.headers.get('origin') ?? '';
+    const isAllowedOrigin = allowedOrigins.includes(origin) || origin === ''; // Allow same-origin requests
+
     const hostname = url.pathname.startsWith('/relay-Mx9k/static/')
       ? 'us-assets.i.posthog.com'
       : 'us.i.posthog.com';
-    const requestHeaders = new Headers(request.headers);
 
+    // Handle preflighted requests
+    const isPreflight = request.method === 'OPTIONS';
+
+    if (isPreflight) {
+      const preflightHeaders = {
+        ...(isAllowedOrigin && { 'Access-Control-Allow-Origin': origin }),
+        ...corsOptions
+      };
+      return NextResponse.json({}, { headers: preflightHeaders });
+    }
+
+    // Handle simple requests - set up the rewrite
+    const requestHeaders = new Headers(request.headers);
     requestHeaders.set('host', hostname);
 
     url.protocol = 'https';
     url.hostname = hostname;
     url.port = '443';
-    url.pathname = url.pathname.replace(/^\/relay-LvDd/, '');
+    url.pathname = url.pathname.replace(/^\/relay-Mx9k/, '');
 
-    requestHeaders.set('Access-Control-Allow-Origin', '*');
-    requestHeaders.set('Access-Control-Allow-Credentials', 'true');
-    requestHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    requestHeaders.set(
-      'Access-Control-Allow-Headers',
-      'X-Requested-With, Content-Type, Authorization'
-    );
-
-    return NextResponse.rewrite(url, {
-      headers: requestHeaders
+    const response = NextResponse.rewrite(url, {
+      request: {
+        headers: requestHeaders
+      }
     });
+
+    // Set CORS headers for the response
+    if (isAllowedOrigin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+
+    Object.entries(corsOptions).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    return response;
   }
 
   console.log('[MIDDLEWARE] Hit. Pathname:', request.nextUrl.pathname);
