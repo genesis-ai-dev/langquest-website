@@ -8,6 +8,33 @@ import { createClient } from '@supabase/supabase-js';
 const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
 export default async function middleware(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  if (url.pathname.startsWith('/relay-LvDd')) {
+    const hostname = url.pathname.startsWith('/relay-Mx9k/static/')
+      ? 'us-assets.i.posthog.com'
+      : 'us.i.posthog.com';
+    const requestHeaders = new Headers(request.headers);
+
+    requestHeaders.set('host', hostname);
+
+    url.protocol = 'https';
+    url.hostname = hostname;
+    url.port = '443';
+    url.pathname = url.pathname.replace(/^\/relay-LvDd/, '');
+
+    requestHeaders.set('Access-Control-Allow-Origin', '*');
+    requestHeaders.set('Access-Control-Allow-Credentials', 'true');
+    requestHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    requestHeaders.set(
+      'Access-Control-Allow-Headers',
+      'X-Requested-With, Content-Type, Authorization'
+    );
+
+    return NextResponse.rewrite(url, {
+      headers: requestHeaders
+    });
+  }
+
   console.log('[MIDDLEWARE] Hit. Pathname:', request.nextUrl.pathname);
   console.log('[MIDDLEWARE] Full URL:', request.url);
   console.log(
