@@ -9,7 +9,7 @@ const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
 export default async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
-  if (url.pathname.startsWith('/relay-LvDd')) {
+  if (url.pathname.startsWith('/relay-Mx9k')) {
     const hostname = url.pathname.startsWith('/relay-Mx9k/static/')
       ? 'us-assets.i.posthog.com'
       : 'us.i.posthog.com';
@@ -149,6 +149,6 @@ export const config = {
      * - ingest (PostHog ingestion)
      */
     '/((?!api|static|.*\\..*|_next|ingest|supabase).*)',
-    '/relay-Mk9k/:path*'
+    '/relay-Mx9k/:path*'
   ]
 };
