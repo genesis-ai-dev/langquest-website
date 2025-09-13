@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
   async rewrites() {
     return [
+      /** Remove ingest routes after migration to relay endpoints in middleware.ts */
       {
         source: '/ingest/static/:path*',
         destination: 'https://us-assets.i.posthog.com/static/:path*'
