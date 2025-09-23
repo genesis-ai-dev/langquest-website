@@ -27,11 +27,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
-import { Badge } from './ui/badge';
-import { X, CheckIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { checkProjectOwnership } from '@/lib/project-permissions';
 import { OwnershipAlert } from '@/components/ownership-alert';
+import { TagSelector } from '@/components/tag-selector';
 // import { cn } from '@/lib/utils';
 
 const questFormSchema = z.object({
@@ -62,8 +61,6 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
-  const [isTagsExpanded, setIsTagsExpanded] = useState(false);
-  const [tagSearchQuery, setTagSearchQuery] = useState('');
   const { user, environment } = useAuth();
 
   // Fetch projects for the dropdown - only projects where user is creator/owner
@@ -93,20 +90,6 @@ export function QuestForm({
     enabled: !!user?.id
   });
 
-  // Fetch tags for the multi-select
-  const { data: tags = [], isLoading: tagsLoading } = useQuery({
-    queryKey: ['tags', environment],
-    queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
-        .from('tag')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
   // Set up form with default values
   const form = useForm<QuestFormValues>({
     resolver: zodResolver(questFormSchema),
@@ -117,14 +100,6 @@ export function QuestForm({
       tags: []
     }
   });
-
-  // Filter tags based on search query
-  const filteredTags = tags.filter((tag) =>
-    tag.name.toLowerCase().includes(tagSearchQuery.toLowerCase())
-  );
-
-  // Determine which tags to show (filtered and then sliced if not expanded)
-  const tagsToShow = isTagsExpanded ? filteredTags : filteredTags.slice(0, 3);
 
   async function onSubmit(values: QuestFormValues) {
     if (!user) {
@@ -229,7 +204,7 @@ export function QuestForm({
     }
   }
 
-  if (projectsLoading || tagsLoading) {
+  if (projectsLoading) {
     return <Spinner />;
   }
 
@@ -321,155 +296,17 @@ export function QuestForm({
           value={JSON.stringify(selectedTags)}
         />
 
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Tags
-            </label>
-            {filteredTags.length > 3 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsTagsExpanded(!isTagsExpanded)}
-                className="h-auto p-1"
-              >
-                {isTagsExpanded ? (
-                  <>
-                    Show Less <ChevronUp className="ml-1 h-3 w-3" />
-                  </>
-                ) : (
-                  <>
-                    Show All ({filteredTags.length}){' '}
-                    <ChevronDown className="ml-1 h-3 w-3" />
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {/* Selected tags display */}
-            <div className="flex flex-wrap gap-1 p-3 border rounded-md min-h-[60px] bg-muted/20">
-              {selectedTags.length > 0 ? (
-                selectedTags.map((tagId) => {
-                  const tag = tags.find((t) => t.id === tagId);
-                  return (
-                    <Badge key={tagId} variant="secondary" className="m-1">
-                      {tag?.name}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 ml-2 hover:bg-destructive/20"
-                        onClick={() => {
-                          const newSelectedTags = selectedTags.filter(
-                            (id) => id !== tagId
-                          );
-                          setSelectedTags(newSelectedTags);
-                          form.setValue('tags', newSelectedTags);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  );
-                })
-              ) : (
-                <div className="text-sm text-muted-foreground p-2">
-                  No tags selected
-                </div>
-              )}
-            </div>
-
-            {/* Available tags */}
-            {!tagsLoading ? (
-              <div className="border rounded-md p-4">
-                <div className="mb-3">
-                  <label className="text-sm font-medium mb-2 block">
-                    Available Tags
-                  </label>
-                  <div className="text-sm text-muted-foreground mb-3">
-                    Click on tags to select/deselect them
-                  </div>
-
-                  {/* Search input */}
-                  {tags.length > 5 && (
-                    <div className="mb-3">
-                      <Input
-                        type="text"
-                        placeholder="Search tags..."
-                        value={tagSearchQuery}
-                        onChange={(e) => setTagSearchQuery(e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  )}
-
-                  {tagsToShow.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {tagsToShow.map((tag) => (
-                        <Badge
-                          key={tag.id}
-                          variant={
-                            selectedTags.includes(tag.id)
-                              ? 'default'
-                              : 'outline'
-                          }
-                          className="cursor-pointer hover:scale-105 transition-transform"
-                          onClick={() => {
-                            let newSelectedTags;
-                            if (!selectedTags.includes(tag.id)) {
-                              newSelectedTags = [...selectedTags, tag.id];
-                            } else {
-                              newSelectedTags = selectedTags.filter(
-                                (id) => id !== tag.id
-                              );
-                            }
-                            setSelectedTags(newSelectedTags);
-                            form.setValue('tags', newSelectedTags);
-                          }}
-                        >
-                          {tag.name}
-                          {selectedTags.includes(tag.id) && (
-                            <CheckIcon className="ml-1 h-3 w-3" />
-                          )}
-                        </Badge>
-                      ))}
-                      {!isTagsExpanded && filteredTags.length > 3 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsTagsExpanded(true)}
-                          className="h-6 px-2 text-xs"
-                        >
-                          +{filteredTags.length - 3} more
-                        </Button>
-                      )}
-                    </div>
-                  ) : tagSearchQuery ? (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      No tags found matching &quot;{tagSearchQuery}&quot;
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      No tags available
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex justify-center p-4 border rounded-md">
-                <Spinner className="h-6 w-6" />
-                <span className="ml-2">Loading tags...</span>
-              </div>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Add tags to categorize this quest.
-          </p>
-        </div>
+        <TagSelector
+          selectedTags={selectedTags}
+          onTagsChange={(tags) => {
+            setSelectedTags(tags);
+            form.setValue('tags', tags);
+          }}
+          environment={environment}
+          label="Tags"
+          description="Add tags to categorize this quest."
+          disabled={isSubmitting || !user}
+        />
 
         <Button type="submit" disabled={isSubmitting || !user}>
           {isSubmitting ? (
