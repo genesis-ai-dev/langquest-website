@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 // import { useQuery } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { SupabaseEnvironment } from '@/lib/supabase';
@@ -89,7 +89,7 @@ export function TagSelector({
 
     async function fetchTags() {
       if (cachedTags.current.has(searchQuery)) {
-        let data = cachedTags.current.get(searchQuery);
+        const data = cachedTags.current.get(searchQuery);
         setFilteredTags(data || []);
         setTotalPages(
           Math.ceil(data ? data.length / maxVisibleTagsExtended : 0)
@@ -224,7 +224,7 @@ export function TagSelector({
           }`}
           onClick={() => createNewTag(searchQuery)}
         >
-          + create: "{searchQuery}"
+          + create: &quot;{searchQuery}&quot;
         </Badge>
       );
     } else {
