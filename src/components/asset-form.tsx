@@ -23,6 +23,7 @@ import { Spinner } from './spinner';
 import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { OwnershipAlert } from '@/components/ownership-alert';
+import { TagSelector } from '@/components/tag-selector';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -87,20 +88,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       setSelectedQuests((prev) => [...prev, questId]);
     }
   }, [questId, selectedQuests]);
-
-  // Fetch tags for the multi-select
-  const { data: tagsData = [], isLoading: tagsLoading } = useQuery({
-    queryKey: ['tags', environment],
-    queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
-        .from('tag')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-      return data || [];
-    }
-  });
 
   // Fetch quests for the multi-select - from projects where user is owner
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
@@ -613,7 +600,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     }
   }
 
-  if (tagsLoading || (questsLoading && !questId)) {
+  if (questsLoading && !questId) {
     return <Spinner />;
   }
 
@@ -817,7 +804,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
               name="tags"
               render={() => (
                 <FormItem>
-                  <FormLabel>Tags</FormLabel>
                   <FormControl>
                     <div className="flex flex-col gap-2">
                       {/* Hidden input to store tags for form validation */}
@@ -826,93 +812,17 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                         {...form.register('tags')}
                         value={JSON.stringify(selectedTags)}
                       />
-                      <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[80px]">
-                        {selectedTags.length > 0 ? (
-                          selectedTags.map((tagId) => {
-                            const tag = tagsData?.find((t) => t.id === tagId);
-                            return (
-                              <Badge
-                                key={tagId}
-                                variant="secondary"
-                                className="m-1"
-                              >
-                                {tag?.name}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto p-0 ml-2"
-                                  onClick={() => {
-                                    setSelectedTags(
-                                      selectedTags.filter((id) => id !== tagId)
-                                    );
-                                  }}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </Badge>
-                            );
-                          })
-                        ) : (
-                          <div className="text-sm text-muted-foreground p-2">
-                            No tags selected
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Replace Popover with direct tag selection UI */}
-                      <div className="border rounded-md p-4">
-                        <div className="mb-4">
-                          <label className="text-sm font-medium mb-2 block">
-                            Available Tags
-                          </label>
-                          <div className="text-sm text-muted-foreground mb-2">
-                            Click on tags to select/deselect them
-                          </div>
-                          {tagsData && tagsData.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {tagsData.map((tag) => (
-                                <Badge
-                                  key={tag.id}
-                                  variant={
-                                    selectedTags.includes(tag.id)
-                                      ? 'default'
-                                      : 'outline'
-                                  }
-                                  className="cursor-pointer"
-                                  onClick={() => {
-                                    let newSelectedTags;
-                                    if (!selectedTags.includes(tag.id)) {
-                                      newSelectedTags = [
-                                        ...selectedTags,
-                                        tag.id
-                                      ];
-                                    } else {
-                                      newSelectedTags = selectedTags.filter(
-                                        (id) => id !== tag.id
-                                      );
-                                    }
-                                    setSelectedTags(newSelectedTags);
-                                  }}
-                                >
-                                  {tag.name}
-                                  {selectedTags.includes(tag.id) && (
-                                    <CheckIcon className="ml-1 h-3 w-3" />
-                                  )}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-4 text-sm text-muted-foreground">
-                              No tags available
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <TagSelector
+                        selectedTags={selectedTags}
+                        onTagsChange={setSelectedTags}
+                        environment={environment}
+                        label="Tags"
+                        description="Add tags to categorize this asset."
+                        disabled={isSubmitting}
+                      />
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    Add tags to categorize this asset.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
