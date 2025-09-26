@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     if (origin && !allowedOrigins.includes(origin)) {
       return NextResponse.json(
-        { error: 'Unauthorized origin' },
+        { error: `Unauthorized origin: ${origin}` },
         { status: 403 }
       );
     }
