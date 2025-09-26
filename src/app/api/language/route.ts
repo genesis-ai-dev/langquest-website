@@ -11,6 +11,8 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
+    /*    
+    // Removed origin and referer check for now, as it was blocking legitimate requests 
     // Verify origin
     const origin = request.headers.get('origin');
     const referer = request.headers.get('referer');
@@ -40,6 +42,7 @@ export async function POST(request: Request) {
         );
       }
     }
+*/
 
     // Check if we have the required environment variable at runtime
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
