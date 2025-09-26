@@ -48,6 +48,53 @@ export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   }
 };
 
+export const getSupabaseServerSideCredentials = (
+  environment: SupabaseEnvironment
+) => {
+  console.log(
+    '[SUPABASE INDEX] Getting credentials for environment:',
+    environment
+  );
+
+  switch (environment) {
+    case 'development':
+      console.log('[SUPABASE INDEX] Returning development credentials');
+      return {
+        url: 'http://127.0.0.1:54321',
+        key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+      };
+    case 'preview':
+      console.log('[SUPABASE INDEX] Returning preview credentials');
+      console.log(
+        '[SUPABASE INDEX] Preview URL:',
+        env.NEXT_PUBLIC_SUPABASE_PREVIEW_URL
+      );
+      console.log(
+        '[SUPABASE INDEX] Preview key exists:',
+        !!env.SUPABASE_PREVIEW_SERVICE_ROLE_KEY
+      );
+      return {
+        url: env.NEXT_PUBLIC_SUPABASE_PREVIEW_URL!,
+        key: env.SUPABASE_PREVIEW_SERVICE_ROLE_KEY!
+      };
+    case 'production':
+    default:
+      console.log('[SUPABASE INDEX] Returning production credentials');
+      console.log(
+        '[SUPABASE INDEX] Production URL:',
+        env.NEXT_PUBLIC_SUPABASE_URL
+      );
+      console.log(
+        '[SUPABASE INDEX] Production key exists:',
+        !!env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      return {
+        url: env.NEXT_PUBLIC_SUPABASE_URL!,
+        key: env.SUPABASE_SERVICE_ROLE_KEY!
+      };
+  }
+};
+
 export const getSupabaseEnvironment = (project_ref?: string | null) => {
   console.log(
     '[SUPABASE INDEX] Getting environment for project_ref:',
