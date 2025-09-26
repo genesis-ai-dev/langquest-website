@@ -145,7 +145,7 @@ export function LanguageCombobox({
       .then(() => {
         setIsLanguageModalOpen(false);
       })
-      .catch((e) => {
+      .catch(() => {
         console.error('Failed to create language');
       });
   };
