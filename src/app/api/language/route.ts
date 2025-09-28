@@ -62,6 +62,7 @@ export async function POST(request: Request) {
       .from('language')
       .select()
       .eq('english_name', english_name.trim())
+      .eq('native_name', native_name.trim())
       .eq('iso639_3', isoCode)
       .single();
 
