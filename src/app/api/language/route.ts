@@ -1,84 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { Database } from '../../../../database.types';
-import { getSupabaseServerSideCredentials } from '@/lib/supabase';
-import { cookies } from 'next/headers';
-
-// const supabaseAdmin = createClient<Database>(
-//   // env.NEXT_PUBLIC_SUPABASE_URL,
-//   // process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy-key-for-build'
-// );
+import { getSupabaseCredentials } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    /*    
-    // Removed origin and referer check for now, as it was blocking legitimate requests 
-    // Verify origin
-    const origin = request.headers.get('origin');
-    const referer = request.headers.get('referer');
-
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      process.env.NEXT_PUBLIC_SITE_URL
-    ].filter(Boolean);
-
-    if (origin && !allowedOrigins.includes(origin)) {
-      return NextResponse.json(
-        { error: `Unauthorized origin: ${origin}` },
-        { status: 403 }
-      );
-    }
-
-    // Verify referer as fallback (for requests without origin)
-    if (!origin && referer) {
-      const refererUrl = new URL(referer);
-      const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
-
-      if (!allowedOrigins.includes(refererOrigin)) {
-        return NextResponse.json(
-          { error: 'Unauthorized referer' },
-          { status: 403 }
-        );
-      }
-    }
-*/
-
-    // Check if we have the required environment variable at runtime
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
-      );
-    }
-
     const { english_name, native_name, iso639_3, environment } =
       await request.json();
 
-    const { url, key } = getSupabaseServerSideCredentials(environment);
+    const { url, key } = getSupabaseCredentials(environment);
 
-    const cookieStore = await cookies();
     let accessToken: string | undefined;
-
-    const possibleCookieNames = [
-      'supabase-auth-token',
-      'sb-auth-token',
-      `sb-${environment}-auth-token`
-    ];
-
-    for (const cookieName of possibleCookieNames) {
-      const cookie = cookieStore.get(cookieName);
-      if (cookie) {
-        try {
-          const parsed = JSON.parse(cookie.value);
-          accessToken = parsed.access_token;
-          break;
-        } catch {
-          accessToken = cookie.value;
-          break;
-        }
-      }
-    }
 
     if (!accessToken) {
       const authHeader = request.headers.get('authorization');
@@ -107,7 +39,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabaseAdmin = createClient<Database>(url, key);
+    const supabaseAdmin = createClient<Database>(url, key, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
 
     if (!english_name) {
       return NextResponse.json(
@@ -141,7 +79,8 @@ export async function POST(request: Request) {
       .insert({
         english_name: english_name.trim(),
         native_name: native_name || english_name.trim(),
-        iso639_3: isoCode
+        iso639_3: isoCode,
+        creator_id: user.id
       })
       .select()
       .single();
