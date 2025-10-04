@@ -53,7 +53,7 @@ import { useAuth } from '@/components/auth-provider';
 import { ProjectDownloadButton } from '@/components/project-download-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectMembers } from '@/components/project-members';
-import { BulkUpload } from '@/components/bulk-upload';
+import { BulkUpload } from '@/components/new-bulk-upload';
 
 export default function AdminPage() {
   return (
