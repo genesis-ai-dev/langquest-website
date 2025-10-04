@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
 
         const storageFileName = `${folder}${baseFileName}`;
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from('assets')
           .upload(storageFileName, fileBuffer, {
             contentType: getContentType(fileName)
@@ -323,17 +323,12 @@ export async function POST(request: NextRequest) {
         result.involvedIds.questIds.size > 0)
     ) {
       try {
-        console.log('[BULK UPLOAD] Executing post-processing functions...');
         await executePostProcessingFunctions(
           supabase,
-          result.involvedIds,
-          user.id
+          result.involvedIds
+          // user.id
         );
       } catch (postProcessError) {
-        console.error(
-          '[BULK UPLOAD] Post-processing failed:',
-          postProcessError
-        );
         // Não falha o upload, apenas registra o erro
         if (!result.stats.warnings) result.stats.warnings = [];
         result.stats.warnings.push({
@@ -480,6 +475,8 @@ async function processProjectUpload(
   fileMap: FileMap,
   environment: SupabaseEnvironment
 ): Promise<UploadResult> {
+  console.log('Environment:', environment);
+
   const result: UploadResult = {
     success: true,
     stats: {
@@ -662,6 +659,7 @@ async function processProjectUpload(
                 tag_id: tag.id
               });
             } catch (error) {
+              console.error('Error creating/linking quest tag:', error);
               result.stats.warnings.push({
                 row: i + 1,
                 message: `Failed to create/link quest tag "${tagName}"`
@@ -759,6 +757,7 @@ async function processProjectUpload(
               tag_id: tag.id
             });
           } catch (error) {
+            console.error('Error creating/linking asset tag:', error);
             result.stats.warnings.push({
               row: i + 1,
               message: `Failed to create/link asset tag "${tagName}"`
@@ -948,6 +947,7 @@ async function processQuestUpload(
               tag_id: tag.id
             });
           } catch (error) {
+            console.error('Error creating/linking asset tag:', error);
             result.stats.warnings.push({
               row: i + 1,
               message: `Failed to create/link asset tag "${tagName}"`
@@ -1138,6 +1138,7 @@ async function processQuestToProjectUpload(
                   tag_id: tag.id
                 });
               } catch (error) {
+                console.error('Error creating/linking quest tag:', error);
                 result.stats.warnings.push({
                   row: i + 1,
                   message: `Failed to create/link quest tag "${tagName}"`
@@ -1223,6 +1224,7 @@ async function processQuestToProjectUpload(
               tag_id: tag.id
             });
           } catch (error) {
+            console.error('Error creating/linking asset tag:', error);
             result.stats.warnings.push({
               row: i + 1,
               message: `Failed to create/link asset tag "${tagName}"`
@@ -1300,8 +1302,8 @@ async function processQuestToProjectUpload(
 
 async function executePostProcessingFunctions(
   supabase: any,
-  involvedIds: { projectIds: Set<string>; questIds: Set<string> },
-  userId: string
+  involvedIds: { projectIds: Set<string>; questIds: Set<string> }
+  // userId: string
 ): Promise<void> {
   const errors: string[] = [];
 

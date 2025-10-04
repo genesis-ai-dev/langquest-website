@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+// import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
 import {
@@ -268,18 +268,18 @@ export function BulkUpload({
     }
   };
 
-  const getUploadTitle = () => {
-    switch (mode) {
-      case 'project':
-        return 'Upload Projects';
-      case 'questToProject':
-        return 'Upload Quests to Project';
-      case 'quest':
-        return 'Upload Assets to Quest';
-      default:
-        return 'Bulk Upload';
-    }
-  };
+  // const getUploadTitle = () => {
+  //   switch (mode) {
+  //     case 'project':
+  //       return 'Upload Projects';
+  //     case 'questToProject':
+  //       return 'Upload Quests to Project';
+  //     case 'quest':
+  //       return 'Upload Assets to Quest';
+  //     default:
+  //       return 'Bulk Upload';
+  //   }
+  // };
 
   return (
     <ScrollArea className="h-full">
