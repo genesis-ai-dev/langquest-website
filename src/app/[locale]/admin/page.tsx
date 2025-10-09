@@ -739,16 +739,18 @@ function AdminContent() {
                                         <Badge variant="secondary">
                                           {project.quests?.length || 0} Quest(s)
                                         </Badge>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCloneProject(project.id);
-                                          }}
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
+                                        {environment !== 'production' && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleCloneProject(project.id);
+                                            }}
+                                          >
+                                            <Copy className="h-4 w-4" />
+                                          </Button>
+                                        )}
                                       </>
                                     )}
                                   </div>
@@ -835,16 +837,18 @@ function AdminContent() {
                                         <Badge variant="secondary">
                                           {project.quests?.length || 0} Quest(s)
                                         </Badge>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCloneProject(project.id);
-                                          }}
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
+                                        {environment !== 'production' && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleCloneProject(project.id);
+                                            }}
+                                          >
+                                            <Copy className="h-4 w-4" />
+                                          </Button>
+                                        )}
                                       </>
                                     )}
                                   </div>
