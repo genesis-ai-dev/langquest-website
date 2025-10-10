@@ -81,7 +81,8 @@ export async function POST(request: Request) {
         english_name: english_name.trim(),
         native_name: native_name || english_name.trim(),
         iso639_3: isoCode,
-        creator_id: user.id
+        creator_id: user.id,
+        ui_ready: false
       })
       .select()
       .single();
