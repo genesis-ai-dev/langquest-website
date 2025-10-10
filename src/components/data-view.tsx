@@ -6,13 +6,13 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '@/components/ui/accordion';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious
-} from '@/components/ui/carousel';
+// import {
+//   Carousel,
+//   CarouselContent,
+//   CarouselItem,
+//   CarouselNext,
+//   CarouselPrevious
+// } from '@/components/ui/carousel';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { camelToProperCase, cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -24,13 +24,13 @@ import {
   ArrowUpWideNarrowIcon,
   FilterIcon,
   ListIcon,
-  ThumbsDownIcon,
-  ThumbsUpIcon,
+  //  ThumbsDownIcon,
+  //  ThumbsUpIcon,
   XIcon
 } from 'lucide-react';
 import { createParser, parseAsInteger, useQueryState } from 'nuqs';
 import { Spinner } from './spinner';
-import { AudioButton } from './ui/audio-button';
+// import { AudioButton } from './ui/audio-button';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -43,7 +43,7 @@ import {
 } from './ui/select';
 import { useAuth } from '@/components/auth-provider';
 import { getSupabaseCredentials } from '@/lib/supabase';
-import { env } from '@/lib/env';
+// import { env } from '@/lib/env';
 import { AssetCard } from '@/components/asset-card';
 
 export interface Root {
@@ -231,7 +231,7 @@ export function DataView({
   >('sort', parseAsSorting.withDefault([]));
 
   const { environment } = useAuth();
-  const credentials = getSupabaseCredentials(environment);
+  // const credentials = getSupabaseCredentials(environment);
 
   const { data, isLoading, error } = useQuery<Root>({
     queryKey: [

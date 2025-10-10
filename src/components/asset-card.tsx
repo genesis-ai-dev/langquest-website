@@ -10,13 +10,13 @@ import {
 import {
   ThumbsDownIcon,
   ThumbsUpIcon,
-  ImageIcon,
+  //  ImageIcon,
   PlayIcon,
   PauseIcon,
   MapPinIcon,
   TagIcon,
   ExpandIcon,
-  XIcon,
+  //  XIcon,
   VolumeIcon,
   BookOpenIcon
 } from 'lucide-react';
@@ -29,7 +29,6 @@ import { getSupabaseCredentials } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
-import { count } from 'console';
 
 // Types based on the existing data-view.tsx types
 export interface Vote {
@@ -102,11 +101,6 @@ function AudioPlayer({ src, className = '' }: AudioPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Don't render if src is invalid
-  if (!src || src.trim() === '') {
-    return null;
-  }
-
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -176,6 +170,11 @@ function AudioPlayer({ src, className = '' }: AudioPlayerProps) {
     setCurrentTime(newTime);
     setProgress((newTime / duration) * 100);
   };
+
+  // Don't render if src is invalid
+  if (!src || src.trim() === '') {
+    return null;
+  }
 
   return (
     <div
