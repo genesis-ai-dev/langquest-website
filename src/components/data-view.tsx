@@ -42,7 +42,7 @@ import {
   SelectValue
 } from './ui/select';
 import { useAuth } from '@/components/auth-provider';
-import { getSupabaseCredentials } from '@/lib/supabase';
+// import { getSupabaseCredentials } from '@/lib/supabase';
 // import { env } from '@/lib/env';
 import { AssetCard } from '@/components/asset-card';
 
