@@ -27,7 +27,8 @@ import {
   ArrowLeft,
   Upload,
   Plus,
-  UserRound
+  UserRound,
+  FileStack
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +55,7 @@ import { ProjectDownloadButton } from '@/components/project-download-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectMembers } from '@/components/project-members';
 import { BulkUpload } from '@/components/new-bulk-upload';
+import { BulkAssetModal } from '@/components/bulk-asset-modal';
 
 export default function AdminPage() {
   return (
@@ -956,6 +958,7 @@ function AdminContent() {
                               {isSelectedProjectOwner && (
                                 <div className="flex gap-1">
                                   <Button
+                                    title="Add Single Asset"
                                     variant="outline"
                                     size="sm"
                                     onClick={(e) => {
@@ -968,12 +971,38 @@ function AdminContent() {
                                       }));
                                     }}
                                   >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Asset
+                                    <Plus className="h-4 w-4" />
+                                    {/* Add Asset */}
                                   </Button>
+                                  <BulkAssetModal
+                                    projectId={
+                                      pageState.selectedProjectId || ''
+                                    }
+                                    defaultQuestId={quest.id}
+                                    trigger={
+                                      <Button
+                                        title="Add Multiple Assets"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                        }}
+                                      >
+                                        <FileStack className="h-4 w-4" />
+                                        {/* Add Bulk */}
+                                      </Button>
+                                    }
+                                    onAssetsCreated={(assets) => {
+                                      refetchQuests();
+                                      toast.success(
+                                        `Successfully created ${assets.length} assets`
+                                      );
+                                    }}
+                                  />
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    title="Bulk Upload Assets"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setPageState((prev) => ({
@@ -984,8 +1013,8 @@ function AdminContent() {
                                       }));
                                     }}
                                   >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Bulk Upload
+                                    <Upload className="h-4 w-4" />
+                                    {/* Bulk Upload */}
                                   </Button>
                                 </div>
                               )}
@@ -1039,17 +1068,47 @@ function AdminContent() {
                 </div>
                 <div className="flex gap-2">
                   {isSelectedProjectOwner && (
-                    <Button
-                      onClick={() =>
-                        setPageState((prev) => ({
-                          ...prev,
-                          showAssetForm: true
-                        }))
-                      }
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Asset
-                    </Button>
+                    <>
+                      <Button
+                        title="Add Single Asset"
+                        onClick={() =>
+                          setPageState((prev) => ({
+                            ...prev,
+                            showAssetForm: true
+                          }))
+                        }
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Single
+                      </Button>
+                      <BulkAssetModal
+                        projectId={pageState.selectedProjectId || ''}
+                        defaultQuestId={pageState.selectedQuestId || ''}
+                        trigger={
+                          <Button variant="outline" title="Add Multiple Assets">
+                            <FileStack className="h-4 w-4 mr-2" />
+                            Add Multiple
+                          </Button>
+                        }
+                        onAssetsCreated={() => {
+                          // Refresh the DataView after assets are created
+                          window.location.reload();
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        title="Bulk Upload Assets"
+                        onClick={() =>
+                          setPageState((prev) => ({
+                            ...prev,
+                            showBulkAssetUpload: true
+                          }))
+                        }
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Bulk Upload
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>

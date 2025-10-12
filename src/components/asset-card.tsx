@@ -221,12 +221,6 @@ export function AssetCard({ asset }: AssetCardProps) {
   const { environment } = useAuth();
   const credentials = getSupabaseCredentials(environment);
 
-  // Debug para verificar se há áudios
-  console.log(
-    'Asset translations with audio:',
-    asset.translations?.filter((t) => t.audio)
-  );
-
   return (
     <div className="space-y-6 p-6">
       {/* Header Section */}
