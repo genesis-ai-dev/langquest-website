@@ -17,7 +17,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage
 } from '@/components/ui/form';
 import {
@@ -44,15 +43,7 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { getSupabaseCredentials } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
-import {
-  Plus,
-  Trash2,
-  Upload,
-  Image as ImageIcon,
-  MoreHorizontal,
-  X,
-  Tag
-} from 'lucide-react';
+import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
 import { env } from '@/lib/env';
 import { useQuery } from '@tanstack/react-query';
 
@@ -133,7 +124,7 @@ export function BulkAssetModal({
   }, [isOpen, previewImageUrl]);
 
   // Fetch quests for the project
-  const { data: quests, isLoading: questsLoading } = useQuery({
+  const { data: quests } = useQuery({
     queryKey: ['project-quests', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -381,7 +372,7 @@ export function BulkAssetModal({
         const asset = data.assets[i];
 
         // First, upload all files to storage
-        let uploadedImageIds: string[] = [];
+        const uploadedImageIds: string[] = [];
         let uploadedAudioId: string | null = null;
 
         // Upload images
