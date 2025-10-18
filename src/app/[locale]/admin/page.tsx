@@ -56,6 +56,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectMembers } from '@/components/project-members';
 import { BulkUpload } from '@/components/new-bulk-upload';
 import { BulkAssetModal } from '@/components/bulk-asset-modal';
+import { EnvironmentBadge } from '@/components/environment-badge';
+
+import { env } from '@/lib/env';
 
 export default function AdminPage() {
   return (
@@ -496,6 +499,11 @@ function AdminContent() {
     return null;
   }
 
+  console.log(
+    '########################## Config values:',
+    env.NEXT_PUBLIC_ENVIRONMENT
+  );
+
   return (
     <div className="container p-8 max-w-screen-xl mx-auto">
       <div className="flex flex-col gap-8">
@@ -505,28 +513,7 @@ function AdminContent() {
             <h1 className="text-3xl font-bold">Project Management Dashboard</h1>
             <div className="flex items-center gap-4">
               {/* Environment Badge */}
-              <div
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium',
-                  environment === 'production' &&
-                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                  environment === 'preview' &&
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                  environment === 'development' &&
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                )}
-              >
-                <div
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    environment === 'production' && 'bg-green-500',
-                    environment === 'preview' && 'bg-yellow-500',
-                    environment === 'development' && 'bg-blue-500'
-                  )}
-                ></div>
-                {environment.charAt(0).toUpperCase() + environment.slice(1)}{' '}
-                Environment
-              </div>
+              <EnvironmentBadge environment={environment} />
               {user && (
                 <>
                   <span className="text-sm text-muted-foreground">
