@@ -26,7 +26,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_PREVIEW_URL:
       process.env.NEXT_PUBLIC_SUPABASE_PREVIEW_URL,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    NEXT_PUBLIC_ENVIRONMENT: process.env.VERCEL_ENV || 'development'
+    NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT
   },
   skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === 'lint'
 });
@@ -46,4 +46,4 @@ console.log(
   '[ENV] NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY exists:',
   !!env.NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY
 );
-console.log('[ENV] VERCEL_ENV:', process.env.VERCEL_ENV);
+console.log('[ENV] NEXT_PUBLIC_ENVIRONMENT:', env.NEXT_PUBLIC_ENVIRONMENT);
