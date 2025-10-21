@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const project_ref = searchParams.get('project_ref');
+  const project_ref = searchParams.get('project_ref'); //  || env.NEXT_PUBLIC_ENVIRONMENT;
 
   console.log('[TEST ENV] Testing environment detection');
   console.log('[TEST ENV] Project ref:', project_ref);

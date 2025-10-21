@@ -33,8 +33,6 @@ import {
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
-// import Link from 'next/link';
-
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -43,7 +41,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-// import { useRouter } from 'next/navigation';
+
 import { toast } from 'sonner';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -59,6 +57,7 @@ import { BulkAssetModal } from '@/components/bulk-asset-modal';
 import { EnvironmentBadge } from '@/components/environment-badge';
 
 import { env } from '@/lib/env';
+import { UserProfile } from '@/components/user-profile';
 
 export default function AdminPage() {
   return (
@@ -78,8 +77,10 @@ function AdminContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment = envParam || 'production';
-  const { user, isLoading } = useAuth();
+  const environment: SupabaseEnvironment =
+    envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+  const { user, isLoading, signOut } = useAuth();
+
   const [cloningByProjectId, setCloningByProjectId] = useState<
     Record<string, { status?: string; stage?: string; percent: number }>
   >({});
@@ -142,6 +143,7 @@ function AdminContent() {
     if (!user) return;
     // clone_job exists only in preview; skip polling elsewhere to avoid 404 noise
     // if (environment !== 'preview') return;
+
     const supabase = createBrowserClient(environment);
     let isCancelled = false;
     const tick = async () => {
@@ -227,9 +229,14 @@ function AdminContent() {
   const handleSignOut = async () => {
     try {
       const supabase = createBrowserClient(environment);
-      await supabase.auth.signOut();
+
+      // await supabase.auth.signOut();
+      await signOut();
+
       toast.success('Logged out successfully');
-      window.location.href = `/login?env=${environment}`;
+      console.log('[ADMIN PAGE] Redirecting to home after signout');
+      window.location.href = `http://localhost:3000/`;
+      // window.location.href = `/login?env=${environment}`;
     } catch {
       toast.error('Failed to sign out');
     }
@@ -499,11 +506,6 @@ function AdminContent() {
     return null;
   }
 
-  console.log(
-    '########################## Config values:',
-    env.NEXT_PUBLIC_ENVIRONMENT
-  );
-
   return (
     <div className="container p-8 max-w-screen-xl mx-auto">
       <div className="flex flex-col gap-8">
@@ -514,17 +516,7 @@ function AdminContent() {
             <div className="flex items-center gap-4">
               {/* Environment Badge */}
               <EnvironmentBadge environment={environment} />
-              {user && (
-                <>
-                  <span className="text-sm text-muted-foreground">
-                    {user.email}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign out
-                  </Button>
-                </>
-              )}
+              {user && <UserProfile user={user} onSignOut={handleSignOut} />}
             </div>
           </div>
 

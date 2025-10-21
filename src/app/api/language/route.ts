@@ -2,13 +2,15 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { Database } from '../../../../database.types';
 import { getSupabaseCredentials } from '@/lib/supabase';
+import { env } from '@/lib/env';
 
 export async function POST(request: Request) {
   try {
     const { english_name, native_name, iso639_3, environment } =
       await request.json();
 
-    const { url, key } = getSupabaseCredentials(environment);
+    let envAux = environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+    const { url, key } = getSupabaseCredentials(envAux);
 
     let accessToken: string | undefined;
 

@@ -4,6 +4,7 @@ import { Database } from '../../../../database.types';
 import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
+import { env } from '@/lib/env';
 
 interface ProjectRow {
   project_name: string;
@@ -68,7 +69,8 @@ export async function POST(request: NextRequest) {
     const type = formData.get('type') as string;
     const projectId = formData.get('projectId') as string | null;
     const questId = formData.get('questId') as string | null;
-    const environment = formData.get('environment') as string;
+    const environment =
+      (formData.get('environment') as string) || env.NEXT_PUBLIC_ENVIRONMENT;
     const zipFile = formData.get('file') as File;
 
     // Debug logging
@@ -144,8 +146,8 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = authHeader.substring(7);
-    const env = (environment || 'production') as SupabaseEnvironment;
-    const { url, key } = getSupabaseCredentials(env);
+    const envAux = (environment || 'production') as SupabaseEnvironment;
+    const { url, key } = getSupabaseCredentials(envAux);
 
     const supabaseAuth = createClient<Database>(url, key);
     const {

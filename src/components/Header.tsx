@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from './auth-provider';
+import { Separator } from '@/components/ui/separator';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -137,13 +138,12 @@ const Header = () => {
           >
             {t('userFriendlyData')}
           </Link>
-          {(!!user || DEV_ADMIN_MODE) && (
-            <Link href="/admin">
-              <Button variant="outline">
-                {!!user ? 'Project Management' : t('admin')}
-              </Button>
-            </Link>
-          )}
+
+          <Separator orientation="vertical" className="h-6 w-2 bg-gray-600" />
+
+          <Link href="/admin">
+            <Button variant="outline">{t('goToUserArea')}</Button>
+          </Link>
         </nav>
       </div>
     </header>

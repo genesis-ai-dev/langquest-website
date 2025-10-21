@@ -5,6 +5,8 @@ import { Session, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SupabaseEnvironment } from '@/lib/supabase';
+import router from 'next/router';
+import { env } from '@/lib/env';
 
 type AuthContextType = {
   user: User | null;
@@ -34,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Determine environment from URL params
   const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment = envParam || 'production';
+  const environment: SupabaseEnvironment =
+    envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
 
   // Create environment-specific supabase client
   const supabase = createBrowserClient(environment);
@@ -104,15 +107,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('[AUTH PROVIDER] Signing out from environment:', environment);
+
       setIsLoading(true);
       await supabase.auth.signOut();
+      router.replace(`/?env=${environment}`);
       setUser(null);
       setSession(null);
 
       // After signing out, redirect to home page with environment param
+      console.log('[AUTH PROVIDER] Current pathname:', pathname);
+
       if (pathname !== '/') {
         console.log('[AUTH PROVIDER] Redirecting to home after signout');
-        window.location.href = `/?env=${environment}`;
+        router.push(`/`);
+        // window.location.href = `/?env=${environment}`;
       }
     } catch (error) {
       console.error('[AUTH PROVIDER] Error signing out:', error);
