@@ -52,7 +52,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo =
     searchParams.get('redirectTo') ||
-    `/admin${searchParams.get('env') && searchParams.get('env') !== 'production' ? `?env=${searchParams.get('env')}` : ''}`;
+    //    `/admin${searchParams.get('env') && searchParams.get('env') !== 'production' ? `?env=${searchParams.get('env')}` : ''}`;
+    `/admin${searchParams.get('env') && searchParams.get('env') !== 'production' ? `?env=${searchParams.get('env')}` : `?env=${searchParams.get('env')}`}`;
   const envParam = searchParams.get('env') as SupabaseEnvironment;
   const environment: SupabaseEnvironment =
     envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
