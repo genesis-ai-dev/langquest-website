@@ -28,7 +28,8 @@ import {
   Upload,
   Plus,
   UserRound,
-  FileStack
+  FileStack,
+  Globe
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -56,6 +57,7 @@ import { EnvironmentBadge } from '@/components/environment-badge';
 
 import { env } from '@/lib/env';
 import { UserProfile } from '@/components/user-profile';
+import { Link } from '@/i18n/navigation';
 
 export default function AdminPage() {
   return (
@@ -333,19 +335,9 @@ function AdminContent() {
 
   // Navigation handlers with URL updates
   const handleSelectProject = (project: any) => {
-    setPageState((prevState) => ({
-      ...prevState,
-      selectedProjectId: project.id,
-      selectedProjectName: project.name,
-      selectedQuestId: null,
-      selectedQuestName: ''
-    }));
-    setViewState('quests');
-    updateURL({
-      view: 'quests',
-      projectId: project.id,
-      questId: null
-    });
+    // Redirect to individual project page
+    const envQuery = environment !== 'production' ? `?env=${environment}` : '';
+    router.push(`/project/${project.id}${envQuery}`);
   };
 
   // Clone project handler
@@ -381,22 +373,38 @@ function AdminContent() {
   }
 
   return (
-    <div className="container p-8 max-w-screen-xl mx-auto">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          {/* Header with contextual navigation and user info */}
-          <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto flex h-16 items-center justify-between">
+          <Link
+            href="/"
+            className="flex gap-2 items-center flex-nowrap no-underline font-bold"
+          >
+            <Globe className="h-6 w-6 text-accent4" />
+            <span className="font-bold text-xl">LangQuest</span>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <EnvironmentBadge environment={environment} />
+            {user && <UserProfile user={user} onSignOut={signOut} />}
+          </div>
+        </div>
+      </header>
+
+      <div className="container p-6 max-w-screen-xl mx-auto">
+        <div className="flex flex-col gap-6">
+          {/* Page Title */}
+          <div>
             <h1 className="text-3xl font-bold">Project Management Dashboard</h1>
-            <div className="flex items-center gap-4">
-              {/* Environment Badge */}
-              <EnvironmentBadge environment={environment} />
-              {user && <UserProfile user={user} onSignOut={handleSignOut} />}
-            </div>
+            <p className="text-muted-foreground mt-2">
+              Manage your translation projects, quests and assets
+            </p>
           </div>
 
           {/* Environment Notice */}
           {environment !== 'production' && (
-            <Alert className="mb-6">
+            <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Non-Production Environment</AlertTitle>
               <AlertDescription>
@@ -409,12 +417,10 @@ function AdminContent() {
               </AlertDescription>
             </Alert>
           )}
-
-          <Separator />
         </div>
 
         {/* Main Content Area */}
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
