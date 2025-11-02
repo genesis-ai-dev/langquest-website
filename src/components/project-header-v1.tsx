@@ -10,6 +10,7 @@ import {
   File,
   Languages
 } from 'lucide-react';
+import { ProjectDownloadButton } from './new-project-download-button';
 
 interface ProjectHeaderV1Props {
   project: any;
@@ -49,20 +50,11 @@ export function ProjectHeaderV1({
                 <p className="text-muted-foreground">{project.description}</p>
               )}
             </div>
-            <div className="text-right text-sm text-muted-foreground">
-              <div className="flex items-center gap-1 mb-1">
-                <Calendar className="h-3 w-3" />
-                Created: {new Date(project.created_at).toLocaleDateString()}
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                Updated: {new Date(project.last_updated).toLocaleDateString()}
-              </div>
-            </div>
+            <ProjectDownloadButton projectId={project.id} />
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <h4 className="text-sm font-medium mb-2">Target Language</h4>
               <p className="text-sm text-muted-foreground">
@@ -86,6 +78,16 @@ export function ProjectHeaderV1({
               <Badge variant={project.active ? 'default' : 'secondary'}>
                 {project.active ? 'Active' : 'Inactive'}
               </Badge>
+            </div>
+            <div className="text-right text-sm text-muted-foreground flex flex-col justify-end items-end">
+              <div className="flex items-center gap-1 mb-1">
+                <Calendar className="h-3 w-3" />
+                Created: {new Date(project.created_at).toLocaleDateString()}
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Updated: {new Date(project.last_updated).toLocaleDateString()}
+              </div>
             </div>
           </div>
         </CardContent>
