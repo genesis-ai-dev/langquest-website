@@ -36,7 +36,8 @@ interface ProjectData {
     id: string;
     name: string;
     description: string;
-    parent_quest_name?: Array<{ name: string }> | null;
+    parent_id?: string | null;
+    parent_quest?: { name: string } | null;
     tags: Array<{
       tag: { key: string; value: string };
     }>;
@@ -92,7 +93,8 @@ export function ProjectDownloadButton({
             id,
             name,
             description,
-            parent_quest_name:quest!parent_id(name),
+            parent_id,
+            parent_quest:parent_id(name),
             tags:quest_tag_link(tag(key, value)),
             assets:asset(
               id,
@@ -130,6 +132,8 @@ export function ProjectDownloadButton({
     },
     enabled: !!projectId && isOpen
   });
+
+  console.log('Project data for download:', projectData);
 
   // Auto-select all quests when data loads
   useEffect(() => {
@@ -196,7 +200,7 @@ export function ProjectDownloadButton({
             `"${data.name}"`,
             `"${data.description || ''}"`,
             `"${data.target_language.english_name}"`,
-            `"${quest.parent_quest_name?.[0]?.name || ''}"`,
+            `"${quest.parent_quest?.name || ''}"`,
             `"${quest.name}"`,
             `"${quest.description || ''}"`,
             `"${questTags}"`,
@@ -228,7 +232,7 @@ export function ProjectDownloadButton({
                 `"${data.name}"`,
                 `"${data.description || ''}"`,
                 `"${data.target_language.english_name}"`,
-                `"${quest.parent_quest_name?.[0]?.name || ''}"`,
+                `"${quest.parent_quest?.name || ''}"`,
                 `"${quest.name}"`,
                 `"${quest.description || ''}"`,
                 `"${questTags}"`,
@@ -260,7 +264,7 @@ export function ProjectDownloadButton({
                   `"${data.name}"`,
                   `"${data.description || ''}"`,
                   `"${data.target_language.english_name}"`,
-                  `"${quest.parent_quest_name?.[0]?.name || ''}"`,
+                  `"${quest.parent_quest?.name || ''}"`,
                   `"${quest.name}"`,
                   `"${quest.description || ''}"`,
                   `"${questTags}"`,
@@ -302,6 +306,7 @@ export function ProjectDownloadButton({
           id: quest.id,
           name: quest.name,
           description: quest.description,
+          parent_quest_name: quest.parent_quest?.name || null,
           assets: quest.assets.map((asset) => ({
             id: asset.id,
             name: asset.name,
