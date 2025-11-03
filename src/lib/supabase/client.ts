@@ -18,11 +18,29 @@ export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   // Return existing instance for this environment if already created
   const existingInstance = supabaseInstances.get(env);
   if (existingInstance) {
-    console.log('[SUPABASE CLIENT] Returning existing instance for:', env);
     // Verify the cached instance has the correct URL
     const cachedUrl = (existingInstance as any).supabaseUrl || 'unknown';
+    const { url: expectedUrl } = getSupabaseCredentials(env);
+
+    console.log('[SUPABASE CLIENT] Returning existing instance for:', env);
     console.log('[SUPABASE CLIENT] Cached instance URL:', cachedUrl);
-    return existingInstance;
+    console.log('[SUPABASE CLIENT] Expected URL:', expectedUrl);
+
+    // If the cached instance has the wrong URL, clear it and create a new one
+    if (cachedUrl !== expectedUrl && cachedUrl !== `${expectedUrl}/`) {
+      console.error(
+        '[SUPABASE CLIENT] ERROR: Cached instance has wrong URL!',
+        'Expected:',
+        expectedUrl,
+        'Got:',
+        cachedUrl,
+        'Clearing cache and creating new instance'
+      );
+      supabaseInstances.delete(env);
+      // Fall through to create a new instance
+    } else {
+      return existingInstance;
+    }
   }
 
   const { url, key } = getSupabaseCredentials(env);
@@ -31,17 +49,23 @@ export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   console.log('[SUPABASE CLIENT] Key length:', key?.length);
 
   const newInstance = createSupabaseBrowserClient(url, key);
-  
+
   // Verify the instance was created with the correct URL
   const instanceUrl = (newInstance as any).supabaseUrl || 'unknown';
   console.log('[SUPABASE CLIENT] Created new instance for:', env);
   console.log('[SUPABASE CLIENT] Instance URL:', instanceUrl);
-  
+
   if (env === 'preview' && !instanceUrl.includes('yjgdgsycxmlvaiuynlbv')) {
-    console.error('[SUPABASE CLIENT] ERROR: Created preview instance but URL is:', instanceUrl);
+    console.error(
+      '[SUPABASE CLIENT] ERROR: Created preview instance but URL is:',
+      instanceUrl
+    );
   }
   if (env === 'production' && !instanceUrl.includes('unsxkmlcyxgtgmtzfonb')) {
-    console.error('[SUPABASE CLIENT] ERROR: Created production instance but URL is:', instanceUrl);
+    console.error(
+      '[SUPABASE CLIENT] ERROR: Created production instance but URL is:',
+      instanceUrl
+    );
   }
 
   supabaseInstances.set(env, newInstance);
