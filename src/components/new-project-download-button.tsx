@@ -297,24 +297,24 @@ export function ProjectDownloadButton({
     return JSON.stringify(
       {
         project: {
-          id: data.id,
+          //        id: data.id,
           name: data.name,
           description: data.description,
           target_language: data.target_language.english_name
         },
         quests: selectedQuestsData.map((quest) => ({
-          id: quest.id,
+          //        id: quest.id,
           name: quest.name,
           description: quest.description,
           parent_quest_name: quest.parent_quest?.name || null,
           assets: quest.assets.map((asset) => ({
-            id: asset.id,
+            //          id: asset.id,
             name: asset.name,
             tags: asset.tags.map((t) => `${t.tag.key}:${t.tag.value}`),
             source_content: asset.content[0]?.text || null,
             source_audio: asset.content[0]?.audio || null,
             translations: asset.translations.map((translation) => ({
-              id: translation.id,
+              //            id: translation.id,
               text: translation.content[0].text,
               audio: translation.content[0].audio,
               votes: {
