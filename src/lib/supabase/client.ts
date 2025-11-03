@@ -3,7 +3,7 @@ import {
   SupabaseEnvironment,
   supabaseInstances
 } from '.';
-import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   console.log(
@@ -48,7 +48,16 @@ export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   console.log('[SUPABASE CLIENT] Key exists:', !!key);
   console.log('[SUPABASE CLIENT] Key length:', key?.length);
 
-  const newInstance = createSupabaseBrowserClient(url, key);
+  // Use createClient directly instead of createBrowserClient to ensure
+  // the URL and key we pass are actually used (not overridden by env vars)
+  const newInstance = createClient(url, key, {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
 
   // Verify the instance was created with the correct URL
   const instanceUrl = (newInstance as any).supabaseUrl || 'unknown';
