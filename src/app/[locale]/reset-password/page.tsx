@@ -15,12 +15,15 @@ import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthError } from '@supabase/supabase-js';
 import { useMutation } from '@tanstack/react-query';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/auth-provider';
+import { createBrowserClient } from '@/lib/supabase/client';
+import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
+import { useSearchParams } from 'next/navigation';
 
 function ErrorMessage({
   error
@@ -40,8 +43,28 @@ function ErrorMessage({
 
 function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const { supabase, isLoading: authLoading, environment } = useAuth();
+  const { isLoading: authLoading, environment } = useAuth();
+  const searchParams = useSearchParams();
   const t = useTranslations('reset_password');
+
+  // Determine environment from URL params (same logic as AuthProvider)
+  const envParam = searchParams.get('env') as SupabaseEnvironment;
+  const projectRef = searchParams.get('project_ref');
+  const envFromProjectRef = projectRef
+    ? getSupabaseEnvironment(projectRef)
+    : null;
+  const detectedEnvironment: SupabaseEnvironment =
+    envParam || envFromProjectRef || 'production';
+
+  // Create the supabase client directly based on URL params to avoid context issues
+  // Memoize to prevent recreating on every render
+  const supabase = useMemo(() => {
+    console.log(
+      '[RESET PASSWORD] Creating supabase client for environment:',
+      detectedEnvironment
+    );
+    return createBrowserClient(detectedEnvironment);
+  }, [detectedEnvironment]);
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => <ErrorMessage error={error} />);
@@ -101,17 +124,19 @@ function ResetPasswordForm() {
       return () => clearTimeout(timeout);
     } else {
       console.log('[RESET PASSWORD] Setting session');
-      console.log('[RESET PASSWORD] Environment:', environment);
+      console.log(
+        '[RESET PASSWORD] Detected environment:',
+        detectedEnvironment
+      );
+      console.log('[RESET PASSWORD] Context environment:', environment);
       console.log('[RESET PASSWORD] Has access_token:', !!access_token);
       console.log('[RESET PASSWORD] Has refresh_token:', !!refresh_token);
 
       // Verify we're using the correct environment
-      const urlParams = new URLSearchParams(window.location.search);
-      const projectRef = urlParams.get('project_ref');
-      if (projectRef && environment !== 'preview') {
+      if (projectRef && detectedEnvironment !== 'preview') {
         console.warn(
           '[RESET PASSWORD] Environment mismatch! Expected preview but got:',
-          environment
+          detectedEnvironment
         );
       }
 
@@ -133,7 +158,7 @@ function ResetPasswordForm() {
           console.error('[RESET PASSWORD] Error setting session:', error);
         });
     }
-  }, [supabase, authLoading, environment, t]);
+  }, [supabase, authLoading, detectedEnvironment, environment, projectRef, t]);
 
   const {
     mutate: updatePassword,
