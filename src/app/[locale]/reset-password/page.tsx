@@ -98,6 +98,7 @@ function ResetPasswordForm() {
 
       return () => clearTimeout(timeout);
     } else {
+      console.log('useEffect - setting session');
       supabase.auth
         .setSession({
           access_token: access_token!,
