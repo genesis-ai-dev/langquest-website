@@ -43,20 +43,8 @@ function ErrorMessage({
 
 function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const searchParams = useSearchParams();
-  const { environment } = useAuth();
+  const { supabase } = useAuth();
   const t = useTranslations('reset_password');
-
-  // Determine environment from multiple sources
-  const projectRef = searchParams.get('project_ref');
-  const envFromProjectRef = projectRef
-    ? getSupabaseEnvironment(projectRef)
-    : null;
-  const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const activeEnvironment =
-    environment || envFromProjectRef || envParam || 'production';
-
-  const supabase = createBrowserClient(activeEnvironment);
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => <ErrorMessage error={error} />);
@@ -83,8 +71,6 @@ function ResetPasswordForm() {
   });
 
   useEffect(() => {
-    console.log('useEffect - using environment:', activeEnvironment);
-
     const { params } = getQueryParams(window.location.href);
 
     const error_code = params.error_code;
@@ -125,7 +111,7 @@ function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [supabase.auth, t, activeEnvironment]);
+  }, [supabase.auth, t]);
 
   const {
     mutate: updatePassword,

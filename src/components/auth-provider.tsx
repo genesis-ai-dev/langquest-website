@@ -1,10 +1,10 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { SupabaseEnvironment } from '@/lib/supabase';
+import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
 
 type AuthContextType = {
   user: User | null;
@@ -12,6 +12,7 @@ type AuthContextType = {
   isLoading: boolean;
   signOut: () => Promise<void>;
   environment: SupabaseEnvironment;
+  supabase: SupabaseClient;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,7 +20,8 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isLoading: false,
   signOut: async () => {},
-  environment: 'production'
+  environment: 'production',
+  supabase: createBrowserClient()
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -34,7 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Determine environment from URL params
   const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment = envParam || 'production';
+
+  const projectRef = searchParams.get('project_ref');
+  const envFromProjectRef = projectRef
+    ? getSupabaseEnvironment(projectRef)
+    : null;
+
+  const environment: SupabaseEnvironment =
+    envParam || envFromProjectRef || 'production';
 
   // Create environment-specific supabase client
   const supabase = createBrowserClient(environment);
@@ -126,7 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     isLoading: isLoading || !isInitialized,
     signOut,
-    environment
+    environment,
+    supabase
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
