@@ -103,7 +103,7 @@ export function ProjectDownloadButton({
               images,
               content:asset_content_link(id, text, audio),
               tags:asset_tag_link(tag(key, value)),
-              translations:asset!parent_id(
+              translations:asset!source_asset_id(
                 id,
                 name,
                 content:asset_content_link(id, text, audio),

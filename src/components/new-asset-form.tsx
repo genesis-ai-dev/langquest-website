@@ -379,7 +379,8 @@ export function AssetForm({
             name: values.name,
             images: finalImagePaths.length > 0 ? finalImagePaths : null,
             active: true,
-            source_language_id: values.source_language_id
+            source_language_id: values.source_language_id,
+            project_id: projectId
           })
           .select('id')
           .single();
