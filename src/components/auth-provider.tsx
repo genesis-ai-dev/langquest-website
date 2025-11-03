@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           '[AUTH PROVIDER] Getting initial session for environment:',
           environment
         );
+        const supabase = createBrowserClient(environment);
         const {
           data: { session }
         } = await supabase.auth.getSession();
