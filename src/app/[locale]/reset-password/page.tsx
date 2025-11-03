@@ -40,7 +40,7 @@ function ErrorMessage({
 
 function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const { supabase, isLoading: authLoading } = useAuth();
+  const { supabase, isLoading: authLoading, environment } = useAuth();
   const t = useTranslations('reset_password');
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
@@ -100,7 +100,21 @@ function ResetPasswordForm() {
 
       return () => clearTimeout(timeout);
     } else {
-      console.log('useEffect - setting session');
+      console.log('[RESET PASSWORD] Setting session');
+      console.log('[RESET PASSWORD] Environment:', environment);
+      console.log('[RESET PASSWORD] Has access_token:', !!access_token);
+      console.log('[RESET PASSWORD] Has refresh_token:', !!refresh_token);
+
+      // Verify we're using the correct environment
+      const urlParams = new URLSearchParams(window.location.search);
+      const projectRef = urlParams.get('project_ref');
+      if (projectRef && environment !== 'preview') {
+        console.warn(
+          '[RESET PASSWORD] Environment mismatch! Expected preview but got:',
+          environment
+        );
+      }
+
       supabase.auth
         .setSession({
           access_token: access_token!,
@@ -108,13 +122,18 @@ function ResetPasswordForm() {
         })
         .then(({ error: sessionError }: { error: AuthError | null }) => {
           if (sessionError) {
+            console.error('[RESET PASSWORD] Session error:', sessionError);
             toastError(sessionError);
             throw sessionError;
           }
+          console.log('[RESET PASSWORD] Session set successfully');
           setShowForm(true);
+        })
+        .catch((error) => {
+          console.error('[RESET PASSWORD] Error setting session:', error);
         });
     }
-  }, [supabase, authLoading, t]);
+  }, [supabase, authLoading, environment, t]);
 
   const {
     mutate: updatePassword,

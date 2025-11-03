@@ -1,6 +1,13 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback
+} from 'react';
 import { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -47,8 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   console.log('[AUTH PROVIDER] Environment:', environment);
 
-  // Create environment-specific supabase client
-  const supabase = createBrowserClient(environment);
+  // Create environment-specific supabase client (memoized to ensure stability)
+  const supabase = useMemo(() => {
+    console.log(
+      '[AUTH PROVIDER] Creating supabase client for environment:',
+      environment
+    );
+    return createBrowserClient(environment);
+  }, [environment]);
 
   useEffect(() => {
     let mounted = true;
@@ -113,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [environment, supabase.auth]); // Re-run when environment changes
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       console.log('[AUTH PROVIDER] Signing out from environment:', environment);
       setIsLoading(true);
@@ -131,16 +144,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [supabase, environment, pathname]);
 
-  const value = {
-    user,
-    session,
-    isLoading: isLoading || !isInitialized,
-    signOut,
-    environment,
-    supabase
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      session,
+      isLoading: isLoading || !isInitialized,
+      signOut,
+      environment,
+      supabase
+    }),
+    [user, session, isLoading, isInitialized, environment, supabase, signOut]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
