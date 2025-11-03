@@ -477,13 +477,15 @@ export function ProjectWizard({
                         Create a new project from scratch
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="clone" id="clone" />
-                      <Label htmlFor="clone" className="flex items-center">
-                        <Copy className="mr-2 h-4 w-4" />
-                        Clone an existing project
-                      </Label>
-                    </div>
+                    {environment !== 'production' && (
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="clone" id="clone" />
+                        <Label htmlFor="clone" className="flex items-center">
+                          <Copy className="mr-2 h-4 w-4" />
+                          Clone an existing project
+                        </Label>
+                      </div>
+                    )}
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
@@ -601,7 +603,7 @@ export function ProjectWizard({
             )}
           />
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-start">
             <FormField
               control={step2Form.control}
               name="source_language_id"

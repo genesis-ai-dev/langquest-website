@@ -1,27 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { env } from '@/lib/env';
 import { Database } from '../../../../database.types';
-
-// Create a Supabase client with server-side auth
-const supabaseAdmin = createClient<Database>(
-  env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy-key-for-build'
-);
+import { getSupabaseCredentials } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    // Check if we have the required environment variable at runtime
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const { english_name, native_name, iso639_3, environment } =
+      await request.json();
+
+    const { url, key } = getSupabaseCredentials(environment);
+
+    let accessToken: string | undefined;
+
+    if (!accessToken) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7);
+      }
+    }
+
+    if (!accessToken) {
       return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
+        { error: 'Authentication required' },
+        { status: 401 }
       );
     }
 
-    const { english_name, native_name, iso639_3 } = await request.json();
+    const supabaseAuth = createClient<Database>(url, key);
+    const {
+      data: { user },
+      error: authError
+    } = await supabaseAuth.auth.getUser(accessToken);
 
-    // Validate input
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Invalid authentication token' },
+        { status: 401 }
+      );
+    }
+
+    const supabaseAdmin = createClient<Database>(url, key, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
     if (!english_name) {
       return NextResponse.json(
         { error: 'Language name is required' },
@@ -32,13 +57,32 @@ export async function POST(request: Request) {
     // Generate ISO code if not provided
     const isoCode = iso639_3 || english_name.trim().toLowerCase().slice(0, 3);
 
-    // Insert the new language
+    // Check if language already exists with same english_name and iso639_3
+    const { data: existingLanguage, error: searchError } = await supabaseAdmin
+      .from('language')
+      .select()
+      .eq('english_name', english_name.trim())
+      .eq('native_name', native_name.trim())
+      .eq('iso639_3', isoCode)
+      .single();
+
+    // If language already exists, return it instead of creating a new one
+    if (existingLanguage && !searchError) {
+      return NextResponse.json({
+        ...existingLanguage,
+        message: 'Language already exists, returning existing record'
+      });
+    }
+
+    // Insert the new language only if it doesn't exist
     const { data, error } = await supabaseAdmin
       .from('language')
       .insert({
         english_name: english_name.trim(),
         native_name: native_name || english_name.trim(),
-        iso639_3: isoCode
+        iso639_3: isoCode,
+        creator_id: user.id,
+        ui_ready: false
       })
       .select()
       .single();
@@ -51,7 +95,10 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      message: 'Language created successfully'
+    });
   } catch (error) {
     console.error('Error processing request:', error);
     return NextResponse.json(
