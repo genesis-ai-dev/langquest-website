@@ -10,19 +10,16 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
 import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthError } from '@supabase/supabase-js';
 import { useMutation } from '@tanstack/react-query';
-import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
-import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
 function ErrorMessage({
@@ -43,7 +40,7 @@ function ErrorMessage({
 
 function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const { supabase } = useAuth();
+  const { supabase, isLoading: authLoading } = useAuth();
   const t = useTranslations('reset_password');
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
@@ -71,6 +68,11 @@ function ResetPasswordForm() {
   });
 
   useEffect(() => {
+    // Wait for auth provider to finish initializing before processing tokens
+    if (authLoading) {
+      return;
+    }
+
     const { params } = getQueryParams(window.location.href);
 
     const error_code = params.error_code;
@@ -112,7 +114,7 @@ function ResetPasswordForm() {
           setShowForm(true);
         });
     }
-  }, [supabase.auth, t]);
+  }, [supabase, authLoading, t]);
 
   const {
     mutate: updatePassword,
@@ -133,6 +135,14 @@ function ResetPasswordForm() {
     },
     onError: toastError
   });
+
+  if (authLoading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <Spinner className="size-4" />
+      </div>
+    );
+  }
 
   if (showForm)
     return (
