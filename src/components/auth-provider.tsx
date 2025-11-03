@@ -45,6 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const environment: SupabaseEnvironment =
     envParam || envFromProjectRef || 'production';
 
+  console.log('[AUTH PROVIDER] Environment:', environment);
+
   // Create environment-specific supabase client
   const supabase = createBrowserClient(environment);
 
