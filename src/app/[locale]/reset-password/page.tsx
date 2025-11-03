@@ -48,13 +48,26 @@ function ResetPasswordForm() {
   const t = useTranslations('reset_password');
 
   // Determine environment from URL params (same logic as AuthProvider)
+  // Extract values to make dependencies stable
   const envParam = searchParams.get('env') as SupabaseEnvironment;
   const projectRef = searchParams.get('project_ref');
-  const envFromProjectRef = projectRef
-    ? getSupabaseEnvironment(projectRef)
-    : null;
-  const detectedEnvironment: SupabaseEnvironment =
-    envParam || envFromProjectRef || 'production';
+
+  // Memoize the environment detection to ensure stability
+  const detectedEnvironment = useMemo(() => {
+    const envFromProjectRef = projectRef
+      ? getSupabaseEnvironment(projectRef)
+      : null;
+    const env: SupabaseEnvironment =
+      envParam || envFromProjectRef || 'production';
+
+    console.log('[RESET PASSWORD] Detected environment:', env, {
+      envParam,
+      projectRef,
+      envFromProjectRef
+    });
+
+    return env;
+  }, [envParam, projectRef]);
 
   // Create the supabase client directly based on URL params to avoid context issues
   // Memoize to prevent recreating on every render
@@ -63,7 +76,20 @@ function ResetPasswordForm() {
       '[RESET PASSWORD] Creating supabase client for environment:',
       detectedEnvironment
     );
-    return createBrowserClient(detectedEnvironment);
+    const client = createBrowserClient(detectedEnvironment);
+    // Verify the client was created with the correct URL
+    const clientUrl = (client as any).supabaseUrl || 'unknown';
+    console.log('[RESET PASSWORD] Created client with URL:', clientUrl);
+    if (
+      detectedEnvironment === 'preview' &&
+      !clientUrl.includes('yjgdgsycxmlvaiuynlbv')
+    ) {
+      console.error(
+        '[RESET PASSWORD] CRITICAL: Wrong client created! Expected preview but got:',
+        clientUrl
+      );
+    }
+    return client;
   }, [detectedEnvironment]);
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
