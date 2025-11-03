@@ -132,6 +132,24 @@ function ResetPasswordForm() {
       console.log('[RESET PASSWORD] Has access_token:', !!access_token);
       console.log('[RESET PASSWORD] Has refresh_token:', !!refresh_token);
 
+      // Log the actual Supabase client URL to verify it's correct
+      // Access the internal URL property (Supabase client stores it internally)
+      const clientUrl = (supabase as any).supabaseUrl || 'unknown';
+      console.log('[RESET PASSWORD] Supabase client URL:', clientUrl);
+      console.log(
+        '[RESET PASSWORD] Expected preview URL: https://yjgdgsycxmlvaiuynlbv.supabase.co'
+      );
+
+      if (
+        clientUrl !== 'https://yjgdgsycxmlvaiuynlbv.supabase.co' &&
+        detectedEnvironment === 'preview'
+      ) {
+        console.error(
+          '[RESET PASSWORD] ERROR: Client URL mismatch! Using:',
+          clientUrl
+        );
+      }
+
       // Verify we're using the correct environment
       if (projectRef && detectedEnvironment !== 'preview') {
         console.warn(
