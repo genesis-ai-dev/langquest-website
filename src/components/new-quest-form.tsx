@@ -250,7 +250,11 @@ export function QuestForm({
             <FormItem>
               <FormLabel>Quest Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter quest name" {...field} />
+                <Input
+                  placeholder="Enter quest name"
+                  {...field}
+                  className="bg-primary-foreground"
+                />
               </FormControl>
               <FormDescription>
                 A descriptive name for this translation quest.
@@ -269,7 +273,7 @@ export function QuestForm({
               <FormControl>
                 <Textarea
                   placeholder="Enter quest description"
-                  className="min-h-[100px]"
+                  className="min-h-[100px] bg-primary-foreground"
                   {...field}
                   value={field.value || ''}
                 />
@@ -294,13 +298,20 @@ export function QuestForm({
                 disabled={!!projectId}
               >
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project" />
+                  <SelectTrigger className="bg-primary-foreground">
+                    <SelectValue
+                      placeholder="Select project"
+                      className="bg-primary-foreground"
+                    />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="bg-primary-foreground">
                   {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
+                    <SelectItem
+                      key={project.id}
+                      value={project.id}
+                      className="bg-primary-foreground"
+                    >
                       {project.name} (→{' '}
                       {(project.target_language as any)?.english_name})
                     </SelectItem>
@@ -327,14 +338,26 @@ export function QuestForm({
                 disabled={questsLoading}
               >
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select parent quest (optional)" />
+                  <SelectTrigger className="bg-primary-foreground">
+                    <SelectValue
+                      placeholder="Select parent quest (optional)"
+                      className="bg-primary-foreground"
+                    />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="__none__">No parent quest</SelectItem>
+                  <SelectItem
+                    value="__none__"
+                    className="bg-primary-foreground"
+                  >
+                    No parent quest
+                  </SelectItem>
                   {quests?.map((quest) => (
-                    <SelectItem key={quest.id} value={quest.id}>
+                    <SelectItem
+                      key={quest.id}
+                      value={quest.id}
+                      className="bg-primary-foreground"
+                    >
                       {quest.name}
                     </SelectItem>
                   ))}

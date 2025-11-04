@@ -158,7 +158,7 @@ export function LanguageCombobox({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'w-full justify-between overflow-hidden flex',
+            'w-full justify-between overflow-hidden flex bg-primary-foreground',
             !value && 'text-muted-foreground'
           )}
           disabled={disabled}

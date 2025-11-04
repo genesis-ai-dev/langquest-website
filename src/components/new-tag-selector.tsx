@@ -328,7 +328,7 @@ export function TagSelector({
                   placeholder={placeholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 text-sm"
+                  className="h-8 text-sm bg-primary-foreground"
                   disabled={disabled}
                 />
               </div>

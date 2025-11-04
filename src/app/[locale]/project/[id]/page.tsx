@@ -27,6 +27,11 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card';
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
 import {
@@ -63,7 +68,10 @@ import {
   FileText,
   UserCheck,
   Plus,
-  File
+  File,
+  FolderPlus,
+  FilePlus,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -345,6 +353,14 @@ function ProjectPageContent() {
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({
       queryKey: ['child-quests', selectedQuestId]
+    });
+    // Also invalidate asset counts to update the project header
+    queryClient.invalidateQueries({
+      queryKey: ['assets-translations-count', projectId, environment]
+    });
+    // And invalidate quest-assets query to refresh asset list in quest view
+    queryClient.invalidateQueries({
+      queryKey: ['quest-assets', selectedQuestId, environment]
     });
   };
 
@@ -631,7 +647,7 @@ function QuestContent({
 
   if (!selectedQuestId) {
     return (
-      <Card className="h-full">
+      <Card className="h-full max-h-[700px]">
         <CardContent className="p-6 h-full flex items-center justify-center">
           <div className="text-center text-muted-foreground">
             <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -648,7 +664,7 @@ function QuestContent({
 
   if (selectedQuestLoading) {
     return (
-      <Card className="h-full">
+      <Card className="h-full max-h-[700px]">
         <CardContent className="p-6 h-full flex items-center justify-center">
           <Spinner />
         </CardContent>
@@ -657,41 +673,108 @@ function QuestContent({
   }
 
   return (
-    <Card className="h-full flex flex-col  max-h-[700px] overflow-hidden">
-      <CardHeader className="">
+    <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
+      <CardHeader className="max-h-8">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <CardTitle className="text-xl">
+            <CardTitle className="text-xl flex flex-row">
               {selectedQuest?.name || 'Quest'}
-            </CardTitle>
-            {selectedQuest?.description && (
+              {/* {selectedQuest?.description && (
               <p className="text-muted-foreground mt-1">
-                {selectedQuest.description}
+              {selectedQuest.description}
               </p>
-            )}
-          </div>
-          {canManage && (
-            <div className="flex items-center gap-2 ml-4">
-              <Button
+              )} */}
+              <div className="">
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <button className="ml-4 hover:bg-accent hover:text-accent-foreground p-1 rounded-sm transition-colors">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </HoverCardTrigger>
+                  <HoverCardContent
+                    className="w-80"
+                    side="bottom"
+                    align="start"
+                  >
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold">
+                        {selectedQuest?.name}
+                      </h4>
+                      {selectedQuest?.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedQuest.description}
+                        </p>
+                      )}
+                      <div className="flex items-center pt-2">
+                        <Calendar className="mr-2 h-3 w-3 opacity-70" />
+                        <span className="text-xs text-muted-foreground">
+                          Created{' '}
+                          {new Date(
+                            selectedQuest?.created_at
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {selectedQuest?.assets && (
+                        <div className="flex items-center">
+                          <File className="mr-2 h-3 w-3 opacity-70" />
+                          <span className="text-xs text-muted-foreground">
+                            {selectedQuest.assets.length} asset(s)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              </div>
+              {/* <Button
                 size="sm"
                 variant="outline"
                 onClick={onAddQuest}
                 className="flex items-center gap-2"
+                title="Add a quest"
               >
-                <Plus className="h-4 w-4" />
-                Add Quest
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onAddAsset}
-                className="flex items-center gap-2"
-              >
-                <File className="h-4 w-4" />
-                Add Asset
-              </Button>
-            </div>
-          )}
+                <Info className="h-4 w-4" />
+              </Button> */}
+            </CardTitle>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            {/* <Button
+              size="sm"
+              variant="outline"
+              onClick={onAddQuest}
+              className="flex items-center gap-2"
+              title="Add a quest"
+            >
+              <Info className="h-4 w-4" />
+            </Button> */}
+
+            {canManage && (
+              <>
+                <Separator orientation="vertical" className="h-6" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onAddQuest}
+                  className="flex items-center gap-2"
+                  title="Add a quest"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  {/* Add Quest */}
+                </Button>
+                <Button
+                  title="Add Asset"
+                  size="sm"
+                  variant="outline"
+                  onClick={onAddAsset}
+                  className="flex items-center gap-2"
+                >
+                  <FilePlus className="h-4 w-4" />
+                  {/* Add Asset */}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0 border-t">

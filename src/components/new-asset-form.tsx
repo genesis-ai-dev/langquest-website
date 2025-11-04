@@ -594,7 +594,11 @@ export function AssetForm({
             <FormItem>
               <FormLabel>Asset Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter asset name" {...field} />
+                <Input
+                  placeholder="Enter asset name"
+                  {...field}
+                  className="bg-primary-foreground"
+                />
               </FormControl>
               <FormDescription>
                 A descriptive name for this translation asset.
@@ -637,7 +641,7 @@ export function AssetForm({
         <div className="space-y-4">
           <div>
             <FormLabel>Images</FormLabel>
-            <div className="mt-2 flex flex-wrap gap-4">
+            <div className="mt-2 flex flex-wrap gap-4 ">
               {imageUrls.map((url, index) => (
                 <div
                   key={index}
@@ -658,16 +662,16 @@ export function AssetForm({
                     type="button"
                     variant="destructive"
                     size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
+                    className="absolute top-1 right-1 h-6 w-6 "
                     onClick={() => removeImage(index)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
-              <label className="flex items-center justify-center w-24 h-24 border border-dashed rounded-md cursor-pointer hover:bg-accent">
+              <label className="flex items-center justify-center w-24 h-24 border border-dashed rounded-md cursor-pointer hover:bg-accent bg-primary-foreground">
                 <div className="flex flex-col items-center">
-                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  <ImageIcon className="h-6 w-6 text-muted-foreground " />
                   <span className="text-xs text-muted-foreground mt-1">
                     Add Image
                   </span>
@@ -721,7 +725,7 @@ export function AssetForm({
                       value={item.text}
                       onChange={(e) => updateContentItem(index, e.target.value)}
                       placeholder="Enter content text"
-                      className="mt-1 min-h-[100px]"
+                      className="mt-1 min-h-[100px] bg-primary-foreground"
                     />
                   </div>
 
