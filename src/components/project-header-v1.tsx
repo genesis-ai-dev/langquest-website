@@ -14,7 +14,7 @@ import { ProjectDownloadButton } from './new-project-download-button';
 
 interface ProjectHeaderV1Props {
   project: any;
-  userRole: 'owner' | 'admin' | 'member';
+  userRole: 'owner' | 'admin' | 'member' | 'viewer';
   assetsCount: number;
   translationsCount: number;
 }

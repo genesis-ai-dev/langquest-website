@@ -122,28 +122,15 @@ function ProjectPageContent() {
     queryKey: ['project', projectId, environment],
     enabled: !!projectId && !!user,
     queryFn: async () => {
-      console.log('🔍 Fetching project with ID:', projectId);
-      console.log('🌍 Environment:', environment);
-      console.log('👤 User ID:', user?.id);
-
       // Check if project exists (without filters first)
       const { data: allProjects, error: allError } = await supabase
         .from('project')
         .select('*');
 
-      console.log(
-        '� All projects in environment:',
-        allProjects?.length || 0,
-        'projects'
-      );
-      console.log('🎯 Looking for project ID:', projectId);
-
       const matchingProject = allProjects?.find((p) => p.id === projectId);
-      console.log('🔍 Found matching project:', matchingProject);
 
       if (!matchingProject) {
         const availableIds = allProjects?.map((p) => p.id) || [];
-        console.log('📝 Available project IDs:', availableIds);
         throw new Error(
           `Project ${projectId} not found. Available projects: ${availableIds.length}`
         );
@@ -158,7 +145,6 @@ function ProjectPageContent() {
           .eq('id', matchingProject.target_language_id)
           .single();
         languageData = lang;
-        console.log('🗣️ Language data:', lang);
       }
 
       // Get quests count
@@ -182,7 +168,6 @@ function ProjectPageContent() {
         project_members: members || []
       };
 
-      console.log('📊 Final project data:', data);
       return data;
     }
   });
@@ -207,10 +192,8 @@ function ProjectPageContent() {
         .eq('active', true)
         .single();
 
-      console.log('👥 Permission data:', data);
-      console.log('🚫 Permission error:', error);
-
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+
       return data;
     }
   });
@@ -321,7 +304,7 @@ function ProjectPageContent() {
   // Check if user has access
   const hasAccess = userPermission || user?.user_metadata?.role === 'admin';
 
-  if (!hasAccess) {
+  if (!hasAccess && project.private === true) {
     return (
       <div className="container p-8 max-w-screen-xl mx-auto">
         <Alert className="max-w-md mx-auto">
@@ -395,7 +378,15 @@ function ProjectPageContent() {
       <div className="container p-6 max-w-screen-xl mx-auto">
         <ProjectHeaderV1
           project={project}
-          userRole={isOwner ? 'owner' : isAdmin ? 'admin' : 'member'}
+          userRole={
+            isOwner
+              ? 'owner'
+              : isAdmin
+                ? 'admin'
+                : userPermission?.membership
+                  ? 'member'
+                  : 'viewer'
+          }
           assetsCount={assetsCount}
           translationsCount={translationsCount}
         />
@@ -412,7 +403,15 @@ function ProjectPageContent() {
                 project={project}
                 projectId={projectId}
                 canManage={canManage}
-                userRole={isOwner ? 'owner' : isAdmin ? 'admin' : 'member'}
+                userRole={
+                  isOwner
+                    ? 'owner'
+                    : isAdmin
+                      ? 'admin'
+                      : userPermission?.membership
+                        ? 'member'
+                        : 'viewer'
+                }
                 onAddQuest={() => setShowQuestForm(true)}
                 onSelectQuest={setSelectedQuestId}
                 selectedQuestId={selectedQuestId}
@@ -957,7 +956,7 @@ function ProjectSidebar({
   project: any;
   projectId: string;
   canManage: boolean;
-  userRole: 'owner' | 'admin' | 'member';
+  userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onAddQuest: () => void;
   onSelectQuest: (questId: string | null) => void;
   selectedQuestId: string | null;
