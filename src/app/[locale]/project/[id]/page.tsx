@@ -71,7 +71,8 @@ import {
   File,
   FolderPlus,
   FilePlus,
-  Info
+  Info,
+  FileStack
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,7 @@ import { QuestCard } from '@/components/QuestCard';
 import { Asset } from 'next/font/google';
 import { AssetCard } from '@/components/AssetCard';
 import { AssetView } from '@/components/asset-view';
+import BulkAssetModal from '@/components/new-bulk-asset-modal';
 
 export default function ProjectPage() {
   return (
@@ -520,6 +522,56 @@ function QuestContent({
     enabled: !!selectedQuestId && !!user
   });
 
+  // Fetch counts for each child quest (sub-quests and assets)
+  const { data: questCounts } = useQuery({
+    queryKey: ['quest-counts', selectedQuestId, environment],
+    queryFn: async () => {
+      if (!selectedQuestId || !childQuests || childQuests.length === 0)
+        return {};
+
+      const counts: Record<
+        string,
+        { questsCount: number; assetsCount: number }
+      > = {};
+
+      // Get counts for each child quest
+      await Promise.all(
+        childQuests.map(async (quest: any) => {
+          try {
+            // Count sub-quests
+            const { count: questsCount } = await supabase
+              .from('quest')
+              .select('*', { count: 'exact', head: true })
+              .eq('parent_id', quest.id)
+              .eq('active', true);
+
+            // Count assets
+            const { count: assetsCount } = await supabase
+              .from('quest_asset_link')
+              .select('*', { count: 'exact', head: true })
+              .eq('quest_id', quest.id)
+              .eq('active', true);
+
+            counts[quest.id] = {
+              questsCount: questsCount || 0,
+              assetsCount: assetsCount || 0
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching counts for quest ${quest.id}:`,
+              error
+            );
+            counts[quest.id] = { questsCount: 0, assetsCount: 0 };
+          }
+        })
+      );
+
+      return counts;
+    },
+    enabled:
+      !!selectedQuestId && !!user && !!childQuests && childQuests.length > 0
+  });
+
   // Fetch selected quest details
   const { data: selectedQuest, isLoading: selectedQuestLoading } = useQuery({
     queryKey: ['quest', selectedQuestId, environment],
@@ -582,8 +634,6 @@ function QuestContent({
   });
 
   const handleAssetClick = async (assetId: string) => {
-    console.log('Fetching details for asset ID:', assetId);
-    // translations:translation(id, text, audio, target_language:target_language_id(id, english_name), votes:vote(id, polarity)),
     let query = supabase
       .from('asset')
       .select(
@@ -677,8 +727,8 @@ function QuestContent({
       <CardHeader className="max-h-8">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <CardTitle className="text-xl flex flex-row">
-              {selectedQuest?.name || 'Quest'}
+            <CardTitle className="max-w-5/6 text-xl flex flex-row ">
+              <div className="truncate">{selectedQuest?.name || 'Quest'}</div>
               {/* {selectedQuest?.description && (
               <p className="text-muted-foreground mt-1">
               {selectedQuest.description}
@@ -726,15 +776,6 @@ function QuestContent({
                   </HoverCardContent>
                 </HoverCard>
               </div>
-              {/* <Button
-                size="sm"
-                variant="outline"
-                onClick={onAddQuest}
-                className="flex items-center gap-2"
-                title="Add a quest"
-              >
-                <Info className="h-4 w-4" />
-              </Button> */}
             </CardTitle>
           </div>
 
@@ -772,6 +813,28 @@ function QuestContent({
                   <FilePlus className="h-4 w-4" />
                   {/* Add Asset */}
                 </Button>
+                <BulkAssetModal
+                  projectId={projectId}
+                  defaultQuestId={selectedQuestId}
+                  trigger={
+                    <Button
+                      title="Add Multiple Assets"
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      <FileStack className="h-4 w-4" />
+                      {/* Add Bulk */}
+                    </Button>
+                  }
+                  onAssetsCreated={(assets) => {
+                    toast.success(
+                      `Successfully created ${assets.length} assets`
+                    );
+                  }}
+                />
               </>
             )}
           </div>
@@ -813,6 +876,12 @@ function QuestContent({
                             onSelectQuest(
                               selectedQuestId === quest.id ? null : quest.id
                             )
+                          }
+                          questsCount={
+                            questCounts?.[quest.id]?.questsCount || 0
+                          }
+                          assetsCount={
+                            questCounts?.[quest.id]?.assetsCount || 0
                           }
                         />
                       ))}
@@ -914,6 +983,39 @@ function ProjectSidebar({
     }
   });
 
+  // Function to get all parent quest IDs for a given quest
+  const getParentPath = (questId: string, questList: any[]): string[] => {
+    const quest = questList.find((q) => q.id === questId);
+    if (!quest || !quest.parent_id) return [];
+
+    return [quest.parent_id, ...getParentPath(quest.parent_id, questList)];
+  };
+
+  // Auto-expand parents and scroll to selected quest
+  useEffect(() => {
+    if (selectedQuestId && quests) {
+      const parentPath = getParentPath(selectedQuestId, quests);
+      if (parentPath.length > 0) {
+        const newExpanded = new Set(expandedItems);
+        parentPath.forEach((parentId) => newExpanded.add(parentId));
+        setExpandedItems(newExpanded);
+      }
+
+      // Scroll to selected quest after a short delay to allow DOM updates
+      setTimeout(() => {
+        const selectedElement = document.querySelector(
+          `[data-quest-id="${selectedQuestId}"]`
+        );
+        // if (selectedElement) {
+        //   selectedElement.scrollIntoView({
+        //     behavior: 'smooth',
+        //     block: 'center'
+        //   });
+        // }
+      }, 100);
+    }
+  }, [selectedQuestId, quests]);
+
   // Build hierarchical quest structure
   const buildQuestTree = (
     quests: any[],
@@ -961,11 +1063,29 @@ function ProjectSidebar({
                 onClick={() =>
                   onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
                 }
-                className={cn(isSelected && 'bg-muted font-medium')}
+                className={cn(
+                  'relative',
+                  isSelected &&
+                    'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
+                )}
+                data-quest-id={quest.id}
               >
-                <FolderOpen className="h-4 w-4" />
-                <span>{quest.name || `Quest ${quest.id.slice(0, 8)}`}</span>
-                <Badge variant="secondary" className="ml-auto text-xs">
+                <FolderOpen
+                  className={cn('h-4 w-4', isSelected && 'text-primary')}
+                />
+                <span className={cn(isSelected && 'font-semibold')}>
+                  {quest.name || `Quest ${quest.id.slice(0, 8)}`}
+                </span>
+                {isSelected && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
+                )}
+                <Badge
+                  variant={isSelected ? 'default' : 'secondary'}
+                  className={cn(
+                    'ml-auto text-xs',
+                    isSelected && 'bg-primary text-primary-foreground'
+                  )}
+                >
                   {quest.children.length}
                 </Badge>
               </SidebarMenuButton>
@@ -996,10 +1116,20 @@ function ProjectSidebar({
         onClick={() =>
           onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
         }
-        className={cn(isSelected && 'bg-muted font-medium')}
+        className={cn(
+          'relative',
+          isSelected &&
+            'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
+        )}
+        data-quest-id={quest.id}
       >
-        <FileText className="h-4 w-4" />
-        <span>{quest.name || `Quest ${quest.id.slice(0, 8)}`}</span>
+        <FileText className={cn('h-4 w-4', isSelected && 'text-primary')} />
+        <span className={cn(isSelected && 'font-semibold')}>
+          {quest.name || `Quest ${quest.id.slice(0, 8)}`}
+        </span>
+        {isSelected && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
+        )}
       </SidebarMenuButton>
     );
 
