@@ -50,7 +50,7 @@ interface ProjectData {
       content: Array<{
         id: string;
         text: string;
-        audio: string;
+        audio: string | string[];
       }>;
       tags: Array<{
         tag: { key: string; value: string };
@@ -61,7 +61,7 @@ interface ProjectData {
         content: Array<{
           id: string;
           text: string;
-          audio: string;
+          audio: string | string[];
         }>;
         votes: Array<{ polarity: string }>;
       }>;
@@ -242,7 +242,7 @@ export function ProjectDownloadButton({
                 `"${asset.source_language?.english_name || ''}"`,
                 `"${sourceImages}"`,
                 `"${sourceContent?.text || ''}"`,
-                `"${sourceContent?.audio || ''}"`,
+                `"${sourceContent?.audio ? (Array.isArray(sourceContent.audio) ? sourceContent.audio.join(';') : sourceContent.audio) : ''}"`,
                 '""', // translation_text
                 '""', // translation_audio
                 '0', // votes_up
@@ -276,7 +276,7 @@ export function ProjectDownloadButton({
                   `"${sourceContent?.text || ''}"`,
                   `"${sourceContent?.audio || ''}"`,
                   `"${translationContent?.text || ''}"`,
-                  `"${translationContent?.audio || ''}"`,
+                  `"${translationContent?.audio ? (Array.isArray(translationContent.audio) ? translationContent.audio.join(';') : translationContent.audio) : ''}"`,
                   votesUp.toString(),
                   votesDown.toString()
                 ].join(',')
@@ -313,11 +313,19 @@ export function ProjectDownloadButton({
             name: asset.name,
             tags: asset.tags.map((t) => `${t.tag.key}:${t.tag.value}`),
             source_content: asset.content[0]?.text || null,
-            source_audio: asset.content[0]?.audio || null,
+            source_audio: asset.content[0]?.audio
+              ? Array.isArray(asset.content[0].audio)
+                ? asset.content[0].audio.join(';')
+                : asset.content[0].audio
+              : null,
             translations: asset.translations.map((translation) => ({
               //            id: translation.id,
               text: translation.content[0].text,
-              audio: translation.content[0].audio,
+              audio: translation.content[0].audio
+                ? Array.isArray(translation.content[0].audio)
+                  ? translation.content[0].audio.join(';')
+                  : translation.content[0].audio
+                : null,
               votes: {
                 up: translation.votes.filter((v) => v.polarity === 'up').length,
                 down: translation.votes.filter((v) => v.polarity === 'down')
@@ -459,24 +467,62 @@ export function ProjectDownloadButton({
 
           // Add source audio
           if (asset.content?.[0]?.audio) {
-            const audioUrl = asset.content[0].audio;
-            allFileUrls.add(audioUrl);
-            fileMapping.set(audioUrl, {
-              questName: sanitizeFileName(quest.name),
-              assetName: sanitizeFileName(asset.name),
-              type: 'audio'
+            const audioField = asset.content[0].audio;
+            let audioUrls: string[] = [];
+
+            if (typeof audioField === 'string') {
+              // Handle both single string and semicolon-separated string
+              audioUrls = audioField.includes(';')
+                ? audioField
+                    .split(';')
+                    .filter((url: string) => url.trim() !== '')
+                : [audioField].filter((url: string) => url.trim() !== '');
+            } else if (Array.isArray(audioField)) {
+              // Handle array format
+              audioUrls = (audioField as any[]).filter(
+                (url: any) =>
+                  url && typeof url === 'string' && url.trim() !== ''
+              );
+            }
+
+            audioUrls.forEach((audioUrl: string) => {
+              allFileUrls.add(audioUrl);
+              fileMapping.set(audioUrl, {
+                questName: sanitizeFileName(quest.name),
+                assetName: sanitizeFileName(asset.name),
+                type: 'audio'
+              });
             });
           }
 
           // Add translation audio
           asset.translations?.forEach((translation) => {
             if (translation.content?.[0]?.audio) {
-              const audioUrl = translation.content[0].audio;
-              allFileUrls.add(audioUrl);
-              fileMapping.set(audioUrl, {
-                questName: sanitizeFileName(quest.name),
-                assetName: sanitizeFileName(asset.name),
-                type: 'audio'
+              const audioField = translation.content[0].audio;
+              let audioUrls: string[] = [];
+
+              if (typeof audioField === 'string') {
+                // Handle both single string and semicolon-separated string
+                audioUrls = audioField.includes(';')
+                  ? audioField
+                      .split(';')
+                      .filter((url: string) => url.trim() !== '')
+                  : [audioField].filter((url: string) => url.trim() !== '');
+              } else if (Array.isArray(audioField)) {
+                // Handle array format
+                audioUrls = (audioField as any[]).filter(
+                  (url: any) =>
+                    url && typeof url === 'string' && url.trim() !== ''
+                );
+              }
+
+              audioUrls.forEach((audioUrl: string) => {
+                allFileUrls.add(audioUrl);
+                fileMapping.set(audioUrl, {
+                  questName: sanitizeFileName(quest.name),
+                  assetName: sanitizeFileName(asset.name),
+                  type: 'audio'
+                });
               });
             }
           });
