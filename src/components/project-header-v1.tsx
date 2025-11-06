@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Calendar,
@@ -11,6 +13,7 @@ import {
   Languages
 } from 'lucide-react';
 import { ProjectDownloadButton } from './new-project-download-button';
+import { ProjectMembersModal } from './new-project-members';
 
 interface ProjectHeaderV1Props {
   project: any;
@@ -25,6 +28,8 @@ export function ProjectHeaderV1({
   assetsCount,
   translationsCount
 }: ProjectHeaderV1Props) {
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -50,7 +55,19 @@ export function ProjectHeaderV1({
                 <p className="text-muted-foreground">{project.description}</p>
               )}
             </div>
-            <ProjectDownloadButton projectId={project.id} />
+            <div className="flex gap-2">
+              <Button
+                title="Members"
+                size="sm"
+                variant="outline"
+                onClick={() => setIsMembersModalOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Members
+              </Button>
+              <ProjectDownloadButton projectId={project.id} />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -157,6 +174,12 @@ export function ProjectHeaderV1({
           </CardContent>
         </Card>
       </div>
+
+      <ProjectMembersModal
+        open={isMembersModalOpen}
+        onOpenChange={setIsMembersModalOpen}
+        projectId={project.id}
+      />
     </div>
   );
 }

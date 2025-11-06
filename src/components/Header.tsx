@@ -102,7 +102,7 @@ const Header = () => {
                 {t('userFriendlyData')}
               </Link>
               {(!!user || DEV_ADMIN_MODE) && (
-                <Link href="/admin">
+                <Link href="/portal">
                   <Button variant="outline" className="w-full mt-2">
                     {!!user ? 'Project Management' : t('adminDashboard')}
                   </Button>
@@ -141,7 +141,7 @@ const Header = () => {
 
           <Separator orientation="vertical" className="h-6 w-2 bg-gray-600" />
 
-          <Link href="/admin">
+          <Link href="/portal">
             <Button variant="outline">{t('goToUserArea')}</Button>
           </Link>
         </nav>

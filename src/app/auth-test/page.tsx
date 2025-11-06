@@ -23,7 +23,7 @@ export default function AuthTestPage() {
               <p>User ID: {user.id}</p>
               <div className="flex gap-4">
                 <Button onClick={() => signOut()}>Sign Out</Button>
-                <Link href="/admin">
+                <Link href="/portal">
                   <Button variant="outline">Go to Admin Dashboard</Button>
                 </Link>
               </div>
