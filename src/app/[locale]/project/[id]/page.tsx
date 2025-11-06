@@ -35,21 +35,21 @@ import {
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarTrigger
+  SidebarProvider
+  // Sidebar,
+  // SidebarContent,
+  // SidebarFooter,
+  // SidebarGroup,
+  // SidebarGroupContent,
+  // SidebarGroupLabel,
+  // SidebarHeader,
+  // SidebarInset,
+  // SidebarTrigger
 } from '@/components/ui/sidebar';
 import {
   Collapsible,
@@ -59,29 +59,28 @@ import {
 import {
   Globe,
   AlertCircle,
-  Users,
   Calendar,
-  Settings,
-  BarChart3,
   FolderOpen,
-  Home,
-  FileText,
-  UserCheck,
   Plus,
   File,
   FolderPlus,
   FilePlus,
   Info,
   FileStack
+  // Users,
+  // Settings,
+  // BarChart3,
+  // Home,
+  // FileText,
+  // UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { SupabaseEnvironment } from '@/lib/supabase';
-import { env } from '@/lib/env';
+// import { SupabaseEnvironment } from '@/lib/supabase';
+// import { env } from '@/lib/env';
 import { Link } from '@/i18n/navigation';
 import { ProjectHeaderV1 } from '@/components/project-header-v1';
 import { QuestCard } from '@/components/QuestCard';
-import { Asset } from 'next/font/google';
 import { AssetCard } from '@/components/AssetCard';
 import { AssetView } from '@/components/asset-view';
 import BulkAssetModal from '@/components/new-bulk-asset-modal';
@@ -198,7 +197,7 @@ function ProjectPageContent() {
     }
   });
 
-  // Query única para buscar Assets e Translations
+  // Single query to fetch Assets and Translations
   const { data: assetsCounts = { assets: 0, translations: 0 } } = useQuery({
     queryKey: ['assets-translations-count', projectId, environment],
     queryFn: async () => {
@@ -374,7 +373,7 @@ function ProjectPageContent() {
         </div>
       </header>
 
-      {/* Project Header - Modelo Original com Stats */}
+      {/* Project Header - Original Model with Stats */}
       <div className="container p-6 max-w-screen-xl mx-auto">
         <ProjectHeaderV1
           project={project}
@@ -392,7 +391,7 @@ function ProjectPageContent() {
         />
       </div>
 
-      {/* Content Area - Sem cards desnecessários */}
+      {/* Content Area - Without unnecessary cards */}
       <div className="container p-6 max-w-screen-xl mx-auto ">
         {/* Bottom Layout with Sidebar and Content */}
         <SidebarProvider>
@@ -658,7 +657,7 @@ function QuestContent({
     }
 
     if (assets && assets.length > 0) {
-      // Buscar traduções baseadas no source_asset_id
+      // Fetch translations based on source_asset_id
       const { data: translations, error: translationsError } = await supabase
         .from('asset')
         .select(
@@ -684,7 +683,7 @@ function QuestContent({
         console.error('Error fetching translations:', translationsError);
       }
 
-      // Adicionar traduções ao asset principal
+      // Add translations to main asset
       const assetWithTranslations = {
         ...assets[0],
         translations: translations || []
@@ -1116,14 +1115,15 @@ function ProjectSidebar({
           onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
         }
         className={cn(
-          'relative',
+          'relative w-full',
           isSelected &&
             'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
         )}
         data-quest-id={quest.id}
+        title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
       >
-        <FileText className={cn('h-4 w-4', isSelected && 'text-primary')} />
-        <span className={cn(isSelected && 'font-semibold')}>
+        <FolderOpen className={cn('h-4 w-4', isSelected && 'text-primary')} />
+        <span className={cn(isSelected && 'font-semibold', 'truncate')}>
           {quest.name || `Quest ${quest.id.slice(0, 8)}`}
         </span>
         {isSelected && (
@@ -1133,7 +1133,9 @@ function ProjectSidebar({
     );
 
     return level > 0 ? (
-      <SidebarMenuSubItem key={quest.id}>{ButtonComponent}</SidebarMenuSubItem>
+      <SidebarMenuSubItem key={quest.id} className="w-full overflow-clip">
+        {ButtonComponent}
+      </SidebarMenuSubItem>
     ) : (
       <SidebarMenuItem key={quest.id}>{ButtonComponent}</SidebarMenuItem>
     );
