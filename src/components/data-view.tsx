@@ -101,7 +101,7 @@ export interface TargetLanguage {
 export interface Content {
   id: string;
   text: string;
-  audio: string | null;
+  audio: string | [string] | null;
 }
 
 export interface Tag {

@@ -44,27 +44,41 @@ export interface TargetLanguage {
 export interface Content {
   id: string;
   text: string;
-  audio_id: string;
+  audio: string | [string] | null;
 }
 
 export interface Tag {
-  tag:
-    | {
-        id: string;
-        name: string;
-      }
-    | string;
+  tag: {
+    id: string;
+    key: string;
+    value: string;
+  };
+}
+
+export interface SourceLanguage {
+  id: string;
+  english_name: string;
 }
 
 export interface Asset {
   id: string;
   name: string;
+  project_id: string;
+  source_language_id: string;
+  project?: {
+    id: string;
+    name: string;
+    description: string;
+    target_language: TargetLanguage;
+  };
+  source_language?: SourceLanguage;
   translations: {
     id: string;
-    text: string;
-    audio: string;
-    votes: Vote[];
-    target_language: TargetLanguage;
+    name: string;
+    source_language_id: string;
+    project_id: string;
+    content: Content[];
+    source_language?: SourceLanguage;
   }[];
   content: Content[];
   tags: Tag[];
@@ -77,6 +91,7 @@ export interface Asset {
         id: string;
         name: string;
         description: string;
+        target_language: TargetLanguage;
       };
       description: string;
     };
@@ -246,7 +261,7 @@ export function AssetCard({ asset }: AssetCardProps) {
               >
                 {typeof tag.tag === 'string'
                   ? tag.tag
-                  : tag.tag?.name || 'Unknown Tag'}
+                  : `${tag.tag?.key}: ${tag.tag?.value}` || 'Unknown Tag'}
               </Badge>
             ))}
           </div>
@@ -352,11 +367,20 @@ export function AssetCard({ asset }: AssetCardProps) {
                     <p className="text-sm text-foreground leading-relaxed font-medium">
                       {content.text || t('noText')}
                     </p>
-                    {content.audio_id && (
+                    {typeof content.audio === 'string' ? (
                       <AudioPlayer
-                        src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio_id}`}
+                        src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
                       />
-                    )}
+                    ) : Array.isArray(content.audio) ? (
+                      content.audio.map(
+                        (audioUrl: string, audioIndex: number) => (
+                          <AudioPlayer
+                            key={audioIndex}
+                            src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${audioUrl}`}
+                          />
+                        )
+                      )
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -390,13 +414,15 @@ export function AssetCard({ asset }: AssetCardProps) {
                         <div className="flex-1 min-w-0">
                           <p
                             className={`font-medium text-foreground text-sm line-clamp-2 leading-snug ${
-                              !translation.text ||
-                              translation.text.trim() === ''
+                              !translation.content?.[0]?.text ||
+                              translation.content[0].text.trim() === ''
                                 ? 'italic text-muted-foreground'
                                 : ''
                             }`}
                           >
-                            {translation.text || t('noText')}
+                            {translation.content?.[0]?.text ||
+                              translation.name ||
+                              t('noText')}
                           </p>
                         </div>
 
@@ -406,7 +432,8 @@ export function AssetCard({ asset }: AssetCardProps) {
                             variant="outline"
                             className="text-xs bg-primary/10"
                           >
-                            {translation.target_language.english_name}
+                            {translation.source_language?.english_name ||
+                              'Unknown'}
                           </Badge>
                         </div>
                       </div>
@@ -414,37 +441,20 @@ export function AssetCard({ asset }: AssetCardProps) {
                       {/* Audio Player and Voting Row */}
                       <div className="flex items-center justify-between gap-3">
                         {/* Audio Player - Same width as text above */}
-                        {translation.audio ? (
+                        {translation.content?.[0]?.audio ? (
                           <div className="flex-1 min-w-0">
                             <AudioPlayer
-                              src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${translation.audio}`}
+                              src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${translation.content[0].audio}`}
                             />
                           </div>
                         ) : (
                           <div className="flex-1"></div>
                         )}
 
-                        {/* Voting - Right side (flex-shrink-0 to maintain size) */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className="flex items-center gap-1 px-2 py-0.5 bg-green-50 dark:bg-green-950 rounded-full">
-                            <ThumbsUpIcon className="size-3 text-green-600" />
-                            <span className="text-xs font-medium text-green-600">
-                              {
-                                translation.votes.filter(
-                                  (vote) => vote.polarity === 'up'
-                                ).length
-                              }
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 px-2 py-0.5 bg-red-50 dark:bg-red-950 rounded-full">
-                            <ThumbsDownIcon className="size-3 text-red-500" />
-                            <span className="text-xs font-medium text-red-500">
-                              {
-                                translation.votes.filter(
-                                  (vote) => vote.polarity === 'down'
-                                ).length
-                              }
-                            </span>
+                        {/* Voting removed temporarily - need to understand new schema */}
+                        <div className="flex-shrink-0">
+                          <div className="text-xs text-muted-foreground">
+                            Translation
                           </div>
                         </div>
                       </div>
