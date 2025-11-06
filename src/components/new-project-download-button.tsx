@@ -406,7 +406,10 @@ export function ProjectDownloadButton({
     return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
   };
 
-  const sanitizeFileName = (name: string): string => {
+  const sanitizeFileName = (name: string | null | undefined): string => {
+    if (!name || typeof name !== 'string') {
+      return 'unnamed';
+    }
     return name.replace(/[^a-zA-Z0-9._-]/g, '_');
   };
 
