@@ -333,7 +333,8 @@ export function AssetForm({
         const { data: uploadData, error: uploadError } =
           await createBrowserClient(environment)
             .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-            .upload(`audio/${fileName}`, file);
+            //.upload(`audio/${fileName}`, file);
+            .upload(`${fileName}`, file);
 
         if (uploadError) throw uploadError;
         if (updatedContent[index]) {
@@ -397,9 +398,10 @@ export function AssetForm({
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
-          audio: item.audio_id,
+          audio: [item.audio_id],
           id: crypto.randomUUID(),
-          active: true
+          active: true,
+          source_language_id: values.source_language_id
         }));
 
         const { error: contentError } = await createBrowserClient(environment)

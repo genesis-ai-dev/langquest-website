@@ -455,9 +455,10 @@ export function BulkAssetModal({
             .insert({
               asset_id: assetData.id,
               text: asset.content,
-              audio: uploadedAudioId,
+              audio: [uploadedAudioId],
               id: crypto.randomUUID(),
-              active: true
+              active: true,
+              source_language_id: asset.source_language_id
             });
 
           if (contentError) throw contentError;
