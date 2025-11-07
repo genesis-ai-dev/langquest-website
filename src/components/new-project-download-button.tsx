@@ -115,7 +115,7 @@ export function ProjectDownloadButton({
         `
         )
         .eq('id', projectId)
-        .is('quests.assets.parent_id', null)
+        .is('quests.assets.source_asset_id', null)
         .single();
 
       console.log('Fetched project data for download:', data, error);
