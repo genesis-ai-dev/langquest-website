@@ -36,13 +36,13 @@ export default function LandingPage() {
     {
       name: 'Production',
       description: 'Main database with live data',
-      href: '/login?env=production',
+      href: 'https://langquest.org/login',
       color: 'bg-green-500'
     },
     {
       name: 'Preview',
       description: 'Staging environment for testing',
-      href: '/login?env=preview',
+      href: 'https://preview.langquest.org/login',
       color: 'bg-yellow-500'
     },
     {
