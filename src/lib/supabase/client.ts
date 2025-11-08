@@ -3,7 +3,7 @@ import {
   SupabaseEnvironment,
   supabaseInstances
 } from '.';
-import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 interface ClientOptions {
   persistSession?: boolean;
