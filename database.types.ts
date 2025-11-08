@@ -344,13 +344,6 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: 'projects_source_language_id_fkey';
-            columns: ['source_language_id'];
-            isOneToOne: false;
-            referencedRelation: 'language';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'projects_target_language_id_fkey';
             columns: ['target_language_id'];
             isOneToOne: false;

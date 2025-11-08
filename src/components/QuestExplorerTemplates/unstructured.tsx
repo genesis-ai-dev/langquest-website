@@ -52,6 +52,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { BulkUpload } from '../new-bulk-upload';
 
 interface QuestsUnstructuredProps {
   project: any;
@@ -489,6 +490,7 @@ function QuestsSideBar({
   questsLoading: boolean;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [showBulkQuestUpload, setShowBulkQuestUpload] = useState(false);
 
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
@@ -660,14 +662,28 @@ function QuestsSideBar({
           <div className="flex items-center justify-between ">
             <CardTitle className="text-lg">Quests</CardTitle>
             {canManage && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                onClick={onAddQuest}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                  onClick={onAddQuest}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  title="Bulk Upload Quests"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowBulkQuestUpload(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  {/* Bulk Upload */}
+                </Button>
+              </>
             )}
           </div>
         </CardHeader>
@@ -698,6 +714,35 @@ function QuestsSideBar({
           </Button>
         </CardFooter>
       </Card>
+      {/* Quest Upload Modal */}
+      <Dialog
+        open={showBulkQuestUpload}
+        // open={pageState.showQuestUpload}
+        onOpenChange={(open) => setShowBulkQuestUpload(open)}
+      >
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload Quests to Project</DialogTitle>
+            <DialogDescription>
+              Add multiple quests with their assets to &quot;
+              {/* {pageState.selectedProjectName}&quot; using a CSV file. */}
+            </DialogDescription>
+          </DialogHeader>
+          <BulkUpload
+            mode="questToProject"
+            projectId={projectId || undefined}
+            onSuccess={() => {
+              // setPageState((prev) => ({
+              //   ...prev,
+              //   showQuestUpload: false
+              // }));
+              // refetchQuests();
+              setShowBulkQuestUpload(false);
+              toast.success('Quests uploaded successfully');
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

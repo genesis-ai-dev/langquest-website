@@ -224,7 +224,7 @@ export function ProjectDownloadButton({
           const assetTags =
             asset.tags?.map((t) => `${t.tag.key}:${t.tag.value}`).join(';') ||
             '';
-          const sourceImages = asset.images ? JSON.stringify(asset.images) : '';
+          const sourceImages = asset.images ? asset.images.join(';') : '';
 
           if (!asset.translations || asset.translations.length === 0) {
             // Asset with no translations
