@@ -11,7 +11,7 @@ import {
 import { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
+import { SupabaseEnvironment } from '@/lib/supabase';
 import router from 'next/router';
 import { env } from '@/lib/env';
 
