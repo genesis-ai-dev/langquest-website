@@ -11,7 +11,7 @@ import {
 import { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { SupabaseEnvironment } from '@/lib/supabase';
+import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
 import router from 'next/router';
 import { env } from '@/lib/env';
 
@@ -45,17 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Determine environment from URL params
   const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment =
-    envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
-
-
-  const projectRef = searchParams.get('project_ref');
-  const envFromProjectRef = projectRef
-    ? getSupabaseEnvironment(projectRef)
-    : null;
+  const projectRef = searchParams.get('project_ref') as SupabaseEnvironment;
 
   const environment: SupabaseEnvironment =
-    envParam || envFromProjectRef || 'production';
+    projectRef || envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+  // const envFromProjectRef = projectRef
+  //   ? getSupabaseEnvironment(projectRef)
+  //   : null;
+
+  // const environment: SupabaseEnvironment =
+  //   envParam || envFromProjectRef || 'production';
 
   console.log('[AUTH PROVIDER] Environment:', environment);
 

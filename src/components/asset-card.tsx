@@ -8,8 +8,8 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import {
-  ThumbsDownIcon,
-  ThumbsUpIcon,
+  // ThumbsDownIcon,
+  // ThumbsUpIcon,
   //  ImageIcon,
   PlayIcon,
   PauseIcon,

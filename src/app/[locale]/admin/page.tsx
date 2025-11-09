@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import {
   PlusCircle,
   Copy,
-  LogOut,
   Crown,
   Eye,
   ArrowLeft,
@@ -228,8 +227,7 @@ function AdminContent() {
   // Handle sign out
   const handleSignOut = async () => {
     try {
-      const supabase = createBrowserClient(environment);
-
+      // const supabase = createBrowserClient(environment);
       // await supabase.auth.signOut();
       await signOut();
 

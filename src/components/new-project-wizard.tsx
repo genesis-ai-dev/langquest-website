@@ -25,9 +25,9 @@ import {
   ArrowRight,
   ArrowLeft,
   Copy,
-  Plus,
-  Upload,
-  X
+  Plus
+  // Upload,
+  // X
 } from 'lucide-react';
 import {
   Tooltip,
@@ -109,8 +109,8 @@ export function ProjectWizard({
 }: ProjectWizardProps) {
   const [step, setStep] = useState(projectToClone ? 2 : 1); // Skip to step 2 if cloning
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  // const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user, environment } = useAuth();
   const [cloneJob, setCloneJob] = useState<{
     id?: string;
@@ -406,48 +406,48 @@ export function ProjectWizard({
     // This is optional since we're already updating the UI optimistically
   };
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
+  // const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = event.target.files?.[0];
+  //   if (file) {
+  //     // Validate file type
+  //     if (!file.type.startsWith('image/')) {
+  //       toast.error('Please select an image file');
+  //       return;
+  //     }
 
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be smaller than 5MB');
-        return;
-      }
+  //     // Validate file size (5MB max)
+  //     if (file.size > 5 * 1024 * 1024) {
+  //       toast.error('Image must be smaller than 5MB');
+  //       return;
+  //     }
 
-      setSelectedImage(file);
+  //     // setSelectedImage(file);
 
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  //     // Create preview URL
+  //     const reader = new FileReader();
+  //     // reader.onload = (e) => {
+  //     //   setImagePreview(e.target?.result as string);
+  //     // };
+  //     reader.readAsDataURL(file);
 
-      // Update form value
-      step2Form.setValue('image', file);
-    }
-  };
+  //     // Update form value
+  //     step2Form.setValue('image', file);
+  //   }
+  // };
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    step2Form.setValue('image', undefined);
+  // const removeImage = () => {
+  //   // setSelectedImage(null);
+  //   // setImagePreview(null);
+  //   step2Form.setValue('image', undefined);
 
-    // Reset file input
-    const fileInput = document.getElementById(
-      'wizard-image-upload'
-    ) as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
-  };
+  //   // Reset file input
+  //   const fileInput = document.getElementById(
+  //     'wizard-image-upload'
+  //   ) as HTMLInputElement;
+  //   if (fileInput) {
+  //     fileInput.value = '';
+  //   }
+  // };
 
   // Render step 1: Choose project creation method
   const renderStep1 = () => {

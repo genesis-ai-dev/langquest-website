@@ -5,14 +5,7 @@ import {
 } from '.';
 import { createClient } from '@supabase/supabase-js';
 
-interface ClientOptions {
-  persistSession?: boolean;
-}
-
-export function createBrowserClient(
-  environment?: SupabaseEnvironment | null,
-  options?: ClientOptions
-) {
+export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   console.log(
     '[SUPABASE CLIENT] Creating browser client for environment:',
     environment
@@ -22,17 +15,32 @@ export function createBrowserClient(
   const env = environment ?? 'production';
   console.log('[SUPABASE CLIENT] Using environment:', env);
 
-  // Create a unique key for this environment and options combination
-  const instanceKey = `${env}-${JSON.stringify(options || {})}`;
-
-  // Return existing instance for this environment and options if already created
-  const existingInstance = supabaseInstances.get(instanceKey);
+  // Return existing instance for this environment if already created
+  const existingInstance = supabaseInstances.get(env);
   if (existingInstance) {
-    console.log(
-      '[SUPABASE CLIENT] Returning existing instance for:',
-      instanceKey
-    );
-    return existingInstance;
+    // Verify the cached instance has the correct URL
+    const cachedUrl = (existingInstance as any).supabaseUrl || 'unknown';
+    const { url: expectedUrl } = getSupabaseCredentials(env);
+
+    console.log('[SUPABASE CLIENT] Returning existing instance for:', env);
+    console.log('[SUPABASE CLIENT] Cached instance URL:', cachedUrl);
+    console.log('[SUPABASE CLIENT] Expected URL:', expectedUrl);
+
+    // If the cached instance has the wrong URL, clear it and create a new one
+    if (cachedUrl !== expectedUrl && cachedUrl !== `${expectedUrl}/`) {
+      console.error(
+        '[SUPABASE CLIENT] ERROR: Cached instance has wrong URL!',
+        'Expected:',
+        expectedUrl,
+        'Got:',
+        cachedUrl,
+        'Clearing cache and creating new instance'
+      );
+      supabaseInstances.delete(env);
+      // Fall through to create a new instance
+    } else {
+      return existingInstance;
+    }
   }
 
   const { url, key } = getSupabaseCredentials(env);
@@ -40,32 +48,35 @@ export function createBrowserClient(
   console.log('[SUPABASE CLIENT] Key exists:', !!key);
   console.log('[SUPABASE CLIENT] Key length:', key?.length);
 
-  let newInstance;
+  // Use createClient directly instead of createBrowserClient to ensure
+  // the URL and key we pass are actually used (not overridden by env vars)
+  const newInstance = createClient(url, key, {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
 
-  // If custom options are provided, use the standard client with auth options
-  if (options && options.persistSession !== undefined) {
-    console.log(
-      '[SUPABASE CLIENT] Creating instance with custom auth options:',
-      options
+  // Verify the instance was created with the correct URL
+  const instanceUrl = (newInstance as any).supabaseUrl || 'unknown';
+  console.log('[SUPABASE CLIENT] Created new instance for:', env);
+  console.log('[SUPABASE CLIENT] Instance URL:', instanceUrl);
+
+  if (env === 'preview' && !instanceUrl.includes('yjgdgsycxmlvaiuynlbv')) {
+    console.error(
+      '[SUPABASE CLIENT] ERROR: Created preview instance but URL is:',
+      instanceUrl
     );
-    newInstance = createSupabaseBrowserClient(url, key, {
-      auth: {
-        persistSession: options.persistSession,
-        storage: {
-          getItem: (key: string) => sessionStorage.getItem(key),
-          setItem: (key: string, value: string) =>
-            sessionStorage.setItem(key, value),
-          removeItem: (key: string) => sessionStorage.removeItem(key)
-        }
-      }
-    });
-  } else {
-    // Use the default SSR client for standard behavior
-    newInstance = createSupabaseBrowserClient(url, key);
+  }
+  if (env === 'production' && !instanceUrl.includes('unsxkmlcyxgtgmtzfonb')) {
+    console.error(
+      '[SUPABASE CLIENT] ERROR: Created production instance but URL is:',
+      instanceUrl
+    );
   }
 
-  console.log('[SUPABASE CLIENT] Created new instance for:', instanceKey);
-
-  supabaseInstances.set(instanceKey, newInstance);
+  supabaseInstances.set(env, newInstance);
   return newInstance;
 }

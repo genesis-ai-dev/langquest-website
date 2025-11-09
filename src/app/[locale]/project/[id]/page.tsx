@@ -122,9 +122,7 @@ function ProjectPageContent() {
     enabled: !!projectId && !!user,
     queryFn: async () => {
       // Check if project exists (without filters first)
-      const { data: allProjects, error: allError } = await supabase
-        .from('project')
-        .select('*');
+      const { data: allProjects } = await supabase.from('project').select('*');
 
       const matchingProject = allProjects?.find((p) => p.id === projectId);
 
@@ -277,8 +275,8 @@ function ProjectPageContent() {
           <AlertTitle>Project Not Found</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>
-              The project you're looking for doesn't exist or you don't have
-              permission to access it.
+              The project you are looking for doesn&#39;t exist or you don&#39;t
+              have permission to access it.
             </p>
             <div className="text-xs text-muted-foreground mt-2 space-y-1">
               <p>Project ID: {projectId}</p>
@@ -310,7 +308,7 @@ function ProjectPageContent() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>
-            You don't have permission to access this project.
+            You don&#39;t have permission to access this project.
           </AlertDescription>
         </Alert>
       </div>
@@ -321,7 +319,7 @@ function ProjectPageContent() {
   const isAdmin = userPermission?.membership === 'admin';
   const canManage = isOwner || isAdmin;
 
-  const handleQuestSuccess = (data: { id: string }) => {
+  const handleQuestSuccess = (/* data: { id: string } */) => {
     toast.success('Quest created successfully!');
     setShowQuestForm(false);
     // Invalidate queries to refresh the data
@@ -331,7 +329,7 @@ function ProjectPageContent() {
     });
   };
 
-  const handleAssetSuccess = (data: { id: string }) => {
+  const handleAssetSuccess = (/*data: { id: string } */) => {
     toast.success('Asset created successfully!');
     setShowAssetForm(false);
     // Invalidate queries to refresh the data
@@ -399,18 +397,18 @@ function ProjectPageContent() {
             {/* Sidebar */}
             <div className="w-80 flex-shrink-0">
               <ProjectSidebar
-                project={project}
+                // project={project}
                 projectId={projectId}
                 canManage={canManage}
-                userRole={
-                  isOwner
-                    ? 'owner'
-                    : isAdmin
-                      ? 'admin'
-                      : userPermission?.membership
-                        ? 'member'
-                        : 'viewer'
-                }
+                // userRole={
+                //   isOwner
+                //     ? 'owner'
+                //     : isAdmin
+                //       ? 'admin'
+                //       : userPermission?.membership
+                //         ? 'member'
+                //         : 'viewer'
+                // }
                 onAddQuest={() => setShowQuestForm(true)}
                 onSelectQuest={setSelectedQuestId}
                 selectedQuestId={selectedQuestId}
@@ -632,7 +630,7 @@ function QuestContent({
   });
 
   const handleAssetClick = async (assetId: string) => {
-    let query = supabase
+    const query = supabase
       .from('asset')
       .select(
         `
@@ -925,7 +923,8 @@ function QuestContent({
                         No Content Yet
                       </h3>
                       <p>
-                        This quest doesn't have any sub-quests or assets yet.
+                        This quest doesn&#39;t have any sub-quests or assets
+                        yet.
                       </p>
                       {canManage && (
                         <p className="text-sm mt-2">
@@ -944,18 +943,18 @@ function QuestContent({
 }
 
 function ProjectSidebar({
-  project,
+  // project,
   projectId,
   canManage,
-  userRole,
+  // userRole,
   onAddQuest,
   onSelectQuest,
   selectedQuestId
 }: {
-  project: any;
+  // project: any;
   projectId: string;
   canManage: boolean;
-  userRole: 'owner' | 'admin' | 'member' | 'viewer';
+  // userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onAddQuest: () => void;
   onSelectQuest: (questId: string | null) => void;
   selectedQuestId: string | null;
@@ -1000,17 +999,17 @@ function ProjectSidebar({
       }
 
       // Scroll to selected quest after a short delay to allow DOM updates
-      setTimeout(() => {
-        const selectedElement = document.querySelector(
-          `[data-quest-id="${selectedQuestId}"]`
-        );
-        // if (selectedElement) {
-        //   selectedElement.scrollIntoView({
-        //     behavior: 'smooth',
-        //     block: 'center'
-        //   });
-        // }
-      }, 100);
+      // setTimeout(() => {
+      //   const selectedElement = document.querySelector(
+      //     `[data-quest-id="${selectedQuestId}"]`
+      //   );
+      //   // if (selectedElement) {
+      //   //   selectedElement.scrollIntoView({
+      //   //     behavior: 'smooth',
+      //   //     block: 'center'
+      //   //   });
+      //   // }
+      // }, 100);
     }
   }, [selectedQuestId, quests]);
 
@@ -1028,7 +1027,6 @@ function ProjectSidebar({
   };
 
   const questTree = quests ? buildQuestTree(quests) : [];
-  const totalQuests = quests?.length || 0;
 
   // Toggle expansion of items
   const toggleExpanded = (questId: string) => {

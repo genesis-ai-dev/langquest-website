@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -8,7 +7,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Car, File, FileText, Image, Volume2, Languages } from 'lucide-react';
+import { FileText, Image, Volume2, Languages } from 'lucide-react';
 
 interface Asset {
   id: string;

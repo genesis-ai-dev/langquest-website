@@ -17,10 +17,7 @@ import {
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SupabaseEnvironment } from '@/lib/supabase';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { EnvironmentBadge } from '@/components/environment-badge';
 import { env } from '@/lib/env';
 
@@ -86,9 +83,7 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment, {
-        persistSession: rememberMe
-      });
+      const supabase = createBrowserClient(environment);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -164,11 +159,11 @@ function LoginForm() {
     }
   };
 
-  const envColors = {
-    production: 'bg-green-500',
-    preview: 'bg-yellow-500',
-    development: 'bg-blue-500'
-  };
+  /* const envColors = {
+  //   production: 'bg-green-500',
+  //   preview: 'bg-yellow-500',
+  //   development: 'bg-blue-500'
+  // }; */
 
   const environments: SupabaseEnvironment[] = [
     'production',
