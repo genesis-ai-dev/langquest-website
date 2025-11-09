@@ -30,7 +30,8 @@
     "title": "LangQuest",
     "sourceCode": "Código Fuente",
     "allData": "Todos los Datos",
-    "userFriendlyData": "Datos Amigables"
+    "userFriendlyData": "Datos Amigables",
+    "goToUserArea": "Área de Usuario"
   },
   "footer": {
     "mitLicense": "Licencia MIT",

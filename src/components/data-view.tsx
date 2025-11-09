@@ -50,12 +50,22 @@ export interface Root {
   assets: {
     id: string;
     name: string;
+    project_id: string;
+    source_language_id: string;
+    project?: {
+      id: string;
+      name: string;
+      description: string;
+      target_language: TargetLanguage;
+    };
+    source_language?: SourceLanguage;
     translations: {
       id: string;
-      text: string;
-      audio: string;
-      votes: Vote[];
-      target_language: TargetLanguage;
+      name: string;
+      source_language_id: string;
+      project_id: string;
+      content: Content[];
+      source_language?: SourceLanguage;
     }[];
     content: Content[];
     tags: Tag[];
@@ -68,7 +78,6 @@ export interface Root {
           id: string;
           name: string;
           description: string;
-          source_language: SourceLanguage;
           target_language: TargetLanguage;
         };
         description: string;
@@ -92,13 +101,14 @@ export interface TargetLanguage {
 export interface Content {
   id: string;
   text: string;
-  audio_id: string;
+  audio: string | [string] | null;
 }
 
 export interface Tag {
   tag: {
     id: string;
-    name: string;
+    key: string;
+    value: string;
   };
 }
 
@@ -248,181 +258,87 @@ export function DataView({
       try {
         const supabase = createBrowserClient(environment);
 
-        // Step 1: Get filtered asset IDs using simpler queries
-        let assetIds: string[] = [];
+        // Build the main query with filters
+        let query = supabase.from('asset').select(
+          `
+            id, 
+            name, 
+            images,
+            project_id,
+            source_language_id,
+            project:project_id(id, name, description, target_language:language!target_language_id(id, english_name)),
+            source_language:source_language_id(id, english_name),
+            translations:asset!source_asset_id(id, name, source_language_id, project_id, 
+              source_language:source_language_id(id, english_name),
+              content:asset_content_link(id, text, audio)
+            ),
+            content:asset_content_link(id, audio, text),
+            tags:asset_tag_link(tag(id, key, value)),
+            quests:quest_asset_link(quest(id, name, description, 
+              project(id, name, description, target_language:language!target_language_id(id, english_name)),
+              tags:quest_tag_link(tag(id, key, value))
+            ))
+          `,
+          { count: 'exact' }
+        );
 
+        // Apply filters directly to the main query
+        if (projectId) {
+          query = query.eq('project_id', projectId);
+        } else if (filters.projects?.length) {
+          query = query.in('project_id', filters.projects);
+        }
+
+        // Filter by quest (still need quest_asset_link for this)
         if (questId) {
-          // Filter by specific quest
           const { data: questAssets } = await supabase
             .from('quest_asset_link')
             .select('asset_id')
             .eq('quest_id', questId);
-          assetIds = questAssets?.map((qa) => qa.asset_id) || [];
-        } else if (projectId) {
-          // Filter by specific project
-          const { data: projectQuests } = await supabase
-            .from('quest')
-            .select('id')
-            .eq('project_id', projectId);
-
-          if (projectQuests?.length) {
-            const questIds = projectQuests.map((q) => q.id);
-            const { data: questAssets } = await supabase
-              .from('quest_asset_link')
-              .select('asset_id')
-              .in('quest_id', questIds);
-            assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+          const assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+          if (assetIds.length === 0) {
+            return { assets: [], count: 0 } as Root;
           }
-        } else {
-          // Apply project filter if any
-          let filteredAssetIds: string[] = [];
-
-          if (filters.projects?.length) {
-            const { data: projectQuests } = await supabase
-              .from('quest')
-              .select('id')
-              .in('project_id', filters.projects);
-
-            if (projectQuests?.length) {
-              const questIds = projectQuests.map((q) => q.id);
-              const { data: questAssets } = await supabase
-                .from('quest_asset_link')
-                .select('asset_id')
-                .in('quest_id', questIds);
-              filteredAssetIds = questAssets?.map((qa) => qa.asset_id) || [];
-            }
+          query = query.in('id', assetIds);
+        } else if (filters.quests?.length) {
+          const { data: questAssets } = await supabase
+            .from('quest_asset_link')
+            .select('asset_id')
+            .in('quest_id', filters.quests);
+          const assetIds = questAssets?.map((qa) => qa.asset_id) || [];
+          if (assetIds.length === 0) {
+            return { assets: [], count: 0 } as Root;
           }
-
-          // Apply quest filter
-          if (filters.quests?.length) {
-            const { data: questAssets } = await supabase
-              .from('quest_asset_link')
-              .select('asset_id')
-              .in('quest_id', filters.quests);
-            const questFilteredIds =
-              questAssets?.map((qa) => qa.asset_id) || [];
-
-            if (filteredAssetIds.length > 0) {
-              // Intersect with existing filters
-              filteredAssetIds = filteredAssetIds.filter((id) =>
-                questFilteredIds.includes(id)
-              );
-            } else {
-              filteredAssetIds = questFilteredIds;
-            }
-          }
-
-          // Apply tag filter
-          if (filters.tags?.length) {
-            const { data: tagAssets } = await supabase
-              .from('asset_tag_link')
-              .select('asset_id, tag!inner(name)')
-              .in('tag.name', filters.tags);
-            const tagFilteredIds = tagAssets?.map((ta) => ta.asset_id) || [];
-
-            if (filteredAssetIds.length > 0) {
-              // Intersect with existing filters
-              filteredAssetIds = filteredAssetIds.filter((id) =>
-                tagFilteredIds.includes(id)
-              );
-            } else {
-              filteredAssetIds = tagFilteredIds;
-            }
-          }
-
-          // Apply language filters
-          if (filters.sourceLanguage || filters.targetLanguage) {
-            let languageQuery = supabase
-              .from('quest')
-              .select(
-                'id, project!inner(source_language!inner(english_name), target_language!inner(english_name))'
-              );
-
-            if (filters.sourceLanguage) {
-              languageQuery = languageQuery.eq(
-                'project.source_language.english_name',
-                filters.sourceLanguage
-              );
-            }
-
-            if (filters.targetLanguage) {
-              languageQuery = languageQuery.eq(
-                'project.target_language.english_name',
-                filters.targetLanguage
-              );
-            }
-
-            const { data: languageQuests } = await languageQuery;
-
-            if (languageQuests?.length) {
-              const questIds = languageQuests.map((q) => q.id);
-              const { data: questAssets } = await supabase
-                .from('quest_asset_link')
-                .select('asset_id')
-                .in('quest_id', questIds);
-              const languageFilteredIds =
-                questAssets?.map((qa) => qa.asset_id) || [];
-
-              if (filteredAssetIds.length > 0) {
-                // Intersect with existing filters
-                filteredAssetIds = filteredAssetIds.filter((id) =>
-                  languageFilteredIds.includes(id)
-                );
-              } else {
-                filteredAssetIds = languageFilteredIds;
-              }
-            } else {
-              // No quests match language criteria, return empty
-              return { assets: [], count: 0 } as Root;
-            }
-          }
-
-          // If no filters applied, get all assets
-          if (
-            filteredAssetIds.length === 0 &&
-            Object.keys(filters).length === 0
-          ) {
-            const { data: allAssets } = await supabase
-              .from('asset')
-              .select('id');
-            assetIds = allAssets?.map((a) => a.id) || [];
-          } else {
-            assetIds = filteredAssetIds;
-          }
+          query = query.in('id', assetIds);
         }
 
-        // Step 2: Get paginated asset data for the filtered IDs
-        if (assetIds.length === 0) {
-          return { assets: [], count: 0 } as Root;
+        // Filter by tags (still need asset_tag_link for this)
+        if (filters.tags?.length) {
+          const { data: tagAssets } = await supabase
+            .from('asset_tag_link')
+            .select('asset_id, tag!inner(key, value)')
+            .in('tag.key', filters.tags);
+          const assetIds = tagAssets?.map((ta) => ta.asset_id) || [];
+          if (assetIds.length === 0) {
+            return { assets: [], count: 0 } as Root;
+          }
+          query = query.in('id', assetIds);
         }
 
-        const totalCount = assetIds.length;
-        const paginatedIds = assetIds.slice(
-          page * pageSize,
-          (page + 1) * pageSize
-        );
-
-        if (paginatedIds.length === 0) {
-          return { assets: [], count: totalCount } as Root;
+        // Language filters - source_language is now direct on asset, target_language via project
+        if (filters.sourceLanguage) {
+          query = query.eq(
+            'source_language.english_name',
+            filters.sourceLanguage
+          );
         }
 
-        let query = supabase
-          .from('asset')
-          .select(
-            `
-            id, 
-            name, 
-            images,
-            translations:translation(id, text, audio, target_language:target_language_id(id, english_name), votes:vote(id, polarity)),
-            content:asset_content_link(id, audio_id, text),
-            tags:asset_tag_link(tag(id, name)),
-            quests:quest_asset_link(quest(id, name, description, 
-              project(id, name, description, source_language:language!source_language_id(id, english_name), target_language:language!target_language_id(id, english_name)),
-              tags:quest_tag_link(tag(id, name))
-            ))
-          `
-          )
-          .in('id', paginatedIds);
+        if (filters.targetLanguage) {
+          query = query.eq(
+            'project.target_language.english_name',
+            filters.targetLanguage
+          );
+        }
 
         // Apply sorting
         if (sort.length > 0) {
@@ -441,7 +357,10 @@ export function DataView({
           query = query.order('name');
         }
 
-        const { data: assets, error } = await query;
+        // Apply pagination
+        query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+        const { data: assets, error, count } = await query;
 
         if (error) {
           console.error('Supabase query error:', error);
@@ -460,7 +379,7 @@ export function DataView({
               ...asset,
               images: parseImages(asset.images)
             })) || [],
-          count: totalCount
+          count: count || 0
         } as unknown as Root;
       } catch (error) {
         console.error('Query execution error:', error);
@@ -482,7 +401,7 @@ export function DataView({
             .from('quest')
             .select('id, name, project:project_id(name)')
             .order('name'),
-          supabase.from('tag').select('id, name').order('name'),
+          supabase.from('tag').select('id, key, value').order('key'),
           supabase
             .from('language')
             .select('id, english_name')
@@ -631,26 +550,26 @@ export function DataView({
                           <h4 className="font-medium mb-2">Tags</h4>
                           <div className="flex flex-wrap gap-1">
                             {filterOptions?.tags
-                              .filter((tag) => tag && tag.name)
+                              .filter((tag) => tag && tag.key)
                               .slice(0, 10)
                               .map((tag) => (
                                 <Button
                                   key={tag.id}
                                   variant={
-                                    filters.tags?.includes(tag.name)
+                                    filters.tags?.includes(tag.key)
                                       ? 'default'
                                       : 'outline'
                                   }
                                   size="sm"
                                   onClick={() => {
-                                    if (filters.tags?.includes(tag.name)) {
-                                      removeFilter('tags', tag.name);
+                                    if (filters.tags?.includes(tag.key)) {
+                                      removeFilter('tags', tag.key);
                                     } else {
-                                      addFilter('tags', tag.name);
+                                      addFilter('tags', tag.key);
                                     }
                                   }}
                                 >
-                                  {tag.name}
+                                  {tag.key}: {tag.value}
                                 </Button>
                               ))}
                           </div>

@@ -14,7 +14,8 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_BUCKET: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_PREVIEW_URL: z.string().url(),
-    NEXT_PUBLIC_SITE_URL: z.string().url()
+    NEXT_PUBLIC_SITE_URL: z.string().url(),
+    NEXT_PUBLIC_ENVIRONMENT: z.string().min(1)
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -24,7 +25,8 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY,
     NEXT_PUBLIC_SUPABASE_PREVIEW_URL:
       process.env.NEXT_PUBLIC_SUPABASE_PREVIEW_URL,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT
   },
   skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === 'lint'
 });
@@ -44,3 +46,4 @@ console.log(
   '[ENV] NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY exists:',
   !!env.NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY
 );
+console.log('[ENV] NEXT_PUBLIC_ENVIRONMENT:', env.NEXT_PUBLIC_ENVIRONMENT);

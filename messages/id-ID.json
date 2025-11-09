@@ -30,7 +30,8 @@
     "title": "LangQuest",
     "sourceCode": "Kode Sumber",
     "allData": "Semua Data",
-    "userFriendlyData": "Data Ramah Pengguna"
+    "userFriendlyData": "Data Ramah Pengguna",
+    "goToUserArea": "Area Pengguna"
   },
   "footer": {
     "mitLicense": "Lisensi MIT",

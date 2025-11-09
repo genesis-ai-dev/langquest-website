@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from './auth-provider';
+import { Separator } from '@/components/ui/separator';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -53,7 +54,7 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="container mx-auto flex h-16 items-center justify-between">
         <Link
           href="/"
@@ -101,7 +102,7 @@ const Header = () => {
                 {t('userFriendlyData')}
               </Link>
               {(!!user || DEV_ADMIN_MODE) && (
-                <Link href="/admin">
+                <Link href="/portal">
                   <Button variant="outline" className="w-full mt-2">
                     {!!user ? 'Project Management' : t('adminDashboard')}
                   </Button>
@@ -137,13 +138,12 @@ const Header = () => {
           >
             {t('userFriendlyData')}
           </Link>
-          {(!!user || DEV_ADMIN_MODE) && (
-            <Link href="/admin">
-              <Button variant="outline">
-                {!!user ? 'Project Management' : t('admin')}
-              </Button>
-            </Link>
-          )}
+
+          <Separator orientation="vertical" className="h-6 w-2 bg-gray-600" />
+
+          <Link href="/portal">
+            <Button variant="outline">{t('goToUserArea')}</Button>
+          </Link>
         </nav>
       </div>
     </header>

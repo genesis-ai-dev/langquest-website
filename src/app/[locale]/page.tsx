@@ -36,13 +36,13 @@ export default function LandingPage() {
     {
       name: 'Production',
       description: 'Main database with live data',
-      href: '/login?env=production',
+      href: 'https://langquest.org/login',
       color: 'bg-green-500'
     },
     {
       name: 'Preview',
       description: 'Staging environment for testing',
-      href: '/login?env=preview',
+      href: 'https://preview.langquest.org/login',
       color: 'bg-yellow-500'
     },
     {
@@ -59,7 +59,7 @@ export default function LandingPage() {
         {/* Hero Section with Three.js Globe */}
         <ClientOnlyHero>
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50">
+            <div className="flex flex-col p-8 justify-center space-y-4 bg-white/60 backdrop-blur-sm  rounded-lg border border-border/50 ">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   {t('hero.title')}
@@ -89,7 +89,7 @@ export default function LandingPage() {
         </ClientOnlyHero>
 
         {/* Key Features */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -167,7 +167,7 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -218,7 +218,7 @@ export default function LandingPage() {
         </section>
 
         {/* Use Cases */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -387,11 +387,11 @@ export default function LandingPage() {
         </section>
 
         {/* Future Vision */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex items-center justify-center">
-                <div className="relative h-[300px] w-full md:h-[400px] overflow-hidden rounded-lg border bg-background p-2">
+                <div className="relative h-[300px] w-5/6 md:h-[400px] overflow-hidden rounded-lg border bg-white p-2">
                   <ClientOnlyP2P />
                 </div>
               </div>
@@ -431,7 +431,7 @@ export default function LandingPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -449,7 +449,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold mb-4">

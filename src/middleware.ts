@@ -103,7 +103,7 @@ export default async function middleware(request: NextRequest) {
   const currentPathname = request.nextUrl.pathname;
 
   // Authentication & Authorization logic for /admin routes
-  if (currentPathname.startsWith('/admin')) {
+  if (currentPathname.startsWith('/portal')) {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';

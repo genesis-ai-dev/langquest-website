@@ -8,8 +8,8 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import {
-  // ThumbsDownIcon,
-  // ThumbsUpIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
   //  ImageIcon,
   PlayIcon,
   PauseIcon,
@@ -44,41 +44,32 @@ export interface TargetLanguage {
 export interface Content {
   id: string;
   text: string;
-  audio: string | [string] | null;
+  audio: string;
 }
 
 export interface Tag {
-  tag: {
-    id: string;
-    key: string;
-    value: string;
-  };
-}
-
-export interface SourceLanguage {
-  id: string;
-  english_name: string;
+  tag:
+    | {
+        id: string;
+        key: string;
+        value: string;
+      }
+    | string;
 }
 
 export interface Asset {
   id: string;
   name: string;
-  project_id: string;
-  source_language_id: string;
-  project?: {
-    id: string;
-    name: string;
-    description: string;
-    target_language: TargetLanguage;
-  };
-  source_language?: SourceLanguage;
   translations: {
     id: string;
-    name: string;
-    source_language_id: string;
-    project_id: string;
-    content: Content[];
-    source_language?: SourceLanguage;
+    // text: string;
+    // audio: string;
+    // target_language: TargetLanguage;
+    content?: {
+      text: string;
+      audio: string;
+    }[];
+    votes: Vote[];
   }[];
   content: Content[];
   tags: Tag[];
@@ -91,7 +82,6 @@ export interface Asset {
         id: string;
         name: string;
         description: string;
-        target_language: TargetLanguage;
       };
       description: string;
     };
@@ -99,7 +89,7 @@ export interface Asset {
   images?: string[];
 }
 
-interface AssetCardProps {
+interface AssetViewProps {
   asset: Asset;
 }
 
@@ -231,10 +221,14 @@ function AudioPlayer({ src, className = '' }: AudioPlayerProps) {
   );
 }
 
-export function AssetCard({ asset }: AssetCardProps) {
+export function AssetView({ asset }: AssetViewProps) {
   const t = useTranslations('data_view');
   const { environment } = useAuth();
   const credentials = getSupabaseCredentials(environment);
+
+  if (!asset) return <div>No asset data available.</div>;
+
+  console.log('Rendering AssetView for asset:', asset);
 
   return (
     <div className="space-y-6 p-6">
@@ -261,7 +255,7 @@ export function AssetCard({ asset }: AssetCardProps) {
               >
                 {typeof tag.tag === 'string'
                   ? tag.tag
-                  : `${tag.tag?.key}: ${tag.tag?.value}` || 'Unknown Tag'}
+                  : `${tag.tag?.key}: ${tag.tag?.value || 'Unknown Tag'}`}
               </Badge>
             ))}
           </div>
@@ -367,20 +361,11 @@ export function AssetCard({ asset }: AssetCardProps) {
                     <p className="text-sm text-foreground leading-relaxed font-medium">
                       {content.text || t('noText')}
                     </p>
-                    {typeof content.audio === 'string' ? (
+                    {content.audio && (
                       <AudioPlayer
                         src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
                       />
-                    ) : Array.isArray(content.audio) ? (
-                      content.audio.map(
-                        (audioUrl: string, audioIndex: number) => (
-                          <AudioPlayer
-                            key={audioIndex}
-                            src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${audioUrl}`}
-                          />
-                        )
-                      )
-                    ) : null}
+                    )}
                   </div>
                 </div>
               ))}
@@ -400,64 +385,71 @@ export function AssetCard({ asset }: AssetCardProps) {
             </h3>
           </div>
 
-          <div className="bg-muted/15 rounded-lg p-3">
+          <div className="bg-muted/15 rounded-lg p-3 ">
             <ScrollArea className="h-80 w-full">
-              <div className="space-y-2 pr-3">
+              <div className="space-y-2 pr-3 bf">
                 {asset.translations.map((translation, index) => (
                   <div
                     key={index}
-                    className="bg-background border border-border/50 rounded-md p-3 space-y-2 hover:border-border hover:bg-background/80 transition-all duration-200"
+                    className="flex w-full justify-betweenbg-background border border-border/50 rounded-md p-3 space-y-2 hover:border-border hover:bg-background/80 transition-all duration-200"
                   >
                     {/* Translation Header */}
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`font-medium text-foreground text-sm line-clamp-2 leading-snug ${
-                              !translation.content?.[0]?.text ||
-                              translation.content[0].text.trim() === ''
-                                ? 'italic text-muted-foreground'
-                                : ''
-                            }`}
-                          >
-                            {translation.content?.[0]?.text ||
-                              translation.name ||
-                              t('noText')}
-                          </p>
-                        </div>
-
-                        {/* Language Badge */}
-                        <div className="flex-shrink-0">
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-primary/10"
-                          >
-                            {translation.source_language?.english_name ||
-                              'Unknown'}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Audio Player and Voting Row */}
-                      <div className="flex items-center justify-between gap-3">
-                        {/* Audio Player - Same width as text above */}
-                        {translation.content?.[0]?.audio ? (
-                          <div className="flex-1 min-w-0">
-                            <AudioPlayer
-                              src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${translation.content[0].audio}`}
-                            />
+                    {(translation.content?.length ?? 0) > 0 &&
+                      translation.content?.map((item, itemIndex) => (
+                        <div key={itemIndex} className="space-y-2 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`font-medium text-foreground text-sm line-clamp-2 leading-snug ${
+                                  !item.text || item.text.trim() === ''
+                                    ? 'italic text-muted-foreground'
+                                    : ''
+                                }`}
+                              >
+                                {item.text || t('noText')}
+                              </p>
+                            </div>
                           </div>
-                        ) : (
-                          <div className="flex-1"></div>
-                        )}
 
-                        {/* Voting removed temporarily - need to understand new schema */}
-                        <div className="flex-shrink-0">
-                          <div className="text-xs text-muted-foreground">
-                            Translation
+                          {/* Audio Player and Voting Row */}
+                          <div className="flex items-center justify-between gap-3">
+                            {/* Audio Player - Same width as text above */}
+                            {item.audio ? (
+                              <div className="flex-1 min-w-0">
+                                <AudioPlayer
+                                  src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${item.audio}`}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex-1"></div>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      ))}
+                    {/* Voting - Right side (flex-shrink-0 to maintain size) */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <>
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-green-50 dark:bg-green-950 rounded-full">
+                          <ThumbsUpIcon className="size-3 text-green-600" />
+                          <span className="text-xs font-medium text-green-600">
+                            {translation?.votes && translation.votes?.length > 0
+                              ? translation.votes.filter(
+                                  (vote) => vote.polarity === 'up'
+                                ).length
+                              : 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-red-50 dark:bg-red-950 rounded-full">
+                          <ThumbsDownIcon className="size-3 text-red-500" />
+                          <span className="text-xs font-medium text-red-500">
+                            {translation?.votes && translation.votes?.length > 0
+                              ? translation.votes.filter(
+                                  (vote) => vote.polarity === 'down'
+                                ).length
+                              : 0}
+                          </span>
+                        </div>
+                      </>
                     </div>
                   </div>
                 ))}

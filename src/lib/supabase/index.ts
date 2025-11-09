@@ -88,9 +88,9 @@ export const getSupabaseEnvironment = (project_ref?: string | null) => {
   return 'production';
 };
 
-// Create a map to store instances for different environments
+// Create a map to store instances for different environments and configurations
 export const supabaseInstances = new Map<
-  SupabaseEnvironment,
+  string,
   SupabaseClient<any, 'public', any>
 >();
 

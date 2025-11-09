@@ -18,6 +18,10 @@ export type Database = {
           last_updated: string;
           name: string;
           source_language_id: string;
+          creatior_id: string | null;
+          visible: boolean;
+          project_id: string;
+          source_asset_id: string | null;
         };
         Insert: {
           active?: boolean;
@@ -27,6 +31,10 @@ export type Database = {
           last_updated?: string;
           name: string;
           source_language_id: string;
+          creatior_id: string | null;
+          visible: boolean;
+          project_id: string;
+          source_asset_id: string | null;
         };
         Update: {
           active?: boolean;
@@ -36,6 +44,10 @@ export type Database = {
           last_updated?: string;
           name?: string;
           source_language_id?: string;
+          creatior_id: string | null;
+          visible: boolean;
+          project_id: string;
+          source_asset_id: string | null;
         };
         Relationships: [
           {
@@ -51,7 +63,7 @@ export type Database = {
         Row: {
           active: boolean;
           asset_id: string;
-          audio_id: string | null;
+          audio: string | null;
           created_at: string;
           id: string;
           last_updated: string;
@@ -60,7 +72,7 @@ export type Database = {
         Insert: {
           active?: boolean;
           asset_id: string;
-          audio_id?: string | null;
+          audio?: string | null;
           created_at?: string;
           id: string;
           last_updated?: string;
@@ -69,7 +81,7 @@ export type Database = {
         Update: {
           active?: boolean;
           asset_id?: string;
-          audio_id?: string | null;
+          audio?: string | null;
           created_at?: string;
           id?: string;
           last_updated?: string;
@@ -298,8 +310,11 @@ export type Database = {
           id: string;
           last_updated: string;
           name: string;
-          source_language_id: string;
+          //        source_language_id: string;
           target_language_id: string;
+          creatior_id: string | null;
+          visible: boolean;
+          template: string | null;
         };
         Insert: {
           active?: boolean | null;
@@ -308,8 +323,11 @@ export type Database = {
           id?: string;
           last_updated?: string;
           name: string;
-          source_language_id: string;
+          // source_language_id: string;
           target_language_id: string;
+          creatior_id: string | null;
+          visible: boolean;
+          template: string | null;
         };
         Update: {
           active?: boolean | null;
@@ -318,8 +336,11 @@ export type Database = {
           id?: string;
           last_updated?: string;
           name?: string;
-          source_language_id?: string;
+          // source_language_id?: string;
           target_language_id?: string;
+          creatior_id?: string | null;
+          visible?: boolean;
+          template?: string | null;
         };
         Relationships: [
           {
@@ -386,6 +407,9 @@ export type Database = {
           last_updated: string;
           name: string | null;
           project_id: string;
+          creatior_id: string | null;
+          parent_id: string | null;
+          metadata: string | null;
         };
         Insert: {
           active?: boolean;
@@ -395,6 +419,9 @@ export type Database = {
           last_updated?: string;
           name?: string | null;
           project_id: string;
+          creatior_id: string | null;
+          parent_id: string | null;
+          metadata: string | null;
         };
         Update: {
           active?: boolean;
@@ -404,6 +431,9 @@ export type Database = {
           last_updated?: string;
           name?: string | null;
           project_id?: string;
+          creatior_id?: string | null;
+          parent_id?: string | null;
+          metadata?: string | null;
         };
         Relationships: [
           {
@@ -538,21 +568,24 @@ export type Database = {
           created_at: string;
           id: string;
           last_updated: string;
-          name: string;
+          key: string;
+          value: string;
         };
         Insert: {
           active?: boolean;
           created_at?: string;
           id?: string;
           last_updated?: string;
-          name: string;
+          key: string;
+          value: string;
         };
         Update: {
           active?: boolean;
           created_at?: string;
           id?: string;
           last_updated?: string;
-          name?: string;
+          key?: string;
+          value?: string;
         };
         Relationships: [];
       };

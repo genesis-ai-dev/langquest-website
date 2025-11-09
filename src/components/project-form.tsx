@@ -156,7 +156,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       if (initialData?.id) {
         // Update existing project (exclude creator_id from updates)
-        const { creator_id, ...updateData } = projectData;
+        const { ...updateData } = projectData;
         const { data, error } = await createBrowserClient(environment)
           .from('project')
           .update(updateData)

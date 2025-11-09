@@ -11,7 +11,9 @@ import {
 import { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
+import { SupabaseEnvironment } from '@/lib/supabase';
+import router from 'next/router';
+import { env } from '@/lib/env';
 
 type AuthContextType = {
   user: User | null;
@@ -43,14 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Determine environment from URL params
   const envParam = searchParams.get('env') as SupabaseEnvironment;
-
-  const projectRef = searchParams.get('project_ref');
-  const envFromProjectRef = projectRef
-    ? getSupabaseEnvironment(projectRef)
-    : null;
+  const projectRef = searchParams.get('project_ref') as SupabaseEnvironment;
 
   const environment: SupabaseEnvironment =
-    envParam || envFromProjectRef || 'production';
+    projectRef || envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+  // const envFromProjectRef = projectRef
+  //   ? getSupabaseEnvironment(projectRef)
+  //   : null;
+
+  // const environment: SupabaseEnvironment =
+  //   envParam || envFromProjectRef || 'production';
 
   console.log('[AUTH PROVIDER] Environment:', environment);
 
@@ -129,15 +133,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       console.log('[AUTH PROVIDER] Signing out from environment:', environment);
+
       setIsLoading(true);
       await supabase.auth.signOut();
+      router.replace(`/?env=${environment}`);
       setUser(null);
       setSession(null);
 
       // After signing out, redirect to home page with environment param
+      console.log('[AUTH PROVIDER] Current pathname:', pathname);
+
       if (pathname !== '/') {
         console.log('[AUTH PROVIDER] Redirecting to home after signout');
-        window.location.href = `/?env=${environment}`;
+        router.push(`/`);
+        // window.location.href = `/?env=${environment}`;
       }
     } catch (error) {
       console.error('[AUTH PROVIDER] Error signing out:', error);

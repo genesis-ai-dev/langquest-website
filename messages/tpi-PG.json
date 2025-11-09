@@ -30,7 +30,8 @@
     "title": "LangQuest",
     "sourceCode": "Sos Kod",
     "allData": "Olgeta Data",
-    "userFriendlyData": "Isi-Long-Yusa Data"
+    "userFriendlyData": "Isi-Long-Yusa Data",
+    "goToUserArea": "Eria Bilong Yusa"
   },
   "footer": {
     "mitLicense": "MIT Laisens",
