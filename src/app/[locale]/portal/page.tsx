@@ -1,10 +1,6 @@
 'use client';
 
-// import { ProjectForm } from '@/components/project-form';
-import { QuestForm } from '@/components/quest-form';
-import { AssetForm } from '@/components/asset-form';
 import { ProjectWizard } from '@/components/new-project-wizard';
-import { DataView } from '@/components/data-view';
 
 import {
   Card,
@@ -15,20 +11,16 @@ import {
   // CardFooter
 } from '@/components/ui/card';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense, useCallback } from 'react';
-import { Separator } from '@/components/ui/separator';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   PlusCircle,
   Copy,
-  LogOut,
   Crown,
   Eye,
-  ArrowLeft,
   Upload,
-  Plus,
   UserRound,
-  FileStack
+  Globe
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -48,11 +40,13 @@ import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
-import { ProjectDownloadButton } from '@/components/project-download-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProjectMembers } from '@/components/project-members';
 import { BulkUpload } from '@/components/new-bulk-upload';
+import { EnvironmentBadge } from '@/components/environment-badge';
+
 import { env } from '@/lib/env';
+import { UserProfile } from '@/components/user-profile';
+import { Link } from '@/i18n/navigation';
 import { PortalHeader } from '@/components/portal-header';
 
 export default function AdminPage() {
@@ -103,21 +97,21 @@ function AdminContent() {
   };
 
   // Get initial state from URL
-  const getInitialViewState = (): 'projects' | 'quests' | 'assets' => {
-    const view = searchParams.get('view');
-    if (view && ['projects', 'quests', 'assets'].includes(view)) {
-      return view as 'projects' | 'quests' | 'assets';
-    }
-    // Determine view based on URL params
-    if (searchParams.get('questId')) return 'assets';
-    if (searchParams.get('projectId')) return 'quests';
-    return 'projects';
-  };
+  // const getInitialViewState = (): 'projects' | 'quests' | 'assets' => {
+  //   const view = searchParams.get('view');
+  //   if (view && ['projects', 'quests', 'assets'].includes(view)) {
+  //     return view as 'projects' | 'quests' | 'assets';
+  //   }
+  //   // Determine view based on URL params
+  //   if (searchParams.get('questId')) return 'assets';
+  //   if (searchParams.get('projectId')) return 'quests';
+  //   return 'projects';
+  // };
 
   // View state management
-  const [viewState, setViewState] = useState<'projects' | 'quests' | 'assets'>(
-    getInitialViewState()
-  );
+  // const [viewState, setViewState] = useState<'projects' | 'quests' | 'assets'>(
+  //   getInitialViewState()
+  // );
 
   // Consolidated state management
   const [pageState, setPageState] = useState({
@@ -174,45 +168,6 @@ function AdminContent() {
   }, [environment, user]);
 
   // Function to update URL with current state
-  const updateURL = useCallback(
-    (updates: {
-      view?: string;
-      projectId?: string | null;
-      questId?: string | null;
-    }) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      // Update or remove parameters
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === undefined) {
-          params.delete(key);
-        } else {
-          params.set(key, value);
-        }
-      });
-
-      // Clean up dependent parameters
-      if (updates.view === 'projects') {
-        params.delete('projectId');
-        params.delete('questId');
-      } else if (updates.view === 'quests') {
-        params.delete('questId');
-      }
-
-      if (updates.projectId === null) {
-        params.delete('questId');
-      }
-
-      // Keep environment parameter if it exists
-      if (envParam) {
-        params.set('env', envParam);
-      }
-
-      const newURL = `${window.location.pathname}?${params.toString()}`;
-      router.replace(newURL);
-    },
-    [searchParams, router, envParam]
-  );
 
   // Check authentication for the specific environment
   useEffect(() => {
@@ -220,23 +175,6 @@ function AdminContent() {
       window.location.href = `/login?redirectTo=/portal${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
     }
   }, [user, isLoading, environment]);
-
-  // Handle sign out
-  const handleSignOut = async () => {
-    try {
-      const supabase = createBrowserClient(environment);
-
-      // await supabase.auth.signOut();
-      await signOut();
-
-      toast.success('Logged out successfully');
-      console.log('[ADMIN PAGE] Redirecting to home after signout');
-      // window.location.href = `http://localhost:3000/`;
-      window.location.href = `/login?env=${environment}`;
-    } catch {
-      toast.error('Failed to sign out');
-    }
-  };
 
   // Fetch projects with ownership information
   const {
@@ -322,12 +260,6 @@ function AdminContent() {
     setPageState((prevState) => ({ ...prevState, showProjectForm: false }));
     refetchProjects();
   };
-
-  const selectedProject = projects.find(
-    (p) => p.id === pageState.selectedProjectId
-  );
-
-  const isSelectedProjectOwner = selectedProject?.isOwner || false;
 
   // Navigation handlers with URL updates
   const handleSelectProject = (project: any) => {

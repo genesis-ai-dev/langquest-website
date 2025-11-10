@@ -5,8 +5,8 @@ import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
 import { env } from '@/lib/env';
-import { th } from 'date-fns/locale';
-import { metadata } from '@/app/[locale]/layout';
+// import { th } from 'date-fns/locale';
+// import { metadata } from '@/app/[locale]/layout';
 
 interface ProjectRow {
   project_name: string;
@@ -16,7 +16,6 @@ interface ProjectRow {
   quest_name: string;
   quest_description?: string;
   quest_tags?: string;
-  metadata?: string;
   asset_name: string;
   asset_tags?: string;
   source_images?: string;
@@ -53,7 +52,6 @@ interface QuestToProjectRow {
   quest_name: string;
   quest_description?: string;
   quest_tags?: string;
-  metadata?: string;
   asset_name: string;
   asset_tags?: string;
   source_images?: string;
@@ -198,12 +196,10 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Processar arquivo ZIP
     const zipBuffer = await zipFile.arrayBuffer();
     const zip = new JSZip();
     const zipContent = await zip.loadAsync(zipBuffer);
 
-    // Encontrar arquivo CSV
     const csvFiles = Object.keys(zipContent.files).filter(
       (name) =>
         name.toLowerCase().endsWith('.csv') && !zipContent.files[name].dir
@@ -535,6 +531,71 @@ function normalizeRowData(row: any): {
   };
 }
 
+// Helper function to process multiple content/audio pairs and create asset_content_link records
+async function processContentAndAudio(
+  supabase: any,
+  assetId: string,
+  normalizedData: { assetContent: string | null; audioFiles: string | null },
+  fileMap: FileMap,
+  rowIndex: number,
+  errors: Array<{ row: number; message: string }>
+): Promise<void> {
+  // Split content and audio by semicolon
+  const contentItems = normalizedData.assetContent
+    ? normalizedData.assetContent.split(';').map((item) => item.trim())
+    : [];
+
+  const audioItems = normalizedData.audioFiles
+    ? normalizedData.audioFiles.split(';').map((item) => item.trim())
+    : [];
+
+  // Determine the maximum length to iterate over
+  const maxLength = Math.max(contentItems.length, audioItems.length);
+
+  console.log(contentItems, audioItems, maxLength);
+
+  // If no content and no audio, skip
+  if (maxLength === 0) {
+    return;
+  }
+
+  // Process each position
+  for (let i = 0; i < maxLength; i++) {
+    const contentText = contentItems[i] || null; // Use null if no content at this position
+    const audioFile = audioItems[i] || null; // Use null if no audio at this position
+
+    let audioFilePath = null;
+
+    // Process audio file if present
+    if (audioFile) {
+      const fileName = audioFile.split('/').pop() || audioFile;
+      if (fileMap[fileName]) {
+        audioFilePath = fileMap[fileName];
+      } else {
+        errors.push({
+          row: rowIndex + 1,
+          message: `Audio file not found in ZIP: ${fileName}`
+        });
+      }
+    }
+
+    // Create asset_content_link record
+    try {
+      await supabase.from('asset_content_link').insert({
+        asset_id: assetId,
+        text: contentText || '', // Use empty string if no content
+        audio: audioFilePath ? [audioFilePath] : null, // Use array format for audio
+        id: crypto.randomUUID()
+      });
+    } catch (error: any) {
+      errors.push({
+        row: rowIndex + 1,
+        message: `Failed to create asset content link: ${error.message}`
+      });
+    }
+  }
+}
+
 // Helper function to parse and handle tags with key:value format
 function parseTagString(
   tagString: string
@@ -768,36 +829,15 @@ async function processProjectUpload(
         asset_id: asset.id
       });
 
-      // Handle audio files and content - add to asset_content_link
-      if (normalizedData.audioFiles) {
-        const audioFiles = normalizedData.audioFiles.split(';').filter(Boolean);
-
-        for (const audioFile of audioFiles) {
-          const fileName =
-            audioFile.trim().split('/').pop() || audioFile.trim();
-          if (fileMap[fileName]) {
-            // Create audio content link with audio_id
-            await supabase.from('asset_content_link').insert({
-              asset_id: asset.id,
-              audio: fileMap[fileName], // Store the file name in storage
-              text: normalizedData.assetContent || '', // Use normalized content
-              id: crypto.randomUUID()
-            });
-          } else {
-            result.stats.errors.push({
-              row: i + 1,
-              message: `Audio file not found in ZIP: ${fileName}`
-            });
-          }
-        }
-      } else if (normalizedData.assetContent) {
-        // Add asset content without audio
-        await supabase.from('asset_content_link').insert({
-          asset_id: asset.id,
-          text: normalizedData.assetContent,
-          id: crypto.randomUUID()
-        });
-      }
+      // Handle content and audio files - add to asset_content_link with position correlation
+      await processContentAndAudio(
+        supabase,
+        asset.id,
+        normalizedData,
+        fileMap,
+        i,
+        result.stats.errors
+      );
 
       // Handle image files - check if any referenced images were not found
       if (normalizedData.imageFiles) {
@@ -1001,36 +1041,15 @@ async function processQuestUpload(
         asset_id: asset.id
       });
 
-      // Handle audio files and content - add to asset_content_link
-      if (normalizedData.audioFiles) {
-        const audioFiles = normalizedData.audioFiles.split(';').filter(Boolean);
-
-        for (const audioFile of audioFiles) {
-          const fileName =
-            audioFile.trim().split('/').pop() || audioFile.trim();
-          if (fileMap[fileName]) {
-            // Create audio content link with audio_id
-            await supabase.from('asset_content_link').insert({
-              asset_id: asset.id,
-              audio: fileMap[fileName], // Store the file name in storage
-              text: normalizedData.assetContent || '', // Use normalized content
-              id: crypto.randomUUID()
-            });
-          } else {
-            result.stats.errors.push({
-              row: i + 1,
-              message: `Audio file not found in ZIP: ${fileName}`
-            });
-          }
-        }
-      } else if (normalizedData.assetContent) {
-        // Add asset content without audio
-        await supabase.from('asset_content_link').insert({
-          asset_id: asset.id,
-          text: normalizedData.assetContent,
-          id: crypto.randomUUID()
-        });
-      }
+      // Handle content and audio files - add to asset_content_link with position correlation
+      await processContentAndAudio(
+        supabase,
+        asset.id,
+        normalizedData,
+        fileMap,
+        i,
+        result.stats.errors
+      );
 
       // Handle image files - check if any referenced images were not found
       if (normalizedData.imageFiles) {
@@ -1213,36 +1232,15 @@ async function processAssetUpload(
         asset_id: asset.id
       });
 
-      // Handle audio files and content - add to asset_content_link
-      if (normalizedData.audioFiles) {
-        const audioFiles = normalizedData.audioFiles.split(';').filter(Boolean);
-
-        for (const audioFile of audioFiles) {
-          const fileName =
-            audioFile.trim().split('/').pop() || audioFile.trim();
-          if (fileMap[fileName]) {
-            // Create audio content link with audio_id
-            await supabase.from('asset_content_link').insert({
-              asset_id: asset.id,
-              audio: fileMap[fileName], // Store the file name in storage
-              text: normalizedData.assetContent || '', // Use normalized content
-              id: crypto.randomUUID()
-            });
-          } else {
-            result.stats.errors.push({
-              row: i + 1,
-              message: `Audio file not found in ZIP: ${fileName}`
-            });
-          }
-        }
-      } else if (normalizedData.assetContent) {
-        // Add asset content without audio
-        await supabase.from('asset_content_link').insert({
-          asset_id: asset.id,
-          text: normalizedData.assetContent,
-          id: crypto.randomUUID()
-        });
-      }
+      // Handle content and audio files - add to asset_content_link with position correlation
+      await processContentAndAudio(
+        supabase,
+        asset.id,
+        normalizedData,
+        fileMap,
+        i,
+        result.stats.errors
+      );
 
       // Handle image files - check if any referenced images were not found
       if (normalizedData.imageFiles) {
@@ -1481,35 +1479,15 @@ async function processQuestToProjectUpload(
         });
       }
 
-      // Handle audio files and content using normalized data
-      if (normalizedData.audioFiles) {
-        const audioUrls = normalizedData.audioFiles.split(';').filter(Boolean);
-
-        for (const audioUrl of audioUrls) {
-          const fileName = audioUrl.trim().split('/').pop() || audioUrl.trim();
-          if (fileMap[fileName]) {
-            // Create audio content link with audio field
-            await supabase.from('asset_content_link').insert({
-              asset_id: asset.id,
-              audio: fileMap[fileName], // Store the file name in storage
-              text: normalizedData.assetContent || '', // Use normalized content
-              id: crypto.randomUUID()
-            });
-          } else {
-            result.stats.errors.push({
-              row: i + 1,
-              message: `Audio file not found in ZIP: ${fileName}`
-            });
-          }
-        }
-      } else if (normalizedData.assetContent) {
-        // Add asset content without audio
-        await supabase.from('asset_content_link').insert({
-          asset_id: asset.id,
-          text: normalizedData.assetContent,
-          id: crypto.randomUUID()
-        });
-      }
+      // Handle content and audio files - add to asset_content_link with position correlation
+      await processContentAndAudio(
+        supabase,
+        asset.id,
+        normalizedData,
+        fileMap,
+        i,
+        result.stats.errors
+      );
 
       // Handle image files - check if any referenced images were not found
       if (normalizedData.imageFiles) {
@@ -1810,8 +1788,8 @@ async function processQuest(
       name: row.quest_name,
       description: row.quest_description || null,
       project_id: projectId,
-      creator_id: userId,
-      metadata: row.metadata || null
+      creator_id: userId
+      //    metadata: row.metadata || null
     })
     .select('id')
     .single();

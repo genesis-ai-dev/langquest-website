@@ -34,7 +34,10 @@ import {
   File,
   FolderPlus,
   FilePlus,
-  FileStack
+  FileStack,
+  Upload,
+  Info,
+  Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -53,6 +56,12 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { BulkUpload } from '../new-bulk-upload';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '../ui/hover-card';
+import { QuestInfo } from '@/components/quest-info';
 
 interface QuestsUnstructuredProps {
   project: any;
@@ -81,6 +90,7 @@ function QuestContent({
   onSelectQuest: (questId: string | null) => void;
   onAssetClick: (asset: any) => void;
 }) {
+  const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
   const { user, environment } = useAuth();
   const supabase = createBrowserClient(environment);
 
@@ -307,166 +317,210 @@ function QuestContent({
   }
 
   return (
-    <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
-      <CardHeader className="max-h-8">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold">
-            {selectedQuest?.name || `Quest ${selectedQuestId?.slice(0, 8)}`}
-          </CardTitle>
+    <>
+      <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
+        <CardHeader className="max-h-8">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="max-w-5/6 text-xl flex flex-row ">
+                <div className="truncate">{selectedQuest?.name || 'Quest'}</div>
+                <div className="self-center">
+                  <QuestInfo quest={selectedQuest} />
+                </div>
+              </CardTitle>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
-            {canManage && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onAddQuest}
-                  title="Add Sub-Quest"
-                >
-                  <FolderPlus className="h-4 w-4" />
-                  {/* Add Quest */}
-                </Button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {canManage && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onAddQuest}
+                    title="Add Sub-Quest"
+                  >
+                    <FolderPlus className="h-4 w-4" />
+                    {/* Add Quest */}
+                  </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onAddAsset}
-                  title="Add Single Asset"
-                >
-                  <FilePlus className="h-4 w-4" />
-                  {/* Add Asset */}
-                </Button>
-
-                <BulkAssetModal
-                  projectId={projectId}
-                  defaultQuestId={selectedQuestId}
-                  trigger={
-                    <Button
-                      title="Add Multiple Assets"
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    >
-                      <FileStack className="h-4 w-4" />
-                      {/* Add Bulk */}
-                    </Button>
-                  }
-                  onAssetsCreated={(assets) => {
-                    toast.success(
-                      `Successfully created ${assets.length} assets`
-                    );
-                  }}
-                />
-              </>
-            )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onAddAsset}
+                    title="Add Single Asset"
+                  >
+                    <FilePlus className="h-4 w-4" />
+                    {/* Add Asset */}
+                  </Button>
+                  <BulkAssetModal
+                    projectId={projectId}
+                    defaultQuestId={selectedQuestId}
+                    trigger={
+                      <Button
+                        title="Add Multiple Assets"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <FileStack className="h-4 w-4" />
+                        {/* Add Bulk */}
+                      </Button>
+                    }
+                    onAssetsCreated={(assets) => {
+                      toast.success(
+                        `Successfully created ${assets.length} assets`
+                      );
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Bulk Upload Assets"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowBulkAssetUpload(true);
+                    }}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {/* Bulk Upload */}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 p-0 border-t">
-        <ScrollArea className="h-[600px]">
-          <div className="p-4 space-y-8">
-            {childQuestsLoading || questAssetsLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Spinner />
-              </div>
-            ) : (
-              <>
-                {/* Sub-Quests Section */}
-                {childQuests && childQuests.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="p-2 border-b">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FolderOpen className="h-5 w-5 text-primary" />
-                          <h3 className="text-lg font-semibold">Sub-Quests</h3>
+        </CardHeader>
+        <CardContent className="flex-1 p-0 border-t">
+          <ScrollArea className="h-[600px]">
+            <div className="p-4 space-y-8">
+              {childQuestsLoading || questAssetsLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <Spinner />
+                </div>
+              ) : (
+                <>
+                  {/* Sub-Quests Section */}
+                  {childQuests && childQuests.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="p-2 border-b">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FolderOpen className="h-5 w-5 text-primary" />
+                            <h3 className="text-lg font-semibold">
+                              Sub-Quests
+                            </h3>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="text-sm px-3 py-1"
+                          >
+                            {childQuests.length}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="text-sm px-3 py-1"
-                        >
-                          {childQuests.length}
-                        </Badge>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {childQuests.map((quest) => (
-                        <QuestCard
-                          key={quest.id}
-                          quest={quest}
-                          isSelected={selectedQuestId === quest.id}
-                          onClick={() =>
-                            onSelectQuest(
-                              selectedQuestId === quest.id ? null : quest.id
-                            )
-                          }
-                          questsCount={
-                            questCounts?.[quest.id]?.questsCount || 0
-                          }
-                          assetsCount={
-                            questCounts?.[quest.id]?.assetsCount || 0
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Assets Section */}
-                {questAssets && questAssets.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="p-2 border-b">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <File className="h-5 w-5 text-primary" />
-                          <h3 className="text-lg font-semibold">Assets</h3>
-                        </div>
-                        <Badge
-                          variant="secondary"
-                          className="text-sm px-3 py-1"
-                        >
-                          {questAssets.length}
-                        </Badge>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {childQuests.map((quest) => (
+                          <QuestCard
+                            key={quest.id}
+                            quest={quest}
+                            isSelected={selectedQuestId === quest.id}
+                            onClick={() =>
+                              onSelectQuest(
+                                selectedQuestId === quest.id ? null : quest.id
+                              )
+                            }
+                            questsCount={
+                              questCounts?.[quest.id]?.questsCount || 0
+                            }
+                            assetsCount={
+                              questCounts?.[quest.id]?.assetsCount || 0
+                            }
+                          />
+                        ))}
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {questAssets.map((asset) => (
-                        <AssetCard
-                          asset={asset}
-                          key={asset.id}
-                          onClick={() => handleAssetClick(asset.id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Empty State */}
-                {(!childQuests || childQuests.length === 0) &&
-                  (!questAssets || questAssets.length === 0) && (
-                    <div className="text-center text-muted-foreground py-12">
-                      <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No Content Yet
-                      </h3>
-                      <p>
-                        This quest doesn't have any sub-quests or assets yet.
-                      </p>
-                      {canManage && (
-                        <p className="text-sm mt-2">
-                          Use the buttons above to create quests or assets.
-                        </p>
-                      )}
                     </div>
                   )}
-              </>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+
+                  {/* Assets Section */}
+                  {questAssets && questAssets.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="p-2 border-b">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <File className="h-5 w-5 text-primary" />
+                            <h3 className="text-lg font-semibold">Assets</h3>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="text-sm px-3 py-1"
+                          >
+                            {questAssets.length}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {questAssets.map((asset) => (
+                          <AssetCard
+                            asset={asset}
+                            key={asset.id}
+                            onClick={() => handleAssetClick(asset.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {(!childQuests || childQuests.length === 0) &&
+                    (!questAssets || questAssets.length === 0) && (
+                      <div className="text-center text-muted-foreground py-12">
+                        <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No Content Yet
+                        </h3>
+                        <p>
+                          This quest doesn't have any sub-quests or assets yet.
+                        </p>
+                        {canManage && (
+                          <p className="text-sm mt-2">
+                            Use the buttons above to create quests or assets.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+      {/* Asset Upload Modal */}
+      <Dialog
+        open={showBulkAssetUpload}
+        onOpenChange={(open) => setShowBulkAssetUpload(open)}
+      >
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload Assets to Quest</DialogTitle>
+            <DialogDescription>
+              Add multiple assets.
+              {/* {pageState.selectedProjectName}&quot; using a CSV file. */}
+            </DialogDescription>
+          </DialogHeader>
+          <BulkUpload
+            mode="asset"
+            projectId={projectId || undefined}
+            questId={selectedQuestId}
+            onSuccess={() => {
+              setShowBulkAssetUpload(false);
+              toast.success('Assets uploaded successfully');
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -542,7 +596,7 @@ function QuestsSideBar({
   };
 
   const questTree = quests ? buildQuestTree(quests) : [];
-  const totalQuests = quests?.length || 0;
+  // const totalQuests = quests?.length || 0;
 
   // Toggle expansion of items
   const toggleExpanded = (questId: string) => {
@@ -657,17 +711,17 @@ function QuestsSideBar({
 
   return (
     <>
-      <Card className="flex flex-col ">
+      <Card className="flex flex-col">
         <CardHeader className="h-8 ">
           <div className="flex items-center justify-between ">
             <CardTitle className="text-lg">Quests</CardTitle>
             {canManage && (
-              <>
+              <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0"
+                  variant="outline"
                   onClick={onAddQuest}
+                  title="Add a Quest"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -680,14 +734,13 @@ function QuestsSideBar({
                     setShowBulkQuestUpload(true);
                   }}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Upload className="h-4 w-4" />
                   {/* Bulk Upload */}
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </CardHeader>
-        {/* <div className="border-t " /> */}
         <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b">
           <ScrollArea className="h-[530px]">
             {questsLoading ? (
@@ -704,9 +757,6 @@ function QuestsSideBar({
               </div>
             )}
           </ScrollArea>
-
-          {/* <div className="p-3 border-t mt-auto h-8">
-          </div> */}
         </CardContent>
         <CardFooter className="text-xs text-muted-foreground text-center">
           <Button variant="outline" size="sm" asChild className="w-full">
@@ -717,7 +767,6 @@ function QuestsSideBar({
       {/* Quest Upload Modal */}
       <Dialog
         open={showBulkQuestUpload}
-        // open={pageState.showQuestUpload}
         onOpenChange={(open) => setShowBulkQuestUpload(open)}
       >
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -725,18 +774,12 @@ function QuestsSideBar({
             <DialogTitle>Upload Quests to Project</DialogTitle>
             <DialogDescription>
               Add multiple quests with their assets to &quot;
-              {/* {pageState.selectedProjectName}&quot; using a CSV file. */}
             </DialogDescription>
           </DialogHeader>
           <BulkUpload
-            mode="questToProject"
+            mode="quest"
             projectId={projectId || undefined}
             onSuccess={() => {
-              // setPageState((prev) => ({
-              //   ...prev,
-              //   showQuestUpload: false
-              // }));
-              // refetchQuests();
               setShowBulkQuestUpload(false);
               toast.success('Quests uploaded successfully');
             }}
@@ -760,9 +803,9 @@ export function QuestsUnstructured({
   const { environment } = useAuth();
 
   // Calculate permissions from userRole
-  const isOwner = userRole === 'owner';
-  const isAdmin = userRole === 'admin';
-  const canManage = isOwner || isAdmin;
+  // const isOwner = userRole === 'owner';
+  // const isAdmin = userRole === 'admin';
+  // const canManage = isOwner || isAdmin;
 
   // Modal states
   const [showQuestForm, setShowQuestForm] = useState(false);
@@ -779,7 +822,6 @@ export function QuestsUnstructured({
   };
 
   const handleQuestSuccess = (data: { id: string }) => {
-    // toast.success('Quest created successfully!');
     setShowQuestForm(false);
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
@@ -789,7 +831,6 @@ export function QuestsUnstructured({
   };
 
   const handleAssetSuccess = (data: { id: string }) => {
-    // toast.success('Asset created successfully!');
     setShowAssetForm(false);
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({

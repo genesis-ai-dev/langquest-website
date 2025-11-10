@@ -269,7 +269,6 @@ function ProjectPageContent() {
         />
       </div>
 
-      {/* Content Area - Without unnecessary cards */}
       <div className="container p-6 max-w-screen-xl mx-auto ">
         {/* Quest Explorer - Template-based quest organization */}
         <QuestExplorer
