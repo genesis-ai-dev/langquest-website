@@ -13,15 +13,7 @@ import {
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  PlusCircle,
-  Copy,
-  Crown,
-  Eye,
-  Upload,
-  UserRound,
-  Globe
-} from 'lucide-react';
+import { PlusCircle, Copy, Crown, Eye, Upload, UserRound } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
@@ -42,11 +34,11 @@ import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulkUpload } from '@/components/new-bulk-upload';
-import { EnvironmentBadge } from '@/components/environment-badge';
 
 import { env } from '@/lib/env';
-import { UserProfile } from '@/components/user-profile';
-import { Link } from '@/i18n/navigation';
+// import { UserProfile } from '@/components/user-profile';
+// import { Link } from '@/i18n/navigation';
+import { PortalHeader } from '@/components/portal-header';
 
 export default function AdminPage() {
   return (
@@ -301,23 +293,7 @@ function AdminContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 px-4 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between">
-          <Link
-            href="/"
-            className="flex gap-2 items-center flex-nowrap no-underline font-bold"
-          >
-            <Globe className="h-6 w-6 text-accent4" />
-            <span className="font-bold text-xl">LangQuest</span>
-          </Link>
-
-          <div className="flex items-center gap-4">
-            <EnvironmentBadge environment={environment} />
-            {user && <UserProfile user={user} onSignOut={signOut} />}
-          </div>
-        </div>
-      </header>
+      <PortalHeader environment={environment} user={user} onSignOut={signOut} />
 
       <div className="container p-6 max-w-screen-xl mx-auto">
         <div className="flex flex-col gap-6">

@@ -18,7 +18,7 @@ export type Database = {
           last_updated: string;
           name: string;
           source_language_id: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           visible: boolean;
           project_id: string;
           source_asset_id: string | null;
@@ -31,7 +31,7 @@ export type Database = {
           last_updated?: string;
           name: string;
           source_language_id: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           visible: boolean;
           project_id: string;
           source_asset_id: string | null;
@@ -44,7 +44,7 @@ export type Database = {
           last_updated?: string;
           name?: string;
           source_language_id?: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           visible: boolean;
           project_id: string;
           source_asset_id: string | null;
@@ -312,7 +312,7 @@ export type Database = {
           name: string;
           //        source_language_id: string;
           target_language_id: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           visible: boolean;
           template: string | null;
         };
@@ -325,7 +325,7 @@ export type Database = {
           name: string;
           // source_language_id: string;
           target_language_id: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           visible: boolean;
           template: string | null;
         };
@@ -338,18 +338,11 @@ export type Database = {
           name?: string;
           // source_language_id?: string;
           target_language_id?: string;
-          creatior_id?: string | null;
+          creator_id?: string | null;
           visible?: boolean;
           template?: string | null;
         };
         Relationships: [
-          {
-            foreignKeyName: 'projects_source_language_id_fkey';
-            columns: ['source_language_id'];
-            isOneToOne: false;
-            referencedRelation: 'language';
-            referencedColumns: ['id'];
-          },
           {
             foreignKeyName: 'projects_target_language_id_fkey';
             columns: ['target_language_id'];
@@ -407,7 +400,7 @@ export type Database = {
           last_updated: string;
           name: string | null;
           project_id: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           parent_id: string | null;
           metadata: string | null;
         };
@@ -419,7 +412,7 @@ export type Database = {
           last_updated?: string;
           name?: string | null;
           project_id: string;
-          creatior_id: string | null;
+          creator_id: string | null;
           parent_id: string | null;
           metadata: string | null;
         };
@@ -431,7 +424,7 @@ export type Database = {
           last_updated?: string;
           name?: string | null;
           project_id?: string;
-          creatior_id?: string | null;
+          creator_id?: string | null;
           parent_id?: string | null;
           metadata?: string | null;
         };

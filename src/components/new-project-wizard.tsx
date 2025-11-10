@@ -421,7 +421,7 @@ export function ProjectWizard({
   //       return;
   //     }
 
-  //     // setSelectedImage(file);
+  //     //setSelectedImage(file);
 
   //     // Create preview URL
   //     const reader = new FileReader();

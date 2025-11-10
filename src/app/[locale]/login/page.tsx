@@ -83,7 +83,9 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient(environment, {
+        persistSession: rememberMe
+      });
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -159,11 +161,11 @@ function LoginForm() {
     }
   };
 
-  /* const envColors = {
+  // const envColors = {
   //   production: 'bg-green-500',
   //   preview: 'bg-yellow-500',
   //   development: 'bg-blue-500'
-  // }; */
+  // };
 
   const environments: SupabaseEnvironment[] = [
     'production',
@@ -248,26 +250,6 @@ function LoginForm() {
             </TabsContent>
 
             <TabsContent value="register">
-              {/* {environment !== 'production' && (
-                <Alert className="mb-4 border-yellow-200 bg-yellow-50">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  <AlertDescription className="text-yellow-800">
-                    <strong>Warning:</strong> You&apos;re registering in the{' '}
-                    <span className="font-semibold uppercase">
-                      {environment}
-                    </span>
-                    environment. Unless you&apos;re a developer/tester, you
-                    should{' '}
-                    <Link
-                      href="/login?env=production"
-                      className="underline hover:no-underline"
-                    >
-                      register in production instead
-                    </Link>
-                    
-                  </AlertDescription>
-                </Alert>
-              )} */}
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label htmlFor="register-username">Username</Label>

@@ -46,7 +46,7 @@ import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
 import { env } from '@/lib/env';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const assetRowSchema = z
   .object({
@@ -106,6 +106,7 @@ export function BulkAssetModal({
     {}
   );
   const { user, environment } = useAuth();
+  const queryClient = useQueryClient();
 
   const supabase = createBrowserClient();
   const credentials = getSupabaseCredentials(environment);
@@ -499,6 +500,18 @@ export function BulkAssetModal({
       }
 
       toast.success(`Successfully created ${createdAssets.length} assets`);
+
+      // Invalidate queries for all affected quest-assets
+      const allQuestIds = new Set<string>();
+      data.assets.forEach((asset) => {
+        asset.questIds.forEach((questId) => allQuestIds.add(questId));
+      });
+
+      allQuestIds.forEach((questId) => {
+        queryClient.invalidateQueries({
+          queryKey: ['quest-assets', questId, environment]
+        });
+      });
 
       if (onAssetsCreated) {
         onAssetsCreated(createdAssets);

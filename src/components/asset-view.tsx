@@ -228,8 +228,6 @@ export function AssetView({ asset }: AssetViewProps) {
 
   if (!asset) return <div>No asset data available.</div>;
 
-  console.log('Rendering AssetView for asset:', asset);
-
   return (
     <div className="space-y-6 p-6">
       {/* Header Section */}
@@ -359,7 +357,7 @@ export function AssetView({ asset }: AssetViewProps) {
                 >
                   <div className="space-y-3">
                     <p className="text-sm text-foreground leading-relaxed font-medium">
-                      {content.text || t('noText')}
+                      {content.text || <i>{t('noText')}</i>}
                     </p>
                     {content.audio && (
                       <AudioPlayer
