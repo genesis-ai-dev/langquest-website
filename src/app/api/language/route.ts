@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const { english_name, native_name, iso639_3, environment } =
       await request.json();
 
-    let envAux = environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+    const envAux = environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
     const { url, key } = getSupabaseCredentials(envAux);
 
     let accessToken: string | undefined;

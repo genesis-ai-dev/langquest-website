@@ -35,9 +35,9 @@ import {
   FolderPlus,
   FilePlus,
   FileStack,
-  Upload,
-  Info,
-  Calendar
+  Upload
+  // Info,
+  // Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -56,11 +56,6 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { BulkUpload } from '../new-bulk-upload';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from '../ui/hover-card';
 import { QuestInfo } from '@/components/quest-info';
 
 interface QuestsUnstructuredProps {
@@ -228,7 +223,7 @@ function QuestContent({
   });
 
   const handleAssetClick = async (assetId: string) => {
-    let query = supabase
+    const query = supabase
       .from('asset')
       .select(
         `
@@ -481,7 +476,8 @@ function QuestContent({
                           No Content Yet
                         </h3>
                         <p>
-                          This quest doesn't have any sub-quests or assets yet.
+                          This quest doesn&#39;t have any sub-quests or assets
+                          yet.
                         </p>
                         {canManage && (
                           <p className="text-sm mt-2">
@@ -525,7 +521,7 @@ function QuestContent({
 }
 
 function QuestsSideBar({
-  project,
+  //  project,
   projectId,
   userRole,
   onAddQuest,
@@ -568,17 +564,17 @@ function QuestsSideBar({
       }
 
       // Scroll to selected quest after a short delay to allow DOM updates
-      setTimeout(() => {
-        const selectedElement = document.querySelector(
-          `[data-quest-id="${selectedQuestId}"]`
-        );
-        // if (selectedElement) {
-        //   selectedElement.scrollIntoView({
-        //     behavior: 'smooth',
-        //     block: 'center'
-        //   });
-        // }
-      }, 100);
+      // setTimeout(() => {
+      //   const selectedElement = document.querySelector(
+      //     `[data-quest-id="${selectedQuestId}"]`
+      //   );
+      //   // if (selectedElement) {
+      //   //   selectedElement.scrollIntoView({
+      //   //     behavior: 'smooth',
+      //   //     block: 'center'
+      //   //   });
+      //   // }
+      // }, 100);
     }
   }, [selectedQuestId, quests]);
 
@@ -821,7 +817,7 @@ export function QuestsUnstructured({
     setShowAssetModal(true);
   };
 
-  const handleQuestSuccess = (data: { id: string }) => {
+  const handleQuestSuccess = (/*data: { id: string }*/) => {
     setShowQuestForm(false);
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
@@ -830,7 +826,7 @@ export function QuestsUnstructured({
     });
   };
 
-  const handleAssetSuccess = (data: { id: string }) => {
+  const handleAssetSuccess = (/*data: { id: string }*/) => {
     setShowAssetForm(false);
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({

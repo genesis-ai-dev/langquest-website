@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
@@ -33,7 +33,7 @@ function ProjectPageContent() {
   const projectId = params.id as string;
   const { user, isLoading, signOut, environment } = useAuth();
   const supabase = createBrowserClient(environment);
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   // Fetch project data
   const {
@@ -45,9 +45,7 @@ function ProjectPageContent() {
     enabled: !!projectId && !!user,
     queryFn: async () => {
       // Check if project exists (without filters first)
-      const { data: allProjects, error: allError } = await supabase
-        .from('project')
-        .select('*');
+      const { data: allProjects } = await supabase.from('project').select('*');
 
       const matchingProject = allProjects?.find((p) => p.id === projectId);
 
@@ -200,8 +198,8 @@ function ProjectPageContent() {
           <AlertTitle>Project Not Found</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>
-              The project you're looking for doesn't exist or you don't have
-              permission to access it.
+              The project you&apos;re looking for doesn&apos;t exist or you
+              don&apos;t have permission to access it.
             </p>
             <div className="text-xs text-muted-foreground mt-2 space-y-1">
               <p>Project ID: {projectId}</p>
@@ -233,7 +231,7 @@ function ProjectPageContent() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>
-            You don't have permission to access this project.
+            You don&apos;t have permission to access this project.
           </AlertDescription>
         </Alert>
       </div>

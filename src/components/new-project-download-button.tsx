@@ -340,19 +340,19 @@ export function ProjectDownloadButton({
     );
   };
 
-  const downloadFile = (
-    content: string,
-    filename: string,
-    contentType: string
-  ) => {
-    const blob = new Blob([content], { type: contentType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // const downloadFile = (
+  //   content: string,
+  //   filename: string,
+  //   contentType: string
+  // ) => {
+  //   const blob = new Blob([content], { type: contentType });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = filename;
+  //   a.click();
+  //   URL.revokeObjectURL(url);
+  // };
 
   const downloadZip = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);

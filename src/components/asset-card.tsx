@@ -8,17 +8,17 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import {
-  ThumbsDownIcon,
-  ThumbsUpIcon,
-  //  ImageIcon,
   PlayIcon,
   PauseIcon,
   MapPinIcon,
   TagIcon,
   ExpandIcon,
-  //  XIcon,
   VolumeIcon,
   BookOpenIcon
+  // ThumbsDownIcon,
+  // ThumbsUpIcon,
+  //  ImageIcon,
+  //  XIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge } from './ui/badge';
