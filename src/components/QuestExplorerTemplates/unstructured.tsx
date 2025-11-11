@@ -30,12 +30,7 @@ import {
 } from '@/components/ui/collapsible';
 import {
   FolderOpen,
-  Plus,
-  File,
-  FolderPlus,
-  FilePlus,
-  FileStack,
-  Upload
+  File
   // Info,
   // Calendar
 } from 'lucide-react';
@@ -47,7 +42,6 @@ import { AssetCard } from '@/components/AssetCard';
 import { AssetView } from '@/components/asset-view';
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
-import BulkAssetModal from '@/components/new-bulk-asset-modal';
 import {
   Dialog,
   DialogContent,
@@ -55,8 +49,9 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { BulkUpload } from '../new-bulk-upload';
 import { QuestInfo } from '@/components/quest-info';
+import { SubQuestMenu } from './components/subquest-menu';
+import { QuestMenu } from './components/quest-menu';
 
 interface QuestsUnstructuredProps {
   project: any;
@@ -85,7 +80,6 @@ function QuestContent({
   onSelectQuest: (questId: string | null) => void;
   onAssetClick: (asset: any) => void;
 }) {
-  const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
   const { user, environment } = useAuth();
   const supabase = createBrowserClient(environment);
 
@@ -324,67 +318,14 @@ function QuestContent({
                 </div>
               </CardTitle>
             </div>
-
             {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              {canManage && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onAddQuest}
-                    title="Add Sub-Quest"
-                  >
-                    <FolderPlus className="h-4 w-4" />
-                    {/* Add Quest */}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onAddAsset}
-                    title="Add Single Asset"
-                  >
-                    <FilePlus className="h-4 w-4" />
-                    {/* Add Asset */}
-                  </Button>
-                  <BulkAssetModal
-                    projectId={projectId}
-                    defaultQuestId={selectedQuestId}
-                    trigger={
-                      <Button
-                        title="Add Multiple Assets"
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <FileStack className="h-4 w-4" />
-                        {/* Add Bulk */}
-                      </Button>
-                    }
-                    onAssetsCreated={(assets) => {
-                      toast.success(
-                        `Successfully created ${assets.length} assets`
-                      );
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    title="Bulk Upload Assets"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowBulkAssetUpload(true);
-                    }}
-                  >
-                    <Upload className="h-4 w-4" />
-                    {/* Bulk Upload */}
-                  </Button>
-                </>
-              )}
-            </div>
+            <SubQuestMenu
+              canManage={canManage}
+              projectId={projectId}
+              selectedQuestId={selectedQuestId}
+              onAddQuest={onAddQuest}
+              onAddAsset={onAddAsset}
+            />
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 border-t">
@@ -492,30 +433,6 @@ function QuestContent({
           </ScrollArea>
         </CardContent>
       </Card>
-      {/* Asset Upload Modal */}
-      <Dialog
-        open={showBulkAssetUpload}
-        onOpenChange={(open) => setShowBulkAssetUpload(open)}
-      >
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Upload Assets to Quest</DialogTitle>
-            <DialogDescription>
-              Add multiple assets.
-              {/* {pageState.selectedProjectName}&quot; using a CSV file. */}
-            </DialogDescription>
-          </DialogHeader>
-          <BulkUpload
-            mode="asset"
-            projectId={projectId || undefined}
-            questId={selectedQuestId}
-            onSuccess={() => {
-              setShowBulkAssetUpload(false);
-              toast.success('Assets uploaded successfully');
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
@@ -540,7 +457,6 @@ function QuestsSideBar({
   questsLoading: boolean;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [showBulkQuestUpload, setShowBulkQuestUpload] = useState(false);
 
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
@@ -697,11 +613,20 @@ function QuestsSideBar({
     );
 
     return level > 0 ? (
-      <SidebarMenuSubItem key={quest.id} className="w-full overflow-clip">
+      <SidebarMenuSubItem
+        key={quest.id}
+        className="w-full overflow-clip"
+        // className={cn(isSelected && 'bg-accent2')}
+      >
         {ButtonComponent}
       </SidebarMenuSubItem>
     ) : (
-      <SidebarMenuItem key={quest.id}>{ButtonComponent}</SidebarMenuItem>
+      <SidebarMenuItem
+        // className={cn(isSelected && 'bg-accent2')}
+        key={quest.id}
+      >
+        {ButtonComponent}
+      </SidebarMenuItem>
     );
   };
 
@@ -711,30 +636,11 @@ function QuestsSideBar({
         <CardHeader className="h-8 ">
           <div className="flex items-center justify-between ">
             <CardTitle className="text-lg">Quests</CardTitle>
-            {canManage && (
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onAddQuest}
-                  title="Add a Quest"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  title="Bulk Upload Quests"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowBulkQuestUpload(true);
-                  }}
-                >
-                  <Upload className="h-4 w-4" />
-                  {/* Bulk Upload */}
-                </Button>
-              </div>
-            )}
+            <QuestMenu
+              canManage={canManage}
+              projectId={projectId}
+              onAddQuest={onAddQuest}
+            />
           </div>
         </CardHeader>
         <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b">
@@ -760,28 +666,6 @@ function QuestsSideBar({
           </Button>
         </CardFooter>
       </Card>
-      {/* Quest Upload Modal */}
-      <Dialog
-        open={showBulkQuestUpload}
-        onOpenChange={(open) => setShowBulkQuestUpload(open)}
-      >
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Upload Quests to Project</DialogTitle>
-            <DialogDescription>
-              Add multiple quests with their assets to &quot;
-            </DialogDescription>
-          </DialogHeader>
-          <BulkUpload
-            mode="quest"
-            projectId={projectId || undefined}
-            onSuccess={() => {
-              setShowBulkQuestUpload(false);
-              toast.success('Quests uploaded successfully');
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

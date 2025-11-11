@@ -83,9 +83,7 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment, {
-        persistSession: rememberMe
-      });
+      const supabase = createBrowserClient(environment);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
