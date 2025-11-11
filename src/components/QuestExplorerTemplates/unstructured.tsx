@@ -541,29 +541,22 @@ function QuestsSideBar({
                 onClick={() =>
                   onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
                 }
-                className={cn(
-                  'relative',
-                  isSelected &&
-                    'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
-                )}
+                className={cn('relative', isSelected && 'font-bold')}
                 data-quest-id={quest.id}
+                title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
               >
-                <FolderOpen
-                  className={cn('h-4 w-4', isSelected && 'text-primary')}
-                />
-                <span className={cn(isSelected && 'font-semibold')}>
-                  {quest.name || `Quest ${quest.id.slice(0, 8)}`}
-                </span>
-                {isSelected && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
-                )}
-                <Badge
-                  variant={isSelected ? 'default' : 'secondary'}
+                <div
                   className={cn(
-                    'ml-auto text-xs',
-                    isSelected && 'bg-primary text-primary-foreground'
+                    'rounded-sm p-1.5 flex items-center justify-center',
+                    isSelected && 'bg-primary/10 text-primary'
                   )}
                 >
+                  <FolderOpen className="h-4 w-4" />
+                </div>
+                <span className={cn(isSelected && 'font-bold', 'truncate')}>
+                  {quest.name || `Quest ${quest.id.slice(0, 8)}`}
+                </span>
+                <Badge variant="secondary" className="ml-auto text-xs">
                   {quest.children.length}
                 </Badge>
               </SidebarMenuButton>
@@ -594,21 +587,21 @@ function QuestsSideBar({
         onClick={() =>
           onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
         }
-        className={cn(
-          'relative w-full',
-          isSelected &&
-            'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
-        )}
+        className={cn('relative w-full', isSelected && 'font-bold')}
         data-quest-id={quest.id}
         title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
       >
-        <FolderOpen className={cn('h-4 w-4', isSelected && 'text-primary')} />
-        <span className={cn(isSelected && 'font-semibold', 'truncate')}>
+        <div
+          className={cn(
+            'rounded-sm p-1.5 flex items-center justify-center',
+            isSelected && 'bg-primary/10 text-primary'
+          )}
+        >
+          <FolderOpen className="h-4 w-4" />
+        </div>
+        <span className={cn(isSelected && 'font-bold', 'truncate')}>
           {quest.name || `Quest ${quest.id.slice(0, 8)}`}
         </span>
-        {isSelected && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
-        )}
       </SidebarMenuButton>
     );
 
