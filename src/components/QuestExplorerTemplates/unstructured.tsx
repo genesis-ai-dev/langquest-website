@@ -58,7 +58,7 @@ interface QuestsUnstructuredProps {
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  quests: any[] | undefined;
+  // quests: any[] | undefined;
   questsTree: Quest[];
   questsLoading: boolean;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
@@ -70,7 +70,7 @@ export function QuestsUnstructured({
   project,
   projectId,
   userRole,
-  quests,
+  // quests,
   questsTree,
   questsLoading,
   onSelectQuest,
@@ -96,6 +96,7 @@ export function QuestsUnstructured({
 
   const handleQuestSuccess = (/*data: { id: string }*/) => {
     setShowQuestForm(false);
+
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
     queryClient.invalidateQueries({
@@ -130,7 +131,7 @@ export function QuestsUnstructured({
             onAddQuest={handleAddQuest}
             onSelectQuest={onSelectQuest}
             selectedQuestId={selectedQuestId}
-            quests={quests}
+            // quests={quests}
             questsTree={questsTree}
             questsLoading={questsLoading}
           />
@@ -142,6 +143,7 @@ export function QuestsUnstructured({
             projectId={projectId}
             selectedQuestId={selectedQuestId}
             selectedQuest={selectedQuest || null}
+            questsTree={questsTree}
             userRole={userRole}
             onAddQuest={handleAddQuest}
             onAddAsset={handleAddAsset}
@@ -205,7 +207,7 @@ function QuestsSideBar({
   onAddQuest,
   onSelectQuest,
   selectedQuestId,
-  quests,
+  // quests,
   questsTree,
   questsLoading
 }: {
@@ -215,7 +217,7 @@ function QuestsSideBar({
   onAddQuest: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
-  quests: any[] | undefined;
+  // quests: any[] | undefined;
   questsTree: Quest[] | undefined;
   questsLoading: boolean;
 }) {
@@ -234,15 +236,15 @@ function QuestsSideBar({
 
   // Auto-expand parents and scroll to selected quest
   useEffect(() => {
-    if (selectedQuestId && quests) {
-      const parentPath = getParentPath(selectedQuestId, quests);
+    if (selectedQuestId && questsTree) {
+      const parentPath = getParentPath(selectedQuestId, questsTree);
       if (parentPath.length > 0) {
         const newExpanded = new Set(expandedItems);
         parentPath.forEach((parentId) => newExpanded.add(parentId));
         setExpandedItems(newExpanded);
       }
     }
-  }, [selectedQuestId, quests]);
+  }, [selectedQuestId, questsTree]);
 
   // Build hierarchical quest structure
   const buildQuestTree = (
@@ -257,7 +259,7 @@ function QuestsSideBar({
       }));
   };
 
-  const questTree = quests ? buildQuestTree(quests) : [];
+  const questTree = questsTree; // quests ? buildQuestTree(quests) : [];
   // const totalQuests = quests?.length || 0;
 
   // Toggle expansion of items
@@ -414,7 +416,7 @@ function QuestsSideBar({
             <div className="p-4 text-center text-sm text-muted-foreground">
               Loading quests...
             </div>
-          ) : questTree.length > 0 ? (
+          ) : questsTree && questsTree?.length > 0 ? (
             <SidebarMenu className="px-2 ">
               {questsTree && questsTree.map((quest) => renderQuest(quest))}
             </SidebarMenu>
@@ -439,6 +441,7 @@ function QuestContent({
   projectId,
   selectedQuestId,
   selectedQuest,
+  questsTree,
   userRole,
   onAddQuest,
   onAddAsset,
@@ -448,10 +451,11 @@ function QuestContent({
   projectId: string;
   selectedQuestId: string | null;
   selectedQuest: Quest | null;
+  questsTree: Quest[] | undefined;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onAddQuest: () => void;
   onAddAsset: () => void;
-  onSelectQuest: (questId: string | null) => void;
+  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   onAssetClick: (asset: any) => void;
 }) {
   const { user, environment } = useAuth();
@@ -461,6 +465,11 @@ function QuestContent({
   const canManage = userRole === 'owner' || userRole === 'admin';
 
   const childQuests = selectedQuest?.children || [];
+
+  // Obter quests raiz quando não há quest selecionada
+  const rootQuests = questsTree || [];
+
+  console.log('QuestsContent render:', selectedQuest);
 
   // Fetch counts for each child quest (sub-quests and assets)
   const { data: questCounts } = useQuery({
@@ -618,17 +627,68 @@ function QuestContent({
   };
 
   if (!selectedQuestId) {
+    // Mostrar quests raiz quando não há quest selecionada
     return (
-      <Card className="h-full max-h-[700px]">
-        <CardContent className="p-6 h-full flex items-center justify-center">
-          <div className="text-center text-muted-foreground">
-            <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium mb-2">Select a Quest</h3>
-            <p>
-              Choose a quest from the sidebar to view its sub-quests and
-              details.
-            </p>
+      <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
+        <CardHeader className="max-h-8">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="max-w-5/6 text-xl flex flex-row">
+                <div className="truncate text-muted-foreground">
+                  Choose a Quest
+                </div>
+              </CardTitle>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent className="flex-1 p-0 border-t">
+          <ScrollArea className="h-[600px]">
+            <div className="p-4 space-y-8">
+              {/* Root Quests Section */}
+              {rootQuests && rootQuests.length > 0 ? (
+                <div className="space-y-4">
+                  {/* <div className="p-2 border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Root Quests</h3>
+                      </div>
+                      <Badge variant="secondary" className="text-sm px-3 py-1">
+                        {rootQuests.length}
+                      </Badge>
+                    </div>
+                  </div> */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rootQuests.map((quest) => (
+                      <QuestCard
+                        key={quest.id}
+                        quest={{
+                          ...quest,
+                          active: true
+                        }}
+                        isSelected={false}
+                        onClick={() => onSelectQuest(quest.id, quest)}
+                        questsCount={quest?.children?.length || 0}
+                        assetsCount={0}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-12">
+                  <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No Quests Found</h3>
+                  <p>This project doesn't have any quests yet.</p>
+                  {canManage && (
+                    <p className="text-sm mt-2">
+                      Use the + button in the sidebar to create your first
+                      quest.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
     );
@@ -707,7 +767,8 @@ function QuestContent({
                             isSelected={selectedQuestId === quest.id}
                             onClick={() =>
                               onSelectQuest(
-                                selectedQuestId === quest.id ? null : quest.id
+                                selectedQuestId === quest.id ? null : quest.id,
+                                selectedQuestId === quest.id ? null : quest
                               )
                             }
                             questsCount={

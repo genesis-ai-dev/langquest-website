@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { QuestsUnstructured } from './QuestExplorerTemplates/unstructured';
+import { se } from 'date-fns/locale';
 
 interface QuestExplorerProps {
   project: any;
@@ -68,6 +69,8 @@ export function QuestExplorer({
 
       if (error) throw error;
 
+      let selectedQuestData = null;
+
       const buildQuestTree = (quests: any[]): Quest[] => {
         const questMap: Record<string, Quest> = {};
         quests.forEach((quest) => {
@@ -99,12 +102,20 @@ export function QuestExplorer({
               parent.children?.push(questNode);
             }
           }
+
+          if (quest.id === selectedQuestId) {
+            selectedQuestData = questNode;
+          }
         });
 
         return rootQuests;
       };
 
       const questsTree = buildQuestTree(data || []);
+
+      if (selectedQuestId && selectedQuestData) {
+        setSelectedQuest(selectedQuestData);
+      }
 
       return [data || [], questsTree];
     }
@@ -117,7 +128,7 @@ export function QuestExplorer({
         project={project}
         projectId={projectId}
         userRole={userRole}
-        quests={quests?.[0] ?? []}
+        // quests={quests?.[0] ?? []}
         questsLoading={questsLoading}
         onSelectQuest={handleSelectQuest}
         questsTree={quests?.[1] ?? []}
@@ -133,7 +144,7 @@ export function QuestExplorer({
       project={project}
       projectId={projectId}
       userRole={userRole}
-      quests={quests?.[0] ?? []}
+      // quests={quests?.[0] ?? []}
       questsLoading={questsLoading}
       onSelectQuest={handleSelectQuest}
       questsTree={quests?.[1] ?? []}
