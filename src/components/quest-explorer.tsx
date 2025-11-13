@@ -19,6 +19,7 @@ export interface Quest {
   description: string | null;
   metadata: Object;
   parent_id: string | null;
+  created_at: string;
   children?: Quest[];
   icon?: string;
 }
@@ -30,6 +31,13 @@ export function QuestExplorer({
 }: QuestExplorerProps) {
   // Internal state management
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
+  const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
+
+  // Função para lidar com seleção de quest
+  const handleSelectQuest = (questId: string | null, quest?: Quest | null) => {
+    setSelectedQuestId(questId);
+    setSelectedQuest(quest || null);
+  };
 
   // Auth and supabase client
   const { user, environment } = useAuth();
@@ -60,9 +68,7 @@ export function QuestExplorer({
 
       if (error) throw error;
 
-      // Função para construir estrutura hierárquica
       const buildQuestTree = (quests: any[]): Quest[] => {
-        // Primeiro, criamos um mapa de todos os quests com children vazios
         const questMap: Record<string, Quest> = {};
         quests.forEach((quest) => {
           questMap[quest.id] = {
@@ -71,6 +77,7 @@ export function QuestExplorer({
             description: quest.description,
             metadata: quest.metadata,
             parent_id: quest.parent_id,
+            created_at: quest.created_at,
             children: []
           };
         });
@@ -112,9 +119,10 @@ export function QuestExplorer({
         userRole={userRole}
         quests={quests?.[0] ?? []}
         questsLoading={questsLoading}
-        onSelectQuest={setSelectedQuestId}
+        onSelectQuest={handleSelectQuest}
         questsTree={quests?.[1] ?? []}
         selectedQuestId={selectedQuestId}
+        selectedQuest={selectedQuest}
       />
     );
   }
@@ -127,9 +135,10 @@ export function QuestExplorer({
       userRole={userRole}
       quests={quests?.[0] ?? []}
       questsLoading={questsLoading}
-      onSelectQuest={setSelectedQuestId}
+      onSelectQuest={handleSelectQuest}
       questsTree={quests?.[1] ?? []}
       selectedQuestId={selectedQuestId}
+      selectedQuest={selectedQuest}
     />
   );
 }

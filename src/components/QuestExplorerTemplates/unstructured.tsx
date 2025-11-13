@@ -54,8 +54,6 @@ import { SubQuestMenu } from './components/subquest-menu';
 import { QuestMenu } from './components/quest-menu';
 import { Quest } from '../quest-explorer';
 
-import gen from './bibleAssets/book-icons/gen.webp';
-
 interface QuestsUnstructuredProps {
   project: any;
   projectId: string;
@@ -63,8 +61,9 @@ interface QuestsUnstructuredProps {
   quests: any[] | undefined;
   questsTree: Quest[];
   questsLoading: boolean;
-  onSelectQuest: (questId: string | null) => void;
+  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
+  selectedQuest?: Quest | null;
 }
 
 export function QuestsUnstructured({
@@ -75,7 +74,8 @@ export function QuestsUnstructured({
   questsTree,
   questsLoading,
   onSelectQuest,
-  selectedQuestId
+  selectedQuestId,
+  selectedQuest
 }: QuestsUnstructuredProps) {
   const queryClient = useQueryClient();
   const { environment } = useAuth();
@@ -141,6 +141,7 @@ export function QuestsUnstructured({
           <QuestContent
             projectId={projectId}
             selectedQuestId={selectedQuestId}
+            selectedQuest={selectedQuest || null}
             userRole={userRole}
             onAddQuest={handleAddQuest}
             onAddAsset={handleAddAsset}
@@ -212,7 +213,7 @@ function QuestsSideBar({
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onAddQuest: () => void;
-  onSelectQuest: (questId: string | null) => void;
+  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
   quests: any[] | undefined;
   questsTree: Quest[] | undefined;
@@ -240,19 +241,6 @@ function QuestsSideBar({
         parentPath.forEach((parentId) => newExpanded.add(parentId));
         setExpandedItems(newExpanded);
       }
-
-      // Scroll to selected quest after a short delay to allow DOM updates
-      // setTimeout(() => {
-      //   const selectedElement = document.querySelector(
-      //     `[data-quest-id="${selectedQuestId}"]`
-      //   );
-      //   // if (selectedElement) {
-      //   //   selectedElement.scrollIntoView({
-      //   //     behavior: 'smooth',
-      //   //     block: 'center'
-      //   //   });
-      //   // }
-      // }, 100);
     }
   }, [selectedQuestId, quests]);
 
@@ -335,7 +323,10 @@ function QuestsSideBar({
             <CollapsibleTrigger asChild>
               <SidebarMenuButton
                 onClick={() =>
-                  onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
+                  onSelectQuest(
+                    selectedQuestId === quest.id ? null : quest.id,
+                    selectedQuestId === quest.id ? null : quest
+                  )
                 }
                 className={cn(
                   'relative max-w-full truncate',
@@ -371,7 +362,10 @@ function QuestsSideBar({
     const ButtonComponent = (
       <SidebarMenuButton
         onClick={() =>
-          onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
+          onSelectQuest(
+            selectedQuestId === quest.id ? null : quest.id,
+            selectedQuestId === quest.id ? null : quest
+          )
         }
         className={cn(
           'relative max-w-full truncate',
@@ -444,6 +438,7 @@ function QuestsSideBar({
 function QuestContent({
   projectId,
   selectedQuestId,
+  selectedQuest,
   userRole,
   onAddQuest,
   onAddAsset,
@@ -452,6 +447,7 @@ function QuestContent({
 }: {
   projectId: string;
   selectedQuestId: string | null;
+  selectedQuest: Quest | null;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onAddQuest: () => void;
   onAddAsset: () => void;
@@ -464,24 +460,7 @@ function QuestContent({
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
 
-  // Fetch child quests when a parent quest is selected
-  const { data: childQuests, isLoading: childQuestsLoading } = useQuery({
-    queryKey: ['child-quests', selectedQuestId, environment],
-    queryFn: async () => {
-      if (!selectedQuestId) return [];
-
-      const { data, error } = await supabase
-        .from('quest')
-        .select('*')
-        .eq('parent_id', selectedQuestId)
-        .eq('active', true)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedQuestId && !!user
-  });
+  const childQuests = selectedQuest?.children || [];
 
   // Fetch counts for each child quest (sub-quests and assets)
   const { data: questCounts } = useQuery({
@@ -531,24 +510,6 @@ function QuestContent({
     },
     enabled:
       !!selectedQuestId && !!user && !!childQuests && childQuests.length > 0
-  });
-
-  // Fetch selected quest details
-  const { data: selectedQuest, isLoading: selectedQuestLoading } = useQuery({
-    queryKey: ['quest', selectedQuestId, environment],
-    queryFn: async () => {
-      if (!selectedQuestId) return null;
-
-      const { data, error } = await supabase
-        .from('quest')
-        .select('*')
-        .eq('id', selectedQuestId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedQuestId && !!user
   });
 
   // Fetch assets for the selected quest through quest_asset_link
@@ -673,16 +634,6 @@ function QuestContent({
     );
   }
 
-  if (selectedQuestLoading) {
-    return (
-      <Card className="h-full max-h-[700px]">
-        <CardContent className="p-6 h-full flex items-center justify-center">
-          <Spinner />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <>
       <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
@@ -692,7 +643,18 @@ function QuestContent({
               <CardTitle className="max-w-5/6 text-xl flex flex-row ">
                 <div className="truncate">{selectedQuest?.name || 'Quest'}</div>
                 <div className="self-center">
-                  <QuestInfo quest={selectedQuest} />
+                  <QuestInfo
+                    quest={
+                      selectedQuest
+                        ? {
+                            name: selectedQuest.name,
+                            description: selectedQuest.description || undefined,
+                            created_at: selectedQuest.created_at,
+                            assets: []
+                          }
+                        : null
+                    }
+                  />
                 </div>
               </CardTitle>
             </div>
@@ -709,7 +671,7 @@ function QuestContent({
         <CardContent className="flex-1 p-0 border-t">
           <ScrollArea className="h-[600px]">
             <div className="p-4 space-y-8">
-              {childQuestsLoading || questAssetsLoading ? (
+              {questAssetsLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <Spinner />
                 </div>
@@ -738,7 +700,10 @@ function QuestContent({
                         {childQuests.map((quest) => (
                           <QuestCard
                             key={quest.id}
-                            quest={quest}
+                            quest={{
+                              ...quest,
+                              active: true // Valor padrão já que estamos filtrando apenas ativos
+                            }}
                             isSelected={selectedQuestId === quest.id}
                             onClick={() =>
                               onSelectQuest(
