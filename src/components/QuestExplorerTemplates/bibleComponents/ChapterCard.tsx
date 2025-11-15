@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Folder } from 'lucide-react';
 
-interface QuestCardProps {
+interface BookCardProps {
   quest: {
     id: string;
     name: string | null;
@@ -18,21 +18,23 @@ interface QuestCardProps {
     created_at: string;
     active: boolean;
   };
+  chapterNumber?: number;
+  verseCount?: number;
   isSelected?: boolean;
   onClick?: () => void;
   icon?: React.ComponentType<{ className?: string }>;
-  questsCount?: number;
   assetsCount?: number;
 }
 
-export function QuestCard({
+export function ChapterCard({
   quest,
   isSelected,
+  chapterNumber,
+  verseCount,
   onClick,
   icon: Icon = Folder,
-  questsCount = 0,
   assetsCount = 0
-}: QuestCardProps) {
+}: BookCardProps) {
   return (
     <Card
       className={`h-36 flex justify-between p-2 px-0 group relative hover:shadow-lg transition-all duration-300 cursor-pointer border-l-4 gap-0 ${
@@ -42,53 +44,31 @@ export function QuestCard({
       }`}
       onClick={onClick}
     >
-      {/* Header com ícone e título - padding reduzido */}
       <CardHeader className="w-full flex flex-row items-center gap-2 overflow-hidden px-2">
-        {/* <div className=""> */}
-        <div
-          className={`p-2 rounded-lg transition-colors ${
-            isSelected
-              ? 'bg-primary/10 text-primary'
-              : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
-          }`}
-        >
-          <Icon className="w-5 h-5" />
-        </div>
-        <CardTitle
-          className="flex-1 text-base font-semibold leading-tight overflow-hidden whitespace-nowrap truncate"
-          title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
-        >
-          {quest.name || `Quest ${quest.id.slice(0, 8)}`}
+        <CardTitle className="flex-1 flex text-sm font-semibold leading-tight overflow-hidden whitespace-nowrap truncate justify-center items-center">
+          Chapter
         </CardTitle>
-        {/* </div> */}
       </CardHeader>
 
-      {/* Conteúdo - Descrição com padding reduzido */}
-      <CardContent className="max-h-16 px-6 py-0 overflow-hidden ">
-        {quest.description ? (
-          <p className="text-xs text-muted-foreground text-clip">
-            {quest.description}
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground italic mb-2">
-            No description available.
-          </p>
-        )}
+      <CardContent className="p-6 py-0 overflow-hidden flex flex-col items-center justify-center">
+        <p className="text-4xl font-semibold text-primary text-clip">
+          {chapterNumber}
+        </p>
+        <p className="text-xs text-muted-foreground text-clip">
+          {verseCount} verses
+        </p>
       </CardContent>
 
       {/* Footer com estatísticas - mais próximo das bordas */}
-      <CardFooter className="px-4 py-0 pt-1">
-        <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">{questsCount} quests</span>
-            <span className="text-muted-foreground/60">•</span>
-            <span className="font-medium">{assetsCount} assets</span>
-          </div>
-          <Badge
-            variant={quest.active ? 'default' : 'secondary'}
-            className="text-xs px-2 py-1"
-          >
-            {quest.active ? 'Active' : 'Inactive'}
+      <CardFooter className="">
+        <div className="w-full text-xs flex items-center justify-center ">
+          {/* <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium">{questsCount} quests</span> */}
+          {/* <span className="text-muted-foreground/60">•</span> */}
+          {/* <div>{assetsCount} assets</div> */}
+          {/* </div> */}
+          <Badge variant={'secondary'} className="text-xs px-2 py-0">
+            {assetsCount} assets
           </Badge>
         </div>
       </CardFooter>

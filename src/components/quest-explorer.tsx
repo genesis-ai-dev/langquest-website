@@ -24,6 +24,7 @@ export interface Quest {
   created_at: string;
   children?: Quest[];
   icon?: string;
+  active?: boolean;
 }
 
 export function QuestExplorer({

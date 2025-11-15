@@ -61,6 +61,7 @@ import {
   ICONS_PATH
 } from './bibleComponents/template';
 import { BookCard } from './bibleComponents/BookCard';
+import { ChapterCard } from './bibleComponents/ChapterCard';
 
 interface QuestsUnstructuredProps {
   project: any;
@@ -489,7 +490,7 @@ function QuestContent({
 }: {
   projectId: string;
   selectedQuestId: string | null;
-  selectedQuest: Quest | null;
+  selectedQuest: BibleBookQuest | null;
   questsTree: Quest[] | undefined;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
   level?: number;
@@ -501,64 +502,63 @@ function QuestContent({
   const { user, environment } = useAuth();
   const supabase = createBrowserClient(environment);
 
-  // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
 
   const childQuests = selectedQuest?.children || [];
 
   const rootQuests = questsTree || [];
 
-  console.log('Selected Quest:', selectedQuest?.chapters);
-
   // Fetch counts for each child quest (sub-quests and assets)
-  const { data: questCounts } = useQuery({
-    queryKey: ['quest-counts', selectedQuestId, environment],
-    queryFn: async () => {
-      if (!selectedQuestId || !childQuests || childQuests.length === 0)
-        return {};
+  // const { data: questCounts } = useQuery({
+  //   queryKey: ['quest-counts', selectedQuestId, environment],
+  //   queryFn: async () => {
+  //     if (!selectedQuestId || !childQuests || childQuests.length === 0)
+  //       return {};
 
-      const counts: Record<
-        string,
-        { questsCount: number; assetsCount: number }
-      > = {};
+  //     const counts: Record<
+  //       string,
+  //       { questsCount: number; assetsCount: number }
+  //     > = {};
 
-      // Get counts for each child quest
-      await Promise.all(
-        childQuests.map(async (quest: any) => {
-          try {
-            // Count sub-quests
-            const { count: questsCount } = await supabase
-              .from('quest')
-              .select('*', { count: 'exact', head: true })
-              .eq('parent_id', quest.id)
-              .eq('active', true);
+  //     // Get counts for each child quest
+  //     await Promise.all(
+  //       childQuests.map(async (quest: any) => {
+  //         try {
+  //           // Count sub-quests
+  //           const { count: questsCount } = await supabase
+  //             .from('quest')
+  //             .select('*', { count: 'exact', head: true })
+  //             .eq('parent_id', quest.id)
+  //             .eq('active', true);
 
-            // Count assets
-            const { count: assetsCount } = await supabase
-              .from('quest_asset_link')
-              .select('*', { count: 'exact', head: true })
-              .eq('quest_id', quest.id)
-              .eq('active', true);
+  //           // Count assets
+  //           const { count: assetsCount } = await supabase
+  //             .from('quest_asset_link')
+  //             .select('*', { count: 'exact', head: true })
+  //             .eq('quest_id', quest.id)
+  //             .eq('active', true);
 
-            counts[quest.id] = {
-              questsCount: questsCount || 0,
-              assetsCount: assetsCount || 0
-            };
-          } catch (error) {
-            console.error(
-              `Error fetching counts for quest ${quest.id}:`,
-              error
-            );
-            counts[quest.id] = { questsCount: 0, assetsCount: 0 };
-          }
-        })
-      );
+  //           counts[quest.id] = {
+  //             questsCount: questsCount || 0,
+  //             assetsCount: assetsCount || 0
+  //           };
+  //         } catch (error) {
+  //           console.error(
+  //             `Error fetching counts for quest ${quest.id}:`,
+  //             error
+  //           );
+  //           counts[quest.id] = { questsCount: 0, assetsCount: 0 };
+  //         }
+  //       })
+  //     );
 
-      return counts;
-    },
-    enabled:
-      !!selectedQuestId && !!user && !!childQuests && childQuests.length > 0
-  });
+  //     return counts;
+  //   },
+  //   enabled:
+  //     !!selectedQuestId && !!user && !!childQuests && childQuests.length > 0
+  // });
+
+  console.log('selectedQuest', selectedQuestId);
 
   // Fetch assets for the selected quest through quest_asset_link
   const { data: questAssets, isLoading: questAssetsLoading } = useQuery({
@@ -584,11 +584,8 @@ function QuestContent({
         `
         )
         .eq('quest_id', selectedQuestId)
-        .eq('active', true)
         .is('asset.source_asset_id', null)
         .order('created_at', { ascending: true });
-
-      console.log('Fetched quest assets data:', { data, error });
 
       if (error) throw error;
 
@@ -691,13 +688,12 @@ function QuestContent({
                       <BookCard
                         key={quest.id}
                         quest={{
-                          ...quest,
+                          ...(quest as BibleBookQuest),
                           active: true
                         }}
                         isSelected={false}
                         onClick={() => onSelectQuest(quest.id, quest)}
-                        questsCount={quest?.children?.length || 0}
-                        assetsCount={0}
+                        // assetsCount={0}
                       />
                     ))}
                   </div>
@@ -775,7 +771,7 @@ function QuestContent({
                   {/* Sub-Quests Section */}
                   {selectedQuest?.chapters && (
                     <div className="space-y-4">
-                      <div className="p-2 border-b">
+                      {/* <div className="p-2 border-b">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <FolderOpen className="h-5 w-5 text-primary" />
@@ -790,16 +786,16 @@ function QuestContent({
                             {childQuests.length}
                           </Badge>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {selectedQuest?.verses.map((chapter) => (
-                          <QuestCard
-                            key={chapter}
+                      </div> */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                        {selectedQuest?.verses.map((totalVerses, idx) => (
+                          <ChapterCard
+                            key={idx}
                             quest={{
                               ...selectedQuest,
-                              active: true // Valor padrão já que estamos filtrando apenas ativos
+                              active: true
                             }}
-                            isSelected={selectedQuestId === selectedQuest.id}
+                            isSelected={false} // selectedQuestId === selectedQuest.id}
                             onClick={() =>
                               onSelectQuest(
                                 selectedQuestId === selectedQuest.id
@@ -810,11 +806,10 @@ function QuestContent({
                                   : selectedQuest
                               )
                             }
-                            questsCount={
-                              questCounts?.[selectedQuest.id]?.questsCount || 0
-                            }
+                            chapterNumber={idx + 1}
+                            verseCount={totalVerses}
                             assetsCount={
-                              questCounts?.[selectedQuest.id]?.assetsCount || 0
+                              0 //questCounts?.[selectedQuest.id]?.assetsCount || 0
                             }
                           />
                         ))}
