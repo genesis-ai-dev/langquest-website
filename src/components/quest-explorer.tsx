@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { QuestsUnstructured } from './QuestExplorerTemplates/unstructured';
 import { se } from 'date-fns/locale';
+import { QuestsBible } from './QuestExplorerTemplates/bible';
 
 interface QuestExplorerProps {
   project: any;
@@ -18,7 +19,7 @@ export interface Quest {
   id: string;
   name: string;
   description: string | null;
-  metadata: Object;
+  metadata: string | null;
   parent_id: string | null;
   created_at: string;
   children?: Quest[];
@@ -122,9 +123,9 @@ export function QuestExplorer({
   });
 
   // Check project template and render appropriate component
-  if (project?.template === 'unstructured') {
+  if (project?.template === 'bible') {
     return (
-      <QuestsUnstructured
+      <QuestsBible
         project={project}
         projectId={projectId}
         userRole={userRole}

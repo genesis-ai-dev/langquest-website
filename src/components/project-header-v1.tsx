@@ -10,7 +10,9 @@ import {
   Folder,
   Users,
   File,
-  Languages
+  Languages,
+  Book,
+  TableOfContents
 } from 'lucide-react';
 import { ProjectDownloadButton } from './new-project-download-button';
 import { ProjectMembersModal } from './new-project-members';
@@ -80,9 +82,26 @@ export function ProjectHeaderV1({
             </div>
             <div>
               <h4 className="text-sm font-medium mb-2">Template</h4>
-              <p className="text-sm text-muted-foreground">
+              <Badge
+                variant="default"
+                className="text-xs flex items-center gap-1 first-letter:uppercase"
+              >
+                {project.template === 'bible' ? (
+                  <>
+                    <Book className="h-3 w-3" /> Bible
+                  </>
+                ) : (
+                  <>
+                    <TableOfContents className="h-3 w-3" />{' '}
+                    <span className="first-letter:uppercase">
+                      {project.template}
+                    </span>
+                  </>
+                )}
+              </Badge>
+              {/* <p className="text-sm text-muted-foreground">
                 {project.template || 'None'}
-              </p>
+              </p> */}
             </div>
             <div>
               <h4 className="text-sm font-medium mb-2">Privacy</h4>
