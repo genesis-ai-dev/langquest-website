@@ -36,7 +36,6 @@ export function QuestExplorer({
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
 
-  // Função para lidar com seleção de quest
   const handleSelectQuest = (questId: string | null, quest?: Quest | null) => {
     setSelectedQuestId(questId);
     setSelectedQuest(quest || null);

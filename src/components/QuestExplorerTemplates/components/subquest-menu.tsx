@@ -20,6 +20,7 @@ interface SubQuestMenuProps {
   selectedQuestId: string | null;
   onAddQuest: () => void;
   onAddAsset: () => void;
+  disableQuests?: boolean;
 }
 
 export function SubQuestMenu({
@@ -27,9 +28,13 @@ export function SubQuestMenu({
   projectId,
   selectedQuestId,
   onAddQuest,
-  onAddAsset
+  onAddAsset,
+  disableQuests = false
 }: SubQuestMenuProps) {
   const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
+
+  console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+  console.log('selectedQuestId:', selectedQuestId);
 
   if (!canManage) {
     return null;
@@ -39,16 +44,17 @@ export function SubQuestMenu({
     <>
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAddQuest}
-          title="Add Sub-Quest"
-        >
-          <FolderPlus className="h-4 w-4" />
-          {/* Add Quest */}
-        </Button>
-
+        {!disableQuests && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAddQuest}
+            title="Add Sub-Quest"
+          >
+            <FolderPlus className="h-4 w-4" />
+            {/* Add Quest */}
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"

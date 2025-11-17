@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
@@ -19,18 +19,12 @@ import {
   SidebarProvider,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem
+  SidebarMenuItem
 } from '@/components/ui/sidebar';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
-import {
   FolderOpen,
-  File
+  File,
+  ArrowLeft
   // Info,
   // Calendar
 } from 'lucide-react';
@@ -55,7 +49,7 @@ import { QuestMenu } from './components/quest-menu';
 import { Quest } from '../quest-explorer';
 import {
   BIBLE_BOOKS,
-  BibleBook,
+  // BibleBook,
   BibleBookQuest,
   BOOKS_MAP,
   ICONS_PATH
@@ -63,7 +57,7 @@ import {
 import { BookCard } from './bibleComponents/BookCard';
 import { ChapterCard } from './bibleComponents/ChapterCard';
 
-interface QuestsUnstructuredProps {
+interface QuestsBibleProps {
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
@@ -85,21 +79,36 @@ export function QuestsBible({
   onSelectQuest,
   selectedQuestId,
   selectedQuest
-}: QuestsUnstructuredProps) {
+}: QuestsBibleProps) {
   const queryClient = useQueryClient();
-  const { environment } = useAuth();
+  const { user, environment } = useAuth();
 
   // Modal states
   const [showQuestForm, setShowQuestForm] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
+
+  // Chapter creation confirmation modal
+  const [showChapterConfirmModal, setShowChapterConfirmModal] = useState(false);
+  const [pendingChapter, setPendingChapter] = useState<{
+    bookName: string;
+    chapterNumber: number;
+    book: BibleBookQuest;
+  } | null>(null);
+
+  // Separate state for book selection (by bookId)
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
+
+  // State for chapter selection
+  const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
+
   const [books, setBooks] = useState<BibleBookQuest[]>(
     BIBLE_BOOKS.map((book, idx) => ({
       bookId: book.id,
       chapters: book.chapters,
       verses: book.verses,
-      id: idx.toString(),
+      id: '', //idx.toString(),
       name: book.name,
       description: null,
       metadata: null,
@@ -122,7 +131,11 @@ export function QuestsBible({
           : quest.metadata;
       const idx = BOOKS_MAP.get(metadata?.bible.book);
       if (idx !== undefined && auxBooks[idx]) {
-        auxBooks[idx].children = quest.children;
+        auxBooks[idx] = {
+          ...auxBooks[idx],
+          ...quest,
+          metadata
+        };
       }
     });
     setBooks(auxBooks);
@@ -136,21 +149,191 @@ export function QuestsBible({
     setShowAssetModal(true);
   };
 
+  // Handle book selection - separate from quest selection
+  const handleBookSelection = (bookId: string, book: BibleBookQuest) => {
+    // Always update book selection
+    setSelectedBookId(selectedBookId === bookId ? null : bookId);
+
+    // Clear chapter selection when changing books
+    setSelectedChapter(null);
+
+    // Only update quest selection if the book has a real quest.id
+    if (book.id && book.id.trim() !== '') {
+      onSelectQuest(
+        selectedQuestId === book.id ? null : book.id,
+        selectedQuestId === book.id ? null : book
+      );
+    } else {
+      // If no quest exists, clear quest selection but keep book selection
+      onSelectQuest(null, null);
+    }
+  };
+
+  // Handle chapter selection
+  const handleChapterSelection = (chapterNumber: number) => {
+    setSelectedChapter(
+      selectedChapter === chapterNumber ? null : chapterNumber
+    );
+  };
+
+  // Handle chapter click - check if quest exists or show confirmation modal
+  const handleChapterClick = (
+    chapterNumber: number,
+    book: BibleBookQuest,
+    chaptersQuest: BibleBookQuest[]
+  ) => {
+    // Check if there's already a quest for this specific chapter
+    const chapterQuest = chaptersQuest[chapterNumber - 1];
+
+    if (chapterQuest && chapterQuest.id && chapterQuest.id.trim() !== '') {
+      // Chapter quest exists, proceed with normal selection
+      handleChapterSelection(chapterNumber);
+    } else {
+      // No chapter quest exists, show confirmation modal
+      setPendingChapter({
+        bookName: book.name,
+        chapterNumber,
+        book
+      });
+      setShowChapterConfirmModal(true);
+    }
+  };
+
+  // Handle chapter creation confirmation
+  const handleConfirmChapterCreation = async () => {
+    if (!pendingChapter) return;
+
+    const { bookName, chapterNumber, book } = pendingChapter;
+    const supabase = createBrowserClient(environment);
+
+    try {
+      let bookQuestId = book.id;
+
+      // Check if book quest exists, if not create it
+      if (!bookQuestId || bookQuestId.trim() === '') {
+        // Create book quest
+        const { data: bookQuestData, error: bookError } = await supabase
+          .from('quest')
+          .insert({
+            name: bookName,
+            description: `${book.chapters} chapters`,
+            project_id: projectId,
+            parent_id: null,
+            metadata: {
+              bible: {
+                book: book.bookId
+              }
+            },
+            creator_id: user?.id
+          })
+          .select()
+          .single();
+
+        if (bookError) {
+          console.error('Error creating book quest:', bookError);
+          toast.error('Failed to create book quest');
+          return;
+        }
+
+        bookQuestId = bookQuestData.id;
+      }
+
+      // Create chapter quest
+      const { data: chapterQuestData, error: chapterError } = await supabase
+        .from('quest')
+        .insert({
+          name: `${bookName} ${chapterNumber}`,
+          description: `${book.verses[chapterNumber - 1]} verses`,
+          project_id: projectId,
+          parent_id: bookQuestId,
+          metadata: {
+            bible: {
+              book: book.bookId,
+              chapter: chapterNumber
+            }
+          },
+          creator_id: user?.id
+        })
+        .select()
+        .single();
+
+      // }
+
+      // selectedQuest?.children?.push(chapterQuestData);
+
+      if (chapterError) {
+        console.error('Error creating chapter quest:', chapterError);
+        toast.error('Failed to create chapter quest');
+        return;
+      }
+
+      // Success - invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
+      queryClient.invalidateQueries({
+        queryKey: ['child-quests', bookQuestId]
+      });
+
+      // Select the chapter and book
+      handleChapterSelection(chapterNumber);
+      setSelectedBookId(book.bookId);
+
+      // Show success message
+      toast.success(`Created ${bookName} ${chapterNumber}`);
+
+      // Close modal and clear pending state
+      setShowChapterConfirmModal(false);
+      setPendingChapter(null);
+    } catch (error) {
+      console.error('Error creating quest:', error);
+      toast.error('Failed to create quest');
+    }
+  };
+
+  // Handle chapter creation cancellation
+  const handleCancelChapterCreation = () => {
+    setShowChapterConfirmModal(false);
+    setPendingChapter(null);
+  };
+
+  // Handle going back in the hierarchy
+  const goBack = () => {
+    if (selectedChapter !== null) {
+      // If chapter is selected, go back to chapters list (deselect chapter)
+      setSelectedChapter(null);
+    } else if (selectedBookId !== null) {
+      // If book is selected, go back to books list (deselect book and quest)
+      setSelectedBookId(null);
+      onSelectQuest(null, null);
+    }
+  };
+
+  // Find the actual quest ID based on the selectedQuestId (which is now bookId)
+  const getActualQuestId = () => {
+    if (!selectedQuestId) return null;
+    const selectedBook = books.find((book) => book.bookId === selectedQuestId);
+    return selectedBook?.id || null;
+  };
+
   const handleQuestSuccess = (/*data: { id: string }*/) => {
     setShowQuestForm(false);
+
+    const actualQuestId = getActualQuestId();
 
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
     queryClient.invalidateQueries({
-      queryKey: ['child-quests', selectedQuestId]
+      queryKey: ['child-quests', actualQuestId]
     });
   };
 
   const handleAssetSuccess = (/*data: { id: string }*/) => {
     setShowAssetForm(false);
+
+    const actualQuestId = getActualQuestId();
+
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({
-      queryKey: ['child-quests', selectedQuestId]
+      queryKey: ['child-quests', actualQuestId]
     });
     // Also invalidate asset counts to update the project header
     queryClient.invalidateQueries({
@@ -158,9 +341,10 @@ export function QuestsBible({
     });
     // And invalidate quest-assets query to refresh asset list in quest view
     queryClient.invalidateQueries({
-      queryKey: ['quest-assets', selectedQuestId, environment]
+      queryKey: ['quest-assets', actualQuestId, environment]
     });
   };
+
   return (
     <SidebarProvider>
       <div className="w-full flex min-h-[600px] gap-4">
@@ -172,7 +356,9 @@ export function QuestsBible({
             userRole={userRole}
             onAddQuest={handleAddQuest}
             onSelectQuest={onSelectQuest}
+            onSelectBook={handleBookSelection}
             selectedQuestId={selectedQuestId}
+            selectedBookId={selectedBookId}
             // quests={quests}
             questsTree={books}
             questsLoading={questsLoading}
@@ -184,12 +370,18 @@ export function QuestsBible({
           <QuestContent
             projectId={projectId}
             selectedQuestId={selectedQuestId}
-            selectedQuest={selectedQuest || null}
+            selectedBookId={selectedBookId}
+            selectedChapter={selectedChapter}
+            selectedQuest={(selectedQuest as BibleBookQuest) || null}
             questsTree={books}
             userRole={userRole}
             onAddQuest={handleAddQuest}
             onAddAsset={handleAddAsset}
             onSelectQuest={onSelectQuest}
+            onSelectBook={handleBookSelection}
+            onSelectChapter={handleChapterSelection}
+            onChapterClick={handleChapterClick}
+            onGoBack={goBack}
             onAssetClick={handleAssetClick}
           />
         </div>
@@ -207,7 +399,7 @@ export function QuestsBible({
           <QuestForm
             onSuccess={handleQuestSuccess}
             projectId={projectId}
-            questParentId={selectedQuestId || undefined}
+            questParentId={getActualQuestId() || undefined}
           />
         </DialogContent>
       </Dialog>
@@ -224,7 +416,7 @@ export function QuestsBible({
           <AssetForm
             onSuccess={handleAssetSuccess}
             projectId={projectId}
-            questId={selectedQuestId || undefined}
+            questId={getActualQuestId() || undefined}
           />
         </DialogContent>
       </Dialog>
@@ -238,6 +430,31 @@ export function QuestsBible({
           {selectedAsset && <AssetView asset={selectedAsset} />}
         </DialogContent>
       </Dialog>
+
+      {/* Chapter Creation Confirmation Modal */}
+      <Dialog
+        open={showChapterConfirmModal}
+        onOpenChange={setShowChapterConfirmModal}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Chapter Quest</DialogTitle>
+            <DialogDescription>
+              Do you want to create{' '}
+              <b>
+                {pendingChapter?.bookName} {pendingChapter?.chapterNumber}
+              </b>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={handleCancelChapterCreation}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmChapterCreation}>Create</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
@@ -248,7 +465,9 @@ function QuestsSideBar({
   userRole,
   onAddQuest,
   onSelectQuest,
+  onSelectBook,
   selectedQuestId,
+  selectedBookId,
   // quests,
   questsTree,
   questsLoading
@@ -258,35 +477,15 @@ function QuestsSideBar({
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onAddQuest: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
+  onSelectBook: (bookId: string, book: BibleBookQuest) => void;
   selectedQuestId: string | null;
+  selectedBookId: string | null;
   // quests: any[] | undefined;
   questsTree: Quest[] | undefined;
   questsLoading: boolean;
 }) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
-
-  // Function to get all parent quest IDs for a given quest
-  const getParentPath = (questId: string, questList: any[]): string[] => {
-    const quest = questList.find((q) => q.id === questId);
-    if (!quest || !quest.parent_id) return [];
-
-    return [quest.parent_id, ...getParentPath(quest.parent_id, questList)];
-  };
-
-  // Auto-expand parents and scroll to selected quest
-  useEffect(() => {
-    if (selectedQuestId && questsTree) {
-      const parentPath = getParentPath(selectedQuestId, questsTree);
-      if (parentPath.length > 0) {
-        const newExpanded = new Set(expandedItems);
-        parentPath.forEach((parentId) => newExpanded.add(parentId));
-        setExpandedItems(newExpanded);
-      }
-    }
-  }, [selectedQuestId, questsTree]);
 
   // Build hierarchical quest structure
   const buildQuestTree = (
@@ -301,21 +500,11 @@ function QuestsSideBar({
       }));
   };
 
-  // Toggle expansion of items
-  const toggleExpanded = (questId: string) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(questId)) {
-      newExpanded.delete(questId);
-    } else {
-      newExpanded.add(questId);
-    }
-    setExpandedItems(newExpanded);
-  };
-
   const renderQuest = (quest: Quest, level: number = 0) => {
     const hasChildren = quest.children && quest.children.length > 0;
-    const isSelected = selectedQuestId === quest.id;
-    const isExpanded = expandedItems.has(quest.id);
+    const bibleQuest = quest as BibleBookQuest;
+    // Check if this book is selected (regardless of quest status)
+    const isSelected = selectedBookId === bibleQuest.bookId;
 
     const QuestItem = (isSelected: boolean, quest: Quest) => {
       return (
@@ -346,95 +535,52 @@ function QuestsSideBar({
             )}
           </div>
           <span className={cn(isSelected && 'font-bold', 'truncate')}>
-            {quest.name || `Quest ${quest.id.slice(0, 8)}`}
+            {quest.name || `Quest ${quest.id?.slice(0, 8) || 'Unknown'}`}
           </span>
         </>
       );
     };
 
-    if (hasChildren) {
-      // If this is a sub-item (level > 0), wrap in SidebarMenuSubItem
-      const CollapsibleComponent = (
-        <Collapsible
-          key={quest.id}
-          open={isExpanded}
-          onOpenChange={() => toggleExpanded(quest.id)}
-        >
-          <SidebarMenuItem>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton
-                onClick={() =>
-                  onSelectQuest(
-                    selectedQuestId === quest.id ? null : quest.id,
-                    selectedQuestId === quest.id ? null : quest
-                  )
-                }
-                className={cn(
-                  'relative max-w-full truncate',
-                  isSelected && 'font-bold'
-                )}
-                data-quest-id={quest.id}
-                title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
-              >
-                {QuestItem(isSelected, quest)}
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                {quest?.children?.map((child: any) =>
-                  renderQuest(child, level + 1)
-                )}
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </SidebarMenuItem>
-        </Collapsible>
-      );
+    // Only render root level quests (level 0), no expansion for children
+    if (level > 0) return null;
 
-      return level > 0 ? (
-        <SidebarMenuSubItem key={quest.id}>
-          {CollapsibleComponent}
-        </SidebarMenuSubItem>
-      ) : (
-        CollapsibleComponent
-      );
-    }
-
-    // Leaf node (no children)
     const ButtonComponent = (
       <SidebarMenuButton
-        onClick={() =>
-          onSelectQuest(
-            selectedQuestId === quest.id ? null : quest.id,
-            selectedQuestId === quest.id ? null : quest
-          )
-        }
+        onClick={() => onSelectBook(bibleQuest.bookId, bibleQuest)}
         className={cn(
           'relative max-w-full truncate',
           isSelected && 'font-bold'
         )}
-        data-quest-id={quest.id}
-        title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
+        data-quest-id={bibleQuest.bookId}
+        title={quest.name || `Quest ${quest.id?.slice(0, 8) || 'Unknown'}`}
       >
         {QuestItem(isSelected, quest)}
       </SidebarMenuButton>
     );
 
-    return level > 0 ? (
-      <SidebarMenuSubItem
-        key={quest.id}
-        className="w-full overflow-clip"
-        // className={cn(isSelected && 'bg-accent2')}
-      >
-        {ButtonComponent}
-      </SidebarMenuSubItem>
-    ) : (
-      <SidebarMenuItem
-        // className={cn(isSelected && 'bg-accent2')}
-        key={quest.id}
-      >
+    return (
+      <SidebarMenuItem key={bibleQuest.bookId}>
         {ButtonComponent}
       </SidebarMenuItem>
     );
+  };
+
+  // Helper function to check if a quest or any of its children is selected
+  const isQuestOrChildSelected = (
+    quest: Quest,
+    selectedId: string | null
+  ): boolean => {
+    if (!selectedId) return false;
+    const bibleQuest = quest as BibleBookQuest;
+    // Check by bookId first, then by id if bookId doesn't exist
+    if (bibleQuest.bookId && bibleQuest.bookId === selectedId) return true;
+    if (quest.id === selectedId) return true;
+    if (quest.children) {
+      return quest.children.some((child: Quest) =>
+        isQuestOrChildSelected(child, selectedId)
+      );
+    }
+    return false;
   };
 
   return (
@@ -479,92 +625,97 @@ function QuestsSideBar({
 function QuestContent({
   projectId,
   selectedQuestId,
+  selectedBookId,
+  selectedChapter,
   selectedQuest,
   questsTree,
   userRole,
-  level = 0,
   onAddQuest,
   onAddAsset,
   onSelectQuest,
+  onSelectBook,
+  onSelectChapter,
+  onChapterClick,
+  onGoBack,
   onAssetClick
 }: {
   projectId: string;
   selectedQuestId: string | null;
+  selectedBookId: string | null;
+  selectedChapter: number | null;
   selectedQuest: BibleBookQuest | null;
   questsTree: Quest[] | undefined;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  level?: number;
   onAddQuest: () => void;
   onAddAsset: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
+  onSelectBook: (bookId: string, book: BibleBookQuest) => void;
+  onSelectChapter: (chapterNumber: number) => void;
+  onChapterClick: (
+    chapterNumber: number,
+    book: BibleBookQuest,
+    chaptersQuest: BibleBookQuest[]
+  ) => void;
+  onGoBack: () => void;
   onAssetClick: (asset: any) => void;
 }) {
+  const [chaptersQuest, setChaptersQuest] = useState<BibleBookQuest[]>([]);
   const { user, environment } = useAuth();
   const supabase = createBrowserClient(environment);
 
   const canManage = userRole === 'owner' || userRole === 'admin';
 
-  const childQuests = selectedQuest?.children || [];
+  useEffect(() => {
+    let aux = new Array(selectedQuest?.chapters || 0);
 
+    if (selectedQuest?.chapters) {
+      selectedQuest?.children?.forEach((chapterQuest) => {
+        const metadata =
+          typeof chapterQuest.metadata === 'string'
+            ? JSON.parse(chapterQuest.metadata)
+            : chapterQuest.metadata;
+        const chapterNumber = metadata?.bible.chapter;
+        aux[chapterNumber - 1] = chapterQuest as BibleBookQuest;
+      });
+    }
+    setChaptersQuest(aux);
+  }, [selectedBookId]);
+
+  // Find the selected book based on selectedBookId
+  const selectedBook = selectedBookId
+    ? (questsTree?.find(
+        (book) => (book as BibleBookQuest).bookId === selectedBookId
+      ) as BibleBookQuest)
+    : null;
+
+  const childQuests = selectedBook?.children || [];
   const rootQuests = questsTree || [];
 
-  // Fetch counts for each child quest (sub-quests and assets)
-  // const { data: questCounts } = useQuery({
-  //   queryKey: ['quest-counts', selectedQuestId, environment],
-  //   queryFn: async () => {
-  //     if (!selectedQuestId || !childQuests || childQuests.length === 0)
-  //       return {};
+  // Find the actual quest ID based on the bookId for database queries
+  const actualQuestId = selectedBook?.id || null;
 
-  //     const counts: Record<
-  //       string,
-  //       { questsCount: number; assetsCount: number }
-  //     > = {};
+  // Find the chapter quest ID when a chapter is selected
+  const getChapterQuestId = () => {
+    if (!selectedChapter) return null;
+    const chapterQuest = chaptersQuest[selectedChapter - 1];
+    return chapterQuest?.id || null;
+  };
 
-  //     // Get counts for each child quest
-  //     await Promise.all(
-  //       childQuests.map(async (quest: any) => {
-  //         try {
-  //           // Count sub-quests
-  //           const { count: questsCount } = await supabase
-  //             .from('quest')
-  //             .select('*', { count: 'exact', head: true })
-  //             .eq('parent_id', quest.id)
-  //             .eq('active', true);
-
-  //           // Count assets
-  //           const { count: assetsCount } = await supabase
-  //             .from('quest_asset_link')
-  //             .select('*', { count: 'exact', head: true })
-  //             .eq('quest_id', quest.id)
-  //             .eq('active', true);
-
-  //           counts[quest.id] = {
-  //             questsCount: questsCount || 0,
-  //             assetsCount: assetsCount || 0
-  //           };
-  //         } catch (error) {
-  //           console.error(
-  //             `Error fetching counts for quest ${quest.id}:`,
-  //             error
-  //           );
-  //           counts[quest.id] = { questsCount: 0, assetsCount: 0 };
-  //         }
-  //       })
-  //     );
-
-  //     return counts;
-  //   },
-  //   enabled:
-  //     !!selectedQuestId && !!user && !!childQuests && childQuests.length > 0
-  // });
-
-  console.log('selectedQuest', selectedQuestId);
+  // Get the appropriate quest ID for SubQuestMenu
+  const getMenuQuestId = () => {
+    if (selectedChapter) {
+      // If chapter is selected, use chapter quest ID
+      return getChapterQuestId();
+    }
+    // Otherwise, use book quest ID
+    return actualQuestId;
+  };
 
   // Fetch assets for the selected quest through quest_asset_link
   const { data: questAssets, isLoading: questAssetsLoading } = useQuery({
-    queryKey: ['quest-assets', selectedQuestId, environment],
+    queryKey: ['quest-assets', actualQuestId, environment],
     queryFn: async () => {
-      if (!selectedQuestId) return [];
+      if (!actualQuestId) return [];
 
       const { data, error } = await supabase
         .from('quest_asset_link')
@@ -583,7 +734,7 @@ function QuestContent({
           )
         `
         )
-        .eq('quest_id', selectedQuestId)
+        .eq('quest_id', actualQuestId)
         .is('asset.source_asset_id', null)
         .order('created_at', { ascending: true });
 
@@ -597,7 +748,7 @@ function QuestContent({
 
       return assets;
     },
-    enabled: !!selectedQuestId && !!user
+    enabled: !!actualQuestId && !!user
   });
 
   const handleAssetClick = async (assetId: string) => {
@@ -662,8 +813,7 @@ function QuestContent({
     }
   };
 
-  if (!selectedQuestId) {
-    // Mostrar quests raiz quando não há quest selecionada
+  if (!selectedBookId) {
     return (
       <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
         <CardHeader className="max-h-8">
@@ -686,14 +836,18 @@ function QuestContent({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rootQuests.map((quest) => (
                       <BookCard
-                        key={quest.id}
+                        key={quest.id || (quest as BibleBookQuest).bookId}
                         quest={{
                           ...(quest as BibleBookQuest),
                           active: true
                         }}
                         isSelected={false}
-                        onClick={() => onSelectQuest(quest.id, quest)}
-                        // assetsCount={0}
+                        onClick={() =>
+                          onSelectBook(
+                            (quest as BibleBookQuest).bookId,
+                            quest as BibleBookQuest
+                          )
+                        }
                       />
                     ))}
                   </div>
@@ -724,23 +878,36 @@ function QuestContent({
         <CardHeader className="max-h-8">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <CardTitle className="max-w-5/6 text-xl flex flex-row ">
+              <CardTitle className="max-w-5/6 text-xl flex flex-row gap-2">
+                <Button
+                  variant={'outline'}
+                  className="rounded-lg transition-all hover:bg-muted px-1 py-1"
+                  onClick={onGoBack}
+                >
+                  <ArrowLeft className="w-8" />
+                </Button>
                 <div className="truncate">
                   <img
-                    src={selectedQuest?.icon}
-                    alt={`${selectedQuest?.name} icon`}
+                    src={selectedBook?.icon}
+                    alt={`${selectedBook?.name} icon`}
                     className="w-8 h-8 inline-block mr-2"
                   />
-                  {selectedQuest?.name || 'Quest'}
+                  {selectedBook?.name || 'Book'}
+                  {selectedChapter ? ` - Chapter ${selectedChapter}` : ''}
                 </div>
                 <div className="self-center">
                   <QuestInfo
                     quest={
-                      selectedQuest
+                      selectedBook
                         ? {
-                            name: selectedQuest.name,
-                            description: selectedQuest.description || undefined,
-                            created_at: selectedQuest.created_at,
+                            name: !selectedChapter
+                              ? selectedBook.name
+                              : `${selectedBook.name} - Chapter ${selectedChapter}`,
+                            description: selectedChapter
+                              ? `${selectedBook.verses[selectedChapter - 1]} verses`
+                              : selectedBook.description ||
+                                `${selectedBook?.chapters} chapters`,
+                            created_at: selectedBook.created_at,
                             assets: []
                           }
                         : null
@@ -749,14 +916,20 @@ function QuestContent({
                 </div>
               </CardTitle>
             </div>
+            <p>
+              TODO: <br />- Update Book when creating chapter
+            </p>
             {/* Action Buttons */}
-            <SubQuestMenu
-              canManage={canManage}
-              projectId={projectId}
-              selectedQuestId={selectedQuestId}
-              onAddQuest={onAddQuest}
-              onAddAsset={onAddAsset}
-            />
+            {selectedChapter && (
+              <SubQuestMenu
+                canManage={canManage}
+                projectId={projectId}
+                selectedQuestId={getMenuQuestId()}
+                onAddQuest={onAddQuest}
+                onAddAsset={onAddAsset}
+                disableQuests={true}
+              />
+            )}
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 border-t">
@@ -769,58 +942,64 @@ function QuestContent({
               ) : (
                 <>
                   {/* Sub-Quests Section */}
-                  {selectedQuest?.chapters && (
+                  {!selectedChapter && selectedBook?.chapters && (
                     <div className="space-y-4">
-                      {/* <div className="p-2 border-b">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FolderOpen className="h-5 w-5 text-primary" />
-                            <h3 className="text-lg font-semibold">
-                              Sub-Quests
-                            </h3>
-                          </div>
-                          <Badge
-                            variant="secondary"
-                            className="text-sm px-3 py-1"
-                          >
-                            {childQuests.length}
-                          </Badge>
-                        </div>
-                      </div> */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                        {selectedQuest?.verses.map((totalVerses, idx) => (
+                        {selectedBook?.verses.map((totalVerses, idx) => (
                           <ChapterCard
                             key={idx}
                             quest={{
-                              ...selectedQuest,
+                              ...selectedBook,
+                              id: selectedBook.id || '',
                               active: true
                             }}
-                            isSelected={false} // selectedQuestId === selectedQuest.id}
+                            isSelected={selectedChapter === idx + 1}
                             onClick={() =>
-                              onSelectQuest(
-                                selectedQuestId === selectedQuest.id
-                                  ? null
-                                  : selectedQuest.id,
-                                selectedQuestId === selectedQuest.id
-                                  ? null
-                                  : selectedQuest
+                              onChapterClick(
+                                idx + 1,
+                                selectedBook,
+                                chaptersQuest
                               )
                             }
                             chapterNumber={idx + 1}
                             verseCount={totalVerses}
                             assetsCount={
-                              0 //questCounts?.[selectedQuest.id]?.assetsCount || 0
+                              0 //questCounts?.[selectedBook.id]?.assetsCount || 0
                             }
+                            hasContent={chaptersQuest[idx] !== undefined}
                           />
                         ))}
                       </div>
                     </div>
                   )}
 
+                  {/* Selected Chapter Section
+                  {selectedChapter && selectedBook && (
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg bg-accent/5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">
+                              {selectedBook.name} - Chapter {selectedChapter}
+                            </h3>
+                          </div>
+                          <Badge variant="outline">
+                            {selectedBook.verses[selectedChapter - 1]} verses
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Chapter {selectedChapter} contains{' '}
+                          {selectedBook.verses[selectedChapter - 1]} verses.
+                          {canManage && ' You can add assets to this chapter.'}
+                        </p>
+                      </div>
+                    </div>
+                  )} */}
+
                   {/* Assets Section */}
                   {questAssets && questAssets.length > 0 && (
                     <div className="space-y-4">
-                      <div className="p-2 border-b">
+                      {/* <div className="p-2 border-b">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <File className="h-5 w-5 text-primary" />
@@ -833,7 +1012,7 @@ function QuestContent({
                             {questAssets.length}
                           </Badge>
                         </div>
-                      </div>
+                      </div> */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {questAssets.map((asset) => (
                           <AssetCard
@@ -847,20 +1026,17 @@ function QuestContent({
                   )}
 
                   {/* Empty State */}
-                  {(!childQuests || childQuests.length === 0) &&
+                  {selectedChapter &&
                     (!questAssets || questAssets.length === 0) && (
                       <div className="text-center text-muted-foreground py-12">
                         <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <h3 className="text-lg font-medium mb-2">
                           No Content Yet
                         </h3>
-                        <p>
-                          This quest doesn&#39;t have any sub-quests or assets
-                          yet.
-                        </p>
+                        <p>This chapter doesn&#39;t have any asset yet.</p>
                         {canManage && (
                           <p className="text-sm mt-2">
-                            Use the buttons above to create quests or assets.
+                            Use the buttons above to create assets.
                           </p>
                         )}
                       </div>

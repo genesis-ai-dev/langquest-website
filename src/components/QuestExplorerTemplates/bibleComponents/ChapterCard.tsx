@@ -8,15 +8,16 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Folder } from 'lucide-react';
+import { Folder, Link2, Unlink2 } from 'lucide-react';
 
-interface BookCardProps {
+interface ChapterCardProps {
   quest: {
     id: string;
     name: string | null;
     description: string | null;
     created_at: string;
     active: boolean;
+    metadata: string | null;
   };
   chapterNumber?: number;
   verseCount?: number;
@@ -24,6 +25,7 @@ interface BookCardProps {
   onClick?: () => void;
   icon?: React.ComponentType<{ className?: string }>;
   assetsCount?: number;
+  hasContent?: boolean;
 }
 
 export function ChapterCard({
@@ -33,8 +35,9 @@ export function ChapterCard({
   verseCount,
   onClick,
   icon: Icon = Folder,
-  assetsCount = 0
-}: BookCardProps) {
+  assetsCount = 0,
+  hasContent = false
+}: ChapterCardProps) {
   return (
     <Card
       className={`h-36 flex justify-between p-2 px-0 group relative hover:shadow-lg transition-all duration-300 cursor-pointer border-l-4 gap-0 ${
@@ -67,9 +70,17 @@ export function ChapterCard({
           {/* <span className="text-muted-foreground/60">•</span> */}
           {/* <div>{assetsCount} assets</div> */}
           {/* </div> */}
-          <Badge variant={'secondary'} className="text-xs px-2 py-0">
-            {assetsCount} assets
-          </Badge>
+          {hasContent ? (
+            <Badge variant={'secondary'} className="w-full text-xs px-2 py-0">
+              {/* Content included */}
+              <Link2 className="w-5 h-5" />
+            </Badge>
+          ) : (
+            <Badge variant={'outline'} className="w-full text-xs px-2 py-0">
+              {/* Content included */}
+              <Unlink2 className="w-5 h-5" />
+            </Badge>
+          )}
         </div>
       </CardFooter>
 

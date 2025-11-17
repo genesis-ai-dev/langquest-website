@@ -47,7 +47,7 @@ export function BookCard({ quest, isSelected, onClick }: BookCardProps) {
         </div>
         <div className="text-xs text-muted-foreground">
           {quest.children ? (
-            <Badge variant="secondary">Content Available</Badge>
+            <Badge variant="secondary">Content Included</Badge>
           ) : (
             'No content yet'
           )}

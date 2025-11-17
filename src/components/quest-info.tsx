@@ -33,13 +33,17 @@ export function QuestInfo({ quest }: QuestInfoProps) {
             <p className="text-sm text-muted-foreground">{quest.description}</p>
           )}
           <div className="flex items-center pt-2">
-            <Calendar className="mr-2 h-3 w-3 opacity-70" />
-            <span className="text-xs text-muted-foreground">
-              Created{' '}
-              {quest.created_at
-                ? new Date(quest.created_at).toLocaleDateString()
-                : 'Unknown'}
-            </span>
+            {quest.created_at && (
+              <>
+                <Calendar className="mr-2 h-3 w-3 opacity-70" />
+                <span className="text-xs text-muted-foreground">
+                  Created{' '}
+                  {quest.created_at
+                    ? new Date(quest.created_at).toLocaleDateString()
+                    : 'Unknown'}
+                </span>
+              </>
+            )}
           </div>
           {/* {quest.assets && (
             <div className="flex items-center">
