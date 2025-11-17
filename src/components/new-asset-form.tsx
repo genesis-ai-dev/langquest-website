@@ -101,7 +101,7 @@ export function AssetForm({
 
   // Fetch quests for the multi-select - from projects where user is owner
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
-    queryKey: ['owned-quests', user?.id, environment],
+    queryKey: ['owned-quests', user?.id, projectId, environment],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -118,7 +118,7 @@ export function AssetForm({
 
       return (data || []).filter((quest) => quest.creator_id === user.id);
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && !!projectId
   });
 
   // Fetch all available languages

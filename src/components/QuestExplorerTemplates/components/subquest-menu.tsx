@@ -13,13 +13,15 @@ import {
 } from '@/components/ui/dialog';
 import BulkAssetModal from '@/components/new-bulk-asset-modal';
 import { BulkUpload } from '@/components/new-bulk-upload';
+import { QuestForm } from '@/components/new-quest-form';
+import { AssetForm } from '@/components/new-asset-form';
 
 interface SubQuestMenuProps {
   canManage: boolean;
   projectId: string;
   selectedQuestId: string | null;
-  onAddQuest: () => void;
-  onAddAsset: () => void;
+  onQuestSuccess?: () => void;
+  onAssetSuccess?: (currentQuestId?: string) => void;
   disableQuests?: boolean;
 }
 
@@ -27,14 +29,23 @@ export function SubQuestMenu({
   canManage,
   projectId,
   selectedQuestId,
-  onAddQuest,
-  onAddAsset,
+  onQuestSuccess,
+  onAssetSuccess,
   disableQuests = false
 }: SubQuestMenuProps) {
   const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
+  const [showQuestForm, setShowQuestForm] = useState(false);
+  const [showAssetForm, setShowAssetForm] = useState(false);
 
-  console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
-  console.log('selectedQuestId:', selectedQuestId);
+  const handleQuestSuccess = () => {
+    setShowQuestForm(false);
+    onQuestSuccess?.();
+  };
+
+  const handleAssetSuccess = () => {
+    setShowAssetForm(false);
+    onAssetSuccess?.(selectedQuestId || undefined);
+  };
 
   if (!canManage) {
     return null;
@@ -48,7 +59,7 @@ export function SubQuestMenu({
           <Button
             variant="outline"
             size="sm"
-            onClick={onAddQuest}
+            onClick={() => setShowQuestForm(true)}
             title="Add Sub-Quest"
           >
             <FolderPlus className="h-4 w-4" />
@@ -58,7 +69,7 @@ export function SubQuestMenu({
         <Button
           variant="outline"
           size="sm"
-          onClick={onAddAsset}
+          onClick={() => setShowAssetForm(true)}
           title="Add Single Asset"
         >
           <FilePlus className="h-4 w-4" />
@@ -121,6 +132,40 @@ export function SubQuestMenu({
               setShowBulkAssetUpload(false);
               toast.success('Assets uploaded successfully');
             }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Quest Creation Modal */}
+      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Quest</DialogTitle>
+            <DialogDescription>
+              Add a new quest to organize your project content.
+            </DialogDescription>
+          </DialogHeader>
+          <QuestForm
+            onSuccess={handleQuestSuccess}
+            projectId={projectId}
+            questParentId={selectedQuestId || undefined}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Asset Creation Modal */}
+      <Dialog open={showAssetForm} onOpenChange={setShowAssetForm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Asset</DialogTitle>
+            <DialogDescription>
+              Add a new asset to this quest.
+            </DialogDescription>
+          </DialogHeader>
+          <AssetForm
+            onSuccess={handleAssetSuccess}
+            projectId={projectId}
+            questId={selectedQuestId || undefined}
           />
         </DialogContent>
       </Dialog>

@@ -81,22 +81,16 @@ export function QuestsUnstructured({
   const { environment } = useAuth();
 
   // Modal states
-  const [showQuestForm, setShowQuestForm] = useState(false);
-  const [showAssetForm, setShowAssetForm] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
   // Handlers for modal actions
-  const handleAddQuest = () => setShowQuestForm(true);
-  const handleAddAsset = () => setShowAssetForm(true);
   const handleAssetClick = (asset: any) => {
     setSelectedAsset(asset);
     setShowAssetModal(true);
   };
 
   const handleQuestSuccess = (/*data: { id: string }*/) => {
-    setShowQuestForm(false);
-
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
     queryClient.invalidateQueries({
@@ -105,7 +99,6 @@ export function QuestsUnstructured({
   };
 
   const handleAssetSuccess = (/*data: { id: string }*/) => {
-    setShowAssetForm(false);
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({
       queryKey: ['child-quests', selectedQuestId]
@@ -128,7 +121,6 @@ export function QuestsUnstructured({
             project={project}
             projectId={projectId}
             userRole={userRole}
-            onAddQuest={handleAddQuest}
             onSelectQuest={onSelectQuest}
             selectedQuestId={selectedQuestId}
             // quests={quests}
@@ -145,47 +137,13 @@ export function QuestsUnstructured({
             selectedQuest={selectedQuest || null}
             questsTree={questsTree}
             userRole={userRole}
-            onAddQuest={handleAddQuest}
-            onAddAsset={handleAddAsset}
             onSelectQuest={onSelectQuest}
             onAssetClick={handleAssetClick}
+            onQuestSuccess={handleQuestSuccess}
+            onAssetSuccess={handleAssetSuccess}
           />
         </div>
       </div>
-
-      {/* Quest Creation Modal */}
-      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Quest</DialogTitle>
-            <DialogDescription>
-              Add a new quest to organize your project content.
-            </DialogDescription>
-          </DialogHeader>
-          <QuestForm
-            onSuccess={handleQuestSuccess}
-            projectId={projectId}
-            questParentId={selectedQuestId || undefined}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Asset Creation Modal */}
-      <Dialog open={showAssetForm} onOpenChange={setShowAssetForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Asset</DialogTitle>
-            <DialogDescription>
-              Add a new asset to this quest.
-            </DialogDescription>
-          </DialogHeader>
-          <AssetForm
-            onSuccess={handleAssetSuccess}
-            projectId={projectId}
-            questId={selectedQuestId || undefined}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Asset View Modal */}
       <Dialog open={showAssetModal} onOpenChange={setShowAssetModal}>
@@ -204,7 +162,6 @@ function QuestsSideBar({
   //  project,
   projectId,
   userRole,
-  onAddQuest,
   onSelectQuest,
   selectedQuestId,
   // quests,
@@ -214,7 +171,6 @@ function QuestsSideBar({
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
   // quests: any[] | undefined;
@@ -403,11 +359,12 @@ function QuestsSideBar({
       <CardHeader className="h-8 ">
         <div className="flex items-center justify-between ">
           <CardTitle className="text-lg">Quests</CardTitle>
-          <QuestMenu
+          {/* TODO: Update QuestMenu to use new pattern */}
+          {/* <QuestMenu
             canManage={canManage}
             projectId={projectId}
             onAddQuest={onAddQuest}
-          />
+          /> */}
         </div>
       </CardHeader>
       <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b max-w-full">
@@ -443,20 +400,20 @@ function QuestContent({
   selectedQuest,
   questsTree,
   userRole,
-  onAddQuest,
-  onAddAsset,
   onSelectQuest,
-  onAssetClick
+  onAssetClick,
+  onQuestSuccess,
+  onAssetSuccess
 }: {
   projectId: string;
   selectedQuestId: string | null;
   selectedQuest: Quest | null;
   questsTree: Quest[] | undefined;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
-  onAddAsset: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   onAssetClick: (asset: any) => void;
+  onQuestSuccess?: () => void;
+  onAssetSuccess?: () => void;
 }) {
   const { user, environment } = useAuth();
   const supabase = createBrowserClient(environment);
@@ -468,8 +425,6 @@ function QuestContent({
 
   // Obter quests raiz quando não há quest selecionada
   const rootQuests = questsTree || [];
-
-  console.log('QuestsContent render:', selectedQuest);
 
   // Fetch counts for each child quest (sub-quests and assets)
   const { data: questCounts } = useQuery({
@@ -723,8 +678,8 @@ function QuestContent({
               canManage={canManage}
               projectId={projectId}
               selectedQuestId={selectedQuestId}
-              onAddQuest={onAddQuest}
-              onAddAsset={onAddAsset}
+              onQuestSuccess={onQuestSuccess}
+              onAssetSuccess={onAssetSuccess}
             />
           </div>
         </CardHeader>

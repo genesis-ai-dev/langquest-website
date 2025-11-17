@@ -75,7 +75,6 @@ const bulkAssetFormSchema = z.object({
   assets: z.array(assetRowSchema).min(1, 'At least one asset is required')
 });
 
-// type AssetRow = z.infer<typeof assetRowSchema>;
 type BulkAssetFormValues = z.infer<typeof bulkAssetFormSchema>;
 
 interface BulkAssetModalProps {

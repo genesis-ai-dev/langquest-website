@@ -84,8 +84,6 @@ export function QuestsBible({
   const { user, environment } = useAuth();
 
   // Modal states
-  const [showQuestForm, setShowQuestForm] = useState(false);
-  const [showAssetForm, setShowAssetForm] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
@@ -142,8 +140,6 @@ export function QuestsBible({
   }, [questsTree]);
 
   // Handlers for modal actions
-  const handleAddQuest = () => setShowQuestForm(true);
-  const handleAddAsset = () => setShowAssetForm(true);
   const handleAssetClick = (asset: any) => {
     setSelectedAsset(asset);
     setShowAssetModal(true);
@@ -315,8 +311,6 @@ export function QuestsBible({
   };
 
   const handleQuestSuccess = (/*data: { id: string }*/) => {
-    setShowQuestForm(false);
-
     const actualQuestId = getActualQuestId();
 
     // Invalidate queries to refresh the data
@@ -326,9 +320,7 @@ export function QuestsBible({
     });
   };
 
-  const handleAssetSuccess = (/*data: { id: string }*/) => {
-    setShowAssetForm(false);
-
+  const handleAssetSuccess = (currentQuestId?: string) => {
     const actualQuestId = getActualQuestId();
 
     // Invalidate queries to refresh the data
@@ -343,6 +335,10 @@ export function QuestsBible({
     queryClient.invalidateQueries({
       queryKey: ['quest-assets', actualQuestId, environment]
     });
+    if (currentQuestId && currentQuestId !== actualQuestId)
+      queryClient.invalidateQueries({
+        queryKey: ['quest-assets', currentQuestId, environment]
+      });
   };
 
   return (
@@ -354,7 +350,6 @@ export function QuestsBible({
             project={project}
             projectId={projectId}
             userRole={userRole}
-            onAddQuest={handleAddQuest}
             onSelectQuest={onSelectQuest}
             onSelectBook={handleBookSelection}
             selectedQuestId={selectedQuestId}
@@ -375,51 +370,17 @@ export function QuestsBible({
             selectedQuest={(selectedQuest as BibleBookQuest) || null}
             questsTree={books}
             userRole={userRole}
-            onAddQuest={handleAddQuest}
-            onAddAsset={handleAddAsset}
             onSelectQuest={onSelectQuest}
             onSelectBook={handleBookSelection}
             onSelectChapter={handleChapterSelection}
             onChapterClick={handleChapterClick}
             onGoBack={goBack}
             onAssetClick={handleAssetClick}
+            onQuestSuccess={handleQuestSuccess}
+            onAssetSuccess={handleAssetSuccess}
           />
         </div>
       </div>
-
-      {/* Quest Creation Modal */}
-      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Quest</DialogTitle>
-            <DialogDescription>
-              Add a new quest to organize your project content.
-            </DialogDescription>
-          </DialogHeader>
-          <QuestForm
-            onSuccess={handleQuestSuccess}
-            projectId={projectId}
-            questParentId={getActualQuestId() || undefined}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Asset Creation Modal */}
-      <Dialog open={showAssetForm} onOpenChange={setShowAssetForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Asset</DialogTitle>
-            <DialogDescription>
-              Add a new asset to this quest.
-            </DialogDescription>
-          </DialogHeader>
-          <AssetForm
-            onSuccess={handleAssetSuccess}
-            projectId={projectId}
-            questId={getActualQuestId() || undefined}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Asset View Modal */}
       <Dialog open={showAssetModal} onOpenChange={setShowAssetModal}>
@@ -463,7 +424,6 @@ function QuestsSideBar({
   //  project,
   projectId,
   userRole,
-  onAddQuest,
   onSelectQuest,
   onSelectBook,
   selectedQuestId,
@@ -475,7 +435,6 @@ function QuestsSideBar({
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   onSelectBook: (bookId: string, book: BibleBookQuest) => void;
   selectedQuestId: string | null;
@@ -630,14 +589,14 @@ function QuestContent({
   selectedQuest,
   questsTree,
   userRole,
-  onAddQuest,
-  onAddAsset,
   onSelectQuest,
   onSelectBook,
   onSelectChapter,
   onChapterClick,
   onGoBack,
-  onAssetClick
+  onAssetClick,
+  onQuestSuccess,
+  onAssetSuccess
 }: {
   projectId: string;
   selectedQuestId: string | null;
@@ -646,8 +605,6 @@ function QuestContent({
   selectedQuest: BibleBookQuest | null;
   questsTree: Quest[] | undefined;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
-  onAddAsset: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   onSelectBook: (bookId: string, book: BibleBookQuest) => void;
   onSelectChapter: (chapterNumber: number) => void;
@@ -658,6 +615,8 @@ function QuestContent({
   ) => void;
   onGoBack: () => void;
   onAssetClick: (asset: any) => void;
+  onQuestSuccess?: () => void;
+  onAssetSuccess?: (currentQuestId?: string) => void;
 }) {
   const [chaptersQuest, setChaptersQuest] = useState<BibleBookQuest[]>([]);
   const { user, environment } = useAuth();
@@ -711,11 +670,15 @@ function QuestContent({
     return actualQuestId;
   };
 
+  const currentChapterQuestId = getChapterQuestId();
+
   // Fetch assets for the selected quest through quest_asset_link
   const { data: questAssets, isLoading: questAssetsLoading } = useQuery({
-    queryKey: ['quest-assets', actualQuestId, environment],
+    queryKey: ['quest-assets', currentChapterQuestId, environment],
     queryFn: async () => {
-      if (!actualQuestId) return [];
+      if (!currentChapterQuestId) return [];
+
+      console.log('Fetching assets for quest ID:', currentChapterQuestId);
 
       const { data, error } = await supabase
         .from('quest_asset_link')
@@ -734,9 +697,12 @@ function QuestContent({
           )
         `
         )
-        .eq('quest_id', actualQuestId)
+        .eq('quest_id', currentChapterQuestId)
         .is('asset.source_asset_id', null)
         .order('created_at', { ascending: true });
+
+      console.log('ASSETS', data, error);
+      console.log('ERROR', data, error);
 
       if (error) throw error;
 
@@ -925,8 +891,8 @@ function QuestContent({
                 canManage={canManage}
                 projectId={projectId}
                 selectedQuestId={getMenuQuestId()}
-                onAddQuest={onAddQuest}
-                onAddAsset={onAddAsset}
+                onQuestSuccess={onQuestSuccess}
+                onAssetSuccess={onAssetSuccess}
                 disableQuests={true}
               />
             )}
