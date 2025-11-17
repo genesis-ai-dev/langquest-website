@@ -107,7 +107,7 @@ export function BulkAssetModal({
   const { user, environment } = useAuth();
   const queryClient = useQueryClient();
 
-  const supabase = createBrowserClient();
+  const supabase = createBrowserClient(environment);
   const credentials = getSupabaseCredentials(environment);
 
   // Clean up object URLs and local files when modal closes
@@ -136,6 +136,7 @@ export function BulkAssetModal({
         .order('name');
 
       if (error) throw error;
+
       return data;
     },
     enabled: !!projectId
