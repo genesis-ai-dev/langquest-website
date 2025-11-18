@@ -62,13 +62,15 @@ interface AssetFormProps {
   projectId: string;
   onSuccess?: (data: { id: string }) => void;
   questId?: string; // Optional pre-selected quest ID
+  hideContentTabs?: boolean; // Optional flag to hide content tabs
 }
 
 export function AssetForm({
   initialData,
   projectId,
   onSuccess,
-  questId
+  questId,
+  hideContentTabs = false
 }: AssetFormProps) {
   const { user, environment } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -717,10 +719,12 @@ export function AssetForm({
         </div>
 
         <Tabs defaultValue="tags" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-            <TabsTrigger value="quests">Quests</TabsTrigger>
-          </TabsList>
+          {!hideContentTabs && (
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="tags">Tags</TabsTrigger>
+              <TabsTrigger value="quests">Quests</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="tags" className="space-y-4 pt-4">
             <FormField

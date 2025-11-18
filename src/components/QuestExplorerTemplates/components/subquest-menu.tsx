@@ -95,6 +95,7 @@ export function SubQuestMenu({
           onAssetsCreated={(assets) => {
             toast.success(`Successfully created ${assets.length} assets`);
           }}
+          disableQuestsChange={disableQuests}
         />
 
         <Button
@@ -166,6 +167,7 @@ export function SubQuestMenu({
             onSuccess={handleAssetSuccess}
             projectId={projectId}
             questId={selectedQuestId || undefined}
+            hideContentTabs={disableQuests}
           />
         </DialogContent>
       </Dialog>

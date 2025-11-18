@@ -44,7 +44,7 @@ export interface TargetLanguage {
 export interface Content {
   id: string;
   text: string;
-  audio: string;
+  audio: [string] | string;
 }
 
 export interface Tag {
@@ -226,6 +226,8 @@ export function AssetView({ asset }: AssetViewProps) {
   const { environment } = useAuth();
   const credentials = getSupabaseCredentials(environment);
 
+  console.log('Rendering AssetView for asset:', asset);
+
   if (!asset) return <div>No asset data available.</div>;
 
   return (
@@ -359,11 +361,15 @@ export function AssetView({ asset }: AssetViewProps) {
                     <p className="text-sm text-foreground leading-relaxed font-medium">
                       {content.text || <i>{t('noText')}</i>}
                     </p>
-                    {content.audio && (
+                    {Array.isArray(content.audio) && content.audio[0] ? (
+                      <AudioPlayer
+                        src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio[0]}`}
+                      />
+                    ) : typeof content.audio === 'string' && content.audio ? (
                       <AudioPlayer
                         src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
                       />
-                    )}
+                    ) : null}
                   </div>
                 </div>
               ))}

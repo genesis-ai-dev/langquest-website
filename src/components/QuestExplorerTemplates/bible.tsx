@@ -56,6 +56,7 @@ import {
 } from './bibleComponents/template';
 import { BookCard } from './bibleComponents/BookCard';
 import { ChapterCard } from './bibleComponents/ChapterCard';
+import { se } from 'date-fns/locale';
 
 interface QuestsBibleProps {
   project: any;
@@ -204,6 +205,7 @@ export function QuestsBible({
 
     try {
       let bookQuestId = book.id;
+      let createdBook = null;
 
       // Check if book quest exists, if not create it
       if (!bookQuestId || bookQuestId.trim() === '') {
@@ -231,6 +233,7 @@ export function QuestsBible({
           return;
         }
 
+        createdBook = bookQuestData;
         bookQuestId = bookQuestData.id;
       }
 
@@ -255,8 +258,6 @@ export function QuestsBible({
 
       // }
 
-      // selectedQuest?.children?.push(chapterQuestData);
-
       if (chapterError) {
         console.error('Error creating chapter quest:', chapterError);
         toast.error('Failed to create chapter quest');
@@ -272,6 +273,21 @@ export function QuestsBible({
       // Select the chapter and book
       handleChapterSelection(chapterNumber);
       setSelectedBookId(book.bookId);
+
+      setBooks((prevBooks) => {
+        return prevBooks.map((book) => {
+          if (book.bookId === selectedBookId) {
+            return {
+              ...(createdBook ? createdBook : {}),
+              ...book,
+              children: [...(book.children || []), chapterQuestData],
+              // Preservar chapters que vem do template original
+              chapters: book.chapters // ← Importante manter isso
+            };
+          }
+          return book;
+        });
+      });
 
       // Show success message
       toast.success(`Created ${bookName} ${chapterNumber}`);
@@ -625,10 +641,16 @@ function QuestContent({
   const canManage = userRole === 'owner' || userRole === 'admin';
 
   useEffect(() => {
-    let aux = new Array(selectedQuest?.chapters || 0);
+    if (!selectedBookId) return;
+    const bookIdx = BOOKS_MAP.get(selectedBookId);
 
-    if (selectedQuest?.chapters) {
-      selectedQuest?.children?.forEach((chapterQuest) => {
+    if (bookIdx === undefined) return;
+    const currentBook = (questsTree?.[bookIdx] as BibleBookQuest) || null;
+    let aux = new Array(currentBook.chapters || 0);
+
+    if (currentBook?.chapters) {
+      currentBook?.children?.forEach((chapterQuest) => {
+        console.log('Processing chapter quest:', chapterQuest);
         const metadata =
           typeof chapterQuest.metadata === 'string'
             ? JSON.parse(chapterQuest.metadata)
@@ -638,13 +660,16 @@ function QuestContent({
       });
     }
     setChaptersQuest(aux);
-  }, [selectedBookId]);
+  }, [selectedBookId, selectedChapter]);
 
   // Find the selected book based on selectedBookId
+  // const selectedBook = selectedBookId
+  //   ? (questsTree?.find(
+  //       (book) => (book as BibleBookQuest).bookId === selectedBookId
+  //     ) as BibleBookQuest)
+  //   : null;
   const selectedBook = selectedBookId
-    ? (questsTree?.find(
-        (book) => (book as BibleBookQuest).bookId === selectedBookId
-      ) as BibleBookQuest)
+    ? (questsTree?.[BOOKS_MAP.get(selectedBookId) || 0] as BibleBookQuest)
     : null;
 
   const childQuests = selectedBook?.children || [];
@@ -882,17 +907,16 @@ function QuestContent({
                 </div>
               </CardTitle>
             </div>
-            <p>
-              TODO: <br />- Update Book when creating chapter
-            </p>
             {/* Action Buttons */}
-            {selectedChapter && (
+            {selectedChapter && currentChapterQuestId && (
               <SubQuestMenu
                 canManage={canManage}
                 projectId={projectId}
                 selectedQuestId={getMenuQuestId()}
                 onQuestSuccess={onQuestSuccess}
-                onAssetSuccess={onAssetSuccess}
+                onAssetSuccess={() =>
+                  onAssetSuccess?.(currentChapterQuestId || undefined)
+                }
                 disableQuests={true}
               />
             )}
@@ -911,7 +935,7 @@ function QuestContent({
                   {!selectedChapter && selectedBook?.chapters && (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                        {selectedBook?.verses.map((totalVerses, idx) => (
+                        {selectedBook?.verses?.map((totalVerses, idx) => (
                           <ChapterCard
                             key={idx}
                             quest={{
