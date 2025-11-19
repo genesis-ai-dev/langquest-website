@@ -75,7 +75,6 @@ const bulkAssetFormSchema = z.object({
   assets: z.array(assetRowSchema).min(1, 'At least one asset is required')
 });
 
-// type AssetRow = z.infer<typeof assetRowSchema>;
 type BulkAssetFormValues = z.infer<typeof bulkAssetFormSchema>;
 
 interface BulkAssetModalProps {
@@ -83,13 +82,15 @@ interface BulkAssetModalProps {
   trigger: React.ReactNode;
   onAssetsCreated?: (assets: any[]) => void;
   defaultQuestId?: string; // Optional quest ID to pre-select
+  disableQuestsChange?: boolean; // Disable changing quests if true
 }
 
 export function BulkAssetModal({
   projectId,
   trigger,
   onAssetsCreated,
-  defaultQuestId
+  defaultQuestId,
+  disableQuestsChange = false
 }: BulkAssetModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,6 +138,7 @@ export function BulkAssetModal({
         .order('name');
 
       if (error) throw error;
+
       return data;
     },
     enabled: !!projectId
@@ -585,91 +587,110 @@ export function BulkAssetModal({
                             name={`assets.${index}.questIds`}
                             render={({ field }) => (
                               <FormItem>
-                                <Select
-                                  onValueChange={(value) => {
-                                    const currentValues = field.value || [];
-                                    if (currentValues.includes(value)) {
-                                      // Remove if already selected
-                                      field.onChange(
-                                        currentValues.filter(
-                                          (id) => id !== value
-                                        )
-                                      );
-                                    } else {
-                                      // Add if not selected
-                                      field.onChange([...currentValues, value]);
-                                    }
-                                  }}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="bg-primary-foreground">
-                                      <SelectValue
-                                        placeholder={
-                                          field.value && field.value.length > 0
-                                            ? `${field.value.length} quest(s) selected`
-                                            : 'Select quests'
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {quests?.map((quest) => (
-                                      <SelectItem
-                                        key={quest.id}
-                                        value={quest.id}
-                                        className={
-                                          field.value?.includes(quest.id)
-                                            ? 'bg-primary/10 font-medium'
-                                            : ''
-                                        }
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          {field.value?.includes(quest.id) && (
-                                            <span className="text-primary">
-                                              ✓
-                                            </span>
-                                          )}
-                                          {quest.name}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                {field.value && field.value.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {field.value.map((questId: string) => {
-                                      const quest = quests?.find(
-                                        (q) => q.id === questId
-                                      );
-                                      return (
-                                        <Badge
-                                          key={questId}
-                                          variant="secondary"
-                                          className="text-xs max-w-24 truncate flex justify-between"
-                                        >
-                                          <div
-                                            className="truncate"
-                                            title={quest?.name}
-                                          >
-                                            {quest?.name}
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              field.onChange(
-                                                field.value.filter(
-                                                  (id) => id !== questId
-                                                )
-                                              );
-                                            }}
-                                            className="ml-1 hover:text-destructive"
-                                          >
-                                            ×
-                                          </button>
-                                        </Badge>
-                                      );
-                                    })}
+                                {disableQuestsChange ? (
+                                  // Show only the default quest name as read-only text
+                                  <div className="bg-primary-foreground border rounded-md px-3 py-2 text-sm">
+                                    {(defaultQuestId &&
+                                      quests?.find(
+                                        (q) => q.id === defaultQuestId
+                                      )?.name) ||
+                                      'Default Quest'}
                                   </div>
+                                ) : (
+                                  <>
+                                    <Select
+                                      onValueChange={(value) => {
+                                        const currentValues = field.value || [];
+                                        if (currentValues.includes(value)) {
+                                          // Remove if already selected
+                                          field.onChange(
+                                            currentValues.filter(
+                                              (id) => id !== value
+                                            )
+                                          );
+                                        } else {
+                                          // Add if not selected
+                                          field.onChange([
+                                            ...currentValues,
+                                            value
+                                          ]);
+                                        }
+                                      }}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger className="bg-primary-foreground">
+                                          <SelectValue
+                                            placeholder={
+                                              field.value &&
+                                              field.value.length > 0
+                                                ? `${field.value.length} quest(s) selected`
+                                                : 'Select quests'
+                                            }
+                                          />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {quests?.map((quest) => (
+                                          <SelectItem
+                                            key={quest.id}
+                                            value={quest.id}
+                                            className={
+                                              field.value?.includes(quest.id)
+                                                ? 'bg-primary/10 font-medium'
+                                                : ''
+                                            }
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              {field.value?.includes(
+                                                quest.id
+                                              ) && (
+                                                <span className="text-primary">
+                                                  ✓
+                                                </span>
+                                              )}
+                                              {quest.name}
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    {field.value && field.value.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {field.value.map((questId: string) => {
+                                          const quest = quests?.find(
+                                            (q) => q.id === questId
+                                          );
+                                          return (
+                                            <Badge
+                                              key={questId}
+                                              variant="secondary"
+                                              className="text-xs max-w-24 truncate flex justify-between"
+                                            >
+                                              <div
+                                                className="truncate"
+                                                title={quest?.name}
+                                              >
+                                                {quest?.name}
+                                              </div>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  field.onChange(
+                                                    field.value.filter(
+                                                      (id) => id !== questId
+                                                    )
+                                                  );
+                                                }}
+                                                className="ml-1 hover:text-destructive"
+                                              >
+                                                ×
+                                              </button>
+                                            </Badge>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                                 <FormMessage />
                               </FormItem>

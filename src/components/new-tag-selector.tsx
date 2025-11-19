@@ -97,7 +97,7 @@ export function TagSelector({
           Math.ceil(data ? data.length / maxVisibleTagsExtended : 0)
         );
       } else {
-        let [sKey, sValue] = searchQuery.split(':');
+        const [sKey, sValue] = searchQuery.split(':');
         let query = createBrowserClient(environment).from('tag').select('*');
 
         if (sValue && sValue.trim() !== '') {

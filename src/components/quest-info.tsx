@@ -5,7 +5,7 @@ import {
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card';
-import { Info, Calendar, File } from 'lucide-react';
+import { Info, Calendar } from 'lucide-react';
 
 interface QuestInfoProps {
   quest: {
@@ -33,22 +33,26 @@ export function QuestInfo({ quest }: QuestInfoProps) {
             <p className="text-sm text-muted-foreground">{quest.description}</p>
           )}
           <div className="flex items-center pt-2">
-            <Calendar className="mr-2 h-3 w-3 opacity-70" />
-            <span className="text-xs text-muted-foreground">
-              Created{' '}
-              {quest.created_at
-                ? new Date(quest.created_at).toLocaleDateString()
-                : 'Unknown'}
-            </span>
+            {quest.created_at && (
+              <>
+                <Calendar className="mr-2 h-3 w-3 opacity-70" />
+                <span className="text-xs text-muted-foreground">
+                  Created{' '}
+                  {quest.created_at
+                    ? new Date(quest.created_at).toLocaleDateString()
+                    : 'Unknown'}
+                </span>
+              </>
+            )}
           </div>
-          {quest.assets && (
+          {/* {quest.assets && (
             <div className="flex items-center">
               <File className="mr-2 h-3 w-3 opacity-70" />
               <span className="text-xs text-muted-foreground">
                 {quest.assets.length} asset(s)
               </span>
             </div>
-          )}
+          )} */}
         </div>
       </HoverCardContent>
     </HoverCard>

@@ -1,3 +1,7 @@
+import { Quest } from '@/components/quest-explorer';
+
+export const ICONS_PATH = '/book-icons/';
+
 export interface BibleBook {
   id: string;
   name: string;
@@ -9,6 +13,12 @@ export interface BibleReference {
   book: string;
   chapter: number;
   verse: number;
+}
+
+export interface BibleBookQuest extends Quest {
+  bookId: string;
+  chapters: number;
+  verses: number[];
 }
 
 export const BIBLE_BOOKS: BibleBook[] = [
@@ -387,3 +397,7 @@ export const BIBLE_BOOKS: BibleBook[] = [
     ]
   }
 ];
+
+export const BOOKS_MAP = new Map<string, number>(
+  BIBLE_BOOKS.map((book, index) => [book.id, index])
+);

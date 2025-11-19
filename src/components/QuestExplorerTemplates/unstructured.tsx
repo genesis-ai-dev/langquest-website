@@ -14,7 +14,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   SidebarProvider,
   SidebarMenu,
@@ -34,51 +34,411 @@ import {
   // Info,
   // Calendar
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { QuestCard } from '@/components/QuestCard';
 import { AssetCard } from '@/components/AssetCard';
 import { AssetView } from '@/components/asset-view';
-import { QuestForm } from '@/components/new-quest-form';
-import { AssetForm } from '@/components/new-asset-form';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  // DialogDescription,
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
 import { QuestInfo } from '@/components/quest-info';
 import { SubQuestMenu } from './components/subquest-menu';
+import { Quest } from '../quest-explorer';
 import { QuestMenu } from './components/quest-menu';
+import { QuestForm } from '../new-quest-form';
 
 interface QuestsUnstructuredProps {
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  quests: any[] | undefined;
+  // quests: any[] | undefined;
+  questsTree: Quest[];
   questsLoading: boolean;
-  onSelectQuest: (questId: string | null) => void;
+  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
+  selectedQuest?: Quest | null;
+}
+
+export function QuestsUnstructured({
+  project,
+  projectId,
+  userRole,
+  // quests,
+  questsTree,
+  questsLoading,
+  onSelectQuest,
+  selectedQuestId,
+  selectedQuest
+}: QuestsUnstructuredProps) {
+  const queryClient = useQueryClient();
+  const { environment } = useAuth();
+
+  // Modal states
+  const [showAssetModal, setShowAssetModal] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+
+  // Handlers for modal actions
+  const [showQuestForm, setShowQuestForm] = useState(false);
+  const handleAddQuest = () => setShowQuestForm(true);
+  const handleAssetClick = (asset: any) => {
+    setSelectedAsset(asset);
+    setShowAssetModal(true);
+  };
+
+  const handleQuestSuccess = (/*data: { id: string }*/) => {
+    setShowQuestForm(false);
+    // Invalidate queries to refresh the data
+    queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
+    queryClient.invalidateQueries({
+      queryKey: ['child-quests', selectedQuestId]
+    });
+    queryClient.invalidateQueries({
+      queryKey: ['project-quests', projectId, environment]
+    });
+  };
+
+  const handleAssetSuccess = (/*data: { id: string }*/) => {
+    // Invalidate queries to refresh the data
+    queryClient.invalidateQueries({
+      queryKey: ['child-quests', selectedQuestId]
+    });
+    // Also invalidate asset counts to update the project header
+    queryClient.invalidateQueries({
+      queryKey: ['assets-translations-count', projectId, environment]
+    });
+    // And invalidate quest-assets query to refresh asset list in quest view
+    queryClient.invalidateQueries({
+      queryKey: ['quest-assets', selectedQuestId, environment]
+    });
+  };
+  return (
+    <SidebarProvider>
+      <div className="w-full flex min-h-[600px] gap-4">
+        {/* Sidebar */}
+        <div className="w-80 flex-shrink-0">
+          <QuestsSideBar
+            project={project}
+            projectId={projectId}
+            userRole={userRole}
+            onAddQuest={handleAddQuest}
+            onSelectQuest={onSelectQuest}
+            selectedQuestId={selectedQuestId}
+            // quests={quests}
+            questsTree={questsTree}
+            questsLoading={questsLoading}
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          <QuestContent
+            projectId={projectId}
+            selectedQuestId={selectedQuestId}
+            selectedQuest={selectedQuest || null}
+            questsTree={questsTree}
+            userRole={userRole}
+            onSelectQuest={onSelectQuest}
+            onAssetClick={handleAssetClick}
+            onQuestSuccess={handleQuestSuccess}
+            onAssetSuccess={handleAssetSuccess}
+          />
+        </div>
+      </div>
+
+      {/* Quest Creation Modal */}
+      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Quest</DialogTitle>
+            <DialogDescription>
+              Add a new quest to organize your project content.
+            </DialogDescription>
+          </DialogHeader>
+          <QuestForm
+            onSuccess={handleQuestSuccess}
+            projectId={projectId}
+            questParentId={selectedQuestId || undefined}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Asset View Modal */}
+      <Dialog open={showAssetModal} onOpenChange={setShowAssetModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Asset Details</DialogTitle>
+          </DialogHeader>
+          {selectedAsset && <AssetView asset={selectedAsset} />}
+        </DialogContent>
+      </Dialog>
+    </SidebarProvider>
+  );
+}
+
+function QuestsSideBar({
+  // project,
+  projectId,
+  userRole,
+  onAddQuest,
+  onSelectQuest,
+  selectedQuestId,
+  // quests,
+  questsTree,
+  questsLoading
+}: {
+  project: any;
+  projectId: string;
+  userRole: 'owner' | 'admin' | 'member' | 'viewer';
+  onAddQuest: () => void;
+  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
+  selectedQuestId: string | null;
+  // quests: any[] | undefined;
+  questsTree: Quest[] | undefined;
+  questsLoading: boolean;
+}) {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  // Calculate permissions from userRole
+  const canManage = userRole === 'owner' || userRole === 'admin';
+
+  // Function to get all parent quest IDs for a given quest
+  const getParentPath = (questId: string, questList: any[]): string[] => {
+    const quest = questList.find((q) => q.id === questId);
+    if (!quest || !quest.parent_id) return [];
+
+    return [quest.parent_id, ...getParentPath(quest.parent_id, questList)];
+  };
+
+  // Auto-expand parents and scroll to selected quest
+  useEffect(() => {
+    if (selectedQuestId && questsTree) {
+      const parentPath = getParentPath(selectedQuestId, questsTree);
+      if (parentPath.length > 0) {
+        const newExpanded = new Set(expandedItems);
+        parentPath.forEach((parentId) => newExpanded.add(parentId));
+        setExpandedItems(newExpanded);
+      }
+    }
+  }, [selectedQuestId, questsTree]);
+
+  // Build hierarchical quest structure
+  // const buildQuestTree = (
+  //   quests: any[],
+  //   parentId: string | null = null
+  // ): any[] => {
+  //   return quests
+  //     .filter((quest) => quest.parent_id === parentId)
+  //     .map((quest) => ({
+  //       ...quest,
+  //       children: buildQuestTree(quests, quest.id)
+  //     }));
+  // };
+
+  // const questTree = questsTree; // quests ? buildQuestTree(quests) : [];
+  // const totalQuests = quests?.length || 0;
+
+  // Toggle expansion of items
+  const toggleExpanded = (questId: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(questId)) {
+      newExpanded.delete(questId);
+    } else {
+      newExpanded.add(questId);
+    }
+    setExpandedItems(newExpanded);
+  };
+
+  const renderQuest = (quest: Quest, level: number = 0) => {
+    const hasChildren = quest.children && quest.children.length > 0;
+    const isSelected = selectedQuestId === quest.id;
+    const isExpanded = expandedItems.has(quest.id);
+
+    const QuestItem = (isSelected: boolean, quest: Quest) => {
+      return (
+        <>
+          <div
+            className={cn(
+              'rounded-sm p-2 flex items-center justify-center',
+              isSelected && 'bg-primary/10 text-primary'
+            )}
+          >
+            {quest.children && quest.children.length > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[8px] text-secondary absolute bottom-0.5 -mr-5 px-1 py-0 bg-accent-foreground/70"
+              >
+                {quest.children.length}
+              </Badge>
+            )}
+            {quest.icon ? (
+              <img
+                src={quest.icon}
+                alt={quest.name}
+                className="h-5 w-5 rounded-sm object-cover"
+                style={{ filter: 'hue-rotate(180deg)' }}
+              />
+            ) : (
+              <FolderOpen className="h-5 w-5" />
+            )}
+          </div>
+          <span className={cn(isSelected && 'font-bold', 'truncate')}>
+            {quest.name || `Quest ${quest.id.slice(0, 8)}`}
+          </span>
+        </>
+      );
+    };
+
+    if (hasChildren) {
+      // If this is a sub-item (level > 0), wrap in SidebarMenuSubItem
+      const CollapsibleComponent = (
+        <Collapsible
+          key={quest.id}
+          open={isExpanded}
+          onOpenChange={() => toggleExpanded(quest.id)}
+        >
+          <SidebarMenuItem>
+            <CollapsibleTrigger asChild>
+              <SidebarMenuButton
+                onClick={() =>
+                  onSelectQuest(
+                    selectedQuestId === quest.id ? null : quest.id,
+                    selectedQuestId === quest.id ? null : quest
+                  )
+                }
+                className={cn(
+                  'relative max-w-full truncate',
+                  isSelected && 'font-bold'
+                )}
+                data-quest-id={quest.id}
+                title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
+              >
+                {QuestItem(isSelected, quest)}
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                {quest?.children?.map((child: any) =>
+                  renderQuest(child, level + 1)
+                )}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </SidebarMenuItem>
+        </Collapsible>
+      );
+
+      return level > 0 ? (
+        <SidebarMenuSubItem key={quest.id}>
+          {CollapsibleComponent}
+        </SidebarMenuSubItem>
+      ) : (
+        CollapsibleComponent
+      );
+    }
+
+    // Leaf node (no children)
+    const ButtonComponent = (
+      <SidebarMenuButton
+        onClick={() =>
+          onSelectQuest(
+            selectedQuestId === quest.id ? null : quest.id,
+            selectedQuestId === quest.id ? null : quest
+          )
+        }
+        className={cn(
+          'relative max-w-full truncate',
+          isSelected && 'font-bold'
+        )}
+        data-quest-id={quest.id}
+        title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
+      >
+        {QuestItem(isSelected, quest)}
+      </SidebarMenuButton>
+    );
+
+    return level > 0 ? (
+      <SidebarMenuSubItem
+        key={quest.id}
+        className="w-full overflow-clip"
+        // className={cn(isSelected && 'bg-accent2')}
+      >
+        {ButtonComponent}
+      </SidebarMenuSubItem>
+    ) : (
+      <SidebarMenuItem
+        // className={cn(isSelected && 'bg-accent2')}
+        key={quest.id}
+      >
+        {ButtonComponent}
+      </SidebarMenuItem>
+    );
+  };
+
+  return (
+    <Card className="flex flex-col max-w-full overflow-ellipsis">
+      <CardHeader className="h-8 ">
+        <div className="flex items-center justify-between ">
+          <CardTitle className="text-lg">Quests</CardTitle>
+          {/* TODO: Update QuestMenu to use new pattern */}
+          <QuestMenu
+            canManage={canManage}
+            projectId={projectId}
+            onAddQuest={onAddQuest}
+          />
+        </div>
+      </CardHeader>
+      <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b max-w-full">
+        <ScrollArea className="h-[530px]">
+          {questsLoading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              Loading quests...
+            </div>
+          ) : questsTree && questsTree?.length > 0 ? (
+            <SidebarMenu className="px-2 ">
+              {questsTree && questsTree.map((quest) => renderQuest(quest))}
+            </SidebarMenu>
+          ) : (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No quests found. {canManage && 'Click + to create one.'}
+            </div>
+          )}
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </CardContent>
+      <CardFooter className="text-xs text-muted-foreground text-center">
+        <Button variant="outline" size="sm" asChild className="w-full">
+          <Link href="/portal">← Back to Portal</Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
 }
 
 function QuestContent({
   projectId,
   selectedQuestId,
+  selectedQuest,
+  questsTree,
   userRole,
-  onAddQuest,
-  onAddAsset,
   onSelectQuest,
-  onAssetClick
+  onAssetClick,
+  onQuestSuccess,
+  onAssetSuccess
 }: {
   projectId: string;
   selectedQuestId: string | null;
+  selectedQuest: Quest | null;
+  questsTree: Quest[] | undefined;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
-  onAddAsset: () => void;
-  onSelectQuest: (questId: string | null) => void;
+  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   onAssetClick: (asset: any) => void;
+  onQuestSuccess?: () => void;
+  onAssetSuccess?: () => void;
 }) {
   const { user, environment } = useAuth();
   const supabase = createBrowserClient(environment);
@@ -86,24 +446,10 @@ function QuestContent({
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
 
-  // Fetch child quests when a parent quest is selected
-  const { data: childQuests, isLoading: childQuestsLoading } = useQuery({
-    queryKey: ['child-quests', selectedQuestId, environment],
-    queryFn: async () => {
-      if (!selectedQuestId) return [];
+  const childQuests = selectedQuest?.children || [];
 
-      const { data, error } = await supabase
-        .from('quest')
-        .select('*')
-        .eq('parent_id', selectedQuestId)
-        .eq('active', true)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedQuestId && !!user
-  });
+  // Obter quests raiz quando não há quest selecionada
+  const rootQuests = questsTree || [];
 
   // Fetch counts for each child quest (sub-quests and assets)
   const { data: questCounts } = useQuery({
@@ -153,24 +499,6 @@ function QuestContent({
     },
     enabled:
       !!selectedQuestId && !!user && !!childQuests && childQuests.length > 0
-  });
-
-  // Fetch selected quest details
-  const { data: selectedQuest, isLoading: selectedQuestLoading } = useQuery({
-    queryKey: ['quest', selectedQuestId, environment],
-    queryFn: async () => {
-      if (!selectedQuestId) return null;
-
-      const { data, error } = await supabase
-        .from('quest')
-        .select('*')
-        .eq('id', selectedQuestId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedQuestId && !!user
   });
 
   // Fetch assets for the selected quest through quest_asset_link
@@ -279,27 +607,57 @@ function QuestContent({
   };
 
   if (!selectedQuestId) {
+    // Mostrar quests raiz quando não há quest selecionada
     return (
-      <Card className="h-full max-h-[700px]">
-        <CardContent className="p-6 h-full flex items-center justify-center">
-          <div className="text-center text-muted-foreground">
-            <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium mb-2">Select a Quest</h3>
-            <p>
-              Choose a quest from the sidebar to view its sub-quests and
-              details.
-            </p>
+      <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
+        <CardHeader className="max-h-8">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="max-w-5/6 text-xl flex flex-row">
+                <div className="truncate text-muted-foreground">
+                  Choose a Quest
+                </div>
+              </CardTitle>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (selectedQuestLoading) {
-    return (
-      <Card className="h-full max-h-[700px]">
-        <CardContent className="p-6 h-full flex items-center justify-center">
-          <Spinner />
+        </CardHeader>
+        <CardContent className="flex-1 p-0 border-t">
+          <ScrollArea className="h-[600px]">
+            <div className="p-4 space-y-8">
+              {/* Root Quests Section */}
+              {rootQuests && rootQuests.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rootQuests.map((quest) => (
+                      <QuestCard
+                        key={quest.id}
+                        quest={{
+                          ...quest,
+                          active: true
+                        }}
+                        isSelected={false}
+                        onClick={() => onSelectQuest(quest.id, quest)}
+                        questsCount={quest?.children?.length || 0}
+                        assetsCount={0}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-12">
+                  <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No Quests Found</h3>
+                  <p>This project doesn&#39;t have any quests yet.</p>
+                  {canManage && (
+                    <p className="text-sm mt-2">
+                      Use the + button in the sidebar to create your first
+                      quest.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
     );
@@ -314,7 +672,18 @@ function QuestContent({
               <CardTitle className="max-w-5/6 text-xl flex flex-row ">
                 <div className="truncate">{selectedQuest?.name || 'Quest'}</div>
                 <div className="self-center">
-                  <QuestInfo quest={selectedQuest} />
+                  <QuestInfo
+                    quest={
+                      selectedQuest
+                        ? {
+                            name: selectedQuest.name,
+                            description: selectedQuest.description || undefined,
+                            created_at: selectedQuest.created_at,
+                            assets: []
+                          }
+                        : null
+                    }
+                  />
                 </div>
               </CardTitle>
             </div>
@@ -323,15 +692,15 @@ function QuestContent({
               canManage={canManage}
               projectId={projectId}
               selectedQuestId={selectedQuestId}
-              onAddQuest={onAddQuest}
-              onAddAsset={onAddAsset}
+              onQuestSuccess={onQuestSuccess}
+              onAssetSuccess={onAssetSuccess}
             />
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 border-t">
           <ScrollArea className="h-[600px]">
             <div className="p-4 space-y-8">
-              {childQuestsLoading || questAssetsLoading ? (
+              {questAssetsLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <Spinner />
                 </div>
@@ -360,11 +729,15 @@ function QuestContent({
                         {childQuests.map((quest) => (
                           <QuestCard
                             key={quest.id}
-                            quest={quest}
+                            quest={{
+                              ...quest,
+                              active: true // Valor padrão já que estamos filtrando apenas ativos
+                            }}
                             isSelected={selectedQuestId === quest.id}
                             onClick={() =>
                               onSelectQuest(
-                                selectedQuestId === quest.id ? null : quest.id
+                                selectedQuestId === quest.id ? null : quest.id,
+                                selectedQuestId === quest.id ? null : quest
                               )
                             }
                             questsCount={
@@ -434,371 +807,5 @@ function QuestContent({
         </CardContent>
       </Card>
     </>
-  );
-}
-
-function QuestsSideBar({
-  //  project,
-  projectId,
-  userRole,
-  onAddQuest,
-  onSelectQuest,
-  selectedQuestId,
-  quests,
-  questsLoading
-}: {
-  project: any;
-  projectId: string;
-  userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
-  onSelectQuest: (questId: string | null) => void;
-  selectedQuestId: string | null;
-  quests: any[] | undefined;
-  questsLoading: boolean;
-}) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-
-  // Calculate permissions from userRole
-  const canManage = userRole === 'owner' || userRole === 'admin';
-
-  // Function to get all parent quest IDs for a given quest
-  const getParentPath = (questId: string, questList: any[]): string[] => {
-    const quest = questList.find((q) => q.id === questId);
-    if (!quest || !quest.parent_id) return [];
-
-    return [quest.parent_id, ...getParentPath(quest.parent_id, questList)];
-  };
-
-  // Auto-expand parents and scroll to selected quest
-  useEffect(() => {
-    if (selectedQuestId && quests) {
-      const parentPath = getParentPath(selectedQuestId, quests);
-      if (parentPath.length > 0) {
-        const newExpanded = new Set(expandedItems);
-        parentPath.forEach((parentId) => newExpanded.add(parentId));
-        setExpandedItems(newExpanded);
-      }
-
-      // Scroll to selected quest after a short delay to allow DOM updates
-      // setTimeout(() => {
-      //   const selectedElement = document.querySelector(
-      //     `[data-quest-id="${selectedQuestId}"]`
-      //   );
-      //   // if (selectedElement) {
-      //   //   selectedElement.scrollIntoView({
-      //   //     behavior: 'smooth',
-      //   //     block: 'center'
-      //   //   });
-      //   // }
-      // }, 100);
-    }
-  }, [selectedQuestId, quests]);
-
-  // Build hierarchical quest structure
-  const buildQuestTree = (
-    quests: any[],
-    parentId: string | null = null
-  ): any[] => {
-    return quests
-      .filter((quest) => quest.parent_id === parentId)
-      .map((quest) => ({
-        ...quest,
-        children: buildQuestTree(quests, quest.id)
-      }));
-  };
-
-  const questTree = quests ? buildQuestTree(quests) : [];
-  // const totalQuests = quests?.length || 0;
-
-  // Toggle expansion of items
-  const toggleExpanded = (questId: string) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(questId)) {
-      newExpanded.delete(questId);
-    } else {
-      newExpanded.add(questId);
-    }
-    setExpandedItems(newExpanded);
-  };
-
-  // Render quest item recursively
-  const renderQuestItem = (quest: any, level: number = 0) => {
-    const hasChildren = quest.children && quest.children.length > 0;
-    const isSelected = selectedQuestId === quest.id;
-    const isExpanded = expandedItems.has(quest.id);
-
-    if (hasChildren) {
-      // If this is a sub-item (level > 0), wrap in SidebarMenuSubItem
-      const CollapsibleComponent = (
-        <Collapsible
-          key={quest.id}
-          open={isExpanded}
-          onOpenChange={() => toggleExpanded(quest.id)}
-        >
-          <SidebarMenuItem>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton
-                onClick={() =>
-                  onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
-                }
-                className={cn(
-                  'relative',
-                  isSelected &&
-                    'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
-                )}
-                data-quest-id={quest.id}
-              >
-                <FolderOpen
-                  className={cn('h-4 w-4', isSelected && 'text-primary')}
-                />
-                <span className={cn(isSelected && 'font-semibold')}>
-                  {quest.name || `Quest ${quest.id.slice(0, 8)}`}
-                </span>
-                {isSelected && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
-                )}
-                <Badge
-                  variant={isSelected ? 'default' : 'secondary'}
-                  className={cn(
-                    'ml-auto text-xs',
-                    isSelected && 'bg-primary text-primary-foreground'
-                  )}
-                >
-                  {quest.children.length}
-                </Badge>
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                {quest.children.map((child: any) =>
-                  renderQuestItem(child, level + 1)
-                )}
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </SidebarMenuItem>
-        </Collapsible>
-      );
-
-      return level > 0 ? (
-        <SidebarMenuSubItem key={quest.id}>
-          {CollapsibleComponent}
-        </SidebarMenuSubItem>
-      ) : (
-        CollapsibleComponent
-      );
-    }
-
-    // Leaf node (no children)
-    const ButtonComponent = (
-      <SidebarMenuButton
-        onClick={() =>
-          onSelectQuest(selectedQuestId === quest.id ? null : quest.id)
-        }
-        className={cn(
-          'relative w-full',
-          isSelected &&
-            'bg-primary/10 dark:bg-primary/20 font-semibold text-primary border-l-2 border-primary'
-        )}
-        data-quest-id={quest.id}
-        title={quest.name || `Quest ${quest.id.slice(0, 8)}`}
-      >
-        <FolderOpen className={cn('h-4 w-4', isSelected && 'text-primary')} />
-        <span className={cn(isSelected && 'font-semibold', 'truncate')}>
-          {quest.name || `Quest ${quest.id.slice(0, 8)}`}
-        </span>
-        {isSelected && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
-        )}
-      </SidebarMenuButton>
-    );
-
-    return level > 0 ? (
-      <SidebarMenuSubItem
-        key={quest.id}
-        className="w-full overflow-clip"
-        // className={cn(isSelected && 'bg-accent2')}
-      >
-        {ButtonComponent}
-      </SidebarMenuSubItem>
-    ) : (
-      <SidebarMenuItem
-        // className={cn(isSelected && 'bg-accent2')}
-        key={quest.id}
-      >
-        {ButtonComponent}
-      </SidebarMenuItem>
-    );
-  };
-
-  return (
-    <>
-      <Card className="flex flex-col">
-        <CardHeader className="h-8 ">
-          <div className="flex items-center justify-between ">
-            <CardTitle className="text-lg">Quests</CardTitle>
-            <QuestMenu
-              canManage={canManage}
-              projectId={projectId}
-              onAddQuest={onAddQuest}
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b">
-          <ScrollArea className="h-[530px]">
-            {questsLoading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Loading quests...
-              </div>
-            ) : questTree.length > 0 ? (
-              <SidebarMenu className="px-2 ">
-                {questTree.map((quest) => renderQuestItem(quest))}
-              </SidebarMenu>
-            ) : (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No quests found. {canManage && 'Click + to create one.'}
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-        <CardFooter className="text-xs text-muted-foreground text-center">
-          <Button variant="outline" size="sm" asChild className="w-full">
-            <Link href="/portal">← Back to Portal</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    </>
-  );
-}
-
-export function QuestsUnstructured({
-  project,
-  projectId,
-  userRole,
-  quests,
-  questsLoading,
-  onSelectQuest,
-  selectedQuestId
-}: QuestsUnstructuredProps) {
-  const queryClient = useQueryClient();
-  const { environment } = useAuth();
-
-  // Calculate permissions from userRole
-  // const isOwner = userRole === 'owner';
-  // const isAdmin = userRole === 'admin';
-  // const canManage = isOwner || isAdmin;
-
-  // Modal states
-  const [showQuestForm, setShowQuestForm] = useState(false);
-  const [showAssetForm, setShowAssetForm] = useState(false);
-  const [showAssetModal, setShowAssetModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<any>(null);
-
-  // Handlers for modal actions
-  const handleAddQuest = () => setShowQuestForm(true);
-  const handleAddAsset = () => setShowAssetForm(true);
-  const handleAssetClick = (asset: any) => {
-    setSelectedAsset(asset);
-    setShowAssetModal(true);
-  };
-
-  const handleQuestSuccess = (/*data: { id: string }*/) => {
-    setShowQuestForm(false);
-    // Invalidate queries to refresh the data
-    queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
-    queryClient.invalidateQueries({
-      queryKey: ['child-quests', selectedQuestId]
-    });
-  };
-
-  const handleAssetSuccess = (/*data: { id: string }*/) => {
-    setShowAssetForm(false);
-    // Invalidate queries to refresh the data
-    queryClient.invalidateQueries({
-      queryKey: ['child-quests', selectedQuestId]
-    });
-    // Also invalidate asset counts to update the project header
-    queryClient.invalidateQueries({
-      queryKey: ['assets-translations-count', projectId, environment]
-    });
-    // And invalidate quest-assets query to refresh asset list in quest view
-    queryClient.invalidateQueries({
-      queryKey: ['quest-assets', selectedQuestId, environment]
-    });
-  };
-  return (
-    <SidebarProvider>
-      <div className="w-full flex min-h-[600px] gap-4">
-        {/* Sidebar */}
-        <div className="w-80 flex-shrink-0">
-          <QuestsSideBar
-            project={project}
-            projectId={projectId}
-            userRole={userRole}
-            onAddQuest={handleAddQuest}
-            onSelectQuest={onSelectQuest}
-            selectedQuestId={selectedQuestId}
-            quests={quests}
-            questsLoading={questsLoading}
-          />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1">
-          <QuestContent
-            projectId={projectId}
-            selectedQuestId={selectedQuestId}
-            userRole={userRole}
-            onAddQuest={handleAddQuest}
-            onAddAsset={handleAddAsset}
-            onSelectQuest={onSelectQuest}
-            onAssetClick={handleAssetClick}
-          />
-        </div>
-      </div>
-
-      {/* Quest Creation Modal */}
-      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Quest</DialogTitle>
-            <DialogDescription>
-              Add a new quest to organize your project content.
-            </DialogDescription>
-          </DialogHeader>
-          <QuestForm
-            onSuccess={handleQuestSuccess}
-            projectId={projectId}
-            questParentId={selectedQuestId || undefined}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Asset Creation Modal */}
-      <Dialog open={showAssetForm} onOpenChange={setShowAssetForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Asset</DialogTitle>
-            <DialogDescription>
-              Add a new asset to this quest.
-            </DialogDescription>
-          </DialogHeader>
-          <AssetForm
-            onSuccess={handleAssetSuccess}
-            projectId={projectId}
-            questId={selectedQuestId || undefined}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Asset View Modal */}
-      <Dialog open={showAssetModal} onOpenChange={setShowAssetModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Asset Details</DialogTitle>
-          </DialogHeader>
-          {selectedAsset && <AssetView asset={selectedAsset} />}
-        </DialogContent>
-      </Dialog>
-    </SidebarProvider>
   );
 }

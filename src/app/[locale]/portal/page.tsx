@@ -13,7 +13,15 @@ import {
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Copy, Crown, Eye, Upload, UserRound } from 'lucide-react';
+import {
+  PlusCircle,
+  Copy,
+  Crown,
+  Eye,
+  Upload,
+  UserRound,
+  Book
+} from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
@@ -184,6 +192,7 @@ function AdminContent() {
           id, 
           name, 
           description,
+          template,
           creator_id,
           target_language:target_language_id(english_name),
           quests:quest(id),
@@ -432,6 +441,14 @@ function AdminContent() {
                                         className="text-xs flex items-center gap-1"
                                       >
                                         <UserRound className="h-3 w-3" /> Member
+                                      </Badge>
+                                    )}
+                                    {project.template === 'bible' && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs flex items-center gap-1"
+                                      >
+                                        <Book className="h-3 w-3" /> Bible
                                       </Badge>
                                     )}
                                   </div>
