@@ -601,7 +601,6 @@ function QuestContent({
 
     if (currentBook?.chapters) {
       currentBook?.children?.forEach((chapterQuest) => {
-        console.log('Processing chapter quest:', chapterQuest);
         const metadata =
           typeof chapterQuest.metadata === 'string'
             ? JSON.parse(chapterQuest.metadata)

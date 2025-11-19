@@ -150,8 +150,8 @@ export function BulkAssetModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tag')
-        .select('id, name')
-        .order('name');
+        .select('id, key, value')
+        .order('key');
 
       if (error) throw error;
       return data;
@@ -215,7 +215,10 @@ export function BulkAssetModal({
   // Helper function to get tag name by ID
   const getTagName = (tagId: string) => {
     const tag = availableTags?.find((t) => t.id === tagId);
-    return tag?.name || `Tag ${tagId.slice(0, 4)}...`;
+    if (tag?.key && tag?.value) {
+      return `${tag.key}:${tag.value}`;
+    }
+    return `Tag ${tagId.slice(0, 4)}...`;
   };
 
   // Add new asset row
@@ -991,7 +994,7 @@ export function BulkAssetModal({
                 onTagsChange={(tags) =>
                   handleTagsUpdate(currentAssetIndex, tags)
                 }
-                environment="production"
+                environment={environment}
                 allowTagCreation={true}
               />
               <div className="flex justify-end gap-2 mt-4">
@@ -1019,7 +1022,7 @@ export function BulkAssetModal({
             <TagSelector
               selectedTags={globalTags}
               onTagsChange={handleGlobalTagsUpdate}
-              environment="development"
+              environment={environment}
               allowTagCreation={true}
             />
             <div className="flex justify-end gap-2 mt-4">
