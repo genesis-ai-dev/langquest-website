@@ -59,20 +59,36 @@ export default function LandingPage() {
         {/* Hero Section with Three.js Globe */}
         <ClientOnlyHero>
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col p-8 justify-center space-y-4 bg-white/60 backdrop-blur-sm  rounded-lg border border-border/50 ">
+            <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50 ">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   {t('hero.title')}
                 </h1>
                 <p className="max-w-[600px] md:text-xl">{t('hero.subtitle')}</p>
               </div>
-              <div className="flex justify-center">
+              <div className="flex justify-end gap-2 flex-wrap">
+                <a
+                  href="https://apps.apple.com/us/app/langquest-translation/id6752446665"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Get LangQuest on the App Store"
+                  className="inline-flex items-center bg-white rounded-lg p-2 drop-shadow-lg hover:drop-shadow-xl transition-shadow scale-[0.8]"
+                >
+                  <Image
+                    src="/app-store/marketing/guidelines/images/badge-example-preferred_2x.png"
+                    alt="Download on the App Store"
+                    width={250}
+                    height={83}
+                    priority
+                    className="h-16 md:h-20 w-auto"
+                  />
+                </a>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.etengenesis.langquest&hl=en_CA"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Get LangQuest on Google Play"
-                  className="inline-flex items-center rounded-lg bg-black p-2 shadow-sm border overflow-hidden"
+                  className="inline-flex items-center bg-white rounded-lg p-2 drop-shadow-lg hover:drop-shadow-xl transition-shadow scale-[0.8]"
                 >
                   <Image
                     src="/get-it-on-google-play-logo-png-transparent.jpg"
@@ -80,7 +96,7 @@ export default function LandingPage() {
                     width={300}
                     height={90}
                     priority
-                    className="h-16 md:h-20 w-auto rounded-md"
+                    className="h-16 md:h-20 w-auto"
                   />
                 </a>
               </div>
@@ -89,7 +105,7 @@ export default function LandingPage() {
         </ClientOnlyHero>
 
         {/* Key Features */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -167,7 +183,7 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -218,7 +234,7 @@ export default function LandingPage() {
         </section>
 
         {/* Use Cases */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -387,11 +403,11 @@ export default function LandingPage() {
         </section>
 
         {/* Future Vision */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex items-center justify-center">
-                <div className="relative h-[300px] w-5/6 md:h-[400px] overflow-hidden rounded-lg border bg-white p-2">
+                <div className="relative h-[300px] w-5/6 md:h-[400px] overflow-hidden rounded-lg border bg-background p-2">
                   <ClientOnlyP2P />
                 </div>
               </div>
@@ -431,7 +447,7 @@ export default function LandingPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -449,7 +465,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold mb-4">
