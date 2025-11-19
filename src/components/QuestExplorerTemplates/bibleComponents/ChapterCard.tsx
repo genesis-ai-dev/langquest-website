@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Folder, Link2, Unlink2 } from 'lucide-react';
+import { Link2, Unlink2 } from 'lucide-react';
 
 interface ChapterCardProps {
   quest: {
@@ -29,13 +29,11 @@ interface ChapterCardProps {
 }
 
 export function ChapterCard({
-  quest,
   isSelected,
   chapterNumber,
   verseCount,
   onClick,
-  icon: Icon = Folder,
-  assetsCount = 0,
+  // icon: Icon = Folder,
   hasContent = false
 }: ChapterCardProps) {
   return (
@@ -62,29 +60,20 @@ export function ChapterCard({
         </p>
       </CardContent>
 
-      {/* Footer com estatísticas - mais próximo das bordas */}
       <CardFooter className="">
         <div className="w-full text-xs flex items-center justify-center ">
-          {/* <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">{questsCount} quests</span> */}
-          {/* <span className="text-muted-foreground/60">•</span> */}
-          {/* <div>{assetsCount} assets</div> */}
-          {/* </div> */}
           {hasContent ? (
             <Badge variant={'secondary'} className="w-full text-xs px-2 py-0">
-              {/* Content included */}
               <Link2 className="w-5 h-5" />
             </Badge>
           ) : (
             <Badge variant={'outline'} className="w-full text-xs px-2 py-0">
-              {/* Content included */}
               <Unlink2 className="w-5 h-5" />
             </Badge>
           )}
         </div>
       </CardFooter>
 
-      {/* Indicador visual de seleção */}
       {isSelected && (
         <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse" />
       )}

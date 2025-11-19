@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/sidebar';
 import {
   FolderOpen,
-  File,
   ArrowLeft
   // Info,
   // Calendar
@@ -31,11 +30,8 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
-import { QuestCard } from '@/components/QuestCard';
 import { AssetCard } from '@/components/AssetCard';
 import { AssetView } from '@/components/asset-view';
-import { QuestForm } from '@/components/new-quest-form';
-import { AssetForm } from '@/components/new-asset-form';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +41,6 @@ import {
 } from '@/components/ui/dialog';
 import { QuestInfo } from '@/components/quest-info';
 import { SubQuestMenu } from './components/subquest-menu';
-import { QuestMenu } from './components/quest-menu';
 import { Quest } from '../quest-explorer';
 import {
   BIBLE_BOOKS,
@@ -56,7 +51,6 @@ import {
 } from './bibleComponents/template';
 import { BookCard } from './bibleComponents/BookCard';
 import { ChapterCard } from './bibleComponents/ChapterCard';
-import { se } from 'date-fns/locale';
 
 interface QuestsBibleProps {
   project: any;
@@ -71,7 +65,6 @@ interface QuestsBibleProps {
 }
 
 export function QuestsBible({
-  project,
   projectId,
   userRole,
   // quests,
@@ -103,11 +96,11 @@ export function QuestsBible({
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
 
   const [books, setBooks] = useState<BibleBookQuest[]>(
-    BIBLE_BOOKS.map((book, idx) => ({
+    BIBLE_BOOKS.map((book) => ({
       bookId: book.id,
       chapters: book.chapters,
       verses: book.verses,
-      id: '', //idx.toString(),
+      id: '',
       name: book.name,
       description: null,
       metadata: null,
@@ -363,12 +356,8 @@ export function QuestsBible({
         {/* Sidebar */}
         <div className="w-80 flex-shrink-0">
           <QuestsSideBar
-            project={project}
-            projectId={projectId}
             userRole={userRole}
-            onSelectQuest={onSelectQuest}
             onSelectBook={handleBookSelection}
-            selectedQuestId={selectedQuestId}
             selectedBookId={selectedBookId}
             // quests={quests}
             questsTree={books}
@@ -437,25 +426,15 @@ export function QuestsBible({
 }
 
 function QuestsSideBar({
-  //  project,
-  projectId,
   userRole,
-  onSelectQuest,
   onSelectBook,
-  selectedQuestId,
   selectedBookId,
-  // quests,
   questsTree,
   questsLoading
 }: {
-  project: any;
-  projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   onSelectBook: (bookId: string, book: BibleBookQuest) => void;
-  selectedQuestId: string | null;
   selectedBookId: string | null;
-  // quests: any[] | undefined;
   questsTree: Quest[] | undefined;
   questsLoading: boolean;
 }) {
@@ -463,20 +442,19 @@ function QuestsSideBar({
   const canManage = userRole === 'owner' || userRole === 'admin';
 
   // Build hierarchical quest structure
-  const buildQuestTree = (
-    quests: any[],
-    parentId: string | null = null
-  ): any[] => {
-    return quests
-      .filter((quest) => quest.parent_id === parentId)
-      .map((quest) => ({
-        ...quest,
-        children: buildQuestTree(quests, quest.id)
-      }));
-  };
+  // const buildQuestTree = (
+  //   quests: any[],
+  //   parentId: string | null = null
+  // ): any[] => {
+  //   return quests
+  //     .filter((quest) => quest.parent_id === parentId)
+  //     .map((quest) => ({
+  //       ...quest,
+  //       children: buildQuestTree(quests, quest.id)
+  //     }));
+  // };
 
   const renderQuest = (quest: Quest, level: number = 0) => {
-    const hasChildren = quest.children && quest.children.length > 0;
     const bibleQuest = quest as BibleBookQuest;
     // Check if this book is selected (regardless of quest status)
     const isSelected = selectedBookId === bibleQuest.bookId;
@@ -540,34 +518,11 @@ function QuestsSideBar({
     );
   };
 
-  // Helper function to check if a quest or any of its children is selected
-  const isQuestOrChildSelected = (
-    quest: Quest,
-    selectedId: string | null
-  ): boolean => {
-    if (!selectedId) return false;
-    const bibleQuest = quest as BibleBookQuest;
-    // Check by bookId first, then by id if bookId doesn't exist
-    if (bibleQuest.bookId && bibleQuest.bookId === selectedId) return true;
-    if (quest.id === selectedId) return true;
-    if (quest.children) {
-      return quest.children.some((child: Quest) =>
-        isQuestOrChildSelected(child, selectedId)
-      );
-    }
-    return false;
-  };
-
   return (
     <Card className="flex flex-col max-w-full overflow-ellipsis">
       <CardHeader className="h-8 ">
         <div className="flex items-center justify-between ">
           <CardTitle className="text-lg">Books</CardTitle>
-          {/* <QuestMenu
-            canManage={canManage}
-            projectId={projectId}
-            onAddQuest={onAddQuest}
-          /> */}
         </div>
       </CardHeader>
       <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b max-w-full">
@@ -599,15 +554,11 @@ function QuestsSideBar({
 
 function QuestContent({
   projectId,
-  selectedQuestId,
   selectedBookId,
   selectedChapter,
-  selectedQuest,
   questsTree,
   userRole,
-  onSelectQuest,
   onSelectBook,
-  onSelectChapter,
   onChapterClick,
   onGoBack,
   onAssetClick,
@@ -646,7 +597,7 @@ function QuestContent({
 
     if (bookIdx === undefined) return;
     const currentBook = (questsTree?.[bookIdx] as BibleBookQuest) || null;
-    let aux = new Array(currentBook.chapters || 0);
+    const aux = new Array(currentBook.chapters || 0);
 
     if (currentBook?.chapters) {
       currentBook?.children?.forEach((chapterQuest) => {
@@ -662,17 +613,10 @@ function QuestContent({
     setChaptersQuest(aux);
   }, [selectedBookId, selectedChapter]);
 
-  // Find the selected book based on selectedBookId
-  // const selectedBook = selectedBookId
-  //   ? (questsTree?.find(
-  //       (book) => (book as BibleBookQuest).bookId === selectedBookId
-  //     ) as BibleBookQuest)
-  //   : null;
   const selectedBook = selectedBookId
     ? (questsTree?.[BOOKS_MAP.get(selectedBookId) || 0] as BibleBookQuest)
     : null;
 
-  const childQuests = selectedBook?.children || [];
   const rootQuests = questsTree || [];
 
   // Find the actual quest ID based on the bookId for database queries
@@ -688,10 +632,8 @@ function QuestContent({
   // Get the appropriate quest ID for SubQuestMenu
   const getMenuQuestId = () => {
     if (selectedChapter) {
-      // If chapter is selected, use chapter quest ID
       return getChapterQuestId();
     }
-    // Otherwise, use book quest ID
     return actualQuestId;
   };
 
@@ -847,7 +789,7 @@ function QuestContent({
                 <div className="text-center text-muted-foreground py-12">
                   <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No Quests Found</h3>
-                  <p>This project doesn't have any quests yet.</p>
+                  <p>This project doesn&#39;t have any quests yet.</p>
                   {canManage && (
                     <p className="text-sm mt-2">
                       Use the + button in the sidebar to create your first
@@ -963,46 +905,9 @@ function QuestContent({
                     </div>
                   )}
 
-                  {/* Selected Chapter Section
-                  {selectedChapter && selectedBook && (
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg bg-accent/5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold">
-                              {selectedBook.name} - Chapter {selectedChapter}
-                            </h3>
-                          </div>
-                          <Badge variant="outline">
-                            {selectedBook.verses[selectedChapter - 1]} verses
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Chapter {selectedChapter} contains{' '}
-                          {selectedBook.verses[selectedChapter - 1]} verses.
-                          {canManage && ' You can add assets to this chapter.'}
-                        </p>
-                      </div>
-                    </div>
-                  )} */}
-
                   {/* Assets Section */}
                   {questAssets && questAssets.length > 0 && (
                     <div className="space-y-4">
-                      {/* <div className="p-2 border-b">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <File className="h-5 w-5 text-primary" />
-                            <h3 className="text-lg font-semibold">Assets</h3>
-                          </div>
-                          <Badge
-                            variant="secondary"
-                            className="text-sm px-3 py-1"
-                          >
-                            {questAssets.length}
-                          </Badge>
-                        </div>
-                      </div> */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {questAssets.map((asset) => (
                           <AssetCard

@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { QuestsUnstructured } from './QuestExplorerTemplates/unstructured';
-import { se } from 'date-fns/locale';
 import { QuestsBible } from './QuestExplorerTemplates/bible';
 
 interface QuestExplorerProps {

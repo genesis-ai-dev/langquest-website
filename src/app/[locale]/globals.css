@@ -49,7 +49,8 @@
     --accent: hsl(240 29.03% 93.92%);
     --accent-foreground: hsl(240 27.59% 22.75%);
     --destructive: hsl(350.18 100% 66.47%);
-    --destructive-foreground: hsl(0 0% 100%);
+    /* --destructive-foreground: hsl(0 0% 100%); */
+    --destructive-foreground: hsl(350.18 100% 66.47%);
     --border: hsl(240 34.78% 90.98%);
     --input: hsl(240 34.78% 90.98%);
     --ring: hsl(251.9 55.76% 57.45%);

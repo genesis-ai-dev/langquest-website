@@ -495,16 +495,6 @@ export function AssetForm({
     return <Spinner />;
   }
 
-  // const allQuests =
-  //   questId && questLanguageData
-  //     ? [
-  //         {
-  //           id: questId,
-  //           name: 'Current Quest',
-  //           project: questLanguageData.project
-  //         }
-  //       ]
-  //     : questsData || [];
   const allQuests = questsData || [];
 
   return (

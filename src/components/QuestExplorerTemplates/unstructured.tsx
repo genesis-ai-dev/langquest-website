@@ -34,25 +34,24 @@ import {
   // Info,
   // Calendar
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { QuestCard } from '@/components/QuestCard';
 import { AssetCard } from '@/components/AssetCard';
 import { AssetView } from '@/components/asset-view';
-import { QuestForm } from '@/components/new-quest-form';
-import { AssetForm } from '@/components/new-asset-form';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  // DialogDescription,
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
 import { QuestInfo } from '@/components/quest-info';
 import { SubQuestMenu } from './components/subquest-menu';
-import { QuestMenu } from './components/quest-menu';
 import { Quest } from '../quest-explorer';
+import { QuestMenu } from './components/quest-menu';
+import { QuestForm } from '../new-quest-form';
 
 interface QuestsUnstructuredProps {
   project: any;
@@ -85,16 +84,22 @@ export function QuestsUnstructured({
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
   // Handlers for modal actions
+  const [showQuestForm, setShowQuestForm] = useState(false);
+  const handleAddQuest = () => setShowQuestForm(true);
   const handleAssetClick = (asset: any) => {
     setSelectedAsset(asset);
     setShowAssetModal(true);
   };
 
   const handleQuestSuccess = (/*data: { id: string }*/) => {
+    setShowQuestForm(false);
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
     queryClient.invalidateQueries({
       queryKey: ['child-quests', selectedQuestId]
+    });
+    queryClient.invalidateQueries({
+      queryKey: ['project-quests', projectId, environment]
     });
   };
 
@@ -121,6 +126,7 @@ export function QuestsUnstructured({
             project={project}
             projectId={projectId}
             userRole={userRole}
+            onAddQuest={handleAddQuest}
             onSelectQuest={onSelectQuest}
             selectedQuestId={selectedQuestId}
             // quests={quests}
@@ -145,6 +151,23 @@ export function QuestsUnstructured({
         </div>
       </div>
 
+      {/* Quest Creation Modal */}
+      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Quest</DialogTitle>
+            <DialogDescription>
+              Add a new quest to organize your project content.
+            </DialogDescription>
+          </DialogHeader>
+          <QuestForm
+            onSuccess={handleQuestSuccess}
+            projectId={projectId}
+            questParentId={selectedQuestId || undefined}
+          />
+        </DialogContent>
+      </Dialog>
+
       {/* Asset View Modal */}
       <Dialog open={showAssetModal} onOpenChange={setShowAssetModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -159,9 +182,10 @@ export function QuestsUnstructured({
 }
 
 function QuestsSideBar({
-  //  project,
+  // project,
   projectId,
   userRole,
+  onAddQuest,
   onSelectQuest,
   selectedQuestId,
   // quests,
@@ -171,6 +195,7 @@ function QuestsSideBar({
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
+  onAddQuest: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
   // quests: any[] | undefined;
@@ -203,19 +228,19 @@ function QuestsSideBar({
   }, [selectedQuestId, questsTree]);
 
   // Build hierarchical quest structure
-  const buildQuestTree = (
-    quests: any[],
-    parentId: string | null = null
-  ): any[] => {
-    return quests
-      .filter((quest) => quest.parent_id === parentId)
-      .map((quest) => ({
-        ...quest,
-        children: buildQuestTree(quests, quest.id)
-      }));
-  };
+  // const buildQuestTree = (
+  //   quests: any[],
+  //   parentId: string | null = null
+  // ): any[] => {
+  //   return quests
+  //     .filter((quest) => quest.parent_id === parentId)
+  //     .map((quest) => ({
+  //       ...quest,
+  //       children: buildQuestTree(quests, quest.id)
+  //     }));
+  // };
 
-  const questTree = questsTree; // quests ? buildQuestTree(quests) : [];
+  // const questTree = questsTree; // quests ? buildQuestTree(quests) : [];
   // const totalQuests = quests?.length || 0;
 
   // Toggle expansion of items
@@ -360,11 +385,11 @@ function QuestsSideBar({
         <div className="flex items-center justify-between ">
           <CardTitle className="text-lg">Quests</CardTitle>
           {/* TODO: Update QuestMenu to use new pattern */}
-          {/* <QuestMenu
+          <QuestMenu
             canManage={canManage}
             projectId={projectId}
             onAddQuest={onAddQuest}
-          /> */}
+          />
         </div>
       </CardHeader>
       <CardContent className="py-1 px-2 flex-1 flex flex-col border-t border-b max-w-full">
@@ -633,7 +658,7 @@ function QuestContent({
                 <div className="text-center text-muted-foreground py-12">
                   <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No Quests Found</h3>
-                  <p>This project doesn't have any quests yet.</p>
+                  <p>This project doesn&#39;t have any quests yet.</p>
                   {canManage && (
                     <p className="text-sm mt-2">
                       Use the + button in the sidebar to create your first

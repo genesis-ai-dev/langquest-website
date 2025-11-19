@@ -1,14 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Folder } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { BibleBookQuest } from './template';
 
 interface BookCardProps {
