@@ -627,17 +627,6 @@ function QuestContent({
               {/* Root Quests Section */}
               {rootQuests && rootQuests.length > 0 ? (
                 <div className="space-y-4">
-                  {/* <div className="p-2 border-b">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FolderOpen className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold">Root Quests</h3>
-                      </div>
-                      <Badge variant="secondary" className="text-sm px-3 py-1">
-                        {rootQuests.length}
-                      </Badge>
-                    </div>
-                  </div> */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rootQuests.map((quest) => (
                       <QuestCard
