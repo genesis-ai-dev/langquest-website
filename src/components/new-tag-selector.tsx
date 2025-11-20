@@ -97,12 +97,18 @@ export function TagSelector({
           Math.ceil(data ? data.length / maxVisibleTagsExtended : 0)
         );
       } else {
-        const { data, error } = await createBrowserClient(environment)
-          .from('tag')
-          .select('*')
-          .or(`key.ilike.${searchQuery}%,value.ilike.${searchQuery}%`)
-          .order('key')
-          .order('value');
+        const [sKey, sValue] = searchQuery.split(':');
+        let query = createBrowserClient(environment).from('tag').select('*');
+
+        if (sValue && sValue.trim() !== '') {
+          // Se sValue existe, busca por sKey E sValue usando ilike
+          query = query.ilike('key', `%${sKey}%`).ilike('value', `%${sValue}%`);
+        } else {
+          // Se sValue não existe, busca apenas por sKey usando ilike
+          query = query.ilike('key', `%${sKey}%`);
+        }
+
+        const { data, error } = await query.order('key').order('value');
         if (error) throw error;
         cachedTags.current.set(searchQuery, data || []);
         setFilteredTags(data || []);
@@ -148,7 +154,14 @@ export function TagSelector({
     // Parse key:value format
     const parts = tagName.split(':');
     const key = parts[0]?.trim() || tagName.trim();
-    const value = parts[1]?.trim() || '';
+    let value: string | number = parts[1]?.trim() || '';
+
+    // Convert value to number if it's numeric
+    const numericValue = Number(value);
+    if (value !== '' && !isNaN(numericValue) && isFinite(numericValue)) {
+      value = numericValue;
+    }
+
     const displayName = `${key}:${value}`;
 
     if (

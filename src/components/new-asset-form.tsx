@@ -29,7 +29,7 @@ import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
-import { checkProjectOwnership } from '@/lib/project-permissions';
+// import { checkProjectOwnership } from '@/lib/project-permissions';
 
 const assetFormSchema = z.object({
   name: z.string().min(2, {
@@ -58,18 +58,19 @@ interface AssetFormProps {
     id: string;
     images?: string[];
     tags?: { id: string }[];
-    // source_language_id?: string;
   };
   projectId: string;
   onSuccess?: (data: { id: string }) => void;
   questId?: string; // Optional pre-selected quest ID
+  hideContentTabs?: boolean; // Optional flag to hide content tabs
 }
 
 export function AssetForm({
   initialData,
   projectId,
   onSuccess,
-  questId
+  questId,
+  hideContentTabs = false
 }: AssetFormProps) {
   const { user, environment } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,28 +103,13 @@ export function AssetForm({
 
   // Fetch quests for the multi-select - from projects where user is owner
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
-    queryKey: ['owned-quests', user?.id, environment],
+    queryKey: ['owned-quests', user?.id, projectId, environment],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // const { data, error } = await createBrowserClient(environment)
-      //   .from('quest')
-      //   .select(
-      //     `
-      //     id,
-      //     name,
-      //     project:project_id!inner(
-      //       id,
-      //       name,
-      //       creator_id,
-      //       target_language:target_language_id(english_name)
-      //     )
-      //   `
-      //   )
-      //   .order('name');
       const { data, error } = await createBrowserClient(environment)
         .from('quest')
-        .select(`id, name, creator_id`)
+        .select(`id, name, description, creator_id`)
         .eq('project_id', projectId)
         .order('name');
 
@@ -134,32 +120,8 @@ export function AssetForm({
 
       return (data || []).filter((quest) => quest.creator_id === user.id);
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && !!projectId
   });
-
-  // // Fetch source language from the quest
-  // const { data: questLanguageData } = useQuery({
-  //   queryKey: ['quest-language', questId, environment],
-  //   queryFn: async () => {
-  //     if (!questId) return null;
-
-  //     const { data, error } = await createBrowserClient(environment)
-  //       .from('quest')
-  //       .select(
-  //         `
-  //         project:project_id(
-  //           source_language_id
-  //         )
-  //       `
-  //       )
-  //       .eq('id', questId)
-  //       .single();
-
-  //     if (error) throw error;
-  //     return data;
-  //   },
-  //   enabled: !!questId
-  // });
 
   // Fetch all available languages
   const { data: languagesData = [], isLoading: languagesLoading } = useQuery({
@@ -245,35 +207,6 @@ export function AssetForm({
       return;
     }
 
-    for (const questId of selectedQuests) {
-      const { data: questData, error } = await createBrowserClient(environment)
-        .from('quest')
-        .select('project_id')
-        .eq('id', questId)
-        .single();
-
-      if (error || !questData) {
-        toast.error(
-          'Could not verify project ownership for one of the quests.'
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
-      const isOwner = await checkProjectOwnership(
-        questData.project_id,
-        user.id,
-        environment
-      );
-
-      if (!isOwner) {
-        toast.error('You can only add assets to quests in projects you own.');
-        setIsSubmitting(false);
-        return;
-      }
-    }
-    // --- End Validation ---
-
     setIsSubmitting(true);
     try {
       // Filter out empty content items
@@ -308,12 +241,6 @@ export function AssetForm({
 
           if (uploadError) throw uploadError;
           uploadedImagePaths.push(uploadData.path);
-
-          // Update progress manually after upload completes
-          // setUploadProgress((prev) => ({
-          //   ...prev,
-          //   [fileName]: 100
-          // }));
         }
       }
 
@@ -328,7 +255,6 @@ export function AssetForm({
       for (const [indexStr, file] of Object.entries(audioFiles)) {
         const index = parseInt(indexStr);
         const fileName = `${Date.now()}-${file.name}`;
-        // setUploadProgress((prev) => ({ ...prev, [fileName]: 0 }));
 
         const { data: uploadData, error: uploadError } =
           await createBrowserClient(environment)
@@ -569,16 +495,6 @@ export function AssetForm({
     return <Spinner />;
   }
 
-  // const allQuests =
-  //   questId && questLanguageData
-  //     ? [
-  //         {
-  //           id: questId,
-  //           name: 'Current Quest',
-  //           project: questLanguageData.project
-  //         }
-  //       ]
-  //     : questsData || [];
   const allQuests = questsData || [];
 
   return (
@@ -793,10 +709,12 @@ export function AssetForm({
         </div>
 
         <Tabs defaultValue="tags" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-            <TabsTrigger value="quests">Quests</TabsTrigger>
-          </TabsList>
+          {!hideContentTabs && (
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="tags">Tags</TabsTrigger>
+              <TabsTrigger value="quests">Quests</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="tags" className="space-y-4 pt-4">
             <FormField
@@ -844,7 +762,7 @@ export function AssetForm({
                         {...form.register('quests')}
                         value={JSON.stringify(selectedQuests)}
                       />
-                      <div className="flex flex-wrap gap-1 p-1 border rounded-md min-h-[80px]">
+                      <div className="flex flex-wrap gap-1 p-2 border rounded-md">
                         {selectedQuests.length > 0 ? (
                           selectedQuests.map((selectedQuestId) => {
                             const quest = allQuests?.find(
@@ -854,13 +772,12 @@ export function AssetForm({
                               <Badge
                                 key={selectedQuestId}
                                 variant="secondary"
-                                className="m-1"
+                                className="m-1 py-2"
                               >
                                 {quest?.name}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto p-0 ml-2"
+                                <button
+                                  type="button"
+                                  className="h-auto p-0 ml-1 hover:bg-destructive/20 rounded"
                                   onClick={() => {
                                     // Don't allow removing pre-selected quest
                                     if (questId !== selectedQuestId) {
@@ -871,10 +788,10 @@ export function AssetForm({
                                       );
                                     }
                                   }}
-                                  disabled={questId === selectedQuestId} // Disable if it's the pre-selected quest
+                                  disabled={questId === selectedQuestId}
                                 >
                                   <X className="h-3 w-3" />
-                                </Button>
+                                </button>
                               </Badge>
                             );
                           })
@@ -884,7 +801,8 @@ export function AssetForm({
                           </div>
                         )}
                       </div>
-                      {!questId && ( // Only show quest selector if not pre-selected
+                      {
+                        // Only show quest selector if not pre-selected
                         <div className="border rounded-md p-4">
                           <div className="mb-4">
                             <label className="text-sm font-medium mb-2 block">
@@ -896,13 +814,6 @@ export function AssetForm({
                             {allQuests && allQuests.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
                                 {allQuests.map((quest) => {
-                                  // const isFromQuestData =
-                                  //   'project' in quest &&
-                                  //   Array.isArray(quest.project);
-                                  // const projectInfo = isFromQuestData
-                                  //   ? quest.project[0]
-                                  //   : null;
-
                                   return (
                                     <Badge
                                       key={quest.id}
@@ -933,23 +844,9 @@ export function AssetForm({
                                           setSelectedQuests(newSelectedQuests);
                                         }
                                       }}
+                                      title={quest.description || ''}
                                     >
                                       {quest.name}
-                                      {/* (
-                                      {projectInfo &&
-                                      'source_language' in projectInfo &&
-                                      Array.isArray(projectInfo.source_language)
-                                        ? projectInfo.source_language[0]
-                                            ?.english_name || 'Unknown'
-                                        : 'Unknown'}{' '}
-                                      →{' '}
-                                      {projectInfo &&
-                                      'target_language' in projectInfo &&
-                                      Array.isArray(projectInfo.target_language)
-                                        ? projectInfo.target_language[0]
-                                            ?.english_name || 'Unknown'
-                                        : 'Unknown'}
-                                      ) */}
                                       {selectedQuests.includes(quest.id) && (
                                         <CheckIcon className="ml-1 h-3 w-3" />
                                       )}
@@ -964,7 +861,7 @@ export function AssetForm({
                             )}
                           </div>
                         </div>
-                      )}
+                      }
                     </div>
                   </FormControl>
                   <FormDescription>Link this asset to quests.</FormDescription>

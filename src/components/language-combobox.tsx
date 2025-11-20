@@ -26,6 +26,7 @@ import { LanguageModal } from '@/components/language-modal';
 import { useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { SupabaseEnvironment } from '@/lib/supabase';
+import { env } from '@/lib/env';
 
 export type Language = {
   id: string;
@@ -69,7 +70,9 @@ export function LanguageCombobox({
   // Get URL parameters
   const searchParams = useSearchParams();
   const environment =
-    (searchParams.get('env') as SupabaseEnvironment) || 'production'; // Default to 'production' if not found
+    (searchParams.get('env') as SupabaseEnvironment) ||
+    env.NEXT_PUBLIC_ENVIRONMENT ||
+    'production'; // Default to 'production' if not found
 
   // Filter languages based on input
   const filteredLanguages = languages.filter((language) =>

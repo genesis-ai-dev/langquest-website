@@ -28,9 +28,9 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
 interface BulkUploadProps {
-  mode: 'project' | 'quest' | 'questToProject';
-  questId?: string; // Required for quest mode
-  projectId?: string; // Required for questToProject mode
+  mode: 'project' | 'quest' | 'asset';
+  projectId?: string; // Required for Quest and Asset mode
+  questId?: string; // Required for Asset mode
   onSuccess?: () => void;
 }
 
@@ -77,54 +77,60 @@ export function BulkUpload({
         ? [
             'project_name',
             'project_description',
-            'source_language',
             'target_language',
+            'parent_quest_name',
             'quest_name',
             'quest_description',
             'quest_tags',
             'asset_name',
-            'asset_content',
             'asset_tags',
-            'asset_image_files',
-            'asset_audio_files'
+            'source_language',
+            'source_images',
+            'source_content',
+            'source_audio'
           ]
-        : mode === 'questToProject'
+        : mode === 'quest'
           ? [
+              'parent_quest_name',
               'quest_name',
               'quest_description',
               'quest_tags',
               'asset_name',
-              'asset_content',
               'asset_tags',
-              'asset_image_files',
-              'asset_audio_files'
+              'source_language',
+              'source_images',
+              'source_content',
+              'source_audio'
             ]
           : [
               'asset_name',
-              'asset_content',
               'asset_tags',
-              'asset_image_files',
-              'asset_audio_files'
+              'source_language',
+              'source_images',
+              'source_content',
+              'source_audio'
             ];
 
     const sampleData =
       mode === 'project'
         ? [
-            'My Project,Description of my project,English,Spanish,Chapter 1,First section content,category1;tag1,Item A,Content for item A,tag1;tag2,image1.jpg,audio1.mp3',
-            'My Project,Description of my project,English,Spanish,Chapter 1,First section content,category1;tag1,Item B,Content for item B,tag2;tag3,,audio2.mp3'
+            'My Project,Description of my project,Portuguese,Chapter 1,Quest A,First quest description,category:1;difficulty:2,Asset A1,content:1;theme:5,Portuguese,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
+            'My Project,Description of my project,Portuguese,Chapter 1,Quest B,Second quest description,category:1;difficulty:3,Asset B1,content:2;theme:7,Portuguese,image3.jpg,Content for asset B1 with cultural context,audio3.mp3',
+            'My Project,Description of my project,Portuguese,Chapter 2,Quest C,Third quest description,category:2;difficulty:4,Asset C1,content:3;theme:9,Portuguese,,Interactive quiz content about local history,audio4.wav;audio5.mp3'
           ]
-        : mode === 'questToProject'
+        : mode === 'quest'
           ? [
-              'Chapter 1,First section content,category1;tag1,Item A,Content for item A,tag1;tag2,image1.jpg,audio1.mp3',
-              'Chapter 1,First section content,category1;tag1,Item B,Content for item B,tag2;tag3,,audio2.mp3',
-              'Chapter 2,Second section content,category2;tag1,Item C,Content for item C,tag3;tag4,image2.jpg,audio3.mp3'
+              'Chapter 1,Quest A,First quest description,category:1;difficulty:2,Asset A1,content:1;theme:5,Portuguese,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
+              'Chapter 1,Quest B,Second quest description,category:1;difficulty:3,Asset B1,content:2;theme:7,Portuguese,image3.jpg,Content for asset B1 with cultural context,audio3.mp3',
+              'Chapter 2,Quest C,Third quest description,category:2;difficulty:4,Asset C1,content:3;theme:9,Portuguese,,Interactive quiz content about local history,audio4.wav;audio5.mp3'
             ]
           : [
-              'Asset Name 1,Text content for this asset,category;tag,img1.jpg,sound1.mp3',
-              'Asset Name 2,Another piece of content,tag;other,,sound2.mp3'
+              'Asset A1,content:1;theme:5,Portuguese,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
+              'Asset B1,content:2;theme:7,Portuguese,image3.jpg,Content for asset B1 with cultural context,audio3.mp3',
+              'Asset C1,content:3;theme:9,Portuguese,,Interactive quiz content about local history,audio4.wav;audio5.mp3'
             ];
 
-    const csvContent = [headers.join(','), ...sampleData].join('\\n');
+    const csvContent = [headers.join(','), ...sampleData].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -134,7 +140,7 @@ export function BulkUpload({
     const filename =
       mode === 'project'
         ? 'project-upload-template.csv'
-        : mode === 'questToProject'
+        : mode === 'quest'
           ? 'quest-upload-template.csv'
           : 'asset-upload-template.csv';
 
@@ -168,11 +174,7 @@ export function BulkUpload({
 
     // Map mode to API type
     const apiType =
-      mode === 'questToProject'
-        ? 'quest'
-        : mode === 'quest'
-          ? 'asset'
-          : 'project';
+      mode === 'quest' ? 'quest' : mode === 'asset' ? 'asset' : 'project';
     formData.append('type', apiType);
 
     if (projectId) {
@@ -259,9 +261,9 @@ export function BulkUpload({
       case 'project':
         // return 'Upload a ZIP file containing a CSV with project data and media files (images/audio).';
         return 'Upload a ZIP file containing a CSV with project data and all media files (images/audio).';
-      case 'questToProject':
-        return 'Upload a ZIP file containing a CSV with quest data and media files to add to the selected project.';
       case 'quest':
+        return 'Upload a ZIP file containing a CSV with quest data and media files to add to the selected project.';
+      case 'asset':
         return 'Upload a ZIP file containing a CSV with asset data and media files to add to the selected quest.';
       default:
         return 'Upload a ZIP file with your data.';
@@ -315,7 +317,13 @@ export function BulkUpload({
                 Image files (.jpg, .jpeg, .png, .webp) referenced in the CSV
               </li>
               <li>Audio files (.mp3, .wav, .ogg) referenced in the CSV</li>
-              <li>All files must be at the root of the ZIP archive</li>
+              <li>
+                The tags, source content, and source audio must be separated by
+                semicolons (‘;’) if there is more than one.
+              </li>
+              <li>
+                All files must be inside the assets folder in the ZIP archive
+              </li>
             </ul>
           </AlertDescription>
         </Alert>
