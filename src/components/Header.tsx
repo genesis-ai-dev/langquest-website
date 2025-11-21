@@ -6,6 +6,7 @@ import { SheetTrigger, SheetContent, Sheet } from './ui/sheet';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import GithubIcon from './icons/github-icon';
+import DiscordIcon from './icons/discord-icon';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
@@ -81,9 +82,21 @@ const Header = () => {
             <nav className="flex flex-col space-y-2 p-4 mt-12">
               <Link
                 href="https://github.com/genesis-ai-dev/langquest"
-                className="text-sm text-muted-foreground hover:text-foreground"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
               >
+                <GithubIcon />
                 {t('sourceCode')}
+              </Link>
+              <Link
+                href="https://discord.gg/7fueQmP4"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
+              >
+                <DiscordIcon />
+                Discord Community
               </Link>
               <div className="border-t my-2"></div>
               <Link
@@ -117,9 +130,19 @@ const Header = () => {
           <Link
             href="https://github.com/genesis-ai-dev/langquest"
             target="_blank"
+            rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             <GithubIcon />
+          </Link>
+          <Link
+            href="https://discord.gg/7fueQmP4"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-muted-foreground hover:text-foreground"
+            title="Join our Discord Community"
+          >
+            <DiscordIcon />
           </Link>
           <Link
             href="/database"
