@@ -52,7 +52,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { LanguageCombobox } from './language-combobox';
+import { LanguageCombobox, Language } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -109,6 +109,9 @@ export function ProjectWizard({
 }: ProjectWizardProps) {
   const [step, setStep] = useState(projectToClone ? 2 : 1); // Skip to step 2 if cloning
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(
+    null
+  );
   // const [selectedImage, setSelectedImage] = useState<File | null>(null);
   // const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { user, environment } = useAuth();
@@ -131,6 +134,7 @@ export function ProjectWizard({
         id,
         name,
         description,
+        template,
         target_language_id,
         target_language:language!target_language_id(id, english_name),
         quests:quest!project_id(count)
@@ -162,7 +166,7 @@ export function ProjectWizard({
     defaultValues: {
       name: '',
       description: '',
-      template: '',
+      template: 'unstructured',
       target_language_id: '',
       private: false,
       color: '#3b82f6'
@@ -388,9 +392,17 @@ export function ProjectWizard({
 
   // Get source language name
   const getLanguageName = (id: string) => {
-    // For the confirmation step, we'll just show the ID or get it from the form values
-    // This could be enhanced by creating a separate query for just these specific language names
-    return id;
+    if (selectedLanguage && selectedLanguage.id === id) {
+      return selectedLanguage.english_name;
+    }
+    // Fallback para buscar na lista de projetos existentes se disponível
+    if (existingProjects) {
+      const project = existingProjects.find((p) => p.target_language_id === id);
+      if (project && project.target_language[0]) {
+        return project.target_language[0].english_name;
+      }
+    }
+    return id; // Fallback para o ID se não encontrar o nome
   };
 
   // Handle language creation success
@@ -471,11 +483,8 @@ export function ProjectWizard({
                     </div>
                     {environment !== 'production' && (
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="clone" id="clone" disabled />
-                        <Label
-                          htmlFor="clone"
-                          className="flex items-center text-muted-foreground"
-                        >
+                        <RadioGroupItem value="clone" id="clone" />
+                        <Label htmlFor="clone" className="flex items-center">
                           <Copy className="mr-2 h-4 w-4" />
                           Clone an existing project
                         </Label>
@@ -587,6 +596,7 @@ export function ProjectWizard({
                     placeholder="Enter project description"
                     className="min-h-[100px]"
                     {...field}
+                    disabled={step1Form.watch('creationMethod') === 'clone'}
                   />
                 </FormControl>
                 <FormDescription>
@@ -596,61 +606,61 @@ export function ProjectWizard({
               </FormItem>
             )}
           />
-
-          <FormField
-            control={step2Form.control}
-            name="template"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  Template
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Choose a project template that best fits your content
-                          type.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a template" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {projectTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{template.name}</span>
-                          {/* {template.description && (
+          {step1Form.watch('creationMethod') !== 'clone' && (
+            <FormField
+              control={step2Form.control}
+              name="template"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    Template
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Choose a project template that best fits your
+                            content type.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a template" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {projectTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{template.name}</span>
+                            {/* {template.description && (
                             <span className="text-sm text-muted-foreground">
                               {template.description}
                             </span>
                           )} */}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  The template determines the project structure and available
-                  features.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    The template determines the project structure and available
+                    features.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={step2Form.control}
             name="target_language_id"
@@ -677,6 +687,7 @@ export function ProjectWizard({
                     onChange={field.onChange}
                     placeholder="Select target language"
                     onCreateSuccess={handleLanguageCreated}
+                    onLanguageSelect={setSelectedLanguage}
                   />
                 </FormControl>
                 <FormDescription>
@@ -824,7 +835,8 @@ export function ProjectWizard({
       projectDetails
     );
     const isCloning =
-      projectToClone && step1Form.getValues('creationMethod') === 'clone';
+      (projectToClone || projectForCloning?.id) &&
+      step1Form.getValues('creationMethod') === 'clone';
     const sourceProject = existingProjects?.find(
       (p) => p.id === projectToClone
     );
@@ -865,8 +877,14 @@ export function ProjectWizard({
 
               <div>
                 <span className="font-medium">Template:</span>{' '}
-                {projectTemplates.find((t) => t.id === projectDetails?.template)
-                  ?.name || projectDetails?.template}
+                {isCloning && (sourceProject || projectForCloning)
+                  ? projectTemplates.find(
+                      (t) =>
+                        t.id === (sourceProject || projectForCloning)?.template
+                    )?.name || (sourceProject || projectForCloning)?.template
+                  : projectTemplates.find(
+                      (t) => t.id === projectDetails?.template
+                    )?.name || projectDetails?.template}
               </div>
 
               <div>

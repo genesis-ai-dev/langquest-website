@@ -455,12 +455,25 @@ export default function LandingPage() {
               <h1 className="text-4xl font-bold mb-4">
                 LangQuest Project Management
               </h1>
-              <p className="text-lg text-muted-foreground">
+              {/* <p className="text-lg text-muted-foreground">
                 Select which environment you want to access
+              </p> */}
+              <p className="text-lg text-muted-foreground">
+                Start managing your translation projects efficiently
               </p>
             </div>
+            <div className="grid place-content-center">
+              <Link href={'/portal'}>
+                <Button
+                  size="lg"
+                  className="gap-1 bg-accent4 text-white hover:bg-accent4/90 h-12"
+                >
+                  Go to Portal
+                </Button>
+              </Link>
+            </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* <div className="grid gap-4 md:grid-cols-3">
               {environments.map((env) => (
                 <Card
                   key={env.name}
@@ -482,7 +495,7 @@ export default function LandingPage() {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+            </div> */}
           </div>
         </section>
       </main>

@@ -49,6 +49,7 @@ interface LanguageComboboxProps {
   placeholder?: string;
   disabled?: boolean;
   onCreateSuccess?: (newLanguage: Language) => void;
+  onLanguageSelect?: (language: Language | null) => void;
 }
 
 export function LanguageCombobox({
@@ -56,7 +57,8 @@ export function LanguageCombobox({
   onChange,
   placeholder = 'Select language...',
   disabled = false,
-  onCreateSuccess
+  onCreateSuccess,
+  onLanguageSelect
 }: LanguageComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -177,6 +179,9 @@ export function LanguageCombobox({
 
       toast.success(`Added language: ${data.english_name}`);
       onChange(data.id);
+      if (onLanguageSelect) {
+        onLanguageSelect(data);
+      }
       setOpen(false);
 
       // Call the success callback if provided
@@ -256,6 +261,9 @@ export function LanguageCombobox({
                   value={language.id}
                   onSelect={(currentValue) => {
                     onChange(currentValue);
+                    if (onLanguageSelect) {
+                      onLanguageSelect(language);
+                    }
                     setOpen(false);
                   }}
                 >

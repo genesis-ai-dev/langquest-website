@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams, ReadonlyURLSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
@@ -78,6 +79,7 @@ export function QuestsUnstructured({
 }: QuestsUnstructuredProps) {
   const queryClient = useQueryClient();
   const { environment } = useAuth();
+  const searchParams = useSearchParams();
 
   // Modal states
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -132,6 +134,7 @@ export function QuestsUnstructured({
             // quests={quests}
             questsTree={questsTree}
             questsLoading={questsLoading}
+            searchParams={searchParams}
           />
         </div>
 
@@ -190,7 +193,8 @@ function QuestsSideBar({
   selectedQuestId,
   // quests,
   questsTree,
-  questsLoading
+  questsLoading,
+  searchParams
 }: {
   project: any;
   projectId: string;
@@ -201,6 +205,7 @@ function QuestsSideBar({
   // quests: any[] | undefined;
   questsTree: Quest[] | undefined;
   questsLoading: boolean;
+  searchParams: ReadonlyURLSearchParams;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -412,7 +417,11 @@ function QuestsSideBar({
       </CardContent>
       <CardFooter className="text-xs text-muted-foreground text-center">
         <Button variant="outline" size="sm" asChild className="w-full">
-          <Link href="/portal">← Back to Portal</Link>
+          <Link
+            href={`/portal${searchParams.get('env') ? `?env=${searchParams.get('env')}` : ''}`}
+          >
+            ← Back to Portal
+          </Link>
         </Button>
       </CardFooter>
     </Card>
