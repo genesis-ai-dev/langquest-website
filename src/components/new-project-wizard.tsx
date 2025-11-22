@@ -52,7 +52,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { LanguageCombobox, Language } from './language-combobox';
+import { LanguageCombobox } from './language-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -186,20 +186,6 @@ export function ProjectWizard({
     }
   }, [projectToClone, projectForCloning, step2Form]);
 
-  // Fetch languages for dropdowns
-  const { data: languages, isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages', environment],
-    queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
-        .from('language')
-        .select('id, english_name, native_name, iso639_3')
-        .order('english_name');
-
-      if (error) throw error;
-      return data;
-    }
-  });
-
   // No complex state management needed - forms handle their own state
 
   // Step 3 form
@@ -222,8 +208,11 @@ export function ProjectWizard({
 
   // Handle step 3 submission (final submission)
   const onStep3Submit = async () => {
+    console.log('projectForCloning:', projectForCloning);
+
     const isCloning =
-      projectToClone && step1Form.getValues('creationMethod') === 'clone';
+      (projectToClone || projectForCloning?.id) &&
+      step1Form.getValues('creationMethod') === 'clone';
 
     // Prevent re-entrancy / double submits
     if (isSubmitting) return;
@@ -248,9 +237,12 @@ export function ProjectWizard({
 
       if (isCloning) {
         // Validate required fields for clone path
-        const rootProjectId = projectToClone;
+        // const rootProjectId = projectToClone;
+        const rootProjectId = (projectToClone ||
+          projectForCloning?.id) as string;
         const newName = step2Values.name.trim();
         const targetLang = step2Values.target_language_id.trim();
+        console.log('cloning project...', rootProjectId);
 
         if (!newName) {
           toast.error('Please enter a name for the cloned project');
@@ -396,8 +388,9 @@ export function ProjectWizard({
 
   // Get source language name
   const getLanguageName = (id: string) => {
-    const language = languages?.find((lang) => lang.id === id);
-    return language ? language.english_name : id;
+    // For the confirmation step, we'll just show the ID or get it from the form values
+    // This could be enhanced by creating a separate query for just these specific language names
+    return id;
   };
 
   // Handle language creation success
@@ -478,8 +471,11 @@ export function ProjectWizard({
                     </div>
                     {environment !== 'production' && (
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="clone" id="clone" />
-                        <Label htmlFor="clone" className="flex items-center">
+                        <RadioGroupItem value="clone" id="clone" disabled />
+                        <Label
+                          htmlFor="clone"
+                          className="flex items-center text-muted-foreground"
+                        >
                           <Copy className="mr-2 h-4 w-4" />
                           Clone an existing project
                         </Label>
@@ -680,8 +676,6 @@ export function ProjectWizard({
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="Select target language"
-                    languages={(languages as Language[]) || []}
-                    isLoading={languagesLoading}
                     onCreateSuccess={handleLanguageCreated}
                   />
                 </FormControl>
@@ -824,6 +818,11 @@ export function ProjectWizard({
   // Render step 3: Confirmation
   const renderStep3 = () => {
     const projectDetails = step2Form.getValues();
+    console.log(
+      'Project Details for Confirmation:',
+      projectToClone,
+      projectDetails
+    );
     const isCloning =
       projectToClone && step1Form.getValues('creationMethod') === 'clone';
     const sourceProject = existingProjects?.find(

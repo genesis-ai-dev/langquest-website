@@ -24,7 +24,7 @@ import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { TagSelector } from '@/components/new-tag-selector';
-import { LanguageCombobox, Language } from '@/components/language-combobox';
+import { LanguageCombobox } from '@/components/language-combobox';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -121,20 +121,6 @@ export function AssetForm({
       return (data || []).filter((quest) => quest.creator_id === user.id);
     },
     enabled: !!user?.id && !!projectId
-  });
-
-  // Fetch all available languages
-  const { data: languagesData = [], isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages', environment],
-    queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
-        .from('language')
-        .select('id, english_name, native_name, iso639_3')
-        .order('english_name');
-
-      if (error) throw error;
-      return data as Language[];
-    }
   });
 
   // Set up form with default values
@@ -538,8 +524,6 @@ export function AssetForm({
                   onChange={field.onChange}
                   placeholder="Select source language..."
                   disabled={isSubmitting}
-                  languages={languagesData}
-                  isLoading={languagesLoading}
                   onCreateSuccess={(newLanguage) => {
                     // Optionally refresh the languages list or handle the new language
                     toast.success(

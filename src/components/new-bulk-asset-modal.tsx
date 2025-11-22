@@ -158,20 +158,6 @@ export function BulkAssetModal({
     }
   });
 
-  // Fetch available languages
-  const { data: languagesData, isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('language')
-        .select('id, english_name, native_name, iso639_3')
-        .order('english_name');
-
-      if (error) throw error;
-      return data;
-    }
-  });
-
   const form = useForm<BulkAssetFormValues>({
     resolver: zodResolver(bulkAssetFormSchema),
     defaultValues: {
@@ -733,8 +719,6 @@ export function BulkAssetModal({
                                     value={field.value}
                                     onChange={field.onChange}
                                     placeholder="Select language..."
-                                    languages={languagesData}
-                                    isLoading={languagesLoading}
                                     onCreateSuccess={(newLanguage) => {
                                       toast.success(
                                         `Language "${newLanguage.english_name}" created and selected`

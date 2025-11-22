@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, debounce } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Spinner } from './spinner';
 
@@ -27,6 +27,8 @@ import { useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/components/auth-provider';
 
 export type Language = {
   id: string;
@@ -46,8 +48,6 @@ interface LanguageComboboxProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  languages?: Language[];
-  isLoading?: boolean;
   onCreateSuccess?: (newLanguage: Language) => void;
 }
 
@@ -56,8 +56,6 @@ export function LanguageCombobox({
   onChange,
   placeholder = 'Select language...',
   disabled = false,
-  languages = [],
-  isLoading = false,
   onCreateSuccess
 }: LanguageComboboxProps) {
   const [open, setOpen] = useState(false);
@@ -67,17 +65,69 @@ export function LanguageCombobox({
     useState<Language | null>(null);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
 
-  // Get URL parameters
+  // Get environment from auth context or URL parameters
+  const { environment: authEnvironment } = useAuth();
   const searchParams = useSearchParams();
   const environment =
+    authEnvironment ||
     (searchParams.get('env') as SupabaseEnvironment) ||
     env.NEXT_PUBLIC_ENVIRONMENT ||
     'production'; // Default to 'production' if not found
 
-  // Filter languages based on input
-  const filteredLanguages = languages.filter((language) =>
-    language.english_name.toLowerCase().includes(inputValue.toLowerCase())
+  // Query client for invalidating queries
+  const queryClient = useQueryClient();
+
+  // Fetch all available languages
+  // const { data: languages = [], isLoading } = useQuery({
+  //   queryKey: ['languages', environment],
+  //   queryFn: async () => {
+  //     const { data, error } = await createBrowserClient(environment)
+  //       .from('language')
+  //       .select('id, english_name, native_name, iso639_3')
+  //       .order('english_name');
+
+  //     if (error) throw error;
+  //     return data as Language[];
+  //   }
+  // });
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => setInputValue(value), 100),
+    []
   );
+
+  const { data: languages = [], isLoading } = useQuery({
+    queryKey: ['languages', environment, inputValue],
+    queryFn: async () => {
+      let query = createBrowserClient(environment)
+        .from('language')
+        .select('id, english_name, native_name, iso639_3');
+
+      // Só busca se tiver pelo menos 2 caracteres
+      if (inputValue && inputValue.length >= 2) {
+        query = query.or(
+          `english_name.ilike.%${inputValue}%,native_name.ilike.%${inputValue}%,iso639_3.ilike.%${inputValue}%`
+        );
+      }
+
+      // Limita resultados
+      query = query.order('english_name').limit(50);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Language[];
+    },
+    enabled: !inputValue || inputValue.length >= 2,
+    staleTime: 5 * 60 * 1000
+  });
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
+  // Filter languages based on input
+  const filteredLanguages = languages;
 
   // Handle creating a new language
   const handleCreateLanguage = async (language: NewLanguage) => {
@@ -119,6 +169,11 @@ export function LanguageCombobox({
 
       // Store the newly created language
       setNewlyCreatedLanguage(data);
+
+      // Invalidate languages query to refresh the list
+      queryClient.invalidateQueries({
+        queryKey: ['languages', environment]
+      });
 
       toast.success(`Added language: ${data.english_name}`);
       onChange(data.id);
@@ -177,7 +232,8 @@ export function LanguageCombobox({
           <CommandInput
             placeholder="Search language..."
             value={inputValue}
-            onValueChange={setInputValue}
+            // onValueChange={setInputValue}
+            onValueChange={(value) => debouncedSearch(value)}
             className="h-9"
           />
           <CommandList>
