@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams, ReadonlyURLSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
@@ -76,6 +77,7 @@ export function QuestsBible({
 }: QuestsBibleProps) {
   const queryClient = useQueryClient();
   const { user, environment } = useAuth();
+  const searchParams = useSearchParams();
 
   // Modal states
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -362,6 +364,7 @@ export function QuestsBible({
             // quests={quests}
             questsTree={books}
             questsLoading={questsLoading}
+            searchParams={searchParams}
           />
         </div>
 
@@ -430,13 +433,15 @@ function QuestsSideBar({
   onSelectBook,
   selectedBookId,
   questsTree,
-  questsLoading
+  questsLoading,
+  searchParams
 }: {
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
   onSelectBook: (bookId: string, book: BibleBookQuest) => void;
   selectedBookId: string | null;
   questsTree: Quest[] | undefined;
   questsLoading: boolean;
+  searchParams: ReadonlyURLSearchParams;
 }) {
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
@@ -545,7 +550,11 @@ function QuestsSideBar({
       </CardContent>
       <CardFooter className="text-xs text-muted-foreground text-center">
         <Button variant="outline" size="sm" asChild className="w-full">
-          <Link href="/portal">← Back to Portal</Link>
+          <Link
+            href={`/portal${searchParams.get('env') ? `?env=${searchParams.get('env')}` : ''}`}
+          >
+            ← Back to Portal
+          </Link>
         </Button>
       </CardFooter>
     </Card>
@@ -644,8 +653,6 @@ function QuestContent({
     queryFn: async () => {
       if (!currentChapterQuestId) return [];
 
-      console.log('Fetching assets for quest ID:', currentChapterQuestId);
-
       const { data, error } = await supabase
         .from('quest_asset_link')
         .select(
@@ -666,9 +673,6 @@ function QuestContent({
         .eq('quest_id', currentChapterQuestId)
         .is('asset.source_asset_id', null)
         .order('created_at', { ascending: true });
-
-      console.log('ASSETS', data, error);
-      console.log('ERROR', data, error);
 
       if (error) throw error;
 
