@@ -206,7 +206,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch target languoid data from project_language_link
+    // Try multiple strategies to find languoid_id:
+    // 1. Target language link with languoid_id (preferred)
+    // 2. Any language link matching target_language_id with languoid_id
+    // 3. Direct lookup via language_id if we have a language->languoid mapping
     let languoidData: LanguoidData | null = null;
+    let languoidId: string | null = null;
+
+    // Strategy 1: Try target language link with languoid_id
     const { data: targetLanguageLink } = (await (supabase
       .from('project_language_link' as any)
       .select('languoid_id')
@@ -217,12 +224,33 @@ export async function POST(request: NextRequest) {
       .single() as any)) as { data: { languoid_id: string } | null };
 
     if (targetLanguageLink?.languoid_id) {
+      languoidId = targetLanguageLink.languoid_id;
+    } else if (project.target_language_id) {
+      // Strategy 2: Try to find any language link matching target_language_id with languoid_id
+      const { data: languageLink } = (await (supabase
+        .from('project_language_link' as any)
+        .select('languoid_id')
+        .eq('project_id', quest.project_id)
+        .eq('language_id', project.target_language_id)
+        .not('languoid_id', 'is', null)
+        .limit(1)
+        .single() as any)) as { data: { languoid_id: string } | null };
+
+      if (languageLink?.languoid_id) {
+        languoidId = languageLink.languoid_id;
+      }
+    }
+
+    if (languoidId) {
+      console.log(
+        `[Export API] Found languoid_id: ${languoidId} for project ${quest.project_id}`
+      );
       const { data: languoid } = (await (supabase
         .from('languoid' as any)
         .select(
           'id, name, parent_id, level, ui_ready, download_profiles, creator_id'
         )
-        .eq('id', targetLanguageLink.languoid_id)
+        .eq('id', languoidId)
         .single() as any)) as {
         data: {
           id: string;
@@ -236,6 +264,9 @@ export async function POST(request: NextRequest) {
       };
 
       if (languoid) {
+        console.log(
+          `[Export API] Successfully fetched languoid data: ${languoid.name} (${languoid.id})`
+        );
         // Fetch languoid sources (ISO codes, ROLV codes, BCP-47 tags, etc.)
         const { data: sources } = (await (supabase
           .from('languoid_source' as any)
@@ -301,7 +332,15 @@ export async function POST(request: NextRequest) {
             value: p.value
           }))
         };
+      } else {
+        console.warn(
+          `[Export API] Languoid ${languoidId} not found in database`
+        );
       }
+    } else {
+      console.warn(
+        `[Export API] No languoid_id found for project ${quest.project_id}, target_language_id: ${project.target_language_id}. Manifest will have languoid: null`
+      );
     }
 
     // Parse quest metadata to get bible chapter info (optional)
