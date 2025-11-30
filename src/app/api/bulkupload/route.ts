@@ -98,14 +98,21 @@ export async function POST(request: NextRequest) {
     const questId = formData.get('questId') as string | null;
     const environment =
       (formData.get('environment') as string) || env.NEXT_PUBLIC_ENVIRONMENT;
-    const zipFile = formData.get('file') as File;
+    const uploadPath = formData.get('uploadPath') as string;
 
     // Debug logging
-    console.log('[BULK UPLOAD] Received file:', {
-      name: zipFile?.name,
-      type: zipFile?.type,
-      size: zipFile?.size
+    console.log('[BULK UPLOAD] Received uploadPath:', {
+      uploadPath,
+      type,
+      environment
     });
+
+    if (!uploadPath) {
+      return NextResponse.json(
+        { error: 'Parameter "uploadPath" is required' },
+        { status: 400 }
+      );
+    }
 
     if (!type || !['project', 'quest', 'asset'].includes(type)) {
       return NextResponse.json(
@@ -140,24 +147,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!zipFile) {
+    // Validar se o uploadPath parece ser um ZIP
+    if (!uploadPath.toLowerCase().includes('.zip')) {
       return NextResponse.json(
-        { error: 'A ZIP file is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate ZIP file by extension and/or MIME type
-    const isZipFile =
-      zipFile.name.toLowerCase().endsWith('.zip') ||
-      zipFile.type === 'application/zip' ||
-      zipFile.type === 'application/x-zip-compressed';
-
-    if (!isZipFile) {
-      return NextResponse.json(
-        {
-          error: `Invalid file type. Expected ZIP file, got: ${zipFile.type || 'unknown'} (${zipFile.name})`
-        },
+        { error: 'Upload path must reference a ZIP file' },
         { status: 400 }
       );
     }
@@ -196,7 +189,24 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const zipBuffer = await zipFile.arrayBuffer();
+    // Download ZIP file from Supabase Storage
+    console.log('[BULK UPLOAD] Downloading from:', uploadPath);
+    const { data: zipData, error: downloadError } = await supabase.storage
+      .from('uploads')
+      .download(uploadPath);
+
+    if (downloadError || !zipData) {
+      console.error('[BULK UPLOAD] Download error:', downloadError);
+      return NextResponse.json(
+        {
+          error: `Failed to download ZIP file: ${downloadError?.message || 'Unknown error'}`
+        },
+        { status: 500 }
+      );
+    }
+
+    // Convert blob to array buffer
+    const zipBuffer = await zipData.arrayBuffer();
     const zip = new JSZip();
     const zipContent = await zip.loadAsync(zipBuffer);
 

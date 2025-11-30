@@ -26,7 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
-import { validateZipFiles } from '@/lib/upload';
+import { validateZipFiles, uploadZipDirect } from '@/lib/upload';
 
 interface BulkUploadProps {
   mode: 'project' | 'quest' | 'asset';
@@ -170,8 +170,25 @@ export function BulkUpload({
       throw new Error('File and user are required');
     }
 
+    const {
+      data: { session }
+    } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('No authentication token available');
+    }
+
+    // Use uploadZipDirect to upload file directly to storage
+    const uploadPath = await uploadZipDirect(
+      file,
+      session.access_token,
+      environment
+    );
+
+    console.log('Upload path:', uploadPath);
+
+    // Now call the processing API with the uploaded file path
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('uploadPath', uploadPath);
     formData.append('environment', environment);
 
     // Map mode to API type
@@ -186,15 +203,9 @@ export function BulkUpload({
       formData.append('questId', questId);
     }
 
-    const {
-      data: { session }
-    } = await supabaseClient.auth.getSession();
-    if (!session?.access_token) {
-      throw new Error('No authentication token available');
-    }
+    console.log('>>>>>>> Starting processing');
 
-    // const response = await fetch('/api/bulkupload', {
-    const response = await fetch('/api/upload', {
+    const response = await fetch('/api/bulkupload', {
       method: 'POST',
       body: formData,
       headers: {
@@ -205,7 +216,7 @@ export function BulkUpload({
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.error || `Upload failed: ${response.statusText}`
+        errorData.error || `Processing failed: ${response.statusText}`
       );
     }
 

@@ -110,3 +110,38 @@ export const validateZipFiles = async (
     return { isValid: false, errors };
   }
 };
+
+export async function uploadZipDirect(
+  file: File,
+  accessToken: string,
+  environment?: string
+) {
+  // 1. Create Signed URL
+  const res = await fetch('/api/upload-url', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({
+      filename: file.name,
+      environment: environment || ''
+    })
+  });
+
+  const { uploadUrl, path } = await res.json();
+
+  console.log('Signed upload URL:', uploadUrl);
+
+  // 2. Upload to Signed URL
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Direct upload to bucket failed');
+  }
+
+  return path;
+}
