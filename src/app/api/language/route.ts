@@ -6,7 +6,7 @@ import { env } from '@/lib/env';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       english_name?: string;
       native_name?: string;
       iso639_3?: string;
@@ -14,7 +14,9 @@ export async function POST(request: Request) {
     };
     const { english_name, native_name, iso639_3, environment } = body;
 
-    const envAux = (environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production') as SupabaseEnvironment;
+    const envAux = (environment ||
+      env.NEXT_PUBLIC_ENVIRONMENT ||
+      'production') as SupabaseEnvironment;
     const { url, key } = getSupabaseCredentials(envAux);
 
     let accessToken: string | undefined;

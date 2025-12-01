@@ -3,7 +3,7 @@
 /**
  * Simple test script for chapter export API
  * Usage: node scripts/test-export-simple.js <access_token>
- * 
+ *
  * Get access token from:
  * - Mobile app: Check network requests in dev tools
  * - Supabase dashboard: Auth → Users → Generate token
@@ -23,7 +23,9 @@ if (!accessToken) {
   console.error('To get access token:');
   console.error('1. Open LangQuest mobile app');
   console.error('2. Open dev tools/console');
-  console.error('3. Run: await system.supabaseConnector.client.auth.getSession()');
+  console.error(
+    '3. Run: await system.supabaseConnector.client.auth.getSession()'
+  );
   console.error('4. Copy the access_token from the result');
   process.exit(1);
 }
@@ -44,7 +46,7 @@ async function testExport() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
+        Authorization: `Bearer ${accessToken}`
       },
       body: JSON.stringify({
         quest_id: QUEST_ID,
@@ -77,13 +79,13 @@ async function testExport() {
     const maxAttempts = 30; // 60 seconds max (2s intervals)
 
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds
 
       const statusResponse = await fetch(
         `${SITE_URL}/api/export/${exportId}?environment=${ENVIRONMENT}`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
+            Authorization: `Bearer ${accessToken}`
           }
         }
       );
@@ -96,7 +98,9 @@ async function testExport() {
         break;
       }
 
-      console.log(`   [${attempts + 1}/${maxAttempts}] Status: ${statusData.status}`);
+      console.log(
+        `   [${attempts + 1}/${maxAttempts}] Status: ${statusData.status}`
+      );
 
       if (statusData.status === 'ready') {
         console.log('');
@@ -109,7 +113,9 @@ async function testExport() {
       } else if (statusData.status === 'failed') {
         console.log('');
         console.error('❌ Export failed!');
-        console.error(`   Error: ${statusData.error_message || 'Unknown error'}`);
+        console.error(
+          `   Error: ${statusData.error_message || 'Unknown error'}`
+        );
         break;
       }
 
@@ -121,7 +127,6 @@ async function testExport() {
       console.warn('⚠️  Timeout waiting for export to complete');
       console.log('   Check status manually or try again later');
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     console.error(error.stack);
@@ -130,4 +135,3 @@ async function testExport() {
 }
 
 testExport();
-

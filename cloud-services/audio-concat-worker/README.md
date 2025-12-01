@@ -5,6 +5,7 @@ Cloudflare Worker for concatenating multiple audio segments into a single MP3 fi
 ## Purpose
 
 This worker processes audio concatenation requests from the LangQuest export API. It:
+
 - Downloads multiple audio segments
 - Concatenates them using ffmpeg-wasm
 - Uploads the result to R2 storage
@@ -35,6 +36,7 @@ npm run deploy
 ## Known Issues
 
 ⚠️ **FFmpeg.wasm may not work in Cloudflare Workers**: The `@ffmpeg/ffmpeg` library uses Web Workers, which are not fully supported in Cloudflare Workers. This worker may need to be refactored to:
+
 - Use a Node.js service instead of Cloudflare Workers
 - Use Cloudflare's Stream API for media processing
 - Use a different audio processing library compatible with Workers
@@ -42,6 +44,7 @@ npm run deploy
 ## Environment Variables
 
 Set in Cloudflare dashboard:
+
 - `LANGQUEST_SUPABASE_URL` - Supabase project URL (for downloading source audio)
 - `LANGQUEST_SUPABASE_SERVICE_KEY` - Service role key (if needed for auth)
 
@@ -50,6 +53,7 @@ Set in Cloudflare dashboard:
 **POST** `/concat`
 
 Request body:
+
 ```json
 {
   "audioUrls": ["https://...", "https://..."],
@@ -59,6 +63,7 @@ Request body:
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -72,4 +77,3 @@ Response:
 - Maximum 100 audio segments per request (to prevent timeout)
 - Worker timeout: 30 seconds (Cloudflare free tier) or 15 minutes (paid)
 - Large chapters may need chunked processing
-

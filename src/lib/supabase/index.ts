@@ -18,14 +18,24 @@ export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
       let devUrl = 'http://127.0.0.1:54321';
       try {
         const siteUrl = env.NEXT_PUBLIC_SITE_URL;
-        if (siteUrl && !siteUrl.includes('localhost') && !siteUrl.includes('127.0.0.1')) {
+        if (
+          siteUrl &&
+          !siteUrl.includes('localhost') &&
+          !siteUrl.includes('127.0.0.1')
+        ) {
           // Extract hostname from site URL (e.g., http://192.168.1.86:3000 -> 192.168.1.86)
           const url = new URL(siteUrl);
           devUrl = `http://${url.hostname}:54321`;
-          console.log('[SUPABASE INDEX] Using network-accessible dev URL:', devUrl);
+          console.log(
+            '[SUPABASE INDEX] Using network-accessible dev URL:',
+            devUrl
+          );
         }
       } catch (e) {
-        console.log('[SUPABASE INDEX] Could not parse site URL, using default:', devUrl);
+        console.log(
+          '[SUPABASE INDEX] Could not parse site URL, using default:',
+          devUrl
+        );
       }
       return {
         url: devUrl,

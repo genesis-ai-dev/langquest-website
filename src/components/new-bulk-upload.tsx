@@ -200,7 +200,9 @@ export function BulkUpload({
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as { error?: string };
+      const errorData = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(
         errorData.error || `Upload failed: ${response.statusText}`
       );

@@ -3,13 +3,14 @@
 /**
  * Helper to get Supabase access token
  * Usage: node scripts/get-token.js <email> <password>
- * 
+ *
  * This will authenticate and print your access token
  */
 
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dev.supabase.co';
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dev.supabase.co';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!SUPABASE_ANON) {
@@ -48,8 +49,9 @@ async function getToken() {
   console.log(data.session.access_token);
   console.log('');
   console.log('To test export, run:');
-  console.log(`node scripts/test-export-simple.js "${data.session.access_token}"`);
+  console.log(
+    `node scripts/test-export-simple.js "${data.session.access_token}"`
+  );
 }
 
 getToken();
-

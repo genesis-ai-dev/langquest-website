@@ -19,4 +19,3 @@ export interface Env {
   LANGQUEST_SUPABASE_URL?: string;
   LANGQUEST_SUPABASE_SERVICE_KEY?: string;
 }
-

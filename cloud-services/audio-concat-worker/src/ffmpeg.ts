@@ -1,11 +1,11 @@
 /**
  * Concatenate multiple audio files into a single file
- * 
+ *
  * NOTE: FFmpeg.wasm doesn't work in Cloudflare Workers due to Web Worker requirements.
  * This implementation uses simple binary concatenation:
  * - For WAV: Combines data chunks (skips headers after first file)
  * - For MP3: Simple binary concatenation (works for CBR MP3s with same settings)
- * 
+ *
  * For production, consider:
  * - Moving to a Node.js service with native FFmpeg
  * - Using Cloudflare's Stream API (for video/audio)
@@ -15,7 +15,9 @@ export async function concatenateAudio(
   audioUrls: string[],
   format: 'mp3' | 'wav' = 'mp3'
 ): Promise<{ buffer: ArrayBuffer; durationMs: number }> {
-  console.log(`[Audio Concat] Concatenating ${audioUrls.length} ${format.toUpperCase()} files`);
+  console.log(
+    `[Audio Concat] Concatenating ${audioUrls.length} ${format.toUpperCase()} files`
+  );
 
   // Download all audio files
   const audioBuffers: ArrayBuffer[] = [];
@@ -24,9 +26,9 @@ export async function concatenateAudio(
   for (let i = 0; i < audioUrls.length; i++) {
     const url = audioUrls[i];
     console.log(`[Audio Concat] Processing file ${i + 1}/${audioUrls.length}`);
-    
+
     let arrayBuffer: ArrayBuffer;
-    
+
     if (url.startsWith('data:')) {
       // Handle data URL (base64 encoded)
       const base64Data = url.split(',')[1];
@@ -36,18 +38,22 @@ export async function concatenateAudio(
         bytes[j] = binaryString.charCodeAt(j);
       }
       arrayBuffer = bytes.buffer;
-      console.log(`[Audio Concat] Decoded base64 data: ${arrayBuffer.byteLength} bytes`);
+      console.log(
+        `[Audio Concat] Decoded base64 data: ${arrayBuffer.byteLength} bytes`
+      );
     } else {
       // Handle HTTP URL
       console.log(`[Audio Concat] Downloading from URL: ${url}`);
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to download audio file ${i + 1}: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to download audio file ${i + 1}: ${response.status} ${response.statusText}`
+        );
       }
       arrayBuffer = await response.arrayBuffer();
       console.log(`[Audio Concat] Downloaded ${arrayBuffer.byteLength} bytes`);
     }
-    
+
     audioBuffers.push(arrayBuffer);
     totalSize += arrayBuffer.byteLength;
   }
@@ -60,14 +66,14 @@ export async function concatenateAudio(
     // For WAV files, we need to handle the RIFF header properly
     // WAV structure: RIFF header (12 bytes) + fmt chunk + data chunk
     // To concatenate: Keep first file's header, combine data chunks, update file size
-    
+
     const firstBuffer = new Uint8Array(audioBuffers[0]);
-    
+
     // Find the data chunk in the first file (starts after "RIFF" header and fmt chunk)
     // Look for "data" chunk marker (0x64617461 = "data")
     let dataStart = 12; // After RIFF header
     let dataSize = 0;
-    
+
     // Skip fmt chunk to find data chunk
     while (dataStart < firstBuffer.length - 8) {
       const chunkId = String.fromCharCode(
@@ -76,11 +82,12 @@ export async function concatenateAudio(
         firstBuffer[dataStart + 2],
         firstBuffer[dataStart + 3]
       );
-      const chunkSize = firstBuffer[dataStart + 4] | 
-                       (firstBuffer[dataStart + 5] << 8) |
-                       (firstBuffer[dataStart + 6] << 16) |
-                       (firstBuffer[dataStart + 7] << 24);
-      
+      const chunkSize =
+        firstBuffer[dataStart + 4] |
+        (firstBuffer[dataStart + 5] << 8) |
+        (firstBuffer[dataStart + 6] << 16) |
+        (firstBuffer[dataStart + 7] << 24);
+
       if (chunkId === 'data') {
         dataSize = chunkSize;
         dataStart += 8; // Skip chunk header
@@ -88,7 +95,7 @@ export async function concatenateAudio(
       }
       dataStart += 8 + chunkSize;
     }
-    
+
     // Calculate total data size (sum of all data chunks)
     let totalDataSize = firstBuffer.length - dataStart;
     for (let i = 1; i < audioBuffers.length; i++) {
@@ -102,11 +109,12 @@ export async function concatenateAudio(
           buffer[fileDataStart + 2],
           buffer[fileDataStart + 3]
         );
-        const chunkSize = buffer[fileDataStart + 4] | 
-                         (buffer[fileDataStart + 5] << 8) |
-                         (buffer[fileDataStart + 6] << 16) |
-                         (buffer[fileDataStart + 7] << 24);
-        
+        const chunkSize =
+          buffer[fileDataStart + 4] |
+          (buffer[fileDataStart + 5] << 8) |
+          (buffer[fileDataStart + 6] << 16) |
+          (buffer[fileDataStart + 7] << 24);
+
         if (chunkId === 'data') {
           fileDataStart += 8;
           totalDataSize += buffer.length - fileDataStart;
@@ -115,36 +123,36 @@ export async function concatenateAudio(
         fileDataStart += 8 + chunkSize;
       }
     }
-    
+
     // Create new WAV file with updated header
     actualTotalSize = dataStart + totalDataSize + 4; // +4 for RIFF size field
     concatenated = new Uint8Array(actualTotalSize);
-    
+
     // Copy first file's header
     concatenated.set(firstBuffer.slice(0, dataStart), 0);
-    
+
     // Update RIFF file size (total size - 8 bytes for "RIFF" and size field)
     const fileSize = actualTotalSize - 8;
     concatenated[4] = fileSize & 0xff;
     concatenated[5] = (fileSize >> 8) & 0xff;
     concatenated[6] = (fileSize >> 16) & 0xff;
     concatenated[7] = (fileSize >> 24) & 0xff;
-    
+
     // Update data chunk size
     concatenated[dataStart - 4] = totalDataSize & 0xff;
     concatenated[dataStart - 3] = (totalDataSize >> 8) & 0xff;
     concatenated[dataStart - 2] = (totalDataSize >> 16) & 0xff;
     concatenated[dataStart - 1] = (totalDataSize >> 24) & 0xff;
-    
+
     // Copy first file's data
     concatenated.set(firstBuffer.slice(dataStart), dataStart);
     let offset = dataStart + (firstBuffer.length - dataStart);
-    
+
     // Copy data chunks from subsequent files
     for (let i = 1; i < audioBuffers.length; i++) {
       const buffer = new Uint8Array(audioBuffers[i]);
       let fileDataStart = 12;
-      
+
       // Find data chunk
       while (fileDataStart < buffer.length - 8) {
         const chunkId = String.fromCharCode(
@@ -153,11 +161,12 @@ export async function concatenateAudio(
           buffer[fileDataStart + 2],
           buffer[fileDataStart + 3]
         );
-        const chunkSize = buffer[fileDataStart + 4] | 
-                         (buffer[fileDataStart + 5] << 8) |
-                         (buffer[fileDataStart + 6] << 16) |
-                         (buffer[fileDataStart + 7] << 24);
-        
+        const chunkSize =
+          buffer[fileDataStart + 4] |
+          (buffer[fileDataStart + 5] << 8) |
+          (buffer[fileDataStart + 6] << 16) |
+          (buffer[fileDataStart + 7] << 24);
+
         if (chunkId === 'data') {
           fileDataStart += 8;
           concatenated.set(buffer.slice(fileDataStart), offset);
@@ -167,7 +176,7 @@ export async function concatenateAudio(
         fileDataStart += 8 + chunkSize;
       }
     }
-    
+
     // Estimate duration for WAV: assume 16kHz mono 16-bit PCM
     // 16kHz = 16000 samples/sec, 16-bit = 2 bytes/sample = 32000 bytes/sec
     const sampleRate = 16000;
@@ -175,13 +184,15 @@ export async function concatenateAudio(
     const channels = 1; // mono
     const bytesPerSecond = sampleRate * bytesPerSample * channels;
     const durationMs = Math.floor((totalDataSize / bytesPerSecond) * 1000);
-    
-    console.log(`[Audio Concat] Concatenated WAV: ${totalDataSize} bytes of audio data, estimated duration: ${durationMs}ms`);
-    
+
+    console.log(
+      `[Audio Concat] Concatenated WAV: ${totalDataSize} bytes of audio data, estimated duration: ${durationMs}ms`
+    );
+
     // Convert ArrayBufferLike to ArrayBuffer by creating a new ArrayBuffer and copying data
     const arrayBuffer = new ArrayBuffer(concatenated.buffer.byteLength);
     new Uint8Array(arrayBuffer).set(new Uint8Array(concatenated.buffer));
-    
+
     return {
       buffer: arrayBuffer,
       durationMs
@@ -208,16 +219,17 @@ export async function concatenateAudio(
     const bytesPerSecond = estimatedBitrate / 8; // 16000 bytes per second
     const durationMs = Math.floor((totalSize / bytesPerSecond) * 1000);
 
-    console.log(`[Audio Concat] Estimated duration: ${durationMs}ms (${Math.floor(durationMs / 1000)}s)`);
+    console.log(
+      `[Audio Concat] Estimated duration: ${durationMs}ms (${Math.floor(durationMs / 1000)}s)`
+    );
 
     // Convert ArrayBufferLike to ArrayBuffer by creating a new ArrayBuffer and copying data
     const arrayBuffer = new ArrayBuffer(concatenated.buffer.byteLength);
     new Uint8Array(arrayBuffer).set(new Uint8Array(concatenated.buffer));
 
-    return { 
-      buffer: arrayBuffer, 
-      durationMs 
+    return {
+      buffer: arrayBuffer,
+      durationMs
     };
   }
 }
-
