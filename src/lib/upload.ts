@@ -131,8 +131,6 @@ export async function uploadZipDirect(
 
   const { uploadUrl, path } = await res.json();
 
-  console.log('Signed upload URL:', uploadUrl);
-
   // 2. Upload to Signed URL
   const uploadRes = await fetch(uploadUrl, {
     method: 'PUT',
@@ -144,4 +142,30 @@ export async function uploadZipDirect(
   }
 
   return path;
+}
+
+export async function deleteZipFile(
+  uploadPath: string,
+  accessToken: string,
+  environment?: string
+) {
+  try {
+    const response = await fetch('/api/delete-upload', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        uploadPath,
+        environment: environment || 'production'
+      })
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to delete ZIP file: ${uploadPath}`);
+    }
+  } catch (error) {
+    console.warn(`Error deleting ZIP file: ${uploadPath}`, error);
+  }
 }

@@ -203,8 +203,6 @@ export function BulkUpload({
       formData.append('questId', questId);
     }
 
-    console.log('>>>>>>> Starting processing');
-
     const response = await fetch('/api/bulkupload', {
       method: 'POST',
       body: formData,
@@ -220,7 +218,21 @@ export function BulkUpload({
       );
     }
 
-    return await response.json();
+    console.log('Processing completed, fetching result');
+
+    const result = await response.json();
+
+    // Delete the ZIP file after successful processing
+    try {
+      console.log('Deleting ZIP file:', uploadPath);
+      const { deleteZipFile } = await import('@/lib/upload');
+      await deleteZipFile(uploadPath, session.access_token, environment);
+    } catch (deleteError) {
+      console.warn('Failed to delete ZIP file:', deleteError);
+      // Don't throw error - the main operation was successful
+    }
+
+    return result;
   };
 
   const handleUpload = async () => {
@@ -355,17 +367,38 @@ export function BulkUpload({
           <AlertDescription>
             Your ZIP file should contain:
             <ul className="list-disc list-inside mt-2 space-y-0.5">
-              <li>One CSV file with your data (download template below)</li>
+              <li>
+                One <b>CSV</b> file with your data (download template below)
+              </li>
               <li>
                 Image files (.jpg, .jpeg, .png, .webp) referenced in the CSV
               </li>
-              <li>Audio files (.mp3, .wav, .ogg) referenced in the CSV</li>
+              <li>
+                Audio files (.mp3, .m4a, .wav, .ogg) referenced in the CSV
+              </li>
               <li>
                 The tags, source content, and source audio must be separated by
                 semicolons (‘;’) if there is more than one.
               </li>
               <li>
-                All files must be inside the assets folder in the ZIP archive
+                All files must be inside the <b>assets</b> folder in the ZIP
+                archive
+              </li>
+              <li>Avoid using special characters in file names</li>
+              <li>
+                Ensure that the CSV file references the media files correctly by
+                their filenames.
+              </li>
+              <li>
+                Quests without a parent name, or with a non-existent parent
+                name, will be placed at the root of the project
+              </li>
+              <li>
+                Quests without a parent name, or with a non-existent parent
+                name, will be placed at the root of the project
+              </li>
+              <li>
+                The maximum allowed ZIP file size is <b>50MB</b>
               </li>
             </ul>
           </AlertDescription>
