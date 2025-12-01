@@ -1,0 +1,14 @@
+name = "langquest-audio-concat"
+main = "src/index.ts"
+compatibility_date = "2024-06-20"
+account_id = "6a80496d1e59948a9cbaa3c643ba81d7"
+
+# R2 bucket for storing concatenated audio files
+[[r2_buckets]]
+binding = "R2_EXPORTS"
+bucket_name = "langquest-exports"
+
+# Environment variables set via Cloudflare dashboard or wrangler secret
+# LANGQUEST_SUPABASE_URL - Supabase project URL
+# LANGQUEST_SUPABASE_SERVICE_KEY - Service role key for storage access
+

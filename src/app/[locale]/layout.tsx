@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { ClientProviders } from '../../components/client-providers';
 import { Toaster } from '@/components/ui/sonner';
@@ -56,8 +57,16 @@ export default async function RootLayout({
       dir={dir}
       suppressHydrationWarning
     >
+      <head>
+        <Script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="3b8e22dc-d0f1-4677-a2ed-f23a2a705c94"
+          strategy="afterInteractive"
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}
       >
         <NextIntlClientProvider>
           <ClientProviders>{children}</ClientProviders>
