@@ -835,7 +835,12 @@ export async function POST(request: NextRequest) {
           );
           throw new Error(`Worker error: ${response.status} ${text}`);
         }
-        const result = await response.json();
+        const result = (await response.json()) as {
+          success?: boolean;
+          audioUrl?: string;
+          durationMs?: number;
+          error?: string;
+        };
         console.log('[Export API] Worker result:', result);
 
         if (result.success && result.audioUrl && result.durationMs) {

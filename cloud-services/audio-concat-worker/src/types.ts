@@ -1,3 +1,5 @@
+/// <reference types="@cloudflare/workers-types" />
+
 export interface ConcatRequest {
   audioUrls?: string[]; // URLs to download (if provided)
   audioData?: Array<{ data: string; format: string }>; // Base64 encoded audio data (alternative to URLs)
@@ -13,7 +15,7 @@ export interface ConcatResponse {
 }
 
 export interface Env {
-  R2_EXPORTS: R2Bucket;
+  R2_EXPORTS: R2Bucket | any; // R2Bucket from @cloudflare/workers-types
   LANGQUEST_SUPABASE_URL?: string;
   LANGQUEST_SUPABASE_SERVICE_KEY?: string;
 }

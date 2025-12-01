@@ -1,15 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { Database } from '../../../../database.types';
-import { getSupabaseCredentials } from '@/lib/supabase';
+import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
 
 export async function POST(request: Request) {
   try {
-    const { english_name, native_name, iso639_3, environment } =
-      await request.json();
+    const body = await request.json() as {
+      english_name?: string;
+      native_name?: string;
+      iso639_3?: string;
+      environment?: string;
+    };
+    const { english_name, native_name, iso639_3, environment } = body;
 
-    const envAux = environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+    const envAux = (environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production') as SupabaseEnvironment;
     const { url, key } = getSupabaseCredentials(envAux);
 
     let accessToken: string | undefined;
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
       .from('language')
       .select()
       .eq('english_name', english_name.trim())
-      .eq('native_name', native_name.trim())
+      .eq('native_name', (native_name || english_name.trim()).trim())
       .eq('iso639_3', isoCode)
       .single();
 

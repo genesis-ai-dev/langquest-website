@@ -28,8 +28,8 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 
 interface BulkUploadProps {
-  mode: 'project' | 'quest' | 'asset';
-  projectId?: string; // Required for Quest and Asset mode
+  mode: 'project' | 'quest' | 'asset' | 'questToProject';
+  projectId?: string; // Required for Quest, Asset, and questToProject mode
   questId?: string; // Required for Asset mode
   onSuccess?: () => void;
 }
@@ -200,7 +200,7 @@ export function BulkUpload({
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({})) as { error?: string };
       throw new Error(
         errorData.error || `Upload failed: ${response.statusText}`
       );

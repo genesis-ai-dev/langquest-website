@@ -178,8 +178,12 @@ export async function concatenateAudio(
     
     console.log(`[Audio Concat] Concatenated WAV: ${totalDataSize} bytes of audio data, estimated duration: ${durationMs}ms`);
     
+    // Convert ArrayBufferLike to ArrayBuffer by creating a new ArrayBuffer and copying data
+    const arrayBuffer = new ArrayBuffer(concatenated.buffer.byteLength);
+    new Uint8Array(arrayBuffer).set(new Uint8Array(concatenated.buffer));
+    
     return {
-      buffer: concatenated.buffer,
+      buffer: arrayBuffer,
       durationMs
     };
   } else {
@@ -206,8 +210,12 @@ export async function concatenateAudio(
 
     console.log(`[Audio Concat] Estimated duration: ${durationMs}ms (${Math.floor(durationMs / 1000)}s)`);
 
+    // Convert ArrayBufferLike to ArrayBuffer by creating a new ArrayBuffer and copying data
+    const arrayBuffer = new ArrayBuffer(concatenated.buffer.byteLength);
+    new Uint8Array(arrayBuffer).set(new Uint8Array(concatenated.buffer));
+
     return { 
-      buffer: concatenated.buffer, 
+      buffer: arrayBuffer, 
       durationMs 
     };
   }

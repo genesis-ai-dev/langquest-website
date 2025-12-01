@@ -7,7 +7,7 @@ import { existsSync } from 'fs';
 /**
  * GET /api/export/audio/[...key]
  * Proxy endpoint to serve audio files from R2 storage
- * 
+ *
  * In development: Fetches from local Wrangler R2 storage by querying SQLite
  * In production: Would fetch from Cloudflare R2 (needs implementation)
  */
@@ -22,16 +22,20 @@ export async function GET(
     if (env.NEXT_PUBLIC_ENVIRONMENT === 'development') {
       // In development, fetch from local Wrangler R2 storage
       // Find the SQLite database and blob file
-      const workerDir = join(process.cwd(), 'cloud-services', 'audio-concat-worker');
+      const workerDir = join(
+        process.cwd(),
+        'cloud-services',
+        'audio-concat-worker'
+      );
       const r2StateDir = join(workerDir, '.wrangler', 'state', 'v3', 'r2');
       const bucketDir = join(r2StateDir, 'langquest-exports');
       const sqliteDir = join(r2StateDir, 'miniflare-R2BucketObject');
 
       // Find SQLite database file
-      const sqliteFiles = await import('fs').then(fs => 
+      const sqliteFiles = await import('fs').then((fs) =>
         fs.promises.readdir(sqliteDir).catch(() => [])
       );
-      
+
       if (sqliteFiles.length === 0) {
         return NextResponse.json(
           { error: 'R2 storage not found. Make sure wrangler dev is running.' },
@@ -42,7 +46,7 @@ export async function GET(
       // Query SQLite to find blob_id for this key
       const { execSync } = await import('child_process');
       const sqliteFile = join(sqliteDir, sqliteFiles[0]);
-      
+
       try {
         // Escape single quotes for SQL
         const escapedKey = r2Key.replace(/'/g, "''");
@@ -71,17 +75,28 @@ export async function GET(
 
         // Read and serve the file
         const fileBuffer = await readFile(blobPath);
-        const contentType = httpMetadata 
+        const contentType = httpMetadata
           ? JSON.parse(httpMetadata).contentType || 'audio/mpeg'
           : 'audio/mpeg';
 
-        return new NextResponse(fileBuffer, {
+        // Convert Buffer to ArrayBuffer for NextResponse
+        // Create a new ArrayBuffer by copying the data to ensure it's not a SharedArrayBuffer
+        const uint8Array = new Uint8Array(
+          fileBuffer.buffer,
+          fileBuffer.byteOffset,
+          fileBuffer.byteLength
+        );
+        // Create a new ArrayBuffer and copy the data
+        const arrayBuffer = new ArrayBuffer(uint8Array.length);
+        new Uint8Array(arrayBuffer).set(uint8Array);
+
+        return new NextResponse(arrayBuffer, {
           headers: {
             'Content-Type': contentType,
             'Content-Length': fileBuffer.length.toString(),
             'Cache-Control': 'public, max-age=3600',
-            'Accept-Ranges': 'bytes',
-          },
+            'Accept-Ranges': 'bytes'
+          }
         });
       } catch (error: any) {
         console.error('Error reading from local R2:', error);
@@ -109,4 +124,3 @@ export async function GET(
     );
   }
 }
-

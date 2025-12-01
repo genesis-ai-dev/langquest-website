@@ -629,8 +629,6 @@ export function ProjectWizard({
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select source language"
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
                       onCreateSuccess={handleLanguageCreated}
                       disabled={projectToClone !== undefined}
                     />
@@ -670,8 +668,6 @@ export function ProjectWizard({
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select target language"
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
                       onCreateSuccess={handleLanguageCreated}
                     />
                   </FormControl>

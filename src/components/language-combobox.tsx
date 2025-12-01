@@ -163,11 +163,11 @@ export function LanguageCombobox({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error?: string };
         throw new Error(errorData.error || 'Failed to create language');
       }
 
-      const data = await response.json();
+      const data = await response.json() as Language;
 
       // Store the newly created language
       setNewlyCreatedLanguage(data);

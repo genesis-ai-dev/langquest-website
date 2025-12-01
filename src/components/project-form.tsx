@@ -288,8 +288,6 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select source language"
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
                       onCreateSuccess={handleLanguageCreated}
                     />
                   </FormControl>
@@ -326,8 +324,6 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select target language"
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
                       onCreateSuccess={handleLanguageCreated}
                     />
                   </FormControl>

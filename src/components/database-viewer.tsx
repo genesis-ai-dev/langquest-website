@@ -266,7 +266,7 @@ const fetchTableSchemas = async () => {
     throw new Error('Invalid content type');
   }
 
-  const data = await response.json();
+  const data = await response.json() as { definitions?: Record<string, any> };
   if (!data.definitions) {
     throw new Error('Invalid schema format');
   }
