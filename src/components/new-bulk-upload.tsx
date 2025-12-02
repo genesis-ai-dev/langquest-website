@@ -394,10 +394,6 @@ export function BulkUpload({
                 name, will be placed at the root of the project
               </li>
               <li>
-                Quests without a parent name, or with a non-existent parent
-                name, will be placed at the root of the project
-              </li>
-              <li>
                 The maximum allowed ZIP file size is <b>50MB</b>
               </li>
             </ul>

@@ -86,15 +86,12 @@ export function QuestsUnstructured({
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
   // Handlers for modal actions
-  const [showQuestForm, setShowQuestForm] = useState(false);
-  const handleAddQuest = () => setShowQuestForm(true);
   const handleAssetClick = (asset: any) => {
     setSelectedAsset(asset);
     setShowAssetModal(true);
   };
 
-  const handleQuestSuccess = (/*data: { id: string }*/) => {
-    setShowQuestForm(false);
+  const handleQuestSuccess = () => {
     // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ['quests', projectId] });
     queryClient.invalidateQueries({
@@ -119,6 +116,7 @@ export function QuestsUnstructured({
       queryKey: ['quest-assets', selectedQuestId, environment]
     });
   };
+
   return (
     <SidebarProvider>
       <div className="w-full flex min-h-[600px] gap-4">
@@ -128,9 +126,9 @@ export function QuestsUnstructured({
             project={project}
             projectId={projectId}
             userRole={userRole}
-            onAddQuest={handleAddQuest}
             onSelectQuest={onSelectQuest}
             selectedQuestId={selectedQuestId}
+            onQuestSuccess={handleQuestSuccess}
             // quests={quests}
             questsTree={questsTree}
             questsLoading={questsLoading}
@@ -154,23 +152,6 @@ export function QuestsUnstructured({
         </div>
       </div>
 
-      {/* Quest Creation Modal */}
-      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Quest</DialogTitle>
-            <DialogDescription>
-              Add a new quest to organize your project content.
-            </DialogDescription>
-          </DialogHeader>
-          <QuestForm
-            onSuccess={handleQuestSuccess}
-            projectId={projectId}
-            questParentId={selectedQuestId || undefined}
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Asset View Modal */}
       <Dialog open={showAssetModal} onOpenChange={setShowAssetModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -188,9 +169,9 @@ function QuestsSideBar({
   // project,
   projectId,
   userRole,
-  onAddQuest,
   onSelectQuest,
   selectedQuestId,
+  onQuestSuccess,
   // quests,
   questsTree,
   questsLoading,
@@ -199,9 +180,9 @@ function QuestsSideBar({
   project: any;
   projectId: string;
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
-  onAddQuest: () => void;
   onSelectQuest: (questId: string | null, quest?: Quest | null) => void;
   selectedQuestId: string | null;
+  onQuestSuccess: () => void;
   // quests: any[] | undefined;
   questsTree: Quest[] | undefined;
   questsLoading: boolean;
@@ -231,22 +212,6 @@ function QuestsSideBar({
       }
     }
   }, [selectedQuestId, questsTree]);
-
-  // Build hierarchical quest structure
-  // const buildQuestTree = (
-  //   quests: any[],
-  //   parentId: string | null = null
-  // ): any[] => {
-  //   return quests
-  //     .filter((quest) => quest.parent_id === parentId)
-  //     .map((quest) => ({
-  //       ...quest,
-  //       children: buildQuestTree(quests, quest.id)
-  //     }));
-  // };
-
-  // const questTree = questsTree; // quests ? buildQuestTree(quests) : [];
-  // const totalQuests = quests?.length || 0;
 
   // Toggle expansion of items
   const toggleExpanded = (questId: string) => {
@@ -367,20 +332,11 @@ function QuestsSideBar({
     );
 
     return level > 0 ? (
-      <SidebarMenuSubItem
-        key={quest.id}
-        className="w-full overflow-clip"
-        // className={cn(isSelected && 'bg-accent2')}
-      >
+      <SidebarMenuSubItem key={quest.id} className="w-full overflow-clip">
         {ButtonComponent}
       </SidebarMenuSubItem>
     ) : (
-      <SidebarMenuItem
-        // className={cn(isSelected && 'bg-accent2')}
-        key={quest.id}
-      >
-        {ButtonComponent}
-      </SidebarMenuItem>
+      <SidebarMenuItem key={quest.id}>{ButtonComponent}</SidebarMenuItem>
     );
   };
 
@@ -389,11 +345,10 @@ function QuestsSideBar({
       <CardHeader className="h-8 ">
         <div className="flex items-center justify-between ">
           <CardTitle className="text-lg">Quests</CardTitle>
-          {/* TODO: Update QuestMenu to use new pattern */}
           <QuestMenu
             canManage={canManage}
             projectId={projectId}
-            onAddQuest={onAddQuest}
+            onQuestSuccess={onQuestSuccess}
           />
         </div>
       </CardHeader>
@@ -538,8 +493,6 @@ function QuestContent({
         .is('asset.source_asset_id', null)
         .order('created_at', { ascending: true });
 
-      console.log('Fetched quest assets data:', { data, error });
-
       if (error) throw error;
 
       // Filter only assets that are active and extract the asset data
@@ -616,7 +569,6 @@ function QuestContent({
   };
 
   if (!selectedQuestId) {
-    // Mostrar quests raiz quando não há quest selecionada
     return (
       <Card className="h-full flex flex-col max-h-[700px] overflow-hidden">
         <CardHeader className="max-h-8">
@@ -633,7 +585,7 @@ function QuestContent({
         <CardContent className="flex-1 p-0 border-t">
           <ScrollArea className="h-[600px]">
             <div className="p-4 space-y-8">
-              {/* Root Quests Section */}
+              {/* Root Quests Section
               {rootQuests && rootQuests.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -664,7 +616,19 @@ function QuestContent({
                     </p>
                   )}
                 </div>
-              )}
+              )} */}
+              <div className="text-center text-muted-foreground py-12">
+                <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2">Select a Quest</h3>
+                <p className="text-sm mt-2">
+                  Select a quest from the sidebar to view its contents.
+                </p>
+                {canManage && (
+                  <p className="text-sm mt-2">
+                    or use the + button to create a quest.
+                  </p>
+                )}
+              </div>
             </div>
           </ScrollArea>
         </CardContent>

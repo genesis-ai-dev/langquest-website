@@ -12,6 +12,15 @@ export const validateZipFiles = async (
   const errors: string[] = [];
 
   try {
+    // Check file size (50MB = 50 * 1024 * 1024 bytes)
+    const maxSizeBytes = 50 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      errors.push(
+        `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds maximum allowed size of 50MB`
+      );
+      return { isValid: false, errors };
+    }
+
     const zip = new JSZip();
     const zipContents = await zip.loadAsync(file);
 
