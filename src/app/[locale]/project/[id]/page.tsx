@@ -222,7 +222,7 @@ function ProjectPageContent() {
   }
 
   // Check if user has access
-  const hasAccess = userPermission || user?.user_metadata?.role === 'admin';
+  // const hasAccess = userPermission || user?.user_metadata?.role === 'admin';
 
   // if (!hasAccess && project.private === true) {
   //   return (

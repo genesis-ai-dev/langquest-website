@@ -24,7 +24,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const accessToken = authHeader.substring(7);
+    // const accessToken = authHeader.substring(7);
     const envAux = (environment ||
       env.NEXT_PUBLIC_ENVIRONMENT ||
       'production') as SupabaseEnvironment;
