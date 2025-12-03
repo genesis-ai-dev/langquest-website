@@ -26,6 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
+import { validateZipFiles, uploadZipDirect } from '@/lib/upload';
 
 interface BulkUploadProps {
   mode: 'project' | 'quest' | 'asset' | 'questToProject';
@@ -59,6 +60,7 @@ export function BulkUpload({
 }: BulkUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [progress, setProgress] = useState<UploadProgress>({
     uploading: false,
     result: null
@@ -168,8 +170,25 @@ export function BulkUpload({
       throw new Error('File and user are required');
     }
 
+    const {
+      data: { session }
+    } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('No authentication token available');
+    }
+
+    // Use uploadZipDirect to upload file directly to storage
+    const uploadPath = await uploadZipDirect(
+      file,
+      session.access_token,
+      environment
+    );
+
+    console.log('Upload path:', uploadPath);
+
+    // Now call the processing API with the uploaded file path
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('uploadPath', uploadPath);
     formData.append('environment', environment);
 
     // Map mode to API type
@@ -182,13 +201,6 @@ export function BulkUpload({
     }
     if (questId) {
       formData.append('questId', questId);
-    }
-
-    const {
-      data: { session }
-    } = await supabaseClient.auth.getSession();
-    if (!session?.access_token) {
-      throw new Error('No authentication token available');
     }
 
     const response = await fetch('/api/bulkupload', {
@@ -204,11 +216,25 @@ export function BulkUpload({
         error?: string;
       };
       throw new Error(
-        errorData.error || `Upload failed: ${response.statusText}`
+        errorData.error || `Processing failed: ${response.statusText}`
       );
     }
 
-    return await response.json();
+    console.log('Processing completed, fetching result');
+
+    const result = await response.json();
+
+    // Delete the ZIP file after successful processing
+    try {
+      console.log('Deleting ZIP file:', uploadPath);
+      const { deleteZipFile } = await import('@/lib/upload');
+      await deleteZipFile(uploadPath, session.access_token, environment);
+    } catch (deleteError) {
+      console.warn('Failed to delete ZIP file:', deleteError);
+      // Don't throw error - the main operation was successful
+    }
+
+    return result;
   };
 
   const handleUpload = async () => {
@@ -221,6 +247,34 @@ export function BulkUpload({
       toast.error('You must be logged in to upload content');
       return;
     }
+
+    setIsValidating(true);
+
+    const validation = await validateZipFiles(file);
+    setIsValidating(false);
+
+    if (!validation.isValid) {
+      const validationResult: UploadResult = {
+        success: false,
+        message: 'ZIP file validation failed',
+        stats: {
+          projects: { read: 0, created: 0 },
+          quests: { read: 0, created: 0 },
+          assets: { read: 0, created: 0 },
+          errors: validation.errors.map((error, index) => ({
+            row: index + 1,
+            message: error
+          })),
+          warnings: []
+        }
+      };
+
+      setProgress({ uploading: false, result: validationResult });
+      toast.error('Validation failed. Please check the errors below.');
+      return;
+    }
+
+    toast.success('Validation successful! Uploading files...');
 
     setIsUploading(true);
     setProgress({ uploading: true, result: null });
@@ -252,6 +306,7 @@ export function BulkUpload({
 
   const resetUpload = () => {
     setFile(null);
+    setIsValidating(false);
     setProgress({ uploading: false, result: null });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -314,17 +369,34 @@ export function BulkUpload({
           <AlertDescription>
             Your ZIP file should contain:
             <ul className="list-disc list-inside mt-2 space-y-0.5">
-              <li>One CSV file with your data (download template below)</li>
+              <li>
+                One <b>CSV</b> file with your data (download template below)
+              </li>
               <li>
                 Image files (.jpg, .jpeg, .png, .webp) referenced in the CSV
               </li>
-              <li>Audio files (.mp3, .wav, .ogg) referenced in the CSV</li>
+              <li>
+                Audio files (.mp3, .m4a, .wav, .ogg) referenced in the CSV
+              </li>
               <li>
                 The tags, source content, and source audio must be separated by
                 semicolons (‘;’) if there is more than one.
               </li>
               <li>
-                All files must be inside the assets folder in the ZIP archive
+                All files must be inside the <b>assets</b> folder in the ZIP
+                archive
+              </li>
+              <li>Avoid using special characters in file names</li>
+              <li>
+                Ensure that the CSV file references the media files correctly by
+                their filenames.
+              </li>
+              <li>
+                Quests without a parent name, or with a non-existent parent
+                name, will be placed at the root of the project
+              </li>
+              <li>
+                The maximum allowed ZIP file size is <b>50MB</b>
               </li>
             </ul>
           </AlertDescription>
@@ -361,6 +433,28 @@ export function BulkUpload({
           </CardContent>
         </Card>
 
+        {isValidating && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Spinner className="h-4 w-4" />
+                Validating...
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center p-4">
+                <div className="text-center">
+                  <Spinner className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Validating CSV files and checking references in assets
+                    folder...
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {progress.uploading && (
           <Card>
             <CardHeader>
@@ -391,36 +485,51 @@ export function BulkUpload({
                 ) : (
                   <AlertCircle className="h-5 w-5 text-red-500" />
                 )}
-                Upload Results
+                {progress.result?.message === 'ZIP file validation failed'
+                  ? 'Validation Results'
+                  : 'Upload Results'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {progress.result.stats.projects.created}
+              {progress.result?.message !== 'ZIP file validation failed' && (
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {progress.result.stats.projects.created}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Projects Created
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Projects Created
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {progress.result.stats.quests.created}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Quests Created
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {progress.result.stats.assets.created}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Assets Created
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {progress.result.stats.quests.created}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Quests Created
-                  </div>
+              )}
+
+              {progress.result?.message === 'ZIP file validation failed' && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <h4 className="font-medium text-red-800 mb-2">
+                    Issues found in ZIP file:
+                  </h4>
+                  <p className="text-sm text-red-600">
+                    Please fix the issues below before uploading.
+                  </p>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {progress.result.stats.assets.created}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Assets Created
-                  </div>
-                </div>
-              </div>
+              )}
 
               {(progress.result.stats.errors.length > 0 ||
                 progress.result.stats.warnings.length > 0) && (
@@ -431,7 +540,10 @@ export function BulkUpload({
                       className="flex items-center gap-2"
                     >
                       <AlertCircle className="h-4 w-4" />
-                      Errors ({progress.result.stats.errors.length})
+                      {progress.result?.message === 'ZIP file validation failed'
+                        ? 'Validation Issues'
+                        : 'Errors'}{' '}
+                      ({progress.result.stats.errors.length})
                     </TabsTrigger>
                     <TabsTrigger
                       value="warnings"
@@ -448,7 +560,10 @@ export function BulkUpload({
                           key={index}
                           className="text-sm text-destructive mb-1"
                         >
-                          Row {error.row}: {error.message}
+                          {progress.result?.message ===
+                          'ZIP file validation failed'
+                            ? error.message
+                            : `Row ${error.row}: ${error.message}`}
                         </div>
                       ))}
                     </ScrollArea>
@@ -475,21 +590,30 @@ export function BulkUpload({
           <Button
             variant="outline"
             onClick={resetUpload}
-            disabled={isUploading}
+            disabled={isUploading || isValidating}
           >
             <X className="mr-2 h-4 w-4" />
             Reset
           </Button>
           <Button
             onClick={handleUpload}
-            disabled={!file || isUploading || !user}
+            disabled={!file || isUploading || isValidating || !user}
           >
-            <Upload className="mr-2 h-4 w-4" />
-            {isUploading
-              ? 'Uploading...'
-              : !user
-                ? 'Login Required'
-                : `Upload ZIP File`}
+            {isValidating ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Validating...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                {isUploading
+                  ? 'Uploading...'
+                  : !user
+                    ? 'Login Required'
+                    : `Upload ZIP File`}
+              </>
+            )}
           </Button>
         </div>
       </div>

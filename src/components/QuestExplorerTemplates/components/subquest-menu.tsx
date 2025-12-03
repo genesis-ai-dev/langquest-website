@@ -132,6 +132,7 @@ export function SubQuestMenu({
             onSuccess={() => {
               setShowBulkAssetUpload(false);
               toast.success('Assets uploaded successfully');
+              handleAssetSuccess();
             }}
           />
         </DialogContent>

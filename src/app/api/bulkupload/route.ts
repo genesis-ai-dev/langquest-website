@@ -98,14 +98,21 @@ export async function POST(request: NextRequest) {
     const questId = formData.get('questId') as string | null;
     const environment =
       (formData.get('environment') as string) || env.NEXT_PUBLIC_ENVIRONMENT;
-    const zipFile = formData.get('file') as File;
+    const uploadPath = formData.get('uploadPath') as string;
 
     // Debug logging
-    console.log('[BULK UPLOAD] Received file:', {
-      name: zipFile?.name,
-      type: zipFile?.type,
-      size: zipFile?.size
+    console.log('[BULK UPLOAD] Received uploadPath:', {
+      uploadPath,
+      type,
+      environment
     });
+
+    if (!uploadPath) {
+      return NextResponse.json(
+        { error: 'Parameter "uploadPath" is required' },
+        { status: 400 }
+      );
+    }
 
     if (!type || !['project', 'quest', 'asset'].includes(type)) {
       return NextResponse.json(
@@ -140,24 +147,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!zipFile) {
+    // Validar se o uploadPath parece ser um ZIP
+    if (!uploadPath.toLowerCase().includes('.zip')) {
       return NextResponse.json(
-        { error: 'A ZIP file is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate ZIP file by extension and/or MIME type
-    const isZipFile =
-      zipFile.name.toLowerCase().endsWith('.zip') ||
-      zipFile.type === 'application/zip' ||
-      zipFile.type === 'application/x-zip-compressed';
-
-    if (!isZipFile) {
-      return NextResponse.json(
-        {
-          error: `Invalid file type. Expected ZIP file, got: ${zipFile.type || 'unknown'} (${zipFile.name})`
-        },
+        { error: 'Upload path must reference a ZIP file' },
         { status: 400 }
       );
     }
@@ -196,7 +189,24 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const zipBuffer = await zipFile.arrayBuffer();
+    // Download ZIP file from Supabase Storage
+    console.log('[BULK UPLOAD] Downloading from:', uploadPath);
+    const { data: zipData, error: downloadError } = await supabase.storage
+      .from('uploads')
+      .download(uploadPath);
+
+    if (downloadError || !zipData) {
+      console.error('[BULK UPLOAD] Download error:', downloadError);
+      return NextResponse.json(
+        {
+          error: `Failed to download ZIP file: ${downloadError?.message || 'Unknown error'}`
+        },
+        { status: 500 }
+      );
+    }
+
+    // Convert blob to array buffer
+    const zipBuffer = await zipData.arrayBuffer();
     const zip = new JSZip();
     const zipContent = await zip.loadAsync(zipBuffer);
 
@@ -272,6 +282,7 @@ export async function POST(request: NextRequest) {
           lower.endsWith('.webp') ||
           lower.endsWith('.mp3') ||
           lower.endsWith('.wav') ||
+          lower.endsWith('.m4a') ||
           lower.endsWith('.ogg')) &&
         name !== csvFileName
       );
@@ -349,29 +360,6 @@ export async function POST(request: NextRequest) {
         throw new Error('Invalid type');
     }
 
-    // Executar funções de pós-processamento se houver IDs envolvidos
-    // if (
-    //   result.involvedIds &&
-    //   (result.involvedIds.projectIds.size > 0 ||
-    //     result.involvedIds.questIds.size > 0)
-    // ) {
-    //   try {
-    //     await executePostProcessingFunctions(
-    //       supabase,
-    //       result.involvedIds
-    //       // user.id
-    //     );
-    //   } catch (postProcessError) {
-    //     // Não falha o upload, apenas registra o erro
-    //     if (!result.stats.warnings) result.stats.warnings = [];
-    //     result.stats.warnings.push({
-    //       row: 0,
-    //       message: `Post-processing failed: ${postProcessError instanceof Error ? postProcessError.message : 'Unknown error'}`
-    //     });
-    //   }
-    // }
-
-    // Remover involvedIds do resultado final (não precisa retornar para o cliente)
     delete result.involvedIds;
 
     return NextResponse.json(result);
@@ -552,8 +540,6 @@ async function processContentAndAudio(
   // Determine the maximum length to iterate over
   const maxLength = Math.max(contentItems.length, audioItems.length);
 
-  console.log(contentItems, audioItems, maxLength);
-
   // If no content and no audio, skip
   if (maxLength === 0) {
     return;
@@ -662,8 +648,6 @@ async function processProjectUpload(
   fileMap: FileMap,
   environment: SupabaseEnvironment
 ): Promise<UploadResult> {
-  console.log('Environment:', environment);
-
   const result: UploadResult = {
     success: true,
     stats: {
@@ -725,7 +709,6 @@ async function processProjectUpload(
         ? normalizedData.imageFiles
             .split(';')
             .map((file) => {
-              console.log('Processing image file:', file);
               const fileName = file.trim().split('/').pop() || file.trim();
               if (fileMap[fileName]) {
                 return `${fileMap[fileName]}`;
@@ -917,6 +900,7 @@ async function processQuestUpload(
   );
 
   result.stats.quests.created = questCount;
+  result.stats.quests.read = questIdsByName.size - questCount; // Existing quests that were reused
 
   const questSet = new Set<string>();
 
@@ -1718,6 +1702,38 @@ async function prepareQuests(
 }> {
   const questIdsByName: QuestIdsByKey = new Map();
   const projectQuest = new Map<string, string>();
+  let createdCount = 0;
+
+  // First, get all existing quests for the projects involved
+  const projectIds = new Set<string>();
+  for (const row of data) {
+    let projectId: string | undefined;
+    if (typeof projectIdsByName === 'string') {
+      projectId = projectIdsByName;
+    } else if ('project_name' in row) {
+      projectId = projectIdsByName.get(row.project_name);
+    }
+    if (projectId) {
+      projectIds.add(projectId);
+    }
+  }
+
+  // Fetch existing quests for all involved projects
+  const existingQuestsMap = new Map<string, string>(); // questName -> questId
+  for (const projectId of projectIds) {
+    const { data: existingQuests } = await supabase
+      .from('quest')
+      .select('id, name')
+      .eq('project_id', projectId);
+
+    if (existingQuests) {
+      for (const quest of existingQuests) {
+        const questKey = `${projectId}:${quest.name}`;
+        existingQuestsMap.set(questKey, quest.id);
+        projectQuest.set(questKey, quest.id);
+      }
+    }
+  }
 
   for (const row of data) {
     let projectId: string | undefined;
@@ -1732,19 +1748,33 @@ async function prepareQuests(
         `Project ID not found for project name '${row.quest_name}'`
       );
     }
+
     const key = projectId + ':' + row.parent_quest_name + ':' + row.quest_name;
+    const questLookupKey = `${projectId}:${row.quest_name}`;
+
     if (!questIdsByName.has(key)) {
-      const { questId, error } = await processQuest(
-        row,
-        projectId,
-        supabase,
-        userId
-      );
-      if (error) {
-        throw new Error(error);
+      // Check if quest already exists
+      const existingQuestId = existingQuestsMap.get(questLookupKey);
+
+      if (existingQuestId) {
+        // Use existing quest
+        questIdsByName.set(key, existingQuestId);
+        projectQuest.set(questLookupKey, existingQuestId);
+      } else {
+        // Create new quest
+        const { questId, error } = await processQuest(
+          row,
+          projectId,
+          supabase,
+          userId
+        );
+        if (error) {
+          throw new Error(error);
+        }
+        projectQuest.set(questLookupKey, questId!);
+        questIdsByName.set(key, questId!);
+        createdCount++;
       }
-      projectQuest.set(projectId + ':' + row.quest_name, questId!);
-      questIdsByName.set(key, questId!);
     }
   }
 
@@ -1762,15 +1792,13 @@ async function prepareQuests(
 
       if (error) {
         console.error('Error updating parent link:', error);
-      } else {
-        console.log('Successfully updated parent link for quest:', questId);
       }
     }
   }
 
   return {
     questIdsByName,
-    createdCount: questIdsByName.size
+    createdCount
   };
 }
 

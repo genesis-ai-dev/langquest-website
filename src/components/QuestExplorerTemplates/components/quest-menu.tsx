@@ -12,19 +12,26 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { BulkUpload } from '@/components/new-bulk-upload';
+import { QuestForm } from '@/components/new-quest-form';
 
 interface QuestMenuProps {
   canManage: boolean;
   projectId: string;
-  onAddQuest: () => void;
+  onQuestSuccess?: () => void;
 }
 
 export function QuestMenu({
   canManage,
   projectId,
-  onAddQuest
+  onQuestSuccess
 }: QuestMenuProps) {
   const [showBulkQuestUpload, setShowBulkQuestUpload] = useState(false);
+  const [showQuestForm, setShowQuestForm] = useState(false);
+
+  const handleQuestSuccess = () => {
+    setShowQuestForm(false);
+    onQuestSuccess?.();
+  };
 
   if (!canManage) {
     return null;
@@ -36,7 +43,7 @@ export function QuestMenu({
         <Button
           size="sm"
           variant="outline"
-          onClick={onAddQuest}
+          onClick={() => setShowQuestForm(true)}
           title="Add a Quest"
         >
           <Plus className="h-4 w-4" />
@@ -54,6 +61,23 @@ export function QuestMenu({
           {/* Bulk Upload */}
         </Button>
       </div>
+
+      {/* Quest Creation Modal */}
+      <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Quest</DialogTitle>
+            <DialogDescription>
+              Add a new quest to organize your project content.
+            </DialogDescription>
+          </DialogHeader>
+          <QuestForm
+            onSuccess={handleQuestSuccess}
+            projectId={projectId}
+            questParentId={undefined}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Quest Upload Modal */}
       <Dialog
@@ -73,6 +97,7 @@ export function QuestMenu({
             onSuccess={() => {
               setShowBulkQuestUpload(false);
               toast.success('Quests uploaded successfully');
+              handleQuestSuccess();
             }}
           />
         </DialogContent>
