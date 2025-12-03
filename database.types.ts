@@ -17,24 +17,26 @@ export type Database = {
           images: string | null;
           last_updated: string;
           name: string;
-          source_language_id: string;
+          source_language_id: string | null;
           creator_id: string | null;
           visible: boolean;
           project_id: string;
           source_asset_id: string | null;
+          order_index: number;
         };
         Insert: {
           active?: boolean;
-          created_at: string;
+          created_at?: string;
           id?: string;
           images?: string | null;
           last_updated?: string;
           name: string;
-          source_language_id: string;
-          creator_id: string | null;
-          visible: boolean;
+          source_language_id?: string | null;
+          creator_id?: string | null;
+          visible?: boolean;
           project_id: string;
-          source_asset_id: string | null;
+          source_asset_id?: string | null;
+          order_index?: number;
         };
         Update: {
           active?: boolean;
@@ -43,21 +45,14 @@ export type Database = {
           images?: string | null;
           last_updated?: string;
           name?: string;
-          source_language_id?: string;
-          creator_id: string | null;
-          visible: boolean;
-          project_id: string;
-          source_asset_id: string | null;
+          source_language_id?: string | null;
+          creator_id?: string | null;
+          visible?: boolean;
+          project_id?: string;
+          source_asset_id?: string | null;
+          order_index?: number;
         };
-        Relationships: [
-          {
-            foreignKeyName: 'assets_source_language_id_fkey';
-            columns: ['source_language_id'];
-            isOneToOne: false;
-            referencedRelation: 'language';
-            referencedColumns: ['id'];
-          }
-        ];
+        Relationships: [];
       };
       asset_content_link: {
         Row: {
@@ -68,15 +63,19 @@ export type Database = {
           id: string;
           last_updated: string;
           text: string;
+          source_language_id: string | null;
+          languoid_id: string | null;
         };
         Insert: {
           active?: boolean;
           asset_id: string;
           audio?: string | null;
           created_at?: string;
-          id: string;
+          id?: string;
           last_updated?: string;
           text: string;
+          source_language_id?: string | null;
+          languoid_id?: string | null;
         };
         Update: {
           active?: boolean;
@@ -86,6 +85,8 @@ export type Database = {
           id?: string;
           last_updated?: string;
           text?: string;
+          source_language_id?: string | null;
+          languoid_id?: string | null;
         };
         Relationships: [
           {
@@ -93,6 +94,13 @@ export type Database = {
             columns: ['asset_id'];
             isOneToOne: false;
             referencedRelation: 'asset';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'asset_content_link_languoid_id_fkey';
+            columns: ['languoid_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
             referencedColumns: ['id'];
           }
         ];
@@ -219,6 +227,214 @@ export type Database = {
           }
         ];
       };
+      languoid: {
+        Row: {
+          id: string;
+          active: boolean;
+          created_at: string;
+          last_updated: string;
+          name: string | null;
+          parent_id: string | null;
+          level: 'family' | 'language' | 'dialect';
+          ui_ready: boolean;
+          creator_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          name?: string | null;
+          parent_id?: string | null;
+          level: 'family' | 'language' | 'dialect';
+          ui_ready?: boolean;
+          creator_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          name?: string | null;
+          parent_id?: string | null;
+          level?: 'family' | 'language' | 'dialect';
+          ui_ready?: boolean;
+          creator_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'languoid_parent_id_fkey';
+            columns: ['parent_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'languoid_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      languoid_alias: {
+        Row: {
+          id: string;
+          active: boolean;
+          created_at: string;
+          last_updated: string;
+          subject_languoid_id: string;
+          label_languoid_id: string | null;
+          name: string;
+          alias_type: string | null;
+          creator_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          subject_languoid_id: string;
+          label_languoid_id?: string | null;
+          name: string;
+          alias_type?: string | null;
+          creator_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          subject_languoid_id?: string;
+          label_languoid_id?: string | null;
+          name?: string;
+          alias_type?: string | null;
+          creator_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'languoid_alias_subject_languoid_id_fkey';
+            columns: ['subject_languoid_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'languoid_alias_label_languoid_id_fkey';
+            columns: ['label_languoid_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'languoid_alias_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      languoid_source: {
+        Row: {
+          id: string;
+          active: boolean;
+          created_at: string;
+          last_updated: string;
+          languoid_id: string;
+          name: string;
+          unique_identifier: string;
+          creator_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          languoid_id: string;
+          name: string;
+          unique_identifier: string;
+          creator_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          languoid_id?: string;
+          name?: string;
+          unique_identifier?: string;
+          creator_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'languoid_source_languoid_id_fkey';
+            columns: ['languoid_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'languoid_source_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      languoid_property: {
+        Row: {
+          id: string;
+          active: boolean;
+          created_at: string;
+          last_updated: string;
+          languoid_id: string;
+          name: string;
+          value: string;
+          value_type: string | null;
+          creator_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          languoid_id: string;
+          name: string;
+          value: string;
+          value_type?: string | null;
+          creator_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          languoid_id?: string;
+          name?: string;
+          value?: string;
+          value_type?: string | null;
+          creator_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'languoid_property_languoid_id_fkey';
+            columns: ['languoid_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'languoid_property_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       profile: {
         Row: {
           active: boolean;
@@ -227,6 +443,7 @@ export type Database = {
           last_updated: string;
           password: string | null;
           ui_language_id: string | null;
+          ui_languoid_id: string | null;
           username: string | null;
         };
         Insert: {
@@ -236,6 +453,7 @@ export type Database = {
           last_updated?: string;
           password?: string | null;
           ui_language_id?: string | null;
+          ui_languoid_id?: string | null;
           username?: string | null;
         };
         Update: {
@@ -245,14 +463,15 @@ export type Database = {
           last_updated?: string;
           password?: string | null;
           ui_language_id?: string | null;
+          ui_languoid_id?: string | null;
           username?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'users_ui_language_id_fkey';
-            columns: ['ui_language_id'];
+            foreignKeyName: 'users_ui_languoid_id_fkey';
+            columns: ['ui_languoid_id'];
             isOneToOne: false;
-            referencedRelation: 'language';
+            referencedRelation: 'languoid';
             referencedColumns: ['id'];
           }
         ];
@@ -310,8 +529,7 @@ export type Database = {
           id: string;
           last_updated: string;
           name: string;
-          //        source_language_id: string;
-          target_language_id: string;
+          target_language_id: string | null;
           creator_id: string | null;
           visible: boolean;
           template: string | null;
@@ -323,11 +541,10 @@ export type Database = {
           id?: string;
           last_updated?: string;
           name: string;
-          // source_language_id: string;
-          target_language_id: string;
-          creator_id: string | null;
-          visible: boolean;
-          template: string | null;
+          target_language_id?: string | null;
+          creator_id?: string | null;
+          visible?: boolean;
+          template?: string | null;
         };
         Update: {
           active?: boolean | null;
@@ -336,18 +553,60 @@ export type Database = {
           id?: string;
           last_updated?: string;
           name?: string;
-          // source_language_id?: string;
-          target_language_id?: string;
+          target_language_id?: string | null;
           creator_id?: string | null;
           visible?: boolean;
           template?: string | null;
         };
+        Relationships: [];
+      };
+      project_language_link: {
+        Row: {
+          project_id: string;
+          language_id: string | null;
+          languoid_id: string;
+          language_type: 'source' | 'target';
+          active: boolean;
+          created_at: string;
+          last_updated: string;
+          download_profiles: string[] | null;
+          ingest_batch_id: string | null;
+        };
+        Insert: {
+          project_id: string;
+          language_id?: string | null;
+          languoid_id: string;
+          language_type: 'source' | 'target';
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          download_profiles?: string[] | null;
+          ingest_batch_id?: string | null;
+        };
+        Update: {
+          project_id?: string;
+          language_id?: string | null;
+          languoid_id?: string;
+          language_type?: 'source' | 'target';
+          active?: boolean;
+          created_at?: string;
+          last_updated?: string;
+          download_profiles?: string[] | null;
+          ingest_batch_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: 'projects_target_language_id_fkey';
-            columns: ['target_language_id'];
+            foreignKeyName: 'project_language_link_project_id_fkey';
+            columns: ['project_id'];
             isOneToOne: false;
-            referencedRelation: 'language';
+            referencedRelation: 'project';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'project_language_link_languoid_id_fkey';
+            columns: ['languoid_id'];
+            isOneToOne: false;
+            referencedRelation: 'languoid';
             referencedColumns: ['id'];
           }
         ];
@@ -412,9 +671,9 @@ export type Database = {
           last_updated?: string;
           name?: string | null;
           project_id: string;
-          creator_id: string | null;
-          parent_id: string | null;
-          metadata: string | null;
+          creator_id?: string | null;
+          parent_id?: string | null;
+          metadata?: string | null;
         };
         Update: {
           active?: boolean;
@@ -630,13 +889,6 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'profile';
             referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'translations_target_language_id_fkey';
-            columns: ['target_language_id'];
-            isOneToOne: false;
-            referencedRelation: 'language';
-            referencedColumns: ['id'];
           }
         ];
       };
@@ -693,7 +945,32 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      search_languoids: {
+        Args: {
+          search_query: string;
+          result_limit?: number;
+          ui_ready_only?: boolean;
+        };
+        Returns: {
+          id: string;
+          name: string | null;
+          level: string | null;
+          ui_ready: boolean | null;
+          parent_id: string | null;
+          matched_alias_name: string | null;
+          matched_alias_type: string | null;
+          iso_code: string | null;
+          search_rank: number;
+        }[];
+      };
+      find_matching_languoid: {
+        Args: {
+          p_iso639_3?: string;
+          p_english_name?: string;
+          p_native_name?: string;
+        };
+        Returns: string | null;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -800,3 +1077,23 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema['CompositeTypes']
     ? PublicSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never;
+
+// Convenience type exports for languoid tables
+export type Languoid = Tables<'languoid'>;
+export type LanguoidAlias = Tables<'languoid_alias'>;
+export type LanguoidSource = Tables<'languoid_source'>;
+export type LanguoidProperty = Tables<'languoid_property'>;
+export type ProjectLanguageLink = Tables<'project_language_link'>;
+
+// Search result type from the RPC function
+export interface LanguoidSearchResult {
+  id: string;
+  name: string | null;
+  level: string | null;
+  ui_ready: boolean | null;
+  parent_id: string | null;
+  matched_alias_name: string | null;
+  matched_alias_type: string | null;
+  iso_code: string | null;
+  search_rank: number;
+}

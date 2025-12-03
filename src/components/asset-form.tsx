@@ -104,9 +104,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           project:project_id!inner(
             id,
             name,
-            creator_id,
-            source_language:source_language_id(id, english_name),
-            target_language:target_language_id(english_name)
+            creator_id
           )
         `
         )
@@ -124,26 +122,33 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
     enabled: !!user?.id
   });
 
-  // Fetch source language from the quest
-  const { data: questLanguageData } = useQuery({
-    queryKey: ['quest-language', questId, environment],
+  // Fetch source languoid from the quest's project
+  const { data: questLanguoidData } = useQuery({
+    queryKey: ['quest-languoid', questId, environment],
     queryFn: async () => {
       if (!questId) return null;
 
-      const { data, error } = await createBrowserClient(environment)
-        .from('quest')
-        .select(
-          `
-          project:project_id(
-            source_language_id
-          )
-        `
-        )
-        .eq('id', questId)
-        .single();
+      // First get project_id from quest
+      const { data: questData, error: questError } =
+        await createBrowserClient(environment)
+          .from('quest')
+          .select('project_id')
+          .eq('id', questId)
+          .single();
 
-      if (error) throw error;
-      return data;
+      if (questError || !questData) return null;
+
+      // Then get source languoid from project_language_link
+      const { data: linkData, error: linkError } =
+        await createBrowserClient(environment)
+          .from('project_language_link')
+          .select('languoid_id')
+          .eq('project_id', questData.project_id)
+          .eq('language_type', 'source')
+          .single();
+
+      if (linkError) return null;
+      return { project_id: questData.project_id, languoid_id: linkData?.languoid_id };
     },
     enabled: !!questId
   });
@@ -344,76 +349,15 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
         toast.success('Asset updated successfully');
       } else {
-        // Fetch a valid language ID from the database
-        let sourceLanguageId: string;
-
+        // Create new asset (source_language_id is now optional/deprecated)
         try {
-          // First try to get the language ID from the selected quest
-          if (selectedQuests.length > 0) {
-            const selectedQuestId = selectedQuests[0];
-
-            // Fetch the quest with its project and language details
-            const { data: questData, error: questError } =
-              await createBrowserClient(environment)
-                .from('quest')
-                .select(
-                  `
-                project:project_id(
-                  source_language_id
-                )
-              `
-                )
-                .eq('id', selectedQuestId)
-                .single();
-
-            if (
-              !questError &&
-              questData?.project &&
-              'source_language_id' in questData.project
-            ) {
-              sourceLanguageId = (questData.project as any).source_language_id;
-
-              // Create new asset with the language ID from the quest
-              const { data, error } = await createBrowserClient(environment)
-                .from('asset')
-                .insert({
-                  name: values.name,
-                  images: finalImagePaths.length > 0 ? finalImagePaths : null,
-                  active: true,
-                  source_language_id: sourceLanguageId
-                })
-                .select('id')
-                .single();
-
-              if (error) throw error;
-              assetId = data.id;
-
-              toast.success('Asset created successfully');
-            }
-          }
-
-          // Fallback: Try to get the English language ID
-          const { data: langData, error: langError } =
-            await createBrowserClient(environment)
-              .from('language')
-              .select('id')
-              .eq('iso639_3', 'eng')
-              .single();
-
-          if (langError || !langData) {
-            throw new Error('Could not fetch language ID for asset creation.');
-          }
-
-          sourceLanguageId = langData.id;
-
-          // Create new asset with the English language ID
           const { data, error } = await createBrowserClient(environment)
             .from('asset')
             .insert({
               name: values.name,
               images: finalImagePaths.length > 0 ? finalImagePaths : null,
-              active: true,
-              source_language_id: sourceLanguageId
+              active: true
+              // source_language_id is no longer required - languoid is stored in asset_content_link
             })
             .select('id')
             .single();
@@ -430,14 +374,36 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         }
       }
 
-      // Add content items
+      // Add content items with languoid_id from the project
       if (updatedContent.length > 0) {
+        // Get languoid_id from the first selected quest's project
+        let sourceLanguoidId: string | null = null;
+        if (selectedQuests.length > 0) {
+          const { data: questData } = await createBrowserClient(environment)
+            .from('quest')
+            .select('project_id')
+            .eq('id', selectedQuests[0])
+            .single();
+
+          if (questData?.project_id) {
+            const { data: linkData } = await createBrowserClient(environment)
+              .from('project_language_link')
+              .select('languoid_id')
+              .eq('project_id', questData.project_id)
+              .eq('language_type', 'source')
+              .single();
+
+            sourceLanguoidId = linkData?.languoid_id || null;
+          }
+        }
+
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
           audio_id: item.audio_id,
           id: crypto.randomUUID(),
-          active: true
+          active: true,
+          languoid_id: sourceLanguoidId
         }));
 
         const { error: contentError } = await createBrowserClient(environment)
@@ -605,12 +571,12 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
   }
 
   const allQuests =
-    questId && questLanguageData
+    questId && questLanguoidData
       ? [
           {
             id: questId,
             name: 'Current Quest',
-            project: questLanguageData.project
+            project: [{ id: questLanguoidData.project_id }]
           }
         ]
       : questsData || [];
@@ -896,13 +862,6 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                             {allQuests && allQuests.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
                                 {allQuests.map((quest) => {
-                                  const isFromQuestData =
-                                    'project' in quest &&
-                                    Array.isArray(quest.project);
-                                  const projectInfo = isFromQuestData
-                                    ? quest.project[0]
-                                    : null;
-
                                   return (
                                     <Badge
                                       key={quest.id}
@@ -934,19 +893,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
                                         }
                                       }}
                                     >
-                                      {quest.name} (
-                                      {projectInfo &&
-                                      'source_language' in projectInfo
-                                        ? projectInfo.source_language?.[0]
-                                            ?.english_name || 'Unknown'
-                                        : 'Unknown'}{' '}
-                                      →{' '}
-                                      {projectInfo &&
-                                      'target_language' in projectInfo
-                                        ? projectInfo.target_language?.[0]
-                                            ?.english_name || 'Unknown'
-                                        : 'Unknown'}
-                                      )
+                                      {quest.name}
                                       {selectedQuests.includes(quest.id) && (
                                         <CheckIcon className="ml-1 h-3 w-3" />
                                       )}

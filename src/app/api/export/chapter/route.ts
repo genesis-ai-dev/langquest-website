@@ -45,7 +45,7 @@ interface LanguoidData {
 
 interface Manifest {
   project_id: string;
-  language_id: string;
+  language_id: string | null; // Deprecated - use languoid instead
   languoid: LanguoidData | null; // Languoid data for the target language
   total_duration_ms: number;
   source_asset_ids: string[];

@@ -414,23 +414,13 @@ export function BulkAssetModal({
           }
         }
 
-        // Get source language ID from the project
-        const { data: projectData, error: projectError } = await supabase
-          .from('project')
-          .select('source_language_id')
-          .eq('id', projectId)
-          .single();
-
-        if (projectError) throw projectError;
-
-        // Create asset
+        // Create asset (source_language_id is deprecated - languoid stored in asset_content_link)
         const { data: assetData, error: assetError } = await supabase
           .from('asset')
           .insert({
             name: asset.name,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
-            active: true,
-            source_language_id: projectData.source_language_id
+            active: true
           })
           .select()
           .single();

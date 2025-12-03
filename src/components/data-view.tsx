@@ -51,21 +51,16 @@ export interface Root {
     id: string;
     name: string;
     project_id: string;
-    source_language_id: string;
     project?: {
       id: string;
       name: string;
       description: string;
-      target_language: TargetLanguage;
     };
-    source_language?: SourceLanguage;
     translations: {
       id: string;
       name: string;
-      source_language_id: string;
       project_id: string;
       content: Content[];
-      source_language?: SourceLanguage;
     }[];
     content: Content[];
     tags: Tag[];
@@ -78,7 +73,6 @@ export interface Root {
           id: string;
           name: string;
           description: string;
-          target_language: TargetLanguage;
         };
         description: string;
       };
@@ -93,10 +87,6 @@ export interface Vote {
   polarity: string;
 }
 
-export interface TargetLanguage {
-  id: string;
-  english_name: string;
-}
 
 export interface Content {
   id: string;
@@ -112,22 +102,12 @@ export interface Tag {
   };
 }
 
-export interface SourceLanguage {
-  id: string;
-  english_name: string;
-}
-
-export interface TargetLanguage {
-  id: string;
-  english_name: string;
-}
+// Language types removed - using languoid system now
 
 interface FilterState {
   projects?: string[];
   quests?: string[];
   tags?: string[];
-  sourceLanguage?: string;
-  targetLanguage?: string;
 }
 
 function parseImages(value: unknown): string[] | undefined {
@@ -265,17 +245,14 @@ export function DataView({
             name, 
             images,
             project_id,
-            source_language_id,
-            project:project_id(id, name, description, target_language:language!target_language_id(id, english_name)),
-            source_language:source_language_id(id, english_name),
-            translations:asset!source_asset_id(id, name, source_language_id, project_id, 
-              source_language:source_language_id(id, english_name),
+            project:project_id(id, name, description),
+            translations:asset!source_asset_id(id, name, project_id, 
               content:asset_content_link(id, text, audio)
             ),
             content:asset_content_link(id, audio, text),
             tags:asset_tag_link(tag(id, key, value)),
             quests:quest_asset_link(quest(id, name, description, 
-              project(id, name, description, target_language:language!target_language_id(id, english_name)),
+              project(id, name, description),
               tags:quest_tag_link(tag(id, key, value))
             ))
           `,
@@ -323,21 +300,6 @@ export function DataView({
             return { assets: [], count: 0 } as Root;
           }
           query = query.in('id', assetIds);
-        }
-
-        // Language filters - source_language is now direct on asset, target_language via project
-        if (filters.sourceLanguage) {
-          query = query.eq(
-            'source_language.english_name',
-            filters.sourceLanguage
-          );
-        }
-
-        if (filters.targetLanguage) {
-          query = query.eq(
-            'project.target_language.english_name',
-            filters.targetLanguage
-          );
         }
 
         // Apply sorting
@@ -394,26 +356,19 @@ export function DataView({
     queryFn: async () => {
       const supabase = createBrowserClient(environment);
 
-      const [projectsRes, questsRes, tagsRes, languagesRes] = await Promise.all(
-        [
-          supabase.from('project').select('id, name').order('name'),
-          supabase
-            .from('quest')
-            .select('id, name, project:project_id(name)')
-            .order('name'),
-          supabase.from('tag').select('id, key, value').order('key'),
-          supabase
-            .from('language')
-            .select('id, english_name')
-            .order('english_name')
-        ]
-      );
+      const [projectsRes, questsRes, tagsRes] = await Promise.all([
+        supabase.from('project').select('id, name').order('name'),
+        supabase
+          .from('quest')
+          .select('id, name, project:project_id(name)')
+          .order('name'),
+        supabase.from('tag').select('id, key, value').order('key')
+      ]);
 
       return {
         projects: projectsRes.data || [],
         quests: questsRes.data || [],
-        tags: tagsRes.data || [],
-        languages: languagesRes.data || []
+        tags: tagsRes.data || []
       };
     }
   });
@@ -424,10 +379,7 @@ export function DataView({
   const addFilter = (filterType: keyof FilterState, value: string) => {
     setFilters((prev) => ({
       ...prev,
-      [filterType]:
-        filterType === 'sourceLanguage' || filterType === 'targetLanguage'
-          ? value
-          : [...(prev[filterType] || []), value]
+      [filterType]: [...(prev[filterType] || []), value]
     }));
     setPage(0); // Reset to first page when filtering
   };
@@ -435,9 +387,7 @@ export function DataView({
   const removeFilter = (filterType: keyof FilterState, value?: string) => {
     setFilters((prev) => {
       const newFilters = { ...prev };
-      if (filterType === 'sourceLanguage' || filterType === 'targetLanguage') {
-        delete newFilters[filterType];
-      } else if (value && newFilters[filterType]) {
+      if (value && newFilters[filterType]) {
         newFilters[filterType] = newFilters[filterType]!.filter(
           (v) => v !== value
         );

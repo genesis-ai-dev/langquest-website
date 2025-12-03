@@ -56,15 +56,25 @@ function ProjectPageContent() {
         );
       }
 
-      // Try to get language info separately if the project exists
+      // Try to get languoid info from project_language_link
       let languageData = null;
-      if (matchingProject.target_language_id) {
-        const { data: lang } = await supabase
-          .from('language')
-          .select('*')
-          .eq('id', matchingProject.target_language_id)
+      // First try to get languoid from project_language_link
+      const { data: languageLink } = await supabase
+        .from('project_language_link')
+        .select('languoid_id')
+        .eq('project_id', projectId)
+        .eq('language_type', 'target')
+        .single();
+
+      if (languageLink?.languoid_id) {
+        const { data: languoid } = await supabase
+          .from('languoid')
+          .select('id, name, level, ui_ready')
+          .eq('id', languageLink.languoid_id)
           .single();
-        languageData = lang;
+        if (languoid) {
+          languageData = { ...languoid, english_name: languoid.name };
+        }
       }
 
       // Get quests count

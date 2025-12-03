@@ -51,7 +51,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { LanguageCombobox, Language } from './language-combobox';
+import { LanguoidCombobox, Languoid } from './languoid-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -69,10 +69,10 @@ const projectDetailsSchema = z.object({
     message: 'Project name must be at least 2 characters.'
   }),
   description: z.string().optional(),
-  source_language_id: z.string().min(1, {
+  source_languoid_id: z.string().min(1, {
     message: 'Source language is required.'
   }),
-  target_language_id: z.string().min(1, {
+  target_languoid_id: z.string().min(1, {
     message: 'Target language is required.'
   }),
   color: z.string().optional(),
@@ -123,18 +123,7 @@ export function ProjectWizard({
       const supabase = createBrowserClient(environment);
       const { data, error } = await supabase
         .from('project')
-        .select(
-          `
-        id,
-        name,
-        description,
-        source_language_id,
-        target_language_id,
-        source_language:language!source_language_id(id, english_name),
-        target_language:language!target_language_id(id, english_name),
-        quests:quest!project_id(count)
-      `
-        )
+        .select('id, name, description')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -161,8 +150,8 @@ export function ProjectWizard({
     defaultValues: {
       name: '',
       description: '',
-      source_language_id: 'eng',
-      target_language_id: '',
+      source_languoid_id: '',
+      target_languoid_id: '',
       color: '#3b82f6'
     },
     mode: 'onChange'
@@ -181,26 +170,9 @@ export function ProjectWizard({
   useEffect(() => {
     if (projectToClone && projectForCloning) {
       step2Form.setValue('description', projectForCloning.description || '');
-      step2Form.setValue(
-        'source_language_id',
-        projectForCloning.source_language_id
-      );
+      // Note: source_languoid_id is not pre-filled since we no longer fetch language data with projects
     }
   }, [projectToClone, projectForCloning, step2Form]);
-
-  // Fetch languages for dropdowns
-  const { data: languages, isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages', environment],
-    queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
-        .from('language')
-        .select('id, english_name, native_name, iso639_3')
-        .order('english_name');
-
-      if (error) throw error;
-      return data;
-    }
-  });
 
   // No complex state management needed - forms handle their own state
 
@@ -252,26 +224,27 @@ export function ProjectWizard({
         // Validate required fields for clone path
         const rootProjectId = projectToClone;
         const newName = step2Values.name.trim();
-        const targetLang = step2Values.target_language_id.trim();
+        const targetLanguoidId = step2Values.target_languoid_id.trim();
 
         if (!newName) {
           toast.error('Please enter a name for the cloned project');
           return;
         }
-        if (!targetLang) {
+        if (!targetLanguoidId) {
           toast.error('Please select a target language');
           return;
         }
 
         const supabase = createBrowserClient(environment);
 
-        // Start clone job via RPC
+        // Start clone job via RPC - note: clone RPC still uses language_id for now
+        // TODO: Update clone RPC to use languoid_id
         const { data: jobIdData, error: startErr } = await supabase.rpc(
           'start_clone',
           {
             p_root_project_id: rootProjectId,
             p_new_project_name: newName,
-            p_target_language_id: targetLang,
+            p_target_language_id: targetLanguoidId, // Pass languoid_id - clone RPC will need update
             p_creator_id: user.id, // profile.id = auth.users.id
             p_batch_size: 25
           }
@@ -341,15 +314,14 @@ export function ProjectWizard({
       }
 
       // Non-clone path: create a fresh project directly
+      const supabase = createBrowserClient(environment);
       const projectData = {
         name: step2Values.name || '',
         description: step2Values.description || null,
-        source_language_id: step2Values.source_language_id || '',
-        target_language_id: step2Values.target_language_id || '',
         creator_id: user.id // Set creator_id; ACL link will also be added via RPC
       };
 
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await supabase
         .from('project')
         .insert(projectData)
         .select('id')
@@ -360,11 +332,38 @@ export function ProjectWizard({
         throw error;
       }
 
+      // Create project ownership FIRST (required by RLS policy for project_language_link)
       try {
         await createProjectOwnership(data.id, user.id, environment);
       } catch (ownershipError) {
         console.error('Error creating project ownership:', ownershipError);
-        // Non-fatal: creator_id still grants ownership; continue
+        toast.error('Failed to set project ownership');
+      }
+
+      // Create project_language_link entries for source and target languages
+      if (step2Values.source_languoid_id) {
+        const { error: sourceError } = await supabase
+          .from('project_language_link')
+          .insert({
+            project_id: data.id,
+            languoid_id: step2Values.source_languoid_id,
+            language_type: 'source'
+          });
+        if (sourceError) {
+          console.error('Error creating source language link:', sourceError);
+        }
+      }
+      if (step2Values.target_languoid_id) {
+        const { error: targetError } = await supabase
+          .from('project_language_link')
+          .insert({
+            project_id: data.id,
+            languoid_id: step2Values.target_languoid_id,
+            language_type: 'target'
+          });
+        if (targetError) {
+          console.error('Error creating target language link:', targetError);
+        }
       }
 
       toast.success('Project created successfully');
@@ -395,15 +394,14 @@ export function ProjectWizard({
     }
   };
 
-  // Get source language name
-  const getLanguageName = (id: string) => {
-    const language = languages?.find((lang) => lang.id === id);
-    return language ? language.english_name : id;
+  // Get languoid name - just return id since we don't fetch languoid data in projects query
+  const getLanguoidName = (id: string) => {
+    return id || 'Not selected';
   };
 
-  // Handle language creation success
-  const handleLanguageCreated = () => {
-    // Refetch languages to update the list
+  // Handle languoid creation success
+  const handleLanguoidCreated = () => {
+    // Refetch languoids to update the list
     // This is optional since we're already updating the UI optimistically
   };
 
@@ -517,9 +515,7 @@ export function ProjectWizard({
                       ) : (
                         existingProjects?.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
-                            {project.name} (
-                            {project.source_language[0]?.english_name} →{' '}
-                            {project.target_language[0]?.english_name})
+                            {project.name}
                           </SelectItem>
                         ))
                       )}
@@ -606,7 +602,7 @@ export function ProjectWizard({
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-start">
             <FormField
               control={step2Form.control}
-              name="source_language_id"
+              name="source_languoid_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -625,11 +621,11 @@ export function ProjectWizard({
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    <LanguageCombobox
+                    <LanguoidCombobox
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select source language"
-                      onCreateSuccess={handleLanguageCreated}
+                      onCreateSuccess={handleLanguoidCreated}
                       disabled={projectToClone !== undefined}
                     />
                   </FormControl>
@@ -645,7 +641,7 @@ export function ProjectWizard({
 
             <FormField
               control={step2Form.control}
-              name="target_language_id"
+              name="target_languoid_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -664,11 +660,11 @@ export function ProjectWizard({
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    <LanguageCombobox
+                    <LanguoidCombobox
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select target language"
-                      onCreateSuccess={handleLanguageCreated}
+                      onCreateSuccess={handleLanguoidCreated}
                     />
                   </FormControl>
                   <FormDescription>
@@ -831,12 +827,12 @@ export function ProjectWizard({
 
               <div>
                 <span className="font-medium">Source Language:</span>{' '}
-                {getLanguageName(projectDetails?.source_language_id || '')}
+                {getLanguoidName(projectDetails?.source_languoid_id || '')}
               </div>
 
               <div>
                 <span className="font-medium">Target Language:</span>{' '}
-                {getLanguageName(projectDetails?.target_language_id || '')}
+                {getLanguoidName(projectDetails?.target_languoid_id || '')}
               </div>
 
               {projectDetails?.color && (

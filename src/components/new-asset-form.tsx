@@ -24,7 +24,7 @@ import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { TagSelector } from '@/components/new-tag-selector';
-import { LanguageCombobox } from '@/components/language-combobox';
+import { LanguoidCombobox } from '@/components/languoid-combobox';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -35,9 +35,7 @@ const assetFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Asset name must be at least 2 characters.'
   }),
-  source_language_id: z.string().min(1, {
-    message: 'Source language is required.'
-  }),
+  source_languoid_id: z.string().optional(),
   content: z
     .array(
       z.object({
@@ -128,7 +126,7 @@ export function AssetForm({
     resolver: zodResolver(assetFormSchema),
     defaultValues: initialData || {
       name: '',
-      source_language_id: '',
+      source_languoid_id: '',
       content: [{ text: '', audio_id: undefined }],
       tags: [],
       quests: questId ? [questId] : []
@@ -285,14 +283,14 @@ export function AssetForm({
 
         toast.success('Asset updated successfully');
       } else {
-        // Create new asset using the source_language_id from the form
+        // Create new asset using the source_languoid_id from the form
         const { data, error } = await createBrowserClient(environment)
           .from('asset')
           .insert({
             name: values.name,
             images: finalImagePaths.length > 0 ? finalImagePaths : null,
             active: true,
-            source_language_id: values.source_language_id,
+            source_languoid_id: values.source_languoid_id,
             project_id: projectId
           })
           .select('id')
@@ -313,7 +311,7 @@ export function AssetForm({
           audio: [item.audio_id],
           id: crypto.randomUUID(),
           active: true,
-          source_language_id: values.source_language_id
+          source_languoid_id: values.source_languoid_id
         }));
 
         const { error: contentError } = await createBrowserClient(environment)
@@ -438,7 +436,7 @@ export function AssetForm({
       if (!initialData) {
         form.reset({
           name: '',
-          source_language_id: '',
+          source_languoid_id: '',
           content: [{ text: '', audio_id: undefined }],
           tags: [],
           quests: questId ? [questId] : []
@@ -514,20 +512,20 @@ export function AssetForm({
 
         <FormField
           control={form.control}
-          name="source_language_id"
+          name="source_languoid_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Source Language</FormLabel>
               <FormControl>
-                <LanguageCombobox
-                  value={field.value}
+                <LanguoidCombobox
+                  value={field.value || ''}
                   onChange={field.onChange}
                   placeholder="Select source language..."
                   disabled={isSubmitting}
-                  onCreateSuccess={(newLanguage) => {
-                    // Optionally refresh the languages list or handle the new language
+                  onCreateSuccess={(newLanguoid) => {
+                    // Optionally refresh the languoids list or handle the new languoid
                     toast.success(
-                      `Language "${newLanguage.english_name}" created and selected`
+                      `Language "${newLanguoid.name}" created and selected`
                     );
                   }}
                 />
