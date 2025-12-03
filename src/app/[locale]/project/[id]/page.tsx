@@ -222,21 +222,21 @@ function ProjectPageContent() {
   }
 
   // Check if user has access
-  const hasAccess = userPermission || user?.user_metadata?.role === 'admin';
+  // const hasAccess = userPermission || user?.user_metadata?.role === 'admin';
 
-  if (!hasAccess && project.private === true) {
-    return (
-      <div className="container p-8 max-w-screen-xl mx-auto">
-        <Alert className="max-w-md mx-auto">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You don&apos;t have permission to access this project.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  // if (!hasAccess && project.private === true) {
+  //   return (
+  //     <div className="container p-8 max-w-screen-xl mx-auto">
+  //       <Alert className="max-w-md mx-auto">
+  //         <AlertCircle className="h-4 w-4" />
+  //         <AlertTitle>Access Denied</AlertTitle>
+  //         <AlertDescription>
+  //           You don&apos;t have permission to access this project.
+  //         </AlertDescription>
+  //       </Alert>
+  //     </div>
+  //   );
+  // }
 
   const isOwner = userPermission?.membership === 'owner';
   const isAdmin = userPermission?.membership === 'admin';
