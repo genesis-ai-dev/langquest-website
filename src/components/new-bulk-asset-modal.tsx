@@ -425,15 +425,15 @@ export function BulkAssetModal({
           }
         }
 
-        // Create asset
+        // Create asset (languoid is stored in asset_content_link, not asset)
         const { data: assetData, error: assetError } = await supabase
           .from('asset')
           .insert({
             name: asset.name,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
             active: true,
-            source_languoid_id: asset.source_languoid_id,
-            project_id: projectId
+            project_id: projectId,
+            creator_id: user?.id
           })
           .select()
           .single();
@@ -447,10 +447,10 @@ export function BulkAssetModal({
             .insert({
               asset_id: assetData.id,
               text: asset.content,
-              audio: [uploadedAudioId],
+              audio: uploadedAudioId ? [uploadedAudioId] : null, // Only set audio if we have a value
               id: crypto.randomUUID(),
               active: true,
-              source_languoid_id: asset.source_languoid_id
+              languoid_id: asset.source_languoid_id || null
             });
 
           if (contentError) throw contentError;

@@ -351,13 +351,25 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       } else {
         // Create new asset (source_language_id is now optional/deprecated)
         try {
+          // Get project_id from the first selected quest
+          let projectId: string | null = null;
+          if (selectedQuests.length > 0) {
+            const { data: questData } = await createBrowserClient(environment)
+              .from('quest')
+              .select('project_id')
+              .eq('id', selectedQuests[0])
+              .single();
+            projectId = questData?.project_id || null;
+          }
+
           const { data, error } = await createBrowserClient(environment)
             .from('asset')
             .insert({
               name: values.name,
               images: finalImagePaths.length > 0 ? finalImagePaths : null,
-              active: true
-              // source_language_id is no longer required - languoid is stored in asset_content_link
+              active: true,
+              creator_id: user?.id,
+              project_id: projectId
             })
             .select('id')
             .single();
@@ -400,7 +412,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
-          audio_id: item.audio_id,
+          audio: item.audio_id ? [item.audio_id] : null, // audio is a jsonb array column
           id: crypto.randomUUID(),
           active: true,
           languoid_id: sourceLanguoidId

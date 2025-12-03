@@ -283,21 +283,28 @@ export function AssetForm({
 
         toast.success('Asset updated successfully');
       } else {
-        // Create new asset using the source_languoid_id from the form
+        // Create new asset (languoid is stored in asset_content_link, not asset)
+        const assetInsertData = {
+          name: values.name,
+          images: finalImagePaths.length > 0 ? finalImagePaths : null,
+          active: true,
+          project_id: projectId,
+          creator_id: user.id
+        };
+        console.log('Creating asset with data:', assetInsertData);
+
         const { data, error } = await createBrowserClient(environment)
           .from('asset')
-          .insert({
-            name: values.name,
-            images: finalImagePaths.length > 0 ? finalImagePaths : null,
-            active: true,
-            source_languoid_id: values.source_languoid_id,
-            project_id: projectId
-          })
+          .insert(assetInsertData)
           .select('id')
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.log('Asset creation error:', JSON.stringify(error, null, 2));
+          throw error;
+        }
         assetId = data.id;
+        console.log('Asset created successfully with id:', assetId);
 
         toast.success('Asset created successfully');
       }
@@ -308,11 +315,12 @@ export function AssetForm({
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
-          audio: [item.audio_id],
+          audio: item.audio_id ? [item.audio_id] : null, // Only set audio if we have a value
           id: crypto.randomUUID(),
           active: true,
-          source_languoid_id: values.source_languoid_id
+          languoid_id: values.source_languoid_id || null // Store languoid in asset_content_link
         }));
+        console.log('Creating content links:', contentLinks);
 
         const { error: contentError } = await createBrowserClient(environment)
           .from('asset_content_link')
