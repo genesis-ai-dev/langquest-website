@@ -12,31 +12,10 @@ export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   switch (environment) {
     case 'development':
       console.log('[SUPABASE INDEX] Returning development credentials');
-      // For development, try to use network-accessible URL if available
-      // Extract host from NEXT_PUBLIC_SITE_URL (e.g., http://192.168.1.86:3000 -> 192.168.1.86)
-      // This allows mobile devices/emulators to connect to local Supabase
-      let devUrl = 'http://127.0.0.1:54321';
-      try {
-        const siteUrl = env.NEXT_PUBLIC_SITE_URL;
-        if (
-          siteUrl &&
-          !siteUrl.includes('localhost') &&
-          !siteUrl.includes('127.0.0.1')
-        ) {
-          // Extract hostname from site URL (e.g., http://192.168.1.86:3000 -> 192.168.1.86)
-          const url = new URL(siteUrl);
-          devUrl = `http://${url.hostname}:54321`;
-          console.log(
-            '[SUPABASE INDEX] Using network-accessible dev URL:',
-            devUrl
-          );
-        }
-      } catch (e) {
-        console.log(
-          '[SUPABASE INDEX] Could not parse site URL, using default:',
-          devUrl
-        );
-      }
+      // For local development, always use localhost
+      // The network-accessible URL logic was for mobile app development, not website
+      const devUrl = 'http://localhost:54321';
+      console.log('[SUPABASE INDEX] Development URL:', devUrl);
       return {
         url: devUrl,
         key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
