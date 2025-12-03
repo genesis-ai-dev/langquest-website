@@ -185,6 +185,25 @@ function AdminContent() {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      // const { data, error } = await createBrowserClient(environment)
+      //   .from('project')
+      //   .select(
+      //     `
+      //     id,
+      //     name,
+      //     description,
+      //     template,
+      //     creator_id,
+      //     target_language:target_language_id(english_name),
+      //     quests:quest(id),
+      //     profile_project_link(
+      //       membership,
+      //       active,
+      //       profile_id
+      //     )
+      //   `
+      //   )
+      //   .order('name');
       const { data, error } = await createBrowserClient(environment)
         .from('project')
         .select(
@@ -194,7 +213,6 @@ function AdminContent() {
           description,
           template,
           creator_id,
-          target_language:target_language_id(english_name),
           quests:quest(id),
           profile_project_link(
             membership,
