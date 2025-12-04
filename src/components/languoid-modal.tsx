@@ -239,4 +239,3 @@ export function LanguoidModal({
 }
 
 export default LanguoidModal;
-

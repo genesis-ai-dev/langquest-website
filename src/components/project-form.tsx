@@ -16,7 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
@@ -27,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip';
-import { LanguoidCombobox, Languoid } from './languoid-combobox';
+import { LanguoidCombobox } from './languoid-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { createProjectOwnership } from '@/lib/project-permissions';

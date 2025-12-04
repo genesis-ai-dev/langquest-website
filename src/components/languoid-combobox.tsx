@@ -222,7 +222,8 @@ export function LanguoidCombobox({
   const formatLanguoidName = (languoid: Languoid) => {
     const hasMatchedAlias =
       languoid.matched_alias_name &&
-      languoid.matched_alias_name.toLowerCase() !== languoid.name?.toLowerCase();
+      languoid.matched_alias_name.toLowerCase() !==
+        languoid.name?.toLowerCase();
 
     if (hasMatchedAlias) {
       // Show: "Matched Alias (Languoid Name [iso_code])"
@@ -305,8 +306,7 @@ export function LanguoidCombobox({
 
             {inputValue &&
               !languoids.some(
-                (lang) =>
-                  lang.name?.toLowerCase() === inputValue.toLowerCase()
+                (lang) => lang.name?.toLowerCase() === inputValue.toLowerCase()
               ) && (
                 <>
                   <CommandSeparator />
@@ -343,4 +343,3 @@ export function LanguoidCombobox({
     </Popover>
   );
 }
-

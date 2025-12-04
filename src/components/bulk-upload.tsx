@@ -397,7 +397,10 @@ export function BulkUpload({
               try {
                 await createProjectOwnership(projectId, user.id, environment);
               } catch (ownershipError) {
-                console.error('Error creating project ownership:', ownershipError);
+                console.error(
+                  'Error creating project ownership:',
+                  ownershipError
+                );
               }
             }
 

@@ -87,7 +87,6 @@ export interface Vote {
   polarity: string;
 }
 
-
 export interface Content {
   id: string;
   text: string;

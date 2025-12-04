@@ -679,8 +679,11 @@ async function processProjectUpload(
     }
   };
 
-  const { projectIdsByName, languoidCache, createdCount } =
-    await prepareProjects(data, supabase, userId);
+  const { projectIdsByName, createdCount } = await prepareProjects(
+    data,
+    supabase,
+    userId
+  );
 
   result.stats.projects.created = createdCount;
 
@@ -1541,7 +1544,9 @@ async function prepareProjects(
           .single();
 
         if (!targetLang) {
-          throw new Error(`Target language '${row.target_language}' not found in languoid table`);
+          throw new Error(
+            `Target language '${row.target_language}' not found in languoid table`
+          );
         }
 
         targetLanguoidId = targetLang.id;

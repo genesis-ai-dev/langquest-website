@@ -129,26 +129,31 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       if (!questId) return null;
 
       // First get project_id from quest
-      const { data: questData, error: questError } =
-        await createBrowserClient(environment)
-          .from('quest')
-          .select('project_id')
-          .eq('id', questId)
-          .single();
+      const { data: questData, error: questError } = await createBrowserClient(
+        environment
+      )
+        .from('quest')
+        .select('project_id')
+        .eq('id', questId)
+        .single();
 
       if (questError || !questData) return null;
 
       // Then get source languoid from project_language_link
-      const { data: linkData, error: linkError } =
-        await createBrowserClient(environment)
-          .from('project_language_link')
-          .select('languoid_id')
-          .eq('project_id', questData.project_id)
-          .eq('language_type', 'source')
-          .single();
+      const { data: linkData, error: linkError } = await createBrowserClient(
+        environment
+      )
+        .from('project_language_link')
+        .select('languoid_id')
+        .eq('project_id', questData.project_id)
+        .eq('language_type', 'source')
+        .single();
 
       if (linkError) return null;
-      return { project_id: questData.project_id, languoid_id: linkData?.languoid_id };
+      return {
+        project_id: questData.project_id,
+        languoid_id: linkData?.languoid_id
+      };
     },
     enabled: !!questId
   });

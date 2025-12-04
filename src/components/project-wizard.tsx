@@ -51,7 +51,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { LanguoidCombobox, Languoid } from './languoid-combobox';
+import { LanguoidCombobox } from './languoid-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
