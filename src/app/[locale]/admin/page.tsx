@@ -286,13 +286,16 @@ function AdminContent() {
           name, 
           description,
           creator_id,
-          source_language:source_language_id(english_name), 
-          target_language:target_language_id(english_name),
           quests:quest(id),
           profile_project_link(
             membership,
             active,
             profile_id
+          ),
+          project_language_link(
+            languoid_id,
+            language_type,
+            languoid:languoid_id(id, name)
           )
         `
         )
@@ -311,10 +314,26 @@ function AdminContent() {
             project.creator_id === user.id ||
             userMembership?.membership === 'owner';
 
+          // Extract source and target languages from project_language_link
+          const sourceLanguageLink = (
+            project.project_language_link as any[]
+          )?.find((link: any) => link.language_type === 'source');
+          const targetLanguageLink = (
+            project.project_language_link as any[]
+          )?.find((link: any) => link.language_type === 'target');
+          const sourceLanguage = sourceLanguageLink?.languoid
+            ? { english_name: sourceLanguageLink.languoid.name }
+            : null;
+          const targetLanguage = targetLanguageLink?.languoid
+            ? { english_name: targetLanguageLink.languoid.name }
+            : null;
+
           return {
             ...project,
             isOwner,
-            membership: isOwner ? 'owner' : userMembership?.membership || null
+            membership: isOwner ? 'owner' : userMembership?.membership || null,
+            source_language: sourceLanguage,
+            target_language: targetLanguage
           };
         })
         .sort((a, b) => {

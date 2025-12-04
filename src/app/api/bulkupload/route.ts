@@ -663,8 +663,11 @@ async function processProjectUpload(
     }
   };
 
-  const { projectIdsByName, languageCache, createdCount } =
-    await prepareProjects(data, supabase, userId);
+  const { projectIdsByName, createdCount } = await prepareProjects(
+    data,
+    supabase,
+    userId
+  );
 
   result.stats.projects.created = createdCount;
 
@@ -718,37 +721,6 @@ async function processProjectUpload(
             .filter(Boolean)
         : [];
 
-      // Create asset - get source language for asset from normalized data or use target language as fallback
-      let assetSourceLanguageId = null;
-
-      // If we have normalized source language from the row, use it
-      if (normalizedData.sourceLanguage) {
-        assetSourceLanguageId = languageCache.get(
-          normalizedData.sourceLanguage
-        );
-
-        if (!assetSourceLanguageId) {
-          const { data: sourceLang } = await supabase
-            .from('language')
-            .select('id')
-            .eq('english_name', normalizedData.sourceLanguage)
-            .single();
-
-          if (sourceLang) {
-            assetSourceLanguageId = sourceLang.id;
-            languageCache.set(
-              normalizedData.sourceLanguage,
-              assetSourceLanguageId
-            );
-          }
-        }
-      }
-
-      // If no source language specified, use target language as fallback
-      if (!assetSourceLanguageId) {
-        assetSourceLanguageId = languageCache.get(row.target_language);
-      }
-
       if (row.asset_name.trim() === '') {
         /* This means that is only creating a quest without asset */
         continue;
@@ -758,7 +730,6 @@ async function processProjectUpload(
         .from('asset')
         .insert({
           name: row.asset_name,
-          source_language_id: assetSourceLanguageId,
           creator_id: userId,
           project_id: projectId,
           visible: true,
@@ -887,10 +858,6 @@ async function processQuestUpload(
     throw new Error('Project not found');
   }
 
-  // Create language cache for this upload
-  const languageCache = new Map<string, string>();
-  languageCache.set('default', project.target_language_id);
-
   // Prepare all quests at once using projectId as string
   const { questIdsByName, createdCount: questCount } = await prepareQuests(
     data,
@@ -925,36 +892,6 @@ async function processQuestUpload(
       // Add questId to involved set
       result.involvedIds!.questIds.add(questId);
 
-      // Determine source language for asset
-      let assetSourceLanguageId = project.target_language_id; // Use project target language as default
-
-      // If source language is specified in the row, use it
-      if (normalizedData.sourceLanguage) {
-        let sourceLanguageId = languageCache.get(normalizedData.sourceLanguage);
-
-        if (!sourceLanguageId) {
-          const { data: sourceLang } = await supabase
-            .from('language')
-            .select('id')
-            .eq('english_name', normalizedData.sourceLanguage)
-            .single();
-
-          if (sourceLang) {
-            sourceLanguageId = sourceLang.id;
-            if (sourceLanguageId) {
-              languageCache.set(
-                normalizedData.sourceLanguage,
-                sourceLanguageId
-              );
-            }
-          }
-        }
-
-        if (sourceLanguageId) {
-          assetSourceLanguageId = sourceLanguageId;
-        }
-      }
-
       // Skip if no asset name (quest-only row)
       if (!row.asset_name || row.asset_name.trim() === '') {
         continue;
@@ -980,7 +917,6 @@ async function processQuestUpload(
         .from('asset')
         .insert({
           name: row.asset_name,
-          source_language_id: assetSourceLanguageId,
           creator_id: userId,
           project_id: projectId,
           visible: true,
@@ -1105,10 +1041,6 @@ async function processAssetUpload(
     throw new Error('Failed to fetch quest details');
   }
 
-  // Use target language as default for assets if no source language is specified
-  const defaultLanguageId = (quest.project as any).target_language_id;
-  const languageCache = new Map<string, string>();
-
   // Adicionar o project_id ao set de IDs envolvidos
   if (quest.project_id) {
     result.involvedIds!.projectIds.add(quest.project_id);
@@ -1120,36 +1052,6 @@ async function processAssetUpload(
     try {
       // Normalize data from different CSV formats
       const normalizedData = normalizeRowData(row);
-
-      // Determine source language for asset
-      let assetSourceLanguageId = defaultLanguageId; // Use project target language as default
-
-      // If source language is specified in the row, use it
-      if (normalizedData.sourceLanguage) {
-        let sourceLanguageId = languageCache.get(normalizedData.sourceLanguage);
-
-        if (!sourceLanguageId) {
-          const { data: sourceLang } = await supabase
-            .from('language')
-            .select('id')
-            .eq('english_name', normalizedData.sourceLanguage)
-            .single();
-
-          if (sourceLang) {
-            sourceLanguageId = sourceLang.id;
-            if (sourceLanguageId) {
-              languageCache.set(
-                normalizedData.sourceLanguage,
-                sourceLanguageId
-              );
-            }
-          }
-        }
-
-        if (sourceLanguageId) {
-          assetSourceLanguageId = sourceLanguageId;
-        }
-      }
 
       // Prepare images array using normalized data
       const imageFiles = normalizedData.imageFiles
@@ -1171,7 +1073,6 @@ async function processAssetUpload(
         .from('asset')
         .insert({
           name: row.asset_name,
-          source_language_id: assetSourceLanguageId,
           creator_id: userId,
           project_id: quest.project_id,
           visible: true,
@@ -1585,10 +1486,10 @@ async function prepareProjects(
   userId: string
 ): Promise<{
   projectIdsByName: ProjectIdsByName;
-  languageCache: Map<string, string>;
+  languoidCache: Map<string, string>;
   createdCount: number;
 }> {
-  const languageCache = new Map<string, string>(); // language_name -> language_id
+  const languoidCache = new Map<string, string>(); // language_name -> languoid_id
   const projectIdsByName: ProjectIdsByName = new Map();
   let createdCount = 0;
 
@@ -1614,31 +1515,34 @@ async function prepareProjects(
       // Project doesn't exist, create new one
       // Use current row data for project creation
 
-      // Get target language ID
-      let targetLanguageId = languageCache.get(row.target_language);
+      // Get target languoid ID - search by name in languoid table
+      let targetLanguoidId = languoidCache.get(row.target_language);
 
-      if (!targetLanguageId) {
+      if (!targetLanguoidId) {
+        // Search languoid by name
         const { data: targetLang } = await supabase
-          .from('language')
+          .from('languoid')
           .select('id')
-          .eq('english_name', row.target_language)
+          .ilike('name', row.target_language)
+          .eq('active', true)
           .single();
 
         if (!targetLang) {
-          throw new Error(`Target language '${row.target_language}' not found`);
+          throw new Error(
+            `Target language '${row.target_language}' not found in languoid table`
+          );
         }
 
-        targetLanguageId = targetLang.id;
-        if (targetLanguageId) {
-          languageCache.set(row.target_language, targetLanguageId);
+        targetLanguoidId = targetLang.id;
+        if (targetLanguoidId) {
+          languoidCache.set(row.target_language, targetLanguoidId);
         }
       }
 
-      // Create new project
+      // Create new project (without target_language_id - using project_language_link instead)
       const projectData = {
         name: projectName,
         description: row.project_description || null,
-        target_language_id: targetLanguageId,
         creator_id: userId,
         visible: true,
         created_at: new Date().toISOString(),
@@ -1657,7 +1561,7 @@ async function prepareProjects(
         );
       }
 
-      // Create project ownership
+      // Create project ownership FIRST (required by RLS policy for project_language_link)
       try {
         const { error: ownershipError } = await supabase.rpc(
           'create_project_ownership',
@@ -1680,12 +1584,30 @@ async function prepareProjects(
         );
       }
 
+      // Create project_language_link for target language (after ownership exists)
+      if (targetLanguoidId) {
+        const { error: linkError } = await supabase
+          .from('project_language_link')
+          .insert({
+            project_id: newProject.id,
+            languoid_id: targetLanguoidId,
+            language_type: 'target'
+          });
+
+        if (linkError) {
+          console.error(
+            `Error creating project_language_link for ${projectName}:`,
+            linkError
+          );
+        }
+      }
+
       projectIdsByName.set(projectName, newProject.id);
       createdCount++;
     }
   }
 
-  return { projectIdsByName, languageCache, createdCount };
+  return { projectIdsByName, languoidCache, createdCount };
 }
 
 type QuestIdsByKey = Map<string, string>; // projectName -> projectId

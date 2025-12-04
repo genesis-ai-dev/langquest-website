@@ -22,50 +22,53 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Spinner } from './spinner';
 
-import { LanguageModal } from '@/components/language-modal';
+import { LanguoidModal } from '@/components/languoid-modal';
 import { useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/auth-provider';
+import type { LanguoidSearchResult } from '../../database.types';
 
-export type Language = {
+export type Languoid = {
   id: string;
-  english_name: string;
-  native_name: string;
-  iso639_3: string;
+  name: string | null;
+  level: string | null;
+  ui_ready: boolean | null;
+  iso_code?: string | null;
+  matched_alias_name?: string | null;
+  matched_alias_type?: string | null;
 };
 
-interface NewLanguage {
-  '639-3': string;
-  nativeName: string;
-  englishName: string;
+interface NewLanguoid {
+  iso639_3: string;
+  name: string;
 }
 
-interface LanguageComboboxProps {
+interface LanguoidComboboxProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  onCreateSuccess?: (newLanguage: Language) => void;
-  onLanguageSelect?: (language: Language | null) => void;
+  onCreateSuccess?: (newLanguoid: Languoid) => void;
+  onLanguoidSelect?: (languoid: Languoid | null) => void;
 }
 
-export function LanguageCombobox({
+export function LanguoidCombobox({
   value,
   onChange,
   placeholder = 'Select language...',
   disabled = false,
   onCreateSuccess,
-  onLanguageSelect
-}: LanguageComboboxProps) {
+  onLanguoidSelect
+}: LanguoidComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [newlyCreatedLanguage, setNewlyCreatedLanguage] =
-    useState<Language | null>(null);
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [newlyCreatedLanguoid, setNewlyCreatedLanguoid] =
+    useState<Languoid | null>(null);
+  const [isLanguoidModalOpen, setIsLanguoidModalOpen] = useState(false);
 
   // Get environment from auth context or URL parameters
   const { environment: authEnvironment } = useAuth();
@@ -74,51 +77,57 @@ export function LanguageCombobox({
     authEnvironment ||
     (searchParams.get('env') as SupabaseEnvironment) ||
     env.NEXT_PUBLIC_ENVIRONMENT ||
-    'production'; // Default to 'production' if not found
+    'production';
 
   // Query client for invalidating queries
   const queryClient = useQueryClient();
 
-  // Fetch all available languages
-  // const { data: languages = [], isLoading } = useQuery({
-  //   queryKey: ['languages', environment],
-  //   queryFn: async () => {
-  //     const { data, error } = await createBrowserClient(environment)
-  //       .from('language')
-  //       .select('id, english_name, native_name, iso639_3')
-  //       .order('english_name');
-
-  //     if (error) throw error;
-  //     return data as Language[];
-  //   }
-  // });
   const debouncedSearch = useMemo(
     () => debounce((value: string) => setInputValue(value), 100),
     []
   );
 
-  const { data: languages = [], isLoading } = useQuery({
-    queryKey: ['languages', environment, inputValue],
+  // Search languoids using RPC function
+  const { data: languoids = [], isLoading } = useQuery({
+    queryKey: ['languoids-search', environment, inputValue],
     queryFn: async () => {
-      let query = createBrowserClient(environment)
-        .from('language')
-        .select('id, english_name, native_name, iso639_3');
+      const supabase = createBrowserClient(environment);
 
-      // Só busca se tiver pelo menos 2 caracteres
-      if (inputValue && inputValue.length >= 2) {
-        query = query.or(
-          `english_name.ilike.%${inputValue}%,native_name.ilike.%${inputValue}%,iso639_3.ilike.%${inputValue}%`
-        );
+      // If search query is less than 2 chars, get some default languoids
+      if (!inputValue || inputValue.length < 2) {
+        const { data, error } = await supabase
+          .from('languoid')
+          .select('id, name, level, ui_ready')
+          .eq('active', true)
+          .eq('level', 'language')
+          .order('name')
+          .limit(50);
+
+        if (error) throw error;
+        return (data || []).map((l) => ({
+          ...l,
+          iso_code: null as string | null
+        })) as Languoid[];
       }
 
-      // Limita resultados
-      query = query.order('english_name').limit(50);
+      // Use the search_languoids RPC function
+      const { data, error } = await supabase.rpc('search_languoids', {
+        search_query: inputValue.trim().toLowerCase(),
+        result_limit: 50,
+        ui_ready_only: false
+      });
 
-      const { data, error } = await query;
       if (error) throw error;
-      return data as Language[];
+      return (data || []).map((result: LanguoidSearchResult) => ({
+        id: result.id,
+        name: result.name,
+        level: result.level,
+        ui_ready: result.ui_ready,
+        iso_code: result.iso_code,
+        matched_alias_name: result.matched_alias_name,
+        matched_alias_type: result.matched_alias_type
+      })) as Languoid[];
     },
-    enabled: !inputValue || inputValue.length >= 2,
     staleTime: 5 * 60 * 1000
   });
 
@@ -128,12 +137,9 @@ export function LanguageCombobox({
     };
   }, [debouncedSearch]);
 
-  // Filter languages based on input
-  const filteredLanguages = languages;
-
-  // Handle creating a new language
-  const handleCreateLanguage = async (language: NewLanguage) => {
-    if (!inputValue.trim()) return;
+  // Handle creating a new languoid
+  const handleCreateLanguoid = async (languoid: NewLanguoid) => {
+    if (!languoid.name.trim()) return;
 
     setIsCreating(true);
     try {
@@ -147,8 +153,8 @@ export function LanguageCombobox({
         throw new Error('Authentication required. Please log in.');
       }
 
-      // Use the API endpoint instead of direct Supabase access
-      const response = await fetch('/api/language', {
+      // Use the API endpoint to create languoid
+      const response = await fetch('/api/languoid', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,31 +162,30 @@ export function LanguageCombobox({
         },
         body: JSON.stringify({
           environment: environment,
-          english_name: language.englishName.trim(),
-          native_name: language.nativeName.trim(),
-          iso639_3: language['639-3'].trim().toLowerCase().slice(0, 3)
+          name: languoid.name.trim(),
+          iso639_3: languoid.iso639_3.trim().toLowerCase()
         })
       });
 
       if (!response.ok) {
         const errorData = (await response.json()) as { error?: string };
-        throw new Error(errorData.error || 'Failed to create language');
+        throw new Error(errorData.error || 'Failed to create languoid');
       }
 
-      const data = (await response.json()) as Language;
+      const data = (await response.json()) as Languoid;
 
-      // Store the newly created language
-      setNewlyCreatedLanguage(data);
+      // Store the newly created languoid
+      setNewlyCreatedLanguoid(data);
 
-      // Invalidate languages query to refresh the list
+      // Invalidate languoid queries to refresh the list
       queryClient.invalidateQueries({
-        queryKey: ['languages', environment]
+        queryKey: ['languoids-search', environment]
       });
 
-      toast.success(`Added language: ${data.english_name}`);
+      toast.success(`Added language: ${data.name}`);
       onChange(data.id);
-      if (onLanguageSelect) {
-        onLanguageSelect(data);
+      if (onLanguoidSelect) {
+        onLanguoidSelect(data);
       }
       setOpen(false);
 
@@ -189,28 +194,50 @@ export function LanguageCombobox({
         onCreateSuccess(data);
       }
     } catch (error) {
-      console.error('Error creating language:', error);
+      console.error('Error creating languoid:', error);
       toast.error('Failed to create language');
     } finally {
       setIsCreating(false);
     }
   };
 
-  // Find the selected language, including the newly created one if applicable
-  const selectedLanguage =
-    languages.find((language) => language.id === value) ||
-    (newlyCreatedLanguage && newlyCreatedLanguage.id === value
-      ? newlyCreatedLanguage
+  // Find the selected languoid, including the newly created one if applicable
+  const selectedLanguoid =
+    languoids.find((languoid) => languoid.id === value) ||
+    (newlyCreatedLanguoid && newlyCreatedLanguoid.id === value
+      ? newlyCreatedLanguoid
       : null);
 
-  const handleNewLanguageSelected = (language: NewLanguage) => {
-    handleCreateLanguage(language)
+  const handleNewLanguoidSelected = (languoid: NewLanguoid) => {
+    handleCreateLanguoid(languoid)
       .then(() => {
-        setIsLanguageModalOpen(false);
+        setIsLanguoidModalOpen(false);
       })
       .catch(() => {
-        console.error('Failed to create language');
+        console.error('Failed to create languoid');
       });
+  };
+
+  // Format display name - show alias if matched, with languoid name and ISO code in brackets
+  const formatLanguoidName = (languoid: Languoid) => {
+    const hasMatchedAlias =
+      languoid.matched_alias_name &&
+      languoid.matched_alias_name.toLowerCase() !==
+        languoid.name?.toLowerCase();
+
+    if (hasMatchedAlias) {
+      // Show: "Matched Alias (Languoid Name [iso_code])"
+      const nameWithIso = languoid.iso_code
+        ? `${languoid.name} [${languoid.iso_code}]`
+        : languoid.name;
+      return `${languoid.matched_alias_name} (${nameWithIso})`;
+    }
+
+    // No alias match or alias is the same as the name
+    if (languoid.iso_code) {
+      return `${languoid.name} [${languoid.iso_code}]`;
+    }
+    return languoid.name || 'Unknown';
   };
 
   return (
@@ -227,7 +254,7 @@ export function LanguageCombobox({
           disabled={disabled}
         >
           <div className="overflow-hidden text-ellipsis max-w-40">
-            {selectedLanguage ? selectedLanguage.english_name : placeholder}
+            {selectedLanguoid ? selectedLanguoid.name : placeholder}
           </div>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -237,7 +264,6 @@ export function LanguageCombobox({
           <CommandInput
             placeholder="Search language..."
             value={inputValue}
-            // onValueChange={setInputValue}
             onValueChange={(value) => debouncedSearch(value)}
             className="h-9"
           />
@@ -255,14 +281,14 @@ export function LanguageCombobox({
               )}
             </CommandEmpty>
             <CommandGroup>
-              {filteredLanguages.map((language) => (
+              {languoids.map((languoid) => (
                 <CommandItem
-                  key={language.id}
-                  value={language.id}
+                  key={languoid.id}
+                  value={languoid.id}
                   onSelect={(currentValue) => {
                     onChange(currentValue);
-                    if (onLanguageSelect) {
-                      onLanguageSelect(language);
+                    if (onLanguoidSelect) {
+                      onLanguoidSelect(languoid);
                     }
                     setOpen(false);
                   }}
@@ -270,24 +296,23 @@ export function LanguageCombobox({
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      value === language.id ? 'opacity-100' : 'opacity-0'
+                      value === languoid.id ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                  {language.english_name} ({language.iso639_3})
+                  {formatLanguoidName(languoid)}
                 </CommandItem>
               ))}
             </CommandGroup>
 
             {inputValue &&
-              !filteredLanguages.some(
-                (lang) =>
-                  lang.english_name.toLowerCase() === inputValue.toLowerCase()
+              !languoids.some(
+                (lang) => lang.name?.toLowerCase() === inputValue.toLowerCase()
               ) && (
                 <>
                   <CommandSeparator />
                   <CommandGroup>
                     <CommandItem
-                      onSelect={() => setIsLanguageModalOpen(true)}
+                      onSelect={() => setIsLanguoidModalOpen(true)}
                       disabled={isCreating}
                       className="text-primary"
                     >
@@ -309,11 +334,11 @@ export function LanguageCombobox({
           </CommandList>
         </Command>
       </PopoverContent>
-      <LanguageModal
-        isOpen={isLanguageModalOpen}
-        onClose={() => setIsLanguageModalOpen(false)}
-        language={inputValue}
-        onLanguageSelect={handleNewLanguageSelected}
+      <LanguoidModal
+        isOpen={isLanguoidModalOpen}
+        onClose={() => setIsLanguoidModalOpen(false)}
+        initialName={inputValue}
+        onLanguoidSelect={handleNewLanguoidSelected}
       />
     </Popover>
   );

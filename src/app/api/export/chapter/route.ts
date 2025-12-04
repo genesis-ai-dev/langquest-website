@@ -45,7 +45,7 @@ interface LanguoidData {
 
 interface Manifest {
   project_id: string;
-  language_id: string;
+  language_id: string | null; // Deprecated - use languoid instead
   languoid: LanguoidData | null; // Languoid data for the target language
   total_duration_ms: number;
   source_asset_ids: string[];
@@ -541,8 +541,6 @@ export async function POST(request: NextRequest) {
 
                 let downloadSuccess = false;
                 let lastError: any = null;
-                let successfulBucket: string | null = null;
-                let successfulPath: string | null = null;
 
                 // Try each bucket
                 for (const bucket of bucketsToTry) {
@@ -568,8 +566,6 @@ export async function POST(request: NextRequest) {
                         format =
                           variantPath.split('.').pop()?.toLowerCase() || 'mp3';
                         downloadSuccess = true;
-                        successfulBucket = bucket;
-                        successfulPath = variantPath;
                         console.log(
                           `[Export API] Successfully downloaded from bucket ${bucket}, path: ${variantPath}`
                         );

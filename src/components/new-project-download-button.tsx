@@ -89,7 +89,6 @@ export function ProjectDownloadButton({
           id,
           name,
           description,
-          target_language:target_language_id(english_name),
           quests:quest(
             id,
             name,
@@ -100,7 +99,6 @@ export function ProjectDownloadButton({
             assets:asset(
               id,
               name,
-              source_language:source_language_id(english_name),
               images,
               content:asset_content_link(id, text, audio),
               tags:asset_tag_link(tag(key, value)),

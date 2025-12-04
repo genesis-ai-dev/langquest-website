@@ -24,7 +24,7 @@ import { useAuth } from '@/components/auth-provider';
 import { Badge } from './ui/badge';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { TagSelector } from '@/components/new-tag-selector';
-import { LanguageCombobox } from '@/components/language-combobox';
+import { LanguoidCombobox } from '@/components/languoid-combobox';
 import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -35,9 +35,7 @@ const assetFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Asset name must be at least 2 characters.'
   }),
-  source_language_id: z.string().min(1, {
-    message: 'Source language is required.'
-  }),
+  source_languoid_id: z.string().optional(),
   content: z
     .array(
       z.object({
@@ -128,7 +126,7 @@ export function AssetForm({
     resolver: zodResolver(assetFormSchema),
     defaultValues: initialData || {
       name: '',
-      source_language_id: '',
+      source_languoid_id: '',
       content: [{ text: '', audio_id: undefined }],
       tags: [],
       quests: questId ? [questId] : []
@@ -285,21 +283,28 @@ export function AssetForm({
 
         toast.success('Asset updated successfully');
       } else {
-        // Create new asset using the source_language_id from the form
+        // Create new asset (languoid is stored in asset_content_link, not asset)
+        const assetInsertData = {
+          name: values.name,
+          images: finalImagePaths.length > 0 ? finalImagePaths : null,
+          active: true,
+          project_id: projectId,
+          creator_id: user.id
+        };
+        console.log('Creating asset with data:', assetInsertData);
+
         const { data, error } = await createBrowserClient(environment)
           .from('asset')
-          .insert({
-            name: values.name,
-            images: finalImagePaths.length > 0 ? finalImagePaths : null,
-            active: true,
-            source_language_id: values.source_language_id,
-            project_id: projectId
-          })
+          .insert(assetInsertData)
           .select('id')
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.log('Asset creation error:', JSON.stringify(error, null, 2));
+          throw error;
+        }
         assetId = data.id;
+        console.log('Asset created successfully with id:', assetId);
 
         toast.success('Asset created successfully');
       }
@@ -310,11 +315,12 @@ export function AssetForm({
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
-          audio: [item.audio_id],
+          audio: item.audio_id ? [item.audio_id] : null, // Only set audio if we have a value
           id: crypto.randomUUID(),
           active: true,
-          source_language_id: values.source_language_id
+          languoid_id: values.source_languoid_id || null // Store languoid in asset_content_link
         }));
+        console.log('Creating content links:', contentLinks);
 
         const { error: contentError } = await createBrowserClient(environment)
           .from('asset_content_link')
@@ -438,7 +444,7 @@ export function AssetForm({
       if (!initialData) {
         form.reset({
           name: '',
-          source_language_id: '',
+          source_languoid_id: '',
           content: [{ text: '', audio_id: undefined }],
           tags: [],
           quests: questId ? [questId] : []
@@ -514,20 +520,20 @@ export function AssetForm({
 
         <FormField
           control={form.control}
-          name="source_language_id"
+          name="source_languoid_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Source Language</FormLabel>
               <FormControl>
-                <LanguageCombobox
-                  value={field.value}
+                <LanguoidCombobox
+                  value={field.value || ''}
                   onChange={field.onChange}
                   placeholder="Select source language..."
                   disabled={isSubmitting}
-                  onCreateSuccess={(newLanguage) => {
-                    // Optionally refresh the languages list or handle the new language
+                  onCreateSuccess={(newLanguoid) => {
+                    // Optionally refresh the languoids list or handle the new languoid
                     toast.success(
-                      `Language "${newLanguage.english_name}" created and selected`
+                      `Language "${newLanguoid.name}" created and selected`
                     );
                   }}
                 />

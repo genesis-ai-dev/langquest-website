@@ -218,6 +218,11 @@ function AdminContent() {
             membership,
             active,
             profile_id
+          ),
+          project_language_link(
+            languoid_id,
+            language_type,
+            languoid:languoid_id(id, name)
           )
         `
         )
@@ -236,10 +241,19 @@ function AdminContent() {
             project.creator_id === user.id ||
             userMembership?.membership === 'owner';
 
+          // Extract target language from project_language_link
+          const targetLanguageLink = (
+            project.project_language_link as any[]
+          )?.find((link: any) => link.language_type === 'target');
+          const targetLanguage = targetLanguageLink?.languoid
+            ? { english_name: targetLanguageLink.languoid.name }
+            : null;
+
           return {
             ...project,
             isOwner,
-            membership: isOwner ? 'owner' : userMembership?.membership || null
+            membership: isOwner ? 'owner' : userMembership?.membership || null,
+            target_language: targetLanguage
           };
         })
         .sort((a, b) => {

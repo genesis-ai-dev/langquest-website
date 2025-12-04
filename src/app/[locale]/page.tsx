@@ -32,26 +32,27 @@ import Image from 'next/image';
 export default function LandingPage() {
   const t = useTranslations('homepage');
 
-  const environments = [
-    {
-      name: 'Production',
-      description: 'Main database with live data',
-      href: 'https://langquest.org/login',
-      color: 'bg-green-500'
-    },
-    {
-      name: 'Preview',
-      description: 'Staging environment for testing',
-      href: 'https://preview.langquest.org/login',
-      color: 'bg-yellow-500'
-    },
-    {
-      name: 'Development',
-      description: 'Local development environment',
-      href: '/login?env=development',
-      color: 'bg-blue-500'
-    }
-  ];
+  // Environments array commented out - uncomment when environment selector is re-enabled
+  // const environments = [
+  //   {
+  //     name: 'Production',
+  //     description: 'Main database with live data',
+  //     href: 'https://langquest.org/login',
+  //     color: 'bg-green-500'
+  //   },
+  //   {
+  //     name: 'Preview',
+  //     description: 'Staging environment for testing',
+  //     href: 'https://preview.langquest.org/login',
+  //     color: 'bg-yellow-500'
+  //   },
+  //   {
+  //     name: 'Development',
+  //     description: 'Local development environment',
+  //     href: '/login?env=development',
+  //     color: 'bg-blue-500'
+  //   }
+  // ];
 
   return (
     <WebPageWrapper>
