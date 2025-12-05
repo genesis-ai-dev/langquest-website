@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-// import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
 import {
@@ -12,7 +11,9 @@ import {
   FileArchive,
   AlertCircle,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Info,
+  Plus
 } from 'lucide-react';
 import {
   Card,
@@ -27,12 +28,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { validateZipFiles, uploadZipDirect } from '@/lib/upload';
+import { LanguoidModal } from './languoid-modal';
+import { Languoid } from '../../database.types';
 
 interface BulkUploadProps {
   mode: 'project' | 'quest' | 'asset' | 'questToProject';
   projectId?: string; // Required for Quest, Asset, and questToProject mode
   questId?: string; // Required for Asset mode
   onSuccess?: () => void;
+}
+
+interface NewLanguoid {
+  iso639_3: string;
+  name: string;
 }
 
 interface UploadResult {
@@ -65,8 +73,11 @@ export function BulkUpload({
     uploading: false,
     result: null
   });
+  const [isLanguoidModalOpen, setIsLanguoidModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, environment } = useAuth();
+  const [isCreatingLanguage, setIsCreatingLanguage] = useState(false);
+  const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
 
   // Get the supabase client for the current environment
   const supabaseClient = useMemo(() => {
@@ -237,6 +248,62 @@ export function BulkUpload({
     return result;
   };
 
+  const handleCreateLanguoid = async (languoid: NewLanguoid) => {
+    if (!languoid.name.trim()) return;
+
+    setIsCreatingLanguage(true);
+    setShowAddLanguageAlert(false);
+    try {
+      // Get authentication token from Supabase client
+      const supabase = createBrowserClient(environment);
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      // Use the API endpoint to create languoid
+      const response = await fetch('/api/languoid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          environment: environment,
+          name: languoid.name.trim(),
+          iso639_3: languoid.iso639_3.trim().toLowerCase()
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error?: string };
+        throw new Error(errorData.error || 'Failed to create languoid');
+      }
+
+      const data = (await response.json()) as Languoid;
+
+      toast.success(`Added language: ${data.name}`);
+      // onChange(data.id);
+      // if (onLanguoidSelect) {
+      //   onLanguoidSelect(data);
+      // }
+      // setOpen(false);
+
+      // // Call the success callback if provided
+      // if (onCreateSuccess) {
+      //   onCreateSuccess(data);
+      // }
+    } catch (error) {
+      console.error('Error creating languoid:', error);
+      toast.error('Failed to create language');
+    } finally {
+      setIsCreatingLanguage(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!file) {
       toast.error('Please select a ZIP file first');
@@ -250,7 +317,20 @@ export function BulkUpload({
 
     setIsValidating(true);
 
-    const validation = await validateZipFiles(file);
+    const {
+      data: { session }
+    } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) {
+      toast.error('No authentication token available');
+      setIsValidating(false);
+      return;
+    }
+
+    const validation = await validateZipFiles(
+      file,
+      session.access_token,
+      environment
+    );
     setIsValidating(false);
 
     if (!validation.isValid) {
@@ -268,6 +348,10 @@ export function BulkUpload({
           warnings: []
         }
       };
+
+      if (validation.hasLanguageError) {
+        setShowAddLanguageAlert(true);
+      }
 
       setProgress({ uploading: false, result: validationResult });
       toast.error('Validation failed. Please check the errors below.');
@@ -326,19 +410,6 @@ export function BulkUpload({
         return 'Upload a ZIP file with your data.';
     }
   };
-
-  // const getUploadTitle = () => {
-  //   switch (mode) {
-  //     case 'project':
-  //       return 'Upload Projects';
-  //     case 'questToProject':
-  //       return 'Upload Quests to Project';
-  //     case 'quest':
-  //       return 'Upload Assets to Quest';
-  //     default:
-  //       return 'Bulk Upload';
-  //   }
-  // };
 
   return (
     <ScrollArea className="h-full">
@@ -555,17 +626,19 @@ export function BulkUpload({
                   </TabsList>
                   <TabsContent value="errors">
                     <ScrollArea className="h-32">
-                      {progress.result.stats.errors.map((error, index) => (
-                        <div
-                          key={index}
-                          className="text-sm text-destructive mb-1"
-                        >
-                          {progress.result?.message ===
-                          'ZIP file validation failed'
-                            ? error.message
-                            : `Row ${error.row}: ${error.message}`}
-                        </div>
-                      ))}
+                      <ul className="list-disc pl-5">
+                        {progress.result.stats.errors.map((error, index) => (
+                          <li
+                            key={index}
+                            className="text-sm text-destructive mb-1"
+                          >
+                            {progress.result?.message ===
+                            'ZIP file validation failed'
+                              ? error.message
+                              : `Row ${error.row}: ${error.message}`}
+                          </li>
+                        ))}
+                      </ul>
                     </ScrollArea>
                   </TabsContent>
                   <TabsContent value="warnings">
@@ -582,9 +655,44 @@ export function BulkUpload({
                   </TabsContent>
                 </Tabs>
               )}
+              {showAddLanguageAlert && (
+                <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+                  <Info className="h-4 w-4 text-yellow-600" />
+                  <AlertTitle className="text-yellow-800">
+                    Languages Not Found
+                  </AlertTitle>
+                  <AlertDescription className="text-yellow-700 mb-3">
+                    Some of the languages in your CSV file couldn’t be found in
+                    our database. Please review the error messages above for
+                    details, correct the CSV file accordingly and try again. If
+                    needed, you can add the missing languages using the button
+                    below.
+                  </AlertDescription>
+                  <div></div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsLanguoidModalOpen(true)}
+                    className="border-yellow-300 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:text-yellow-800 w-full transition-all"
+                    size="sm"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Language
+                  </Button>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         )}
+
+        <LanguoidModal
+          isOpen={isLanguoidModalOpen}
+          onClose={() => setIsLanguoidModalOpen(false)}
+          initialName=""
+          onLanguoidSelect={(languoid) => {
+            handleCreateLanguoid(languoid);
+            setIsLanguoidModalOpen(false);
+          }}
+        />
 
         <div className="flex justify-between">
           <Button

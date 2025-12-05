@@ -32,7 +32,9 @@ interface ProjectData {
   id: string;
   name: string;
   description: string;
-  target_language: { english_name: string };
+  project_language_link: Array<{
+    languoid: { id: string; name: string };
+  }>;
   quests: Array<{
     id: string;
     name: string;
@@ -45,12 +47,12 @@ interface ProjectData {
     assets: Array<{
       id: string;
       name: string;
-      source_language: { english_name: string };
       images: string[];
       content: Array<{
         id: string;
         text: string;
         audio: string | string[];
+        languoid: { id: string; name: string };
       }>;
       tags: Array<{
         tag: { key: string; value: string };
@@ -62,6 +64,7 @@ interface ProjectData {
           id: string;
           text: string;
           audio: string | string[];
+          languoid: { id: string; name: string };
         }>;
         votes: Array<{ polarity: string }>;
       }>;
@@ -89,6 +92,9 @@ export function ProjectDownloadButton({
           id,
           name,
           description,
+          project_language_link(
+            languoid:languoid_id(id, name)
+          ),
           quests:quest(
             id,
             name,
@@ -100,12 +106,12 @@ export function ProjectDownloadButton({
               id,
               name,
               images,
-              content:asset_content_link(id, text, audio),
+              content:asset_content_link(id, text, audio, languoid:languoid_id(id, name)),
               tags:asset_tag_link(tag(key, value)),
               translations:asset!source_asset_id(
                 id,
                 name,
-                content:asset_content_link(id, text, audio),
+                content:asset_content_link(id, text, audio, languoid:languoid_id(id, name)),
                 votes:vote(polarity)
               )
             )
@@ -116,10 +122,10 @@ export function ProjectDownloadButton({
         .is('quests.assets.source_asset_id', null)
         .single();
 
-      console.log('Fetched project data for download:', data, error);
-
       if (error) throw error;
       if (!data) throw new Error('No project data found');
+
+      console.log('Raw project data fetched for download:', data);
 
       // Process the data structure
       const flattenedData = {
@@ -161,6 +167,8 @@ export function ProjectDownloadButton({
   };
 
   const generateCSV = (data: ProjectData, selectedQuestIds: string[]) => {
+    console.log('Generating CSV for quests:', data);
+
     const selectedQuestsData = data.quests.filter((q) =>
       selectedQuestIds.includes(q.id)
     );
@@ -198,7 +206,7 @@ export function ProjectDownloadButton({
           [
             `"${data.name}"`,
             `"${data.description || ''}"`,
-            `"${data.target_language.english_name}"`,
+            `"${data.project_language_link?.[0]?.languoid?.name || ''}"`,
             `"${quest.parent_quest?.name || ''}"`,
             `"${quest.name}"`,
             `"${quest.description || ''}"`,
@@ -230,14 +238,14 @@ export function ProjectDownloadButton({
               [
                 `"${data.name}"`,
                 `"${data.description || ''}"`,
-                `"${data.target_language.english_name}"`,
+                `"${data.project_language_link?.[0]?.languoid?.name || ''}"`,
                 `"${quest.parent_quest?.name || ''}"`,
                 `"${quest.name}"`,
                 `"${quest.description || ''}"`,
                 `"${questTags}"`,
                 `"${asset.name}"`,
                 `"${assetTags}"`,
-                `"${asset.source_language?.english_name || ''}"`,
+                `"${sourceContent?.languoid?.name || ''}"`,
                 `"${sourceImages}"`,
                 `"${sourceContent?.text || ''}"`,
                 `"${sourceContent?.audio ? (Array.isArray(sourceContent.audio) ? sourceContent.audio.join(';') : sourceContent.audio) : ''}"`,
@@ -262,14 +270,14 @@ export function ProjectDownloadButton({
                 [
                   `"${data.name}"`,
                   `"${data.description || ''}"`,
-                  `"${data.target_language.english_name}"`,
+                  `"${data.project_language_link?.[0]?.languoid?.name || ''}"`,
                   `"${quest.parent_quest?.name || ''}"`,
                   `"${quest.name}"`,
                   `"${quest.description || ''}"`,
                   `"${questTags}"`,
                   `"${asset.name}"`,
                   `"${assetTags}"`,
-                  `"${asset.source_language?.english_name || ''}"`,
+                  `"${sourceContent?.languoid?.name || ''}"`,
                   `"${sourceImages}"`,
                   `"${sourceContent?.text || ''}"`,
                   `"${sourceContent?.audio || ''}"`,
@@ -299,7 +307,7 @@ export function ProjectDownloadButton({
           //        id: data.id,
           name: data.name,
           description: data.description,
-          target_language: data.target_language.english_name
+          target_language: data.project_language_link?.[0]?.languoid?.name || ''
         },
         quests: selectedQuestsData.map((quest) => ({
           //        id: quest.id,
@@ -310,6 +318,7 @@ export function ProjectDownloadButton({
             //          id: asset.id,
             name: asset.name,
             tags: asset.tags.map((t) => `${t.tag.key}:${t.tag.value}`),
+            source_language: asset.content[0]?.languoid?.name || null,
             source_content: asset.content[0]?.text || null,
             source_audio: asset.content[0]?.audio
               ? Array.isArray(asset.content[0].audio)
