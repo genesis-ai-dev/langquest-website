@@ -43,7 +43,6 @@ import { AssetView } from '@/components/asset-view';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   // DialogDescription,
   DialogHeader,
   DialogTitle
@@ -52,7 +51,6 @@ import { QuestInfo } from '@/components/quest-info';
 import { SubQuestMenu } from './components/subquest-menu';
 import { Quest } from '../quest-explorer';
 import { QuestMenu } from './components/quest-menu';
-import { QuestForm } from '../new-quest-form';
 
 interface QuestsUnstructuredProps {
   project: any;
@@ -387,7 +385,7 @@ function QuestContent({
   projectId,
   selectedQuestId,
   selectedQuest,
-  questsTree,
+  // questsTree,
   userRole,
   onSelectQuest,
   onAssetClick,
@@ -413,7 +411,7 @@ function QuestContent({
   const childQuests = selectedQuest?.children || [];
 
   // Obter quests raiz quando não há quest selecionada
-  const rootQuests = questsTree || [];
+  // const rootQuests = questsTree || [];
 
   // Fetch counts for each child quest (sub-quests and assets)
   const { data: questCounts } = useQuery({

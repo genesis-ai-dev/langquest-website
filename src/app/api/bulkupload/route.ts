@@ -661,8 +661,8 @@ async function processProjectUpload(
   data: ProjectRow[],
   supabase: any,
   userId: string,
-  fileMap: FileMap,
-  environment: SupabaseEnvironment
+  fileMap: FileMap
+  // environment: SupabaseEnvironment
 ): Promise<UploadResult> {
   const result: UploadResult = {
     success: true,
