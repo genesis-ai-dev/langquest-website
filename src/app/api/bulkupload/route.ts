@@ -18,6 +18,7 @@ interface ProjectRow {
   quest_tags?: string;
   asset_name: string;
   asset_tags?: string;
+  source_language: string | null;
   source_images?: string;
   source_content?: string;
   source_audio?: string;
@@ -34,6 +35,7 @@ interface ProjectRow {
 interface QuestRow {
   asset_name: string;
   asset_tags?: string;
+  source_language: string | null;
   source_images?: string;
   source_content?: string;
   source_audio?: string;
@@ -54,6 +56,7 @@ interface QuestToProjectRow {
   quest_tags?: string;
   asset_name: string;
   asset_tags?: string;
+  source_language: string | null;
   source_images?: string;
   source_content?: string;
   source_audio?: string;
@@ -190,7 +193,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Download ZIP file from Supabase Storage
-    console.log('[BULK UPLOAD] Downloading from:', uploadPath);
     const { data: zipData, error: downloadError } = await supabase.storage
       .from('uploads')
       .download(uploadPath);
@@ -334,8 +336,7 @@ export async function POST(request: NextRequest) {
           csvData as ProjectRow[],
           supabase,
           user.id,
-          fileMap,
-          environment as SupabaseEnvironment
+          fileMap
         );
         break;
       case 'quest':
@@ -496,7 +497,10 @@ function getContentType(fileName: string): string {
 }
 
 // Helper function to normalize row data from different CSV formats
-function normalizeRowData(row: any): {
+function normalizeRowData(
+  row: any,
+  languoidMap: Map<string, string | null>
+): {
   assetContent: string | null;
   imageFiles: string | null;
   audioFiles: string | null;
@@ -509,7 +513,12 @@ function normalizeRowData(row: any): {
 
   // For source language, try both new and legacy formats
   // Note: Projects no longer have source_language, this is only for assets
-  const sourceLanguage = row.source_language || null;
+
+  const sourceLanguage = row.source_language
+    ? languoidMap.has(row.source_language)
+      ? languoidMap.get(row.source_language) || null
+      : null
+    : null;
 
   return {
     assetContent,
@@ -523,7 +532,11 @@ function normalizeRowData(row: any): {
 async function processContentAndAudio(
   supabase: any,
   assetId: string,
-  normalizedData: { assetContent: string | null; audioFiles: string | null },
+  normalizedData: {
+    assetContent: string | null;
+    audioFiles: string | null;
+    sourceLanguage: string | null;
+  },
   fileMap: FileMap,
   rowIndex: number,
   errors: Array<{ row: number; message: string }>
@@ -571,6 +584,8 @@ async function processContentAndAudio(
         asset_id: assetId,
         text: contentText || '', // Use empty string if no content
         audio: audioFilePath ? [audioFilePath] : null, // Use array format for audio
+        // languoid_id: languoidId,
+        languoid_id: normalizedData.sourceLanguage,
         id: crypto.randomUUID()
       });
     } catch (error: any) {
@@ -663,8 +678,11 @@ async function processProjectUpload(
     }
   };
 
-  const { projectIdsByName, languageCache, createdCount } =
-    await prepareProjects(data, supabase, userId);
+  const { projectIdsByName, createdCount } = await prepareProjects(
+    data,
+    supabase,
+    userId
+  );
 
   result.stats.projects.created = createdCount;
 
@@ -682,6 +700,8 @@ async function processProjectUpload(
   const questSet = new Set<string>();
   const projectSet = new Set<string>();
 
+  const languoidMap = new Map<string, string | null>();
+
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     projectSet.add(row.project_name);
@@ -689,7 +709,16 @@ async function processProjectUpload(
 
     try {
       // Normalize data from different CSV formats
-      const normalizedData = normalizeRowData(row);
+      try {
+        await getLanguoidIdByName(supabase, row.source_language, languoidMap);
+      } catch (error) {
+        result.stats.errors.push({
+          row: i + 1,
+          message: `Failed to find language '${row.source_language}`
+        });
+      }
+
+      const normalizedData = normalizeRowData(row, languoidMap);
 
       // Get or create project
       const projectId = projectIdsByName.get(row.project_name);
@@ -718,37 +747,6 @@ async function processProjectUpload(
             .filter(Boolean)
         : [];
 
-      // Create asset - get source language for asset from normalized data or use target language as fallback
-      let assetSourceLanguageId = null;
-
-      // If we have normalized source language from the row, use it
-      if (normalizedData.sourceLanguage) {
-        assetSourceLanguageId = languageCache.get(
-          normalizedData.sourceLanguage
-        );
-
-        if (!assetSourceLanguageId) {
-          const { data: sourceLang } = await supabase
-            .from('language')
-            .select('id')
-            .eq('english_name', normalizedData.sourceLanguage)
-            .single();
-
-          if (sourceLang) {
-            assetSourceLanguageId = sourceLang.id;
-            languageCache.set(
-              normalizedData.sourceLanguage,
-              assetSourceLanguageId
-            );
-          }
-        }
-      }
-
-      // If no source language specified, use target language as fallback
-      if (!assetSourceLanguageId) {
-        assetSourceLanguageId = languageCache.get(row.target_language);
-      }
-
       if (row.asset_name.trim() === '') {
         /* This means that is only creating a quest without asset */
         continue;
@@ -758,7 +756,6 @@ async function processProjectUpload(
         .from('asset')
         .insert({
           name: row.asset_name,
-          source_language_id: assetSourceLanguageId,
           creator_id: userId,
           project_id: projectId,
           visible: true,
@@ -887,10 +884,6 @@ async function processQuestUpload(
     throw new Error('Project not found');
   }
 
-  // Create language cache for this upload
-  const languageCache = new Map<string, string>();
-  languageCache.set('default', project.target_language_id);
-
   // Prepare all quests at once using projectId as string
   const { questIdsByName, createdCount: questCount } = await prepareQuests(
     data,
@@ -904,13 +897,24 @@ async function processQuestUpload(
 
   const questSet = new Set<string>();
 
+  const languoidMap = new Map<string, string | null>();
+
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     questSet.add(row.quest_name);
 
     try {
       // Normalize data from different CSV formats
-      const normalizedData = normalizeRowData(row);
+      try {
+        await getLanguoidIdByName(supabase, row.source_language, languoidMap);
+      } catch (error) {
+        result.stats.errors.push({
+          row: i + 1,
+          message: `Failed to find language '${row.source_language}`
+        });
+      }
+
+      const normalizedData = normalizeRowData(row, languoidMap);
 
       // Get quest ID from prepared quests
       const questKey = `${projectId}:${row.parent_quest_name}:${row.quest_name}`;
@@ -925,36 +929,6 @@ async function processQuestUpload(
       // Add questId to involved set
       result.involvedIds!.questIds.add(questId);
 
-      // Determine source language for asset
-      let assetSourceLanguageId = project.target_language_id; // Use project target language as default
-
-      // If source language is specified in the row, use it
-      if (normalizedData.sourceLanguage) {
-        let sourceLanguageId = languageCache.get(normalizedData.sourceLanguage);
-
-        if (!sourceLanguageId) {
-          const { data: sourceLang } = await supabase
-            .from('language')
-            .select('id')
-            .eq('english_name', normalizedData.sourceLanguage)
-            .single();
-
-          if (sourceLang) {
-            sourceLanguageId = sourceLang.id;
-            if (sourceLanguageId) {
-              languageCache.set(
-                normalizedData.sourceLanguage,
-                sourceLanguageId
-              );
-            }
-          }
-        }
-
-        if (sourceLanguageId) {
-          assetSourceLanguageId = sourceLanguageId;
-        }
-      }
-
       // Skip if no asset name (quest-only row)
       if (!row.asset_name || row.asset_name.trim() === '') {
         continue;
@@ -965,7 +939,6 @@ async function processQuestUpload(
         ? normalizedData.imageFiles
             .split(';')
             .map((file) => {
-              console.log('Processing image file:', file);
               const fileName = file.trim().split('/').pop() || file.trim();
               if (fileMap[fileName]) {
                 return `${fileMap[fileName]}`;
@@ -980,7 +953,6 @@ async function processQuestUpload(
         .from('asset')
         .insert({
           name: row.asset_name,
-          source_language_id: assetSourceLanguageId,
           creator_id: userId,
           project_id: projectId,
           visible: true,
@@ -1105,51 +1077,28 @@ async function processAssetUpload(
     throw new Error('Failed to fetch quest details');
   }
 
-  // Use target language as default for assets if no source language is specified
-  const defaultLanguageId = (quest.project as any).target_language_id;
-  const languageCache = new Map<string, string>();
-
   // Adicionar o project_id ao set de IDs envolvidos
   if (quest.project_id) {
     result.involvedIds!.projectIds.add(quest.project_id);
   }
+
+  const languoidMap = new Map<string, string | null>();
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
 
     try {
       // Normalize data from different CSV formats
-      const normalizedData = normalizeRowData(row);
-
-      // Determine source language for asset
-      let assetSourceLanguageId = defaultLanguageId; // Use project target language as default
-
-      // If source language is specified in the row, use it
-      if (normalizedData.sourceLanguage) {
-        let sourceLanguageId = languageCache.get(normalizedData.sourceLanguage);
-
-        if (!sourceLanguageId) {
-          const { data: sourceLang } = await supabase
-            .from('language')
-            .select('id')
-            .eq('english_name', normalizedData.sourceLanguage)
-            .single();
-
-          if (sourceLang) {
-            sourceLanguageId = sourceLang.id;
-            if (sourceLanguageId) {
-              languageCache.set(
-                normalizedData.sourceLanguage,
-                sourceLanguageId
-              );
-            }
-          }
-        }
-
-        if (sourceLanguageId) {
-          assetSourceLanguageId = sourceLanguageId;
-        }
+      try {
+        await getLanguoidIdByName(supabase, row.source_language, languoidMap);
+      } catch (error) {
+        result.stats.errors.push({
+          row: i + 1,
+          message: `Failed to find language '${row.source_language}`
+        });
       }
+
+      const normalizedData = normalizeRowData(row, languoidMap);
 
       // Prepare images array using normalized data
       const imageFiles = normalizedData.imageFiles
@@ -1171,7 +1120,6 @@ async function processAssetUpload(
         .from('asset')
         .insert({
           name: row.asset_name,
-          source_language_id: assetSourceLanguageId,
           creator_id: userId,
           project_id: quest.project_id,
           visible: true,
@@ -1255,328 +1203,6 @@ async function processAssetUpload(
   return result;
 }
 
-// Função para processar upload de quests to project (create quests within existing project)
-// async function processQuestToProjectUpload(
-//   data: QuestToProjectRow[],
-//   supabase: any,
-//   userId: string,
-//   projectId: string,
-//   fileMap: FileMap
-// ): Promise<UploadResult> {
-//   const result: UploadResult = {
-//     success: true,
-//     stats: {
-//       projects: { read: 1, created: 0 }, // We're adding to existing project
-//       quests: { read: 0, created: 0 },
-//       assets: { read: data.length, created: 0 },
-//       errors: [],
-//       warnings: []
-//     },
-//     involvedIds: {
-//       projectIds: new Set<string>([projectId]), // Projeto já envolvido
-//       questIds: new Set<string>()
-//     }
-//   };
-
-//   // Get project to determine target language (used as default for assets)
-//   const { data: project } = await supabase
-//     .from('project')
-//     .select('target_language_id')
-//     .eq('id', projectId)
-//     .single();
-
-//   if (!project) {
-//     throw new Error('Project not found');
-//   }
-
-//   const questMap = new Map<string, string>(); // quest_name -> quest_id
-//   const questSet = new Set<string>();
-
-//   for (let i = 0; i < data.length; i++) {
-//     const row = data[i];
-//     questSet.add(row.quest_name);
-
-//     try {
-//       // Get or create quest
-//       let questId = questMap.get(row.quest_name);
-//       if (!questId) {
-//         // First check if quest already exists in the project
-//         const { data: existingQuest } = await supabase
-//           .from('quest')
-//           .select('id')
-//           .eq('name', row.quest_name)
-//           .eq('project_id', projectId)
-//           .single();
-
-//         if (existingQuest) {
-//           questId = existingQuest.id;
-//         } else {
-//           // Create new quest
-//           const { data: quest, error: questError } = await supabase
-//             .from('quest')
-//             .insert({
-//               name: row.quest_name,
-//               description: row.quest_description || null,
-//               project_id: projectId,
-//               creator_id: userId
-//             })
-//             .select('id')
-//             .single();
-
-//           if (questError) throw questError;
-//           questId = quest.id;
-//           result.stats.quests.created++;
-
-//           // Adicionar ao set de IDs envolvidos
-//           if (questId) {
-//             result.involvedIds!.questIds.add(questId);
-//           }
-
-//           // Handle quest tags
-//           if (row.quest_tags) {
-//             const tags = parseTagString(row.quest_tags);
-//             for (const tagObj of tags) {
-//               try {
-//                 const tagId = await findOrCreateTag(
-//                   supabase,
-//                   tagObj.key,
-//                   tagObj.value
-//                 );
-
-//                 await supabase.from('quest_tag_link').insert({
-//                   quest_id: questId,
-//                   tag_id: tagId
-//                 });
-//               } catch (error) {
-//                 console.error('Error creating/linking quest tag:', error);
-//                 result.stats.warnings.push({
-//                   row: i + 1,
-//                   message: `Failed to create/link quest tag "${tagObj.key}:${tagObj.value}"`
-//                 });
-//               }
-//             }
-//           }
-//         }
-
-//         if (questId) {
-//           questMap.set(row.quest_name, questId);
-//           // Adicionar ao set de IDs envolvidos (pode ser existente ou novo)
-//           result.involvedIds!.questIds.add(questId);
-//         }
-//       }
-
-//       // Prepare images array using normalized data
-//       const normalizedData = normalizeRowData(row);
-
-//       // Determine source language for asset
-//       let assetSourceLanguageId = project.target_language_id; // Use project target language as default
-
-//       // If source language is specified in the row, use it
-//       if (normalizedData.sourceLanguage) {
-//         const { data: sourceLang } = await supabase
-//           .from('language')
-//           .select('id')
-//           .eq('english_name', normalizedData.sourceLanguage)
-//           .single();
-
-//         if (sourceLang) {
-//           assetSourceLanguageId = sourceLang.id;
-//         }
-//       }
-
-//       const imageUrls = normalizedData.imageFiles
-//         ? normalizedData.imageFiles
-//             .split(';')
-//             .map((url: string) => {
-//               console.log('Processing image URL:', url);
-//               const fileName = url.trim().split('/').pop() || url.trim();
-//               if (fileMap[fileName]) {
-//                 return `${fileMap[fileName]}`;
-//               }
-//               return null;
-//             })
-//             .filter(Boolean)
-//         : [];
-
-//       // Create asset
-//       const { data: asset, error: assetError } = await supabase
-//         .from('asset')
-//         .insert({
-//           name: row.asset_name,
-//           source_language_id: assetSourceLanguageId,
-//           creator_id: userId,
-//           project_id: projectId,
-//           visible: true,
-//           created_at: new Date().toISOString(),
-//           source_asset_id: null,
-//           images: imageUrls.length > 0 ? imageUrls : null
-//         })
-//         .select('id')
-//         .single();
-
-//       if (assetError) throw assetError;
-//       result.stats.assets.created++;
-
-//       // Add asset content
-//       //   if (row.asset_content) {
-//       //     await supabase.from('asset_content_link').insert({
-//       //       asset_id: asset.id,
-//       //       text: row.asset_content,
-//       //       id: crypto.randomUUID()
-//       //     });
-//       //   }
-
-//       // Handle asset tags
-//       if (row.asset_tags) {
-//         const tagNames = row.asset_tags
-//           .split(';')
-//           .map((t) => t.trim())
-//           .filter(Boolean);
-//         for (const tagName of tagNames) {
-//           try {
-//             const tagObj = parseTagString(tagName)[0];
-//             const tag = await findOrCreateTag(
-//               supabase,
-//               tagObj.key,
-//               tagObj.value
-//             );
-
-//             await supabase.from('asset_tag_link').insert({
-//               asset_id: asset.id,
-//               tag_id: tag
-//             });
-//           } catch (error) {
-//             console.error('Error creating/linking asset tag:', error);
-//             result.stats.warnings.push({
-//               row: i + 1,
-//               message: `Failed to create/link asset tag "${tagName}"`
-//             });
-//           }
-//         }
-//       }
-
-//       // Link asset to quest
-//       if (questId) {
-//         await supabase.from('quest_asset_link').insert({
-//           quest_id: questId,
-//           asset_id: asset.id
-//         });
-//       }
-
-//       // Handle content and audio files - add to asset_content_link with position correlation
-//       await processContentAndAudio(
-//         supabase,
-//         asset.id,
-//         normalizedData,
-//         fileMap,
-//         i,
-//         result.stats.errors
-//       );
-
-//       // Handle image files - check if any referenced images were not found
-//       if (normalizedData.imageFiles) {
-//         const imageFileNames = normalizedData.imageFiles
-//           .split(';')
-//           .map((file) => {
-//             return file.trim().split('/').pop() || file.trim();
-//           });
-
-//         for (const fileName of imageFileNames) {
-//           if (!fileMap[fileName]) {
-//             result.stats.errors.push({
-//               row: i + 1,
-//               message: `Image file not found in ZIP: ${fileName}`
-//             });
-//           }
-//         }
-//       }
-//     } catch (error: any) {
-//       result.stats.errors.push({
-//         row: i + 1,
-//         message: error.message || 'Unknown error'
-//       });
-//     }
-//   }
-
-//   result.stats.quests.read = questSet.size;
-//   result.success = result.stats.errors.length === 0;
-//   return result;
-// }
-
-// async function executePostProcessingFunctions(
-//   supabase: any,
-//   involvedIds: { projectIds: Set<string>; questIds: Set<string> }
-//   // userId: string
-// ): Promise<void> {
-//   const errors: string[] = [];
-
-//   // Executar função para cada project_id
-//   for (const projectId of involvedIds.projectIds) {
-//     try {
-//       console.log(
-//         `[POST-PROCESSING] Executing project function for: ${projectId}`
-//       );
-
-//       // SUBSTITUA 'refresh_project_stats' pela sua função RPC
-//       const { error: projectError } = await supabase.rpc(
-//         'rebuild_single_project_closure',
-//         {
-//           project_id_param: projectId
-//         }
-//       );
-
-//       if (projectError) {
-//         console.error(
-//           `Error in project post-processing ${projectId}:`,
-//           projectError
-//         );
-//         errors.push(`Project ${projectId}: ${projectError.message}`);
-//       }
-//     } catch (error: any) {
-//       console.error(
-//         `Error executing project function for ${projectId}:`,
-//         error
-//       );
-//       errors.push(`Project ${projectId}: ${error.message}`);
-//     }
-//   }
-
-//   // Executar função para cada quest_id
-//   for (const questId of involvedIds.questIds) {
-//     try {
-//       console.log(`[POST-PROCESSING] Executing quest function for: ${questId}`);
-
-//       // SUBSTITUA 'refresh_quest_stats' pela sua função RPC
-//       const { error: questError } = await supabase.rpc(
-//         'rebuild_single_quest_closure',
-//         {
-//           quest_id_param: questId
-//         }
-//       );
-
-//       if (questError) {
-//         console.error(`Error in quest post-processing ${questId}:`, questError);
-//         errors.push(`Quest ${questId}: ${questError.message}`);
-//       }
-//     } catch (error: any) {
-//       console.error(`Error executing quest function for ${questId}:`, error);
-//       errors.push(`Quest ${questId}: ${error.message}`);
-//     }
-//   }
-
-//   // Log final
-//   if (errors.length > 0) {
-//     console.warn(
-//       '[POST-PROCESSING] Some post-processing functions failed:',
-//       errors
-//     );
-//   } else {
-//     console.log(
-//       '[POST-PROCESSING] All post-processing functions executed successfully'
-//     );
-//   }
-// }
-
 type ProjectIdsByName = Map<string, string>; // projectName -> projectId
 
 async function prepareProjects(
@@ -1585,10 +1211,10 @@ async function prepareProjects(
   userId: string
 ): Promise<{
   projectIdsByName: ProjectIdsByName;
-  languageCache: Map<string, string>;
+  languoidCache: Map<string, string>;
   createdCount: number;
 }> {
-  const languageCache = new Map<string, string>(); // language_name -> language_id
+  const languoidCache = new Map<string, string>(); // language_name -> languoid_id
   const projectIdsByName: ProjectIdsByName = new Map();
   let createdCount = 0;
 
@@ -1614,31 +1240,34 @@ async function prepareProjects(
       // Project doesn't exist, create new one
       // Use current row data for project creation
 
-      // Get target language ID
-      let targetLanguageId = languageCache.get(row.target_language);
+      // Get target languoid ID - search by name in languoid table
+      let targetLanguoidId = languoidCache.get(row.target_language);
 
-      if (!targetLanguageId) {
+      if (!targetLanguoidId) {
+        // Search languoid by name
         const { data: targetLang } = await supabase
-          .from('language')
+          .from('languoid')
           .select('id')
-          .eq('english_name', row.target_language)
+          .ilike('name', row.target_language)
+          .eq('active', true)
           .single();
 
         if (!targetLang) {
-          throw new Error(`Target language '${row.target_language}' not found`);
+          throw new Error(
+            `Target language '${row.target_language}' not found in languoid table`
+          );
         }
 
-        targetLanguageId = targetLang.id;
-        if (targetLanguageId) {
-          languageCache.set(row.target_language, targetLanguageId);
+        targetLanguoidId = targetLang.id;
+        if (targetLanguoidId) {
+          languoidCache.set(row.target_language, targetLanguoidId);
         }
       }
 
-      // Create new project
+      // Create new project (without target_language_id - using project_language_link instead)
       const projectData = {
         name: projectName,
         description: row.project_description || null,
-        target_language_id: targetLanguageId,
         creator_id: userId,
         visible: true,
         created_at: new Date().toISOString(),
@@ -1657,7 +1286,7 @@ async function prepareProjects(
         );
       }
 
-      // Create project ownership
+      // Create project ownership FIRST (required by RLS policy for project_language_link)
       try {
         const { error: ownershipError } = await supabase.rpc(
           'create_project_ownership',
@@ -1680,12 +1309,30 @@ async function prepareProjects(
         );
       }
 
+      // Create project_language_link for target language (after ownership exists)
+      if (targetLanguoidId) {
+        const { error: linkError } = await supabase
+          .from('project_language_link')
+          .insert({
+            project_id: newProject.id,
+            languoid_id: targetLanguoidId,
+            language_type: 'target'
+          });
+
+        if (linkError) {
+          console.error(
+            `Error creating project_language_link for ${projectName}:`,
+            linkError
+          );
+        }
+      }
+
       projectIdsByName.set(projectName, newProject.id);
       createdCount++;
     }
   }
 
-  return { projectIdsByName, languageCache, createdCount };
+  return { projectIdsByName, languoidCache, createdCount };
 }
 
 type QuestIdsByKey = Map<string, string>; // projectName -> projectId
@@ -1850,4 +1497,38 @@ async function processQuest(
     }
   }
   return { questId, error: opError };
+}
+
+async function getLanguoidIdByName(
+  supabase: any,
+  languageName: string | null,
+  languoidCache: Map<string, string | null>
+) {
+  if (!languageName) {
+    return null;
+  }
+  if (languoidCache.has(languageName)) {
+    return languoidCache.get(languageName);
+  }
+
+  try {
+    const { data: languoid } = await supabase
+      .from('languoid')
+      .select('id')
+      .ilike('name', languageName)
+      .eq('active', true)
+      .single();
+
+    if (languoid) {
+      languoidCache.set(languageName, languoid.id);
+      return languoid.id;
+    } else {
+      languoidCache.set(languageName, null);
+      throw new Error(`Language '${languageName}' not found in languoid table`);
+    }
+  } catch (error: any) {
+    throw new Error(
+      `Error fetching languoid for language '${languageName}': ${error.message}`
+    );
+  }
 }

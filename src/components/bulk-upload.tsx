@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Papa from 'papaparse';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
+import { createProjectOwnership } from '@/lib/project-permissions';
 
 interface BulkUploadProps {
   mode: 'project' | 'quest' | 'questToProject';
@@ -303,7 +304,7 @@ export function BulkUpload({
   const processProjectUpload = async (data: ProjectRow[]) => {
     const projectMap = new Map<string, string>(); // project_name -> project_id
     const questMap = new Map<string, string>(); // project_name:quest_name -> quest_id
-    const languageCache = new Map<string, string>(); // language_name -> language_id
+    const languoidCache = new Map<string, string>(); // language_name -> languoid_id
 
     setProgress((prev) => ({ ...prev, total: data.length }));
 
@@ -319,49 +320,51 @@ export function BulkUpload({
         // Get or create project
         let projectId = projectMap.get(row.project_name);
         if (!projectId) {
-          // Get language IDs
-          let sourceLanguageId = languageCache.get(row.source_language);
-          let targetLanguageId = languageCache.get(row.target_language);
+          // Get languoid IDs from languoid table
+          let sourceLanguoidId = languoidCache.get(row.source_language);
+          let targetLanguoidId = languoidCache.get(row.target_language);
 
-          if (!sourceLanguageId) {
+          if (!sourceLanguoidId) {
             const { data: sourceLang } = await supabaseClient
-              .from('language')
+              .from('languoid')
               .select('id')
-              .eq('english_name', row.source_language)
+              .ilike('name', row.source_language)
+              .eq('active', true)
               .single();
 
             if (!sourceLang) {
               throw new Error(
-                `Source language '${row.source_language}' not found`
+                `Source language '${row.source_language}' not found in languoid table`
               );
             }
-            sourceLanguageId = sourceLang.id;
-            if (sourceLanguageId) {
-              languageCache.set(row.source_language, sourceLanguageId);
+            sourceLanguoidId = sourceLang.id;
+            if (sourceLanguoidId) {
+              languoidCache.set(row.source_language, sourceLanguoidId);
             }
           }
 
-          if (!targetLanguageId) {
+          if (!targetLanguoidId) {
             const { data: targetLang } = await supabaseClient
-              .from('language')
+              .from('languoid')
               .select('id')
-              .eq('english_name', row.target_language)
+              .ilike('name', row.target_language)
+              .eq('active', true)
               .single();
 
             if (!targetLang) {
               throw new Error(
-                `Target language '${row.target_language}' not found`
+                `Target language '${row.target_language}' not found in languoid table`
               );
             }
-            targetLanguageId = targetLang.id;
-            if (targetLanguageId) {
-              languageCache.set(row.target_language, targetLanguageId);
+            targetLanguoidId = targetLang.id;
+            if (targetLanguoidId) {
+              languoidCache.set(row.target_language, targetLanguoidId);
             }
           }
 
-          // At this point, both language IDs are guaranteed to be strings
-          if (!sourceLanguageId || !targetLanguageId) {
-            throw new Error('Language IDs could not be resolved');
+          // At this point, both languoid IDs are guaranteed to be strings
+          if (!sourceLanguoidId || !targetLanguoidId) {
+            throw new Error('Languoid IDs could not be resolved');
           }
 
           // Check if project already exists
@@ -375,20 +378,43 @@ export function BulkUpload({
             // Use existing project
             projectId = existingProject.id;
           } else {
-            // Create new project
+            // Create new project (without language IDs - use project_language_link instead)
             const { data: project, error: projectError } = await supabaseClient
               .from('project')
               .insert({
                 name: row.project_name,
                 description: row.project_description || null,
-                source_language_id: sourceLanguageId,
-                target_language_id: targetLanguageId
+                creator_id: user?.id
               })
               .select('id')
               .single();
 
             if (projectError) throw projectError;
             projectId = project.id;
+
+            // Create project ownership FIRST (required by RLS policy for project_language_link)
+            if (user?.id && projectId) {
+              try {
+                await createProjectOwnership(projectId, user.id, environment);
+              } catch (ownershipError) {
+                console.error(
+                  'Error creating project ownership:',
+                  ownershipError
+                );
+              }
+            }
+
+            // Create project_language_link entries (requires ownership to exist first)
+            await supabaseClient.from('project_language_link').insert({
+              project_id: projectId,
+              languoid_id: sourceLanguoidId,
+              language_type: 'source'
+            });
+            await supabaseClient.from('project_language_link').insert({
+              project_id: projectId,
+              languoid_id: targetLanguoidId,
+              language_type: 'target'
+            });
           }
 
           if (!projectId) {
@@ -458,18 +484,11 @@ export function BulkUpload({
           }
         }
 
-        // Create asset
-        const sourceLanguageId = languageCache.get(row.source_language);
-        if (!sourceLanguageId) {
-          throw new Error(
-            `Source language ID not found for '${row.source_language}'`
-          );
-        }
+        // Create asset (source_language_id deprecated - using languoid in asset_content_link)
         const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
             name: row.asset_name,
-            source_language_id: sourceLanguageId,
             creator_id: user?.id
           })
           .select('id')
@@ -566,21 +585,13 @@ export function BulkUpload({
     // Get quest details for language
     const { data: quest, error: questError } = await supabaseClient
       .from('quest')
-      .select(
-        `
-        project:project_id(
-          source_language_id
-        )
-      `
-      )
+      .select('project_id')
       .eq('id', questId)
       .single();
 
     if (questError || !quest) {
       throw new Error('Failed to fetch quest details');
     }
-
-    const sourceLanguageId = (quest.project as any).source_language_id;
     setProgress((prev) => ({ ...prev, total: data.length }));
 
     for (let i = 0; i < data.length; i++) {
@@ -592,12 +603,11 @@ export function BulkUpload({
       }));
 
       try {
-        // Create asset
+        // Create asset (source_language_id deprecated)
         const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
             name: row.asset_name,
-            source_language_id: sourceLanguageId,
             creator_id: user?.id
           })
           .select('id')
@@ -691,10 +701,10 @@ export function BulkUpload({
       throw new Error('Project ID is required for quest upload');
     }
 
-    // Get project to determine source language (once for all assets)
+    // Get project (source_language_id deprecated)
     const { data: project } = await supabaseClient
       .from('project')
-      .select('source_language_id')
+      .select('id')
       .eq('id', projectId)
       .single();
 
@@ -808,7 +818,6 @@ export function BulkUpload({
           .from('asset')
           .insert({
             name: row.asset_name,
-            source_language_id: project.source_language_id,
             creator_id: user?.id
           })
           .select('id')

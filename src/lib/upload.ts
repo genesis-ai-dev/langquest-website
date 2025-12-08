@@ -1,13 +1,22 @@
 import JSZip from 'jszip';
 import Papa from 'papaparse';
+import { env } from './env';
 
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
+  hasLanguageError?: boolean;
+}
+
+export interface LanguageValidationResult {
+  hasErrors: boolean;
+  errors: string[];
 }
 
 export const validateZipFiles = async (
-  file: File
+  file: File,
+  accessToken: string,
+  environment: string
 ): Promise<ValidationResult> => {
   const errors: string[] = [];
 
@@ -76,10 +85,12 @@ export const validateZipFiles = async (
       return parts[parts.length - 1];
     });
 
+    const languageValues = new Set<string>();
+    let hasLanguageError = false;
+
     for (let i = 0; i < csvData.length; i++) {
       const row = csvData[i];
 
-      // Verificar source_images
       if (row.source_images && typeof row.source_images === 'string') {
         const imageFiles = row.source_images
           .split(';')
@@ -111,9 +122,37 @@ export const validateZipFiles = async (
           }
         }
       }
+
+      if (row.target_language && typeof row.target_language === 'string') {
+        const targetLang = row.target_language.trim();
+        if (targetLang) {
+          languageValues.add(targetLang);
+        }
+      }
+
+      if (row.source_language && typeof row.source_language === 'string') {
+        const sourceLang = row.source_language.trim();
+        if (sourceLang) {
+          languageValues.add(sourceLang);
+        }
+      }
     }
 
-    return { isValid: errors.length === 0, errors };
+    if (accessToken && languageValues.size > 0) {
+      const languageArray = Array.from(languageValues);
+      const languageValidation = await validateLanguages(
+        languageArray,
+        accessToken,
+        environment
+      );
+
+      if (languageValidation.hasErrors) {
+        hasLanguageError = true;
+        errors.push(...languageValidation.errors);
+      }
+    }
+
+    return { isValid: errors.length === 0, errors, hasLanguageError };
   } catch (error: any) {
     errors.push(`Error processing ZIP: ${error.message}`);
     return { isValid: false, errors };
@@ -178,3 +217,54 @@ export async function deleteZipFile(
     console.warn(`Error deleting ZIP file: ${uploadPath}`, error);
   }
 }
+
+export const validateLanguages = async (
+  languageValues: string[],
+  accessToken: string,
+  environment?: string
+): Promise<LanguageValidationResult> => {
+  const errors: string[] = [];
+
+  if (!languageValues || languageValues.length === 0) {
+    return { hasErrors: false, errors: [] };
+  }
+
+  try {
+    const response = await fetch('/api/languoid/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        languages: languageValues,
+        environment: environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production'
+      })
+    });
+
+    if (!response.ok) {
+      errors.push(`Failed to validate languages: ${response.statusText}`);
+      return { hasErrors: true, errors };
+    }
+
+    const validationResult = await response.json();
+    const invalidLanguages = validationResult.invalidLanguages || [];
+
+    console.log('Invalid languages from validation:', invalidLanguages);
+
+    for (const invalidLang of invalidLanguages) {
+      console.log('Invalid language:', invalidLang);
+      errors.push(
+        `Language '${invalidLang.name}' not found in languoid table. \nSuggestions: ${invalidLang.suggestions.map((s: any) => s.name).join(', ')}.`
+      );
+    }
+
+    return {
+      hasErrors: errors.length > 0,
+      errors
+    };
+  } catch (error: any) {
+    errors.push(`Error validating languages: ${error.message}`);
+    return { hasErrors: true, errors };
+  }
+};

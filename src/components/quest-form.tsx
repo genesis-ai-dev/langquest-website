@@ -72,15 +72,7 @@ export function QuestForm({
       // Get projects where user is the creator
       const { data, error } = await createBrowserClient(environment)
         .from('project')
-        .select(
-          `
-          id, 
-          name, 
-          creator_id,
-          source_language:source_language_id(english_name), 
-          target_language:target_language_id(english_name)
-        `
-        )
+        .select('id, name, creator_id')
         .order('name');
 
       if (error) throw error;
@@ -274,9 +266,7 @@ export function QuestForm({
                 <SelectContent>
                   {projects?.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
-                      {project.name} (
-                      {(project.source_language as any)?.english_name} →{' '}
-                      {(project.target_language as any)?.english_name})
+                      {project.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

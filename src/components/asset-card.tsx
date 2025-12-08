@@ -64,21 +64,16 @@ export interface Asset {
   id: string;
   name: string;
   project_id: string;
-  source_language_id: string;
   project?: {
     id: string;
     name: string;
     description: string;
-    target_language: TargetLanguage;
   };
-  source_language?: SourceLanguage;
   translations: {
     id: string;
     name: string;
-    source_language_id: string;
     project_id: string;
     content: Content[];
-    source_language?: SourceLanguage;
   }[];
   content: Content[];
   tags: Tag[];
@@ -91,7 +86,6 @@ export interface Asset {
         id: string;
         name: string;
         description: string;
-        target_language: TargetLanguage;
       };
       description: string;
     };
@@ -432,8 +426,7 @@ export function AssetCard({ asset }: AssetCardProps) {
                             variant="outline"
                             className="text-xs bg-primary/10"
                           >
-                            {translation.source_language?.english_name ||
-                              'Unknown'}
+                            Translation
                           </Badge>
                         </div>
                       </div>

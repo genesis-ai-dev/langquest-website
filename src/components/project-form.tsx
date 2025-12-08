@@ -16,7 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
@@ -27,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip';
-import { LanguageCombobox, Language } from './language-combobox';
+import { LanguoidCombobox } from './languoid-combobox';
 import { useAuth } from '@/components/auth-provider';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { createProjectOwnership } from '@/lib/project-permissions';
@@ -37,10 +36,10 @@ const projectFormSchema = z.object({
     message: 'Project name must be at least 2 characters.'
   }),
   description: z.string().optional(),
-  source_language_id: z.string().min(1, {
+  source_languoid_id: z.string().min(1, {
     message: 'Source language is required.'
   }),
-  target_language_id: z.string().min(1, {
+  target_languoid_id: z.string().min(1, {
     message: 'Target language is required.'
   }),
   color: z.string().optional(),
@@ -66,29 +65,15 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
     defaultValues: initialData || {
       name: '',
       description: '',
-      source_language_id: '',
-      target_language_id: '',
+      source_languoid_id: '',
+      target_languoid_id: '',
       color: '#3b82f6'
     }
   });
 
-  // Fetch languages for dropdowns
-  const { data: languages, isLoading: languagesLoading } = useQuery({
-    queryKey: ['languages', environment],
-    queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
-        .from('language')
-        .select('id, english_name, native_name, iso639_3')
-        .order('english_name');
-
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Handle language creation success
-  const handleLanguageCreated = () => {
-    // Refetch languages to update the list
+  // Handle languoid creation success
+  const handleLanguoidCreated = () => {
+    // Refetch languoids to update the list
     // This is optional since we're already updating the UI optimistically
   };
 
@@ -144,27 +129,51 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
     setIsSubmitting(true);
     try {
+      const supabase = createBrowserClient(environment);
       const projectData = {
         name: values.name,
         description: values.description || null,
-        source_language_id: values.source_language_id,
-        target_language_id: values.target_language_id,
         color: values.color,
         image: values.image,
         creator_id: user.id // Set creator_id to auth user ID (profile.id = auth.users.id)
       };
 
       if (initialData?.id) {
-        // Update existing project (exclude creator_id from updates)
-        const { ...updateData } = projectData;
-        const { data, error } = await createBrowserClient(environment)
+        // Update existing project
+        const { data, error } = await supabase
           .from('project')
-          .update(updateData)
+          .update(projectData)
           .eq('id', initialData.id)
           .select('id')
           .single();
 
         if (error) throw error;
+
+        // Update project_language_link entries
+        // First, delete existing links and recreate
+        await supabase
+          .from('project_language_link')
+          .delete()
+          .eq('project_id', initialData.id);
+
+        // Create source language link
+        if (values.source_languoid_id) {
+          await supabase.from('project_language_link').insert({
+            project_id: initialData.id,
+            languoid_id: values.source_languoid_id,
+            language_type: 'source'
+          });
+        }
+
+        // Create target language link
+        if (values.target_languoid_id) {
+          await supabase.from('project_language_link').insert({
+            project_id: initialData.id,
+            languoid_id: values.target_languoid_id,
+            language_type: 'target'
+          });
+        }
+
         toast.success('Project updated successfully');
 
         // Call onSuccess callback with the result
@@ -173,7 +182,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         }
       } else {
         // Create new project
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await supabase
           .from('project')
           .insert(projectData)
           .select('id')
@@ -181,12 +190,43 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
         if (error) throw error;
 
+        // Create project ownership FIRST (required by RLS policy for project_language_link)
         try {
           await createProjectOwnership(data.id, user.id, environment);
         } catch (ownershipError) {
           console.error('Error creating project ownership:', ownershipError);
-          // Non-fatal: creator_id still grants ownership
+          toast.error('Failed to set project ownership');
         }
+
+        // Create project_language_link entries (requires ownership to exist first)
+        // Source language link
+        if (values.source_languoid_id) {
+          const { error: sourceError } = await supabase
+            .from('project_language_link')
+            .insert({
+              project_id: data.id,
+              languoid_id: values.source_languoid_id,
+              language_type: 'source'
+            });
+          if (sourceError) {
+            console.error('Error creating source language link:', sourceError);
+          }
+        }
+
+        // Target language link
+        if (values.target_languoid_id) {
+          const { error: targetError } = await supabase
+            .from('project_language_link')
+            .insert({
+              project_id: data.id,
+              languoid_id: values.target_languoid_id,
+              language_type: 'target'
+            });
+          if (targetError) {
+            console.error('Error creating target language link:', targetError);
+          }
+        }
+
         toast.success('Project created successfully');
 
         // Call onSuccess callback with the result
@@ -200,8 +240,8 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         form.reset({
           name: '',
           description: '',
-          source_language_id: '',
-          target_language_id: '',
+          source_languoid_id: '',
+          target_languoid_id: '',
           color: '#3b82f6'
         });
       }
@@ -265,7 +305,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="source_language_id"
+              name="source_languoid_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -284,13 +324,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    <LanguageCombobox
+                    <LanguoidCombobox
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select source language"
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
-                      onCreateSuccess={handleLanguageCreated}
+                      onCreateSuccess={handleLanguoidCreated}
                     />
                   </FormControl>
                   <FormDescription>
@@ -303,7 +341,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
             <FormField
               control={form.control}
-              name="target_language_id"
+              name="target_languoid_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -322,13 +360,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    <LanguageCombobox
+                    <LanguoidCombobox
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select target language"
-                      languages={(languages as Language[]) || []}
-                      isLoading={languagesLoading}
-                      onCreateSuccess={handleLanguageCreated}
+                      onCreateSuccess={handleLanguoidCreated}
                     />
                   </FormControl>
                   <FormDescription>

@@ -48,6 +48,32 @@ export function createBrowserClient(environment?: SupabaseEnvironment | null) {
   console.log('[SUPABASE CLIENT] Key exists:', !!key);
   console.log('[SUPABASE CLIENT] Key length:', key?.length);
 
+  // During build time, env vars may not be available. If URL or key is missing,
+  // create a mock client to prevent build errors. This client won't be used
+  // during static generation anyway.
+  if (!url || !key) {
+    console.warn(
+      '[SUPABASE CLIENT] Missing credentials during build, creating mock client'
+    );
+    // Create a mock client with placeholder values that won't cause errors
+    // This is safe because during static generation, the client won't be used
+    const mockInstance = createClient(
+      'https://placeholder.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
+      {
+        auth: {
+          storage:
+            typeof window !== 'undefined' ? window.localStorage : undefined,
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        }
+      }
+    );
+    supabaseInstances.set(env, mockInstance);
+    return mockInstance;
+  }
+
   // Use createClient directly instead of createBrowserClient to ensure
   // the URL and key we pass are actually used (not overridden by env vars)
   const newInstance = createClient(url, key, {

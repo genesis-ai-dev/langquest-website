@@ -6,7 +6,8 @@ export const env = createEnv({
   extends: [vercel()],
   server: {
     AUDIENCE_ID: z.string().min(1),
-    RESEND_API_KEY: z.string().min(1)
+    RESEND_API_KEY: z.string().min(1),
+    AUDIO_CONCAT_WORKER_URL: z.string().url().optional()
   },
   client: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),

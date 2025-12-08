@@ -540,8 +540,7 @@ function QuestContent({
           content:asset_content_link(
             id,
             text,
-            audio,
-            source_language_id
+            audio
           ),
           votes:vote!asset_id(
             polarity,

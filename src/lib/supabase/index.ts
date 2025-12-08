@@ -12,8 +12,12 @@ export const getSupabaseCredentials = (environment: SupabaseEnvironment) => {
   switch (environment) {
     case 'development':
       console.log('[SUPABASE INDEX] Returning development credentials');
+      // For local development, always use localhost
+      // The network-accessible URL logic was for mobile app development, not website
+      const devUrl = 'http://localhost:54321';
+      console.log('[SUPABASE INDEX] Development URL:', devUrl);
       return {
-        url: 'http://127.0.0.1:54321',
+        url: devUrl,
         key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
       };
     case 'preview':

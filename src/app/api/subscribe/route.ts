@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { subscribeSchema } from '@/lib/schemas';
 
-const resend = new Resend(env.RESEND_API_KEY);
+// Lazy initialization - only create Resend client when needed
+function getResend() {
+  return new Resend(env.RESEND_API_KEY);
+}
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +22,7 @@ export async function POST(request: Request) {
 
     const { email } = parsed.data;
 
+    const resend = getResend();
     const response = await resend.contacts.create({
       email,
       unsubscribed: false,

@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { TagSelector } from '@/components/new-tag-selector';
-import { LanguageCombobox } from '@/components/language-combobox';
+import { LanguoidCombobox } from '@/components/languoid-combobox';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { getSupabaseCredentials } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
@@ -52,7 +52,7 @@ const assetRowSchema = z
   .object({
     questIds: z.array(z.string()).min(1, 'At least one quest is required'),
     name: z.string().min(2, 'Asset name must be at least 2 characters'),
-    source_language_id: z.string().min(1, 'Source language is required'),
+    source_languoid_id: z.string().optional(),
     images: z.array(z.string()).optional().default([]),
     content: z.string().optional().default(''),
     audioFile: z.any().optional(),
@@ -165,7 +165,7 @@ export function BulkAssetModal({
         {
           questIds: defaultQuestId ? [defaultQuestId] : [],
           name: '',
-          source_language_id: '',
+          source_languoid_id: '',
           images: [],
           content: '',
           tags: []
@@ -188,7 +188,7 @@ export function BulkAssetModal({
           {
             questIds: defaultQuestId ? [defaultQuestId] : [],
             name: '',
-            source_language_id: '',
+            source_languoid_id: '',
             images: [],
             content: '',
             tags: []
@@ -212,7 +212,7 @@ export function BulkAssetModal({
     append({
       questIds: defaultQuestId ? [defaultQuestId] : [],
       name: '',
-      source_language_id: '',
+      source_languoid_id: '',
       images: [],
       content: '',
       tags: [...globalTags] // Include global tags in new assets
@@ -425,15 +425,15 @@ export function BulkAssetModal({
           }
         }
 
-        // Create asset
+        // Create asset (languoid is stored in asset_content_link, not asset)
         const { data: assetData, error: assetError } = await supabase
           .from('asset')
           .insert({
             name: asset.name,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
             active: true,
-            source_language_id: asset.source_language_id,
-            project_id: projectId
+            project_id: projectId,
+            creator_id: user?.id
           })
           .select()
           .single();
@@ -447,10 +447,10 @@ export function BulkAssetModal({
             .insert({
               asset_id: assetData.id,
               text: asset.content,
-              audio: [uploadedAudioId],
+              audio: uploadedAudioId ? [uploadedAudioId] : null, // Only set audio if we have a value
               id: crypto.randomUUID(),
               active: true,
-              source_language_id: asset.source_language_id
+              languoid_id: asset.source_languoid_id || null
             });
 
           if (contentError) throw contentError;
@@ -711,17 +711,17 @@ export function BulkAssetModal({
                         <TableCell>
                           <FormField
                             control={form.control}
-                            name={`assets.${index}.source_language_id`}
+                            name={`assets.${index}.source_languoid_id`}
                             render={({ field }) => (
                               <FormItem>
                                 <FormControl>
-                                  <LanguageCombobox
-                                    value={field.value}
+                                  <LanguoidCombobox
+                                    value={field.value || ''}
                                     onChange={field.onChange}
                                     placeholder="Select language..."
-                                    onCreateSuccess={(newLanguage) => {
+                                    onCreateSuccess={(newLanguoid) => {
                                       toast.success(
-                                        `Language "${newLanguage.english_name}" created and selected`
+                                        `Language "${newLanguoid.name}" created and selected`
                                       );
                                     }}
                                   />
