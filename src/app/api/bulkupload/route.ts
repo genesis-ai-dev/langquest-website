@@ -336,8 +336,7 @@ export async function POST(request: NextRequest) {
           csvData as ProjectRow[],
           supabase,
           user.id,
-          fileMap,
-          environment as SupabaseEnvironment
+          fileMap
         );
         break;
       case 'quest':
