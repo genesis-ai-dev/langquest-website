@@ -55,6 +55,20 @@ interface LanguoidComboboxProps {
   onLanguoidSelect?: (languoid: Languoid | null) => void;
 }
 
+/**
+ * Render a combobox for selecting an existing languoid or creating a new one.
+ *
+ * The control provides debounced search, lists matching languoids, allows selecting
+ * an existing item, and offers to create a new languoid when no exact match exists.
+ *
+ * @param value - The id of the currently selected languoid.
+ * @param onChange - Callback invoked with the selected languoid id.
+ * @param placeholder - Text shown when no languoid is selected.
+ * @param disabled - If true, disables user interaction with the combobox.
+ * @param onCreateSuccess - Optional callback invoked with the newly created Languoid after successful creation.
+ * @param onLanguoidSelect - Optional callback invoked with the selected Languoid (existing or newly created) or `null`.
+ * @returns The Languoid combobox React element.
+ */
 export function LanguoidCombobox({
   value,
   onChange,
