@@ -259,7 +259,10 @@ export function LanguoidCombobox({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
+      <PopoverContent
+        className="w-[300px] p-0"
+        onWheel={(e) => e.stopPropagation()}
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search language..."
@@ -267,7 +270,7 @@ export function LanguoidCombobox({
             onValueChange={(value) => debouncedSearch(value)}
             className="h-9"
           />
-          <CommandList>
+          <CommandList className="max-h-[200px] overflow-y-auto overscroll-contain">
             <CommandEmpty>
               {isLoading ? (
                 <div className="flex items-center justify-center py-6">
