@@ -103,7 +103,7 @@ export default function LandingPage() {
               </div>
               <div className="flex justify-center mt-2">
                 <a
-                  href="https://discord.gg/7fueQmP4"
+                  href="https://discord.gg/RpFdRVdBqz"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-4 py-2 text-sm font-medium text-gray-700 backdrop-blur-sm transition-all duration-200 hover:border-gray-300 hover:bg-white hover:shadow-md dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800"
