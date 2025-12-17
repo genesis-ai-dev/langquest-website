@@ -90,7 +90,7 @@ const Header = () => {
                 {t('sourceCode')}
               </Link>
               <Link
-                href="https://discord.gg/7fueQmP4"
+                href="https://discord.gg/RpFdRVdBqz"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
@@ -136,7 +136,7 @@ const Header = () => {
             <GithubIcon />
           </Link>
           <Link
-            href="https://discord.gg/7fueQmP4"
+            href="https://discord.gg/RpFdRVdBqz"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-foreground"
