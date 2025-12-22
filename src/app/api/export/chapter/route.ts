@@ -406,12 +406,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch assets for this quest
-    const { data: questAssetLinks } = await supabase
-      .from('quest_asset_link')
-      .select('asset_id')
-      .eq('quest_id', body.quest_id);
+    const { data: questAssetLinks, error: questAssetLinksError } =
+      await supabase
+        .from('quest_asset_link')
+        .select('asset_id')
+        .eq('quest_id', body.quest_id);
 
-    if (!questAssetLinks || questAssetLinks.length === 0) {
+    if (questAssetLinksError || !questAssetLinks) {
+      console.error(
+        '[Export API] Error fetching quest asset links:',
+        questAssetLinksError
+      );
+      return NextResponse.json(
+        { error: 'Failed to fetch assets for this chapter' },
+        { status: 500 }
+      );
+    }
+
+    if (questAssetLinks.length === 0) {
       return NextResponse.json(
         { error: 'No assets found for this chapter' },
         { status: 400 }
@@ -420,7 +432,59 @@ export async function POST(request: NextRequest) {
 
     const assetIds = questAssetLinks.map((link) => link.asset_id);
 
+    // Fetch asset details to get order_index and filter out translation assets
+    // Translation assets have source_asset_id set (they are translations of other assets)
+    const { data: assets, error: assetsError } = await supabase
+      .from('asset')
+      .select('id, order_index, source_asset_id')
+      .in('id', assetIds);
+
+    if (assetsError) {
+      console.error('[Export API] Error fetching assets:', assetsError);
+      return NextResponse.json(
+        { error: 'Failed to fetch asset details' },
+        { status: 500 }
+      );
+    }
+
+    // Filter out translation assets (only include top-level assets where source_asset_id is null)
+    const topLevelAssets = (assets || [])
+      .filter((asset) => asset.source_asset_id === null)
+      .map((asset) => ({
+        asset_id: asset.id,
+        order_index: asset.order_index ?? 0
+      }));
+
+    if (topLevelAssets.length === 0) {
+      return NextResponse.json(
+        { error: 'No top-level assets found for this chapter' },
+        { status: 400 }
+      );
+    }
+
+    // Sort assets by order_index to maintain proper sequence
+    topLevelAssets.sort((a, b) => {
+      if (a.order_index !== b.order_index) {
+        return a.order_index - b.order_index;
+      }
+      return 0; // If order_index is the same, maintain original order
+    });
+
+    const topLevelAssetIds = topLevelAssets.map((asset) => asset.asset_id);
+
+    console.log(
+      `[Export API] Found ${topLevelAssets.length} top-level assets (filtered from ${questAssetLinks.length} total)`
+    );
+    console.log(
+      `[Export API] Asset order:`,
+      topLevelAssets.map((a) => ({
+        id: a.asset_id.slice(0, 8),
+        order_index: a.order_index
+      }))
+    );
+
     // Fetch asset content links to get audio URLs
+    // Only fetch content links for top-level assets (excluding translations)
     // Note: For published chapters, we need to query the synced table
     // Check if we're in development and need to query synced tables
     const tableName =
@@ -428,13 +492,13 @@ export async function POST(request: NextRequest) {
         ? 'asset_content_link'
         : 'asset_content_link';
     console.log(
-      `[Export API] Querying table: ${tableName} for ${assetIds.length} assets`
+      `[Export API] Querying table: ${tableName} for ${topLevelAssetIds.length} top-level assets`
     );
 
     const { data: assetContentLinks, error: contentLinksError } = await supabase
       .from(tableName)
-      .select('asset_id, audio')
-      .in('asset_id', assetIds)
+      .select('asset_id, audio, created_at')
+      .in('asset_id', topLevelAssetIds)
       .order('created_at', { ascending: true });
 
     console.log(
@@ -500,135 +564,162 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    for (const contentLink of assetContentLinks) {
-      if (contentLink.audio && Array.isArray(contentLink.audio)) {
-        for (const audioPath of contentLink.audio) {
-          if (typeof audioPath === 'string' && audioPath.trim()) {
-            try {
-              let audioBuffer: ArrayBuffer | null = null;
-              let format = 'mp3';
+    // Group content links by asset_id for ordered processing
+    const contentLinksByAsset = new Map<string, typeof assetContentLinks>();
+    for (const contentLink of assetContentLinks || []) {
+      if (!contentLinksByAsset.has(contentLink.asset_id)) {
+        contentLinksByAsset.set(contentLink.asset_id, []);
+      }
+      contentLinksByAsset.get(contentLink.asset_id)!.push(contentLink);
+    }
 
-              if (
-                audioPath.startsWith('http://') ||
-                audioPath.startsWith('https://')
-              ) {
-                // Already a full URL - download it
-                console.log(`[Export API] Downloading from URL: ${audioPath}`);
-                const response = await fetch(audioPath);
-                if (!response.ok) {
-                  console.error(
-                    `[Export API] Failed to download from URL: ${response.status} ${response.statusText}`
-                  );
-                  throw new Error(
-                    `Failed to download audio: ${response.statusText}`
-                  );
-                }
-                audioBuffer = await response.arrayBuffer();
-                format = audioPath.split('.').pop()?.toLowerCase() || 'mp3';
-              } else {
-                // Storage path - download from Supabase storage
-                // Try multiple buckets and path variants
-                const basePath = audioPath.replace(/\.(wav|mp3|m4a)$/i, ''); // Remove extension if present
-                const pathVariants = [
-                  audioPath, // Direct path (with extension if present)
-                  `local/${audioPath}`, // local/ prefix (for development - files in public bucket)
-                  `shared_attachments/${audioPath}`, // PowerSync attachment directory with extension
-                  `shared_attachments/${basePath}.wav`, // PowerSync attachment directory, add .wav
-                  `shared_attachments/${basePath}.mp3`, // PowerSync attachment directory, add .mp3
-                  `audio/${audioPath}`, // With audio/ prefix
-                  audioPath.replace(/^local\//, '') // Remove local/ if present
-                ];
+    // Process assets in order (by order_index)
+    // Within each asset, process content links by created_at
+    for (const asset of topLevelAssets) {
+      const assetContentLinksForAsset =
+        contentLinksByAsset.get(asset.asset_id) || [];
 
-                let downloadSuccess = false;
-                let lastError: any = null;
+      // Sort content links by created_at to maintain order within asset
+      assetContentLinksForAsset.sort((a, b) => {
+        const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return aTime - bTime;
+      });
 
-                // Try each bucket
-                for (const bucket of bucketsToTry) {
-                  if (downloadSuccess) break;
+      for (const contentLink of assetContentLinksForAsset) {
+        if (contentLink.audio && Array.isArray(contentLink.audio)) {
+          for (const audioPath of contentLink.audio) {
+            if (typeof audioPath === 'string' && audioPath.trim()) {
+              try {
+                let audioBuffer: ArrayBuffer | null = null;
+                let format = 'mp3';
 
-                  const storageBaseUrl = `${url}/storage/v1/object/${bucket}`;
+                if (
+                  audioPath.startsWith('http://') ||
+                  audioPath.startsWith('https://')
+                ) {
+                  // Already a full URL - download it
                   console.log(
-                    `[Export API] Trying bucket: ${bucket} for ${audioPath} (base URL: ${storageBaseUrl})`
+                    `[Export API] Downloading from URL: ${audioPath}`
                   );
+                  const response = await fetch(audioPath);
+                  if (!response.ok) {
+                    console.error(
+                      `[Export API] Failed to download from URL: ${response.status} ${response.statusText}`
+                    );
+                    throw new Error(
+                      `Failed to download audio: ${response.statusText}`
+                    );
+                  }
+                  audioBuffer = await response.arrayBuffer();
+                  format = audioPath.split('.').pop()?.toLowerCase() || 'mp3';
+                } else {
+                  // Storage path - download from Supabase storage
+                  // Try multiple buckets and path variants
+                  const basePath = audioPath.replace(/\.(wav|mp3|m4a)$/i, ''); // Remove extension if present
+                  const pathVariants = [
+                    audioPath, // Direct path (with extension if present)
+                    `local/${audioPath}`, // local/ prefix (for development - files in public bucket)
+                    `shared_attachments/${audioPath}`, // PowerSync attachment directory with extension
+                    `shared_attachments/${basePath}.wav`, // PowerSync attachment directory, add .wav
+                    `shared_attachments/${basePath}.mp3`, // PowerSync attachment directory, add .mp3
+                    `audio/${audioPath}`, // With audio/ prefix
+                    audioPath.replace(/^local\//, '') // Remove local/ if present
+                  ];
 
-                  // Try each path variant
-                  for (const variantPath of pathVariants) {
-                    try {
-                      console.log(
-                        `[Export API] Trying bucket ${bucket}, path: ${variantPath}`
-                      );
-                      const { data, error: downloadError } = await storageClient
-                        .from(bucket)
-                        .download(variantPath);
+                  let downloadSuccess = false;
+                  let lastError: any = null;
 
-                      if (!downloadError && data) {
-                        audioBuffer = await data.arrayBuffer();
-                        format =
-                          variantPath.split('.').pop()?.toLowerCase() || 'mp3';
-                        downloadSuccess = true;
+                  // Try each bucket
+                  for (const bucket of bucketsToTry) {
+                    if (downloadSuccess) break;
+
+                    const storageBaseUrl = `${url}/storage/v1/object/${bucket}`;
+                    console.log(
+                      `[Export API] Trying bucket: ${bucket} for ${audioPath} (base URL: ${storageBaseUrl})`
+                    );
+
+                    // Try each path variant
+                    for (const variantPath of pathVariants) {
+                      try {
                         console.log(
-                          `[Export API] Successfully downloaded from bucket ${bucket}, path: ${variantPath}`
+                          `[Export API] Trying bucket ${bucket}, path: ${variantPath}`
                         );
-                        break;
-                      } else {
-                        lastError = downloadError;
+                        const { data, error: downloadError } =
+                          await storageClient
+                            .from(bucket)
+                            .download(variantPath);
+
+                        if (!downloadError && data) {
+                          audioBuffer = await data.arrayBuffer();
+                          format =
+                            variantPath.split('.').pop()?.toLowerCase() ||
+                            'mp3';
+                          downloadSuccess = true;
+                          console.log(
+                            `[Export API] Successfully downloaded from bucket ${bucket}, path: ${variantPath}`
+                          );
+                          break;
+                        } else {
+                          lastError = downloadError;
+                          console.log(
+                            `[Export API] Failed bucket ${bucket}, path ${variantPath}:`,
+                            downloadError?.message || 'No error message'
+                          );
+                        }
+                      } catch (err) {
+                        lastError = err;
                         console.log(
-                          `[Export API] Failed bucket ${bucket}, path ${variantPath}:`,
-                          downloadError?.message || 'No error message'
+                          `[Export API] Exception bucket ${bucket}, path ${variantPath}:`,
+                          err
                         );
                       }
-                    } catch (err) {
-                      lastError = err;
-                      console.log(
-                        `[Export API] Exception bucket ${bucket}, path ${variantPath}:`,
-                        err
-                      );
                     }
+                  }
+
+                  if (!downloadSuccess || !audioBuffer) {
+                    const errorMsg =
+                      lastError?.message || 'File not found in storage';
+                    console.error(
+                      `[Export API] All buckets and path variants failed. Last error:`,
+                      lastError
+                    );
+                    console.error(`[Export API] Tried buckets:`, bucketsToTry);
+                    console.error(`[Export API] Tried paths:`, pathVariants);
+                    throw new Error(
+                      `Failed to download audio from storage: ${errorMsg}. Tried buckets: ${bucketsToTry.join(', ')}, paths: ${pathVariants.join(', ')}`
+                    );
                   }
                 }
 
-                if (!downloadSuccess || !audioBuffer) {
-                  const errorMsg =
-                    lastError?.message || 'File not found in storage';
-                  console.error(
-                    `[Export API] All buckets and path variants failed. Last error:`,
-                    lastError
-                  );
-                  console.error(`[Export API] Tried buckets:`, bucketsToTry);
-                  console.error(`[Export API] Tried paths:`, pathVariants);
+                if (!audioBuffer) {
                   throw new Error(
-                    `Failed to download audio from storage: ${errorMsg}. Tried buckets: ${bucketsToTry.join(', ')}, paths: ${pathVariants.join(', ')}`
+                    'Failed to download audio: audioBuffer is null'
                   );
                 }
-              }
 
-              if (!audioBuffer) {
-                throw new Error(
-                  'Failed to download audio: audioBuffer is null'
+                // Convert to base64 for passing to worker
+                const base64 = Buffer.from(audioBuffer).toString('base64');
+                audioData.push({ data: base64, format });
+                console.log(
+                  `[Export API] Downloaded ${audioBuffer.byteLength} bytes, format: ${format}`
                 );
-              }
 
-              // Convert to base64 for passing to worker
-              const base64 = Buffer.from(audioBuffer).toString('base64');
-              audioData.push({ data: base64, format });
-              console.log(
-                `[Export API] Downloaded ${audioBuffer.byteLength} bytes, format: ${format}`
-              );
-
-              if (!sourceAssetIds.includes(contentLink.asset_id)) {
-                sourceAssetIds.push(contentLink.asset_id);
+                if (!sourceAssetIds.includes(contentLink.asset_id)) {
+                  sourceAssetIds.push(contentLink.asset_id);
+                }
+              } catch (error) {
+                console.error(
+                  `[Export API] Error processing audio ${audioPath}:`,
+                  error
+                );
+                // Continue with other files rather than failing completely
               }
-            } catch (error) {
-              console.error(
-                `[Export API] Error processing audio ${audioPath}:`,
-                error
-              );
-              // Continue with other files rather than failing completely
             }
           }
         }
       }
-    }
+    } // End of for (const asset of topLevelAssets)
 
     if (audioData.length === 0) {
       // Check if bucket is empty - files might not be uploaded yet
