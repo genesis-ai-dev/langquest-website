@@ -406,12 +406,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch assets for this quest
-    const { data: questAssetLinks } = await supabase
+    const { data: questAssetLinks, error: questAssetLinksError } = await supabase
       .from('quest_asset_link')
       .select('asset_id')
       .eq('quest_id', body.quest_id);
 
-    if (!questAssetLinks || questAssetLinks.length === 0) {
+    if (questAssetLinksError || !questAssetLinks) {
+      console.error(
+        '[Export API] Error fetching quest asset links:',
+        questAssetLinksError
+      );
+      return NextResponse.json(
+        { error: 'Failed to fetch assets for this chapter' },
+        { status: 500 }
+      );
+    }
+
+    if (questAssetLinks.length === 0) {
       return NextResponse.json(
         { error: 'No assets found for this chapter' },
         { status: 400 }
@@ -420,7 +431,59 @@ export async function POST(request: NextRequest) {
 
     const assetIds = questAssetLinks.map((link) => link.asset_id);
 
+    // Fetch asset details to get order_index and filter out translation assets
+    // Translation assets have source_asset_id set (they are translations of other assets)
+    const { data: assets, error: assetsError } = await supabase
+      .from('asset')
+      .select('id, order_index, source_asset_id')
+      .in('id', assetIds);
+
+    if (assetsError) {
+      console.error('[Export API] Error fetching assets:', assetsError);
+      return NextResponse.json(
+        { error: 'Failed to fetch asset details' },
+        { status: 500 }
+      );
+    }
+
+    // Filter out translation assets (only include top-level assets where source_asset_id is null)
+    const topLevelAssets = (assets || [])
+      .filter((asset) => asset.source_asset_id === null)
+      .map((asset) => ({
+        asset_id: asset.id,
+        order_index: asset.order_index ?? 0
+      }));
+
+    if (topLevelAssets.length === 0) {
+      return NextResponse.json(
+        { error: 'No top-level assets found for this chapter' },
+        { status: 400 }
+      );
+    }
+
+    // Sort assets by order_index to maintain proper sequence
+    topLevelAssets.sort((a, b) => {
+      if (a.order_index !== b.order_index) {
+        return a.order_index - b.order_index;
+      }
+      return 0; // If order_index is the same, maintain original order
+    });
+
+    const topLevelAssetIds = topLevelAssets.map((asset) => asset.asset_id);
+
+    console.log(
+      `[Export API] Found ${topLevelAssets.length} top-level assets (filtered from ${questAssetLinks.length} total)`
+    );
+    console.log(
+      `[Export API] Asset order:`,
+      topLevelAssets.map((a) => ({
+        id: a.asset_id.slice(0, 8),
+        order_index: a.order_index
+      }))
+    );
+
     // Fetch asset content links to get audio URLs
+    // Only fetch content links for top-level assets (excluding translations)
     // Note: For published chapters, we need to query the synced table
     // Check if we're in development and need to query synced tables
     const tableName =
@@ -428,13 +491,13 @@ export async function POST(request: NextRequest) {
         ? 'asset_content_link'
         : 'asset_content_link';
     console.log(
-      `[Export API] Querying table: ${tableName} for ${assetIds.length} assets`
+      `[Export API] Querying table: ${tableName} for ${topLevelAssetIds.length} top-level assets`
     );
 
     const { data: assetContentLinks, error: contentLinksError } = await supabase
       .from(tableName)
-      .select('asset_id, audio')
-      .in('asset_id', assetIds)
+      .select('asset_id, audio, created_at')
+      .in('asset_id', topLevelAssetIds)
       .order('created_at', { ascending: true });
 
     console.log(
@@ -500,7 +563,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    for (const contentLink of assetContentLinks) {
+    // Group content links by asset_id for ordered processing
+    const contentLinksByAsset = new Map<string, typeof assetContentLinks>();
+    for (const contentLink of assetContentLinks || []) {
+      if (!contentLinksByAsset.has(contentLink.asset_id)) {
+        contentLinksByAsset.set(contentLink.asset_id, []);
+      }
+      contentLinksByAsset.get(contentLink.asset_id)!.push(contentLink);
+    }
+
+    // Process assets in order (by order_index)
+    // Within each asset, process content links by created_at
+    for (const asset of topLevelAssets) {
+      const assetContentLinksForAsset = contentLinksByAsset.get(asset.asset_id) || [];
+      
+      // Sort content links by created_at to maintain order within asset
+      assetContentLinksForAsset.sort((a, b) => {
+        const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return aTime - bTime;
+      });
+
+      for (const contentLink of assetContentLinksForAsset) {
       if (contentLink.audio && Array.isArray(contentLink.audio)) {
         for (const audioPath of contentLink.audio) {
           if (typeof audioPath === 'string' && audioPath.trim()) {
