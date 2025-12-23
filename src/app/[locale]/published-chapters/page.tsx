@@ -15,7 +15,8 @@ import { BookOpen, Clock, Globe, TrendingUp } from 'lucide-react';
 
 // LangQuest Supabase credentials (public read-only access)
 const LANGQUEST_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const LANGQUEST_SUPABASE_KEY = process.env.NEXT_SUPABASE_PUBLISHABLE_KEY!;
+const LANGQUEST_SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 interface PublishedChapter {
   id: string;
