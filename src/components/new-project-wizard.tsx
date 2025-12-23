@@ -724,8 +724,8 @@ export function ProjectWizard({
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">Private Project</FormLabel>
                   <FormDescription>
-                    Make this project private. Only you and invited members will
-                    be able to see it.
+                    The project is open for viewing by anyone, but only invited
+                    members can contribute to it.
                   </FormDescription>
                 </div>
                 <FormControl>

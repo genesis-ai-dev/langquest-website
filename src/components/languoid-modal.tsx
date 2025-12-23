@@ -29,7 +29,7 @@ interface LanguageData {
 }
 
 interface NewLanguoid {
-  iso639_3: string;
+  iso639_3?: string;
   name: string;
 }
 
@@ -104,9 +104,13 @@ export function LanguoidModal({
 
   // Handle add button
   const handleAdd = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    const trimmedIso = codeIso639_3.trim();
     const languoidData: NewLanguoid = {
-      name,
-      iso639_3: codeIso639_3
+      name: trimmedName,
+      iso639_3: trimmedIso || undefined
     };
     onLanguoidSelect(languoidData);
     onClose();
@@ -120,7 +124,7 @@ export function LanguoidModal({
     }
   }, [isOpen]);
 
-  const isFormValid = name.trim() && codeIso639_3.trim();
+  const isFormValid = Boolean(name.trim());
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -142,7 +146,7 @@ export function LanguoidModal({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="codeIso639_3">ISO 639-3 Code</Label>
+              <Label htmlFor="codeIso639_3">ISO 639-3 Code (optional)</Label>
               <Input
                 id="codeIso639_3"
                 value={codeIso639_3}
