@@ -18,7 +18,8 @@ import {
   ExpandIcon,
   //  XIcon,
   VolumeIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  BookmarkIcon
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge } from './ui/badge';
@@ -87,6 +88,7 @@ export interface Asset {
     };
   }[];
   images?: string[];
+  metadata?: string | null;
 }
 
 interface AssetViewProps {
@@ -230,6 +232,38 @@ export function AssetView({ asset }: AssetViewProps) {
 
   if (!asset) return <div>No asset data available.</div>;
 
+  // Parse metadata to extract verse information
+  const parseVerseMetadata = (
+    metadata: string | null | undefined
+  ): { from: number; to?: number } | null => {
+    if (!metadata) return null;
+
+    try {
+      const parsed =
+        typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+      if (parsed?.verse?.from !== undefined) {
+        return {
+          from: parsed.verse.from,
+          to: parsed.verse.to
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing metadata:', error);
+    }
+
+    return null;
+  };
+
+  const verseInfo = parseVerseMetadata(asset.metadata);
+
+  // Format verse display
+  const formatVerse = (verse: { from: number; to?: number }): string => {
+    if (!verse.to || verse.from === verse.to) {
+      return verse.from.toString();
+    }
+    return `${verse.from} - ${verse.to}`;
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header Section */}
@@ -279,6 +313,22 @@ export function AssetView({ asset }: AssetViewProps) {
                 </Badge>
               ) : null
             )}
+          </div>
+        )}
+
+        {/* Verses */}
+        {verseInfo && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <BookmarkIcon className="size-4" />
+              <span className="text-sm font-medium">Verses:</span>
+            </div>
+            <Badge
+              variant="secondary"
+              className="text-xs px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 transition-colors border-blue-500/20"
+            >
+              {formatVerse(verseInfo)}
+            </Badge>
           </div>
         )}
       </div>

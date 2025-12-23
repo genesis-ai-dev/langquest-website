@@ -243,6 +243,7 @@ export function DataView({
             id, 
             name, 
             images,
+            metadata,
             project_id,
             project:project_id(id, name, description),
             translations:asset!source_asset_id(id, name, project_id, 

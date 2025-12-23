@@ -480,6 +480,7 @@ function QuestContent({
             created_at,
             last_updated,
             images,
+            metadata,
             content:asset_content_link(id, text, audio),
             tags:asset_tag_link(tag(id, key, value)),
             translations:asset!source_asset_id(count)
@@ -512,6 +513,7 @@ function QuestContent({
             id, 
             name, 
             images,
+            metadata,
             content:asset_content_link(id, audio, text),
             tags:asset_tag_link(tag(id, key, value)),
             quests:quest_asset_link(quest(id, name, description, 
