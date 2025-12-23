@@ -39,7 +39,7 @@ interface BulkUploadProps {
 }
 
 interface NewLanguoid {
-  iso639_3: string;
+  iso639_3?: string;
   name: string;
 }
 
@@ -250,6 +250,7 @@ export function BulkUpload({
 
   const handleCreateLanguoid = async (languoid: NewLanguoid) => {
     if (!languoid.name.trim()) return;
+    const isoValue = languoid.iso639_3?.trim().toLowerCase();
 
     setIsCreatingLanguage(true);
     setShowAddLanguageAlert(false);
@@ -274,7 +275,7 @@ export function BulkUpload({
         body: JSON.stringify({
           environment: environment,
           name: languoid.name.trim(),
-          iso639_3: languoid.iso639_3.trim().toLowerCase()
+          iso639_3: isoValue || undefined
         })
       });
 

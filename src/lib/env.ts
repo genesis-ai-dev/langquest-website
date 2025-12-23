@@ -16,7 +16,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_PREVIEW_URL: z.string().url(),
     NEXT_PUBLIC_SITE_URL: z.string().url(),
-    NEXT_PUBLIC_ENVIRONMENT: z.string().min(1)
+    NEXT_PUBLIC_ENVIRONMENT: z.enum(['development', 'production', 'preview'])
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
