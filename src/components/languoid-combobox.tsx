@@ -42,7 +42,7 @@ export type Languoid = {
 };
 
 interface NewLanguoid {
-  iso639_3: string;
+  iso639_3?: string;
   name: string;
 }
 
@@ -140,6 +140,7 @@ export function LanguoidCombobox({
   // Handle creating a new languoid
   const handleCreateLanguoid = async (languoid: NewLanguoid) => {
     if (!languoid.name.trim()) return;
+    const isoValue = languoid.iso639_3?.trim().toLowerCase();
 
     setIsCreating(true);
     try {
@@ -163,7 +164,7 @@ export function LanguoidCombobox({
         body: JSON.stringify({
           environment: environment,
           name: languoid.name.trim(),
-          iso639_3: languoid.iso639_3.trim().toLowerCase()
+          iso639_3: isoValue || undefined
         })
       });
 
