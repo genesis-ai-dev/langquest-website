@@ -11,12 +11,14 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Clock, Globe, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Clock, Globe, TrendingUp, RefreshCw } from 'lucide-react';
 
 // LangQuest Supabase credentials (public read-only access)
-const LANGQUEST_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const LANGQUEST_SUPABASE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+// Use LangQuest Supabase directly (not the EveryLanguage Supabase)
+// Hardcoded since this is public data and the key is publishable (safe for client-side)
+const LANGQUEST_SUPABASE_URL = 'https://unsxkmlcyxgtgmtzfonb.supabase.co';
+const LANGQUEST_SUPABASE_KEY = 'sb_publishable_0R44K06is7-Z_Hrz_fRgKw_asps9S-w';
 
 interface PublishedChapter {
   id: string;
@@ -88,6 +90,7 @@ export default function PublishedChaptersPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-fetch on refresh
 
   useEffect(() => {
     async function fetchPublishedChapters() {
@@ -98,12 +101,14 @@ export default function PublishedChaptersPage() {
           LANGQUEST_SUPABASE_KEY
         );
 
-        // Fetch all ingested distribution exports
+        // Fetch all ready distribution exports (these are published/ready for distribution)
+        // Note: 'ready' means the export is complete and ready, 'ingested' means it's been imported to EveryLanguage
+        // For the public page, we show 'ready' exports as they represent published work
         const { data, error: fetchError } = await supabase
           .from('export_quest_artifact')
           .select('*')
           .eq('export_type', 'distribution')
-          .eq('status', 'ingested')
+          .eq('status', 'ready') // Show only ready exports
           .order('created_at', { ascending: false });
 
         if (fetchError) {
@@ -152,7 +157,11 @@ export default function PublishedChaptersPage() {
     }
 
     fetchPublishedChapters();
-  }, []);
+  }, [refreshKey]);
+
+  const handleRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   // Construct full audio URL if it's a relative path
   const getAudioUrl = (audioUrl: string | null) => {
@@ -178,6 +187,17 @@ export default function PublishedChaptersPage() {
                   LangQuest
                 </p>
               </div>
+              <Button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                variant="outline"
+                className="mt-4"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+                />
+                Refresh
+              </Button>
             </div>
 
             {/* Stats Cards */}
