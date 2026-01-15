@@ -468,6 +468,7 @@ const fetchTableData = async (
   const { data, error, count } = await supabaseClient
     .from(tableName as keyof Database['public']['Tables'])
     .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
   if (error) {
@@ -731,13 +732,23 @@ function useTransformedColumns({
               return <Checkbox checked={value} disabled />;
             if (col.key.includes('image')) {
               let imageSources: string[] = [];
-              try {
-                const json = JSON.parse(value as string);
-                if (Array.isArray(json)) {
-                  imageSources = json;
+
+              // Check if value is already an array
+              if (Array.isArray(value)) {
+                imageSources = value.filter(
+                  (v): v is string => typeof v === 'string'
+                );
+              } else if (typeof value === 'string') {
+                try {
+                  const json = JSON.parse(value);
+                  if (Array.isArray(json)) {
+                    imageSources = json.filter(
+                      (v): v is string => typeof v === 'string'
+                    );
+                  }
+                } catch {
+                  if (!value.includes('[')) imageSources = [value];
                 }
-              } catch {
-                if (!value.includes('[')) imageSources = [value as string];
               }
 
               return (
@@ -767,14 +778,25 @@ function useTransformedColumns({
             }
             if (col.key.includes('audio')) {
               let audioSources: string[] = [];
-              try {
-                const json = JSON.parse(value as string);
-                if (Array.isArray(json)) {
-                  audioSources = json;
+
+              // Check if value is already an array
+              if (Array.isArray(value)) {
+                audioSources = value.filter(
+                  (v): v is string => typeof v === 'string'
+                );
+              } else if (typeof value === 'string') {
+                try {
+                  const json = JSON.parse(value);
+                  if (Array.isArray(json)) {
+                    audioSources = json.filter(
+                      (v): v is string => typeof v === 'string'
+                    );
+                  }
+                } catch {
+                  if (!value.includes('[')) audioSources = [value];
                 }
-              } catch {
-                if (!value.includes('[')) audioSources = [value as string];
               }
+
               return (
                 <div className="flex gap-2">
                   {audioSources.map((item) => (
