@@ -1017,7 +1017,10 @@ export async function POST(request: NextRequest) {
         }
       })
       .catch(async (error) => {
-        console.error('[Export API] Worker call failed:', error?.message ?? error);
+        console.error(
+          '[Export API] Worker call failed:',
+          error?.message ?? error
+        );
         console.error('[Export API] Worker error cause:', error?.cause);
         await (supabase
           .from('export_quest_artifact' as any)

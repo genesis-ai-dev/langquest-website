@@ -27,8 +27,15 @@ export function AclRow({
   onMoveDown,
   isMoving = false
 }: AclRowProps) {
-  const hasAudio = acl.audio && Array.isArray(acl.audio) && acl.audio.some((p) => typeof p === 'string' && p.trim());
-  const textPreview = acl.text ? (acl.text.length > 60 ? `${acl.text.slice(0, 60)}…` : acl.text) : null;
+  const hasAudio =
+    acl.audio &&
+    Array.isArray(acl.audio) &&
+    acl.audio.some((p) => typeof p === 'string' && p.trim());
+  const textPreview = acl.text
+    ? acl.text.length > 60
+      ? `${acl.text.slice(0, 60)}…`
+      : acl.text
+    : null;
 
   return (
     <motion.div

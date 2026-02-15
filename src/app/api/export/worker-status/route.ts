@@ -37,9 +37,6 @@ export async function GET() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Worker unreachable';
-    return NextResponse.json(
-      { ready: false, error: message },
-      { status: 200 }
-    );
+    return NextResponse.json({ ready: false, error: message }, { status: 200 });
   }
 }

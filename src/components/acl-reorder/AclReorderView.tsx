@@ -111,10 +111,7 @@ export function AclReorderView() {
   });
 
   // Assets + ACLs for selected quest
-  const {
-    data: assetsWithAcls = [],
-    isLoading: assetsLoading
-  } = useQuery({
+  const { data: assetsWithAcls = [], isLoading: assetsLoading } = useQuery({
     queryKey: ['acl-reorder', selectedQuestId, environment],
     queryFn: async (): Promise<AssetWithAcls[]> => {
       if (!selectedQuestId) return [];
@@ -191,7 +188,9 @@ export function AclReorderView() {
       const prev = queryClient.getQueryData<AssetWithAcls[]>(queryKey);
       if (!prev) return { prev };
 
-      const assetIdx = prev.findIndex((a) => a.acls.some((c) => c.id === aclId));
+      const assetIdx = prev.findIndex((a) =>
+        a.acls.some((c) => c.id === aclId)
+      );
       if (assetIdx < 0) return { prev };
 
       const asset = prev[assetIdx];
@@ -209,7 +208,10 @@ export function AclReorderView() {
 
       // Swap positions in array, then assign sequential order_index (1, 2, 3...)
       const reordered = [...sorted];
-      [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+      [reordered[idx], reordered[swapIdx]] = [
+        reordered[swapIdx],
+        reordered[idx]
+      ];
       const withNewOrder = reordered.map((acl, i) => ({
         ...acl,
         order_index: i + 1
@@ -244,8 +246,7 @@ export function AclReorderView() {
     );
     if (!asset) return null;
     const sorted = [...asset.acls].sort((a, b) => {
-      if (a.order_index !== b.order_index)
-        return a.order_index - b.order_index;
+      if (a.order_index !== b.order_index) return a.order_index - b.order_index;
       return (
         new Date(a.created_at || 0).getTime() -
         new Date(b.created_at || 0).getTime()
@@ -349,7 +350,8 @@ export function AclReorderView() {
           }
         );
         const statusData = await statusRes.json();
-        if (!statusRes.ok) throw new Error(statusData.error || 'Status check failed');
+        if (!statusRes.ok)
+          throw new Error(statusData.error || 'Status check failed');
 
         if (statusData.status === 'ready' && statusData.audio_url) {
           await downloadAudio(statusData.audio_url);
@@ -373,10 +375,14 @@ export function AclReorderView() {
         const u = new URL(audioUrl);
         url = u.origin === window.location.origin ? audioUrl : u.pathname;
       } catch {
-        url = audioUrl.startsWith('/') ? audioUrl : `/api/export/audio/${audioUrl}`;
+        url = audioUrl.startsWith('/')
+          ? audioUrl
+          : `/api/export/audio/${audioUrl}`;
       }
     } else {
-      url = audioUrl.startsWith('/') ? audioUrl : `/api/export/audio/${audioUrl}`;
+      url = audioUrl.startsWith('/')
+        ? audioUrl
+        : `/api/export/audio/${audioUrl}`;
     }
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) {
@@ -396,7 +402,10 @@ export function AclReorderView() {
       throw new Error(msg);
     }
     const blob = await res.blob();
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, '-')
+      .slice(0, 19);
     const safeQuest = sanitizeFilename(selectedQuestName || 'quest');
     const safeUser = sanitizeFilename(
       (user?.user_metadata?.username as string) ||
@@ -489,7 +498,10 @@ export function AclReorderView() {
       <div className="md:hidden">
         <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" className="w-full justify-between min-h-[44px]">
+            <Button
+              variant="outline"
+              className="w-full justify-between min-h-[44px]"
+            >
               <span className="truncate">
                 {selectedQuestName
                   ? `${selectedProjectName} / ${selectedQuestName}`
@@ -500,7 +512,10 @@ export function AclReorderView() {
               <ChevronDown className="size-4 shrink-0 ml-2" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[85vw] max-w-sm overflow-y-auto">
+          <SheetContent
+            side="left"
+            className="w-[85vw] max-w-sm overflow-y-auto"
+          >
             <SheetHeader>
               <SheetTitle>Select project & quest</SheetTitle>
             </SheetHeader>
@@ -518,9 +533,7 @@ export function AclReorderView() {
           <>
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm text-muted-foreground hidden md:block">
-                {selectedProjectName && (
-                  <span>{selectedProjectName} / </span>
-                )}
+                {selectedProjectName && <span>{selectedProjectName} / </span>}
                 {selectedQuestName}
               </div>
               <Tooltip>
@@ -530,11 +543,7 @@ export function AclReorderView() {
                       variant="outline"
                       size="sm"
                       onClick={handleExportQuest}
-                      disabled={
-                        isExporting ||
-                        !session ||
-                        !workerReady
-                      }
+                      disabled={isExporting || !session || !workerReady}
                       className="gap-2 shrink-0 min-h-[44px] sm:min-h-0"
                     >
                       <span

@@ -26,7 +26,10 @@ export default {
     }
 
     // Health check for readiness probes
-    if (request.method === 'GET' && (url.pathname === '/health' || url.pathname === '/')) {
+    if (
+      request.method === 'GET' &&
+      (url.pathname === '/health' || url.pathname === '/')
+    ) {
       return jsonResponse({ ok: true }, 200);
     }
 
