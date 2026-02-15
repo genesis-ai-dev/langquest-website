@@ -89,7 +89,7 @@ export function AclRow({
       </div>
       <div className="min-w-0 flex-1">
         <span className="text-sm text-muted-foreground">
-          #{index + 1} · order_index: {acl.order_index}
+          #{index + 1} · order_index: {acl.order_index ?? 0}
         </span>
         {textPreview && (
           <p className="text-sm truncate mt-0.5" title={acl.text ?? undefined}>

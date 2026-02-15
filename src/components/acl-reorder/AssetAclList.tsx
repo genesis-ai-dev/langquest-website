@@ -59,7 +59,9 @@ export function AssetAclList({
   onMoveDown
 }: AssetAclListProps) {
   const sortedAcls = [...asset.acls].sort((a, b) => {
-    if (a.order_index !== b.order_index) return a.order_index - b.order_index;
+    const aIdx = a.order_index ?? 0;
+    const bIdx = b.order_index ?? 0;
+    if (aIdx !== bIdx) return aIdx - bIdx;
     return (
       new Date(a.created_at || 0).getTime() -
       new Date(b.created_at || 0).getTime()

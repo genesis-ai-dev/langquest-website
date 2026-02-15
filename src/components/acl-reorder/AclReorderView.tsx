@@ -196,8 +196,9 @@ export function AclReorderView() {
 
       const asset = prev[assetIdx];
       const sorted = [...asset.acls].sort((a, b) => {
-        if (a.order_index !== b.order_index)
-          return a.order_index - b.order_index;
+        const aIdx = a.order_index ?? 0;
+        const bIdx = b.order_index ?? 0;
+        if (aIdx !== bIdx) return aIdx - bIdx;
         return (
           new Date(a.created_at || 0).getTime() -
           new Date(b.created_at || 0).getTime()
@@ -247,7 +248,9 @@ export function AclReorderView() {
     );
     if (!asset) return null;
     const sorted = [...asset.acls].sort((a, b) => {
-      if (a.order_index !== b.order_index) return a.order_index - b.order_index;
+      const aIdx = a.order_index ?? 0;
+      const bIdx = b.order_index ?? 0;
+      if (aIdx !== bIdx) return aIdx - bIdx;
       return (
         new Date(a.created_at || 0).getTime() -
         new Date(b.created_at || 0).getTime()
@@ -332,6 +335,19 @@ export function AclReorderView() {
     }
   })();
 
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(
+        !res.ok
+          ? `Server error (${res.status}): ${text.slice(0, 120)}`
+          : `Invalid response: ${text.slice(0, 120)}`
+      );
+    }
+  };
+
   const handleExportQuest = async () => {
     if (!selectedQuestId || !session?.access_token || !user) return;
     setIsExporting(true);
@@ -348,10 +364,12 @@ export function AclReorderView() {
           environment
         })
       });
-      const createData = await createRes.json();
+      const createData = await safeJson(createRes);
       if (!createRes.ok) throw new Error(createData.error || 'Export failed');
 
       const exportId = createData.id;
+      if (!exportId) throw new Error('No export ID returned');
+
       if (createData.status === 'ready' && createData.audio_url) {
         await downloadAudio(createData.audio_url);
         setIsExporting(false);
@@ -368,7 +386,7 @@ export function AclReorderView() {
             headers: { Authorization: `Bearer ${session.access_token}` }
           }
         );
-        const statusData = await statusRes.json();
+        const statusData = await safeJson(statusRes);
         if (!statusRes.ok)
           throw new Error(statusData.error || 'Status check failed');
 
