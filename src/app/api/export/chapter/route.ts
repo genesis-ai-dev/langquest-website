@@ -1008,8 +1008,6 @@ export async function POST(request: NextRequest) {
         // Update manifest with duration
         exportMetadata.manifest.total_duration_ms = result.durationMs;
 
-        // Decode audio from base64
-        const audioBuffer = Buffer.from(result.audioBase64, 'base64');
         const audioContentType =
           result.contentType ||
           (outputFormat === 'wav' ? 'audio/wav' : 'audio/mpeg');
@@ -1023,15 +1021,13 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', exportRecord.id) as any);
 
-        // Return audio directly as a binary response
-        return new NextResponse(audioBuffer, {
-          status: 200,
-          headers: {
-            'Content-Type': audioContentType,
-            'Content-Length': audioBuffer.length.toString(),
-            'Content-Disposition': `attachment; filename="${formatOutputKey}"`,
-            'Cache-Control': 'no-store'
-          }
+        // Return audio as base64 JSON so the frontend can decode it into a
+        // downloadable blob without fragile content-type header detection.
+        return NextResponse.json({
+          audioBase64: result.audioBase64,
+          contentType: audioContentType,
+          durationMs: result.durationMs,
+          filename: formatOutputKey
         });
       } else {
         // Worker returned failure

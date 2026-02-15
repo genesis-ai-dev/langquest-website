@@ -371,11 +371,19 @@ export function AclReorderView() {
         throw new Error(errData.error || `Export failed (${res.status})`);
       }
 
-      const contentType = res.headers.get('content-type') || '';
+      const data = await safeJson(res);
 
-      if (contentType.startsWith('audio/')) {
-        // Direct audio blob response (new synchronous flow)
-        const blob = await res.blob();
+      if (data.audioBase64) {
+        // Inline audio response -- decode base64 to a downloadable blob
+        const byteString = atob(data.audioBase64);
+        const bytes = new Uint8Array(byteString.length);
+        for (let i = 0; i < byteString.length; i++) {
+          bytes[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], {
+          type: data.contentType || 'audio/mpeg'
+        });
+
         const timestamp = new Date()
           .toISOString()
           .replace(/[:.]/g, '-')
@@ -387,8 +395,10 @@ export function AclReorderView() {
             user?.id?.slice(0, 8) ||
             'user'
         );
-        const ext = contentType.includes('wav') ? 'wav' : 'mp3';
-        const filename = `${safeQuest}-${timestamp}-${safeUser}.${ext}`;
+        const ext = (data.contentType || '').includes('wav') ? 'wav' : 'mp3';
+        const filename =
+          data.filename ||
+          `${safeQuest}-${timestamp}-${safeUser}.${ext}`;
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = filename;
