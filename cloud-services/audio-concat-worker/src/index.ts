@@ -74,9 +74,9 @@ export default {
         body.audioData?.length || body.audioUrls?.length || 0;
 
       // Limit number of segments to prevent timeout
-      if (segmentCount > 100) {
+      if (segmentCount > 2000) {
         return jsonResponse(
-          { success: false, error: 'Maximum 100 audio segments allowed' },
+          { success: false, error: 'Maximum 1000 audio segments allowed' },
           400
         );
       }
