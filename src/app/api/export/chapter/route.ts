@@ -497,8 +497,9 @@ export async function POST(request: NextRequest) {
 
     const { data: assetContentLinks, error: contentLinksError } = await supabase
       .from(tableName)
-      .select('asset_id, audio, created_at')
+      .select('asset_id, audio, order_index, created_at')
       .in('asset_id', topLevelAssetIds)
+      .order('order_index', { ascending: true })
       .order('created_at', { ascending: true });
 
     console.log(
@@ -574,13 +575,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Process assets in order (by order_index)
-    // Within each asset, process content links by created_at
+    // Within each asset, process content links by order_index, then created_at
     for (const asset of topLevelAssets) {
       const assetContentLinksForAsset =
         contentLinksByAsset.get(asset.asset_id) || [];
 
-      // Sort content links by created_at to maintain order within asset
+      // Sort content links by order_index first, then created_at as tiebreaker
       assetContentLinksForAsset.sort((a, b) => {
+        const aIdx = (a as any).order_index ?? 0;
+        const bIdx = (b as any).order_index ?? 0;
+        if (aIdx !== bIdx) return aIdx - bIdx;
         const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
         return aTime - bTime;

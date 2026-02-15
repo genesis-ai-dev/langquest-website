@@ -546,7 +546,11 @@ export function AclReorderView() {
                         )}
                         aria-hidden
                       />
-                      <Download className="size-4" />
+                      {isExporting ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <Download className="size-4" />
+                      )}
                       {isExporting
                         ? 'Exporting…'
                         : workerChecking
