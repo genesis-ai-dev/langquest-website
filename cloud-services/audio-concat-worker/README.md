@@ -74,6 +74,6 @@ Response:
 
 ## Limitations
 
-- Maximum 100 audio segments per request (to prevent timeout)
+- Maximum 2000 audio segments per request (to prevent timeout)
 - Worker timeout: 30 seconds (Cloudflare free tier) or 15 minutes (paid)
 - Large chapters may need chunked processing

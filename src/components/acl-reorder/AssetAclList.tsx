@@ -21,7 +21,8 @@ function parseVerseRange(
 ): { from: number; to: number } | null {
   if (!metadata) return null;
   try {
-    const parsed = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+    const parsed =
+      typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
     const verse = parsed?.verse;
     if (
       verse &&

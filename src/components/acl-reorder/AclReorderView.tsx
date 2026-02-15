@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AssetAclList, type AssetWithAcls } from './AssetAclList';
 import { useAclAudioPlayer, type AclWithAudio } from './useAclAudioPlayer';
+import { concatAclAudio, type ConcatProgress } from './audioConcat';
 
 function sanitizeFilename(s: string): string {
   return s.replace(/[^a-zA-Z0-9-_.\s]/g, '').replace(/\s+/g, '-') || 'quest';
@@ -50,23 +51,7 @@ export function AclReorderView() {
   const [movingAclId, setMovingAclId] = useState<string | null>(null);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-
-  // Worker status (poll when quest selected)
-  const { data: workerStatus, isLoading: workerStatusLoading } = useQuery({
-    queryKey: ['export-worker-status'],
-    queryFn: async () => {
-      const res = await fetch('/api/export/worker-status');
-      const data = await res.json();
-      return data as { ready: boolean; error?: string };
-    },
-    refetchInterval: selectedQuestId ? 5000 : false,
-    staleTime: 2000,
-    enabled: !!selectedQuestId
-  });
-
-  const workerReady = workerStatus?.ready ?? false;
-  const workerChecking = workerStatusLoading;
-  const workerFailed = workerStatus && !workerStatus.ready;
+  const [exportProgress, setExportProgress] = useState<string | null>(null);
 
   // Projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
