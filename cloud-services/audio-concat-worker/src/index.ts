@@ -19,13 +19,13 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           'Access-Control-Max-Age': '86400'
         }
       });
     }
 
-    // Health check for readiness probes
+    // Health check for readiness probes (unauthenticated)
     if (
       request.method === 'GET' &&
       (url.pathname === '/health' || url.pathname === '/')
@@ -36,6 +36,17 @@ export default {
     // Only allow POST for /concat
     if (request.method !== 'POST') {
       return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
+    }
+
+    // Authenticate via bearer token
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = env.AUDIO_CONCAT_WORKER_TOKEN;
+    if (
+      !expectedToken ||
+      !authHeader ||
+      authHeader !== `Bearer ${expectedToken}`
+    ) {
+      return jsonResponse({ success: false, error: 'Unauthorized' }, 401);
     }
 
     try {
@@ -98,31 +109,41 @@ export default {
         outputFormat
       );
 
-      // Upload to R2
-      // Ensure output key has correct extension
+      const contentType =
+        outputFormat === 'wav' ? 'audio/wav' : 'audio/mpeg';
+
+      // Always upload to R2 (primary storage)
       const outputKey = body.outputKey.endsWith(`.${outputFormat}`)
         ? body.outputKey
         : body.outputKey.replace(/\.(mp3|wav)$/i, '') + `.${outputFormat}`;
       const r2Key = `exports/${outputKey}`;
-      await env.R2_EXPORTS.put(r2Key, buffer, {
-        httpMetadata: {
-          contentType: outputFormat === 'wav' ? 'audio/wav' : 'audio/mpeg'
-        },
-        customMetadata: {
-          durationMs: durationMs.toString(),
-          segmentCount: segmentCount.toString()
-        }
-      });
 
-      // Generate public URL (or presigned URL if needed)
-      // For now, return the R2 key - the API will generate proper URLs
-      const audioUrl = r2Key;
+      try {
+        await env.R2_EXPORTS.put(r2Key, buffer, {
+          httpMetadata: { contentType },
+          customMetadata: {
+            durationMs: durationMs.toString(),
+            segmentCount: segmentCount.toString()
+          }
+        });
+      } catch (r2Err) {
+        // R2 write failure is non-fatal when returnData is requested
+        // (caller will get the audio inline anyway)
+        console.error('R2 put failed:', r2Err);
+        if (!body.returnData) throw r2Err;
+      }
 
       const response: ConcatResponse = {
         success: true,
-        audioUrl,
+        audioUrl: r2Key,
         durationMs
       };
+
+      // If caller asked for inline data, also include base64 audio
+      if (body.returnData) {
+        response.audioBase64 = arrayBufferToBase64(buffer);
+        response.contentType = contentType;
+      }
 
       return jsonResponse(response, 200);
     } catch (error) {
@@ -136,6 +157,19 @@ export default {
     }
   }
 };
+
+/** Convert ArrayBuffer to base64 string (works in Cloudflare Workers) */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  // Process in chunks to avoid call stack overflow on large buffers
+  const chunkSize = 8192;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
 
 function jsonResponse(data: unknown, status: number): Response {
   return new Response(JSON.stringify(data), {
