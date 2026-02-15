@@ -780,8 +780,8 @@ export async function POST(request: NextRequest) {
       } | null;
     };
 
-    if (existingExport && existingExport.status === 'ready') {
-      // Return existing export
+    if (existingExport) {
+      // Return existing export (ready, processing, or failed - caller can poll)
       const shareUrl =
         body.export_type === 'feedback' && existingExport.share_token
           ? `${env.NEXT_PUBLIC_SITE_URL}/api/export/share/${existingExport.share_token}`
@@ -790,7 +790,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         id: existingExport.id,
         status: existingExport.status,
-        audio_url: existingExport.audio_url,
+        audio_url: existingExport.audio_url ?? undefined,
         share_url: shareUrl
       });
     }
@@ -864,6 +864,34 @@ export async function POST(request: NextRequest) {
     };
 
     if (insertError || !exportRecord) {
+      // Unique violation: another request created the same export; return existing
+      if (insertError?.code === '23505') {
+        const { data: conflictExport } = (await supabase
+          .from('export_quest_artifact' as any)
+          .select('id, status, audio_url, share_token')
+          .eq('quest_id', body.quest_id)
+          .eq('checksum', checksum)
+          .maybeSingle()) as {
+          data: {
+            id: string;
+            status: string;
+            audio_url: string | null;
+            share_token: string | null;
+          } | null;
+        };
+        if (conflictExport) {
+          const shareUrl =
+            body.export_type === 'feedback' && conflictExport.share_token
+              ? `${env.NEXT_PUBLIC_SITE_URL}/api/export/share/${conflictExport.share_token}`
+              : undefined;
+          return NextResponse.json({
+            id: conflictExport.id,
+            status: conflictExport.status,
+            audio_url: conflictExport.audio_url ?? undefined,
+            share_url: shareUrl
+          });
+        }
+      }
       console.error('Failed to create export record:', insertError);
       return NextResponse.json(
         { error: 'Failed to create export record' },

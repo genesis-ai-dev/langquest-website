@@ -12,8 +12,11 @@ import {
   File,
   Languages,
   Book,
-  TableOfContents
+  TableOfContents,
+  ListOrdered
 } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { useAuth } from '@/components/auth-provider';
 import { ProjectDownloadButton } from './new-project-download-button';
 import { ProjectMembersModal } from './new-project-members';
 
@@ -31,6 +34,8 @@ export function ProjectHeaderV1({
   translationsCount
 }: ProjectHeaderV1Props) {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const { environment } = useAuth();
+  const aclReorderHref = `/portal/acl-reorder?projectId=${project.id}${environment !== 'production' ? `&env=${environment}` : ''}`;
 
   return (
     <div className="space-y-6">
@@ -58,6 +63,23 @@ export function ProjectHeaderV1({
               )}
             </div>
             <div className="flex gap-2">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
+              >
+                <Link href={aclReorderHref} className="flex items-center gap-2">
+                  <ListOrdered className="h-4 w-4" />
+                  Reorder & Export
+                  <Badge
+                    variant="outline"
+                    className="ml-1 border-amber-500/60 text-[10px] px-1.5 py-0"
+                  >
+                    Beta
+                  </Badge>
+                </Link>
+              </Button>
               <Button
                 title="Members"
                 size="sm"
