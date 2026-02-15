@@ -93,14 +93,14 @@ export function AclReorderView() {
     enabled: !!user?.id
   });
 
-  // Quests
+  // Quests (include metadata for bible book/chapter context)
   const { data: quests = [], isLoading: questsLoading } = useQuery({
     queryKey: ['acl-reorder-quests', selectedProjectId, environment],
     queryFn: async () => {
       if (!selectedProjectId) return [];
       const { data, error } = await supabase
         .from('quest')
-        .select('id, name')
+        .select('id, name, metadata')
         .eq('project_id', selectedProjectId)
         .eq('active', true)
         .order('created_at', { ascending: true });
@@ -126,7 +126,7 @@ export function AclReorderView() {
 
       const { data: assets, error: assetsError } = await supabase
         .from('asset')
-        .select('id, name, order_index')
+        .select('id, name, order_index, metadata')
         .in('id', assetIds)
         .is('source_asset_id', null);
       if (assetsError) throw assetsError;
@@ -154,6 +154,7 @@ export function AclReorderView() {
         id: asset.id,
         name: asset.name,
         order_index: asset.order_index ?? 0,
+        metadata: asset.metadata ?? null,
         acls: aclsByAsset.get(asset.id) || []
       }));
     },
@@ -312,6 +313,24 @@ export function AclReorderView() {
       if (q) setSelectedQuestName(q.name);
     }
   }, [selectedQuestId, quests]);
+
+  // Derive bible book/chapter label from quest metadata (e.g. "Gen 1")
+  const bookChapterLabel = (() => {
+    if (!selectedQuestId || quests.length === 0) return null;
+    const q = quests.find((x) => x.id === selectedQuestId);
+    if (!q?.metadata) return null;
+    try {
+      const meta =
+        typeof q.metadata === 'string' ? JSON.parse(q.metadata) : q.metadata;
+      const bible = meta?.bible;
+      if (!bible?.book) return null;
+      const bookLabel =
+        bible.book.charAt(0).toUpperCase() + bible.book.slice(1);
+      return bible.chapter ? `${bookLabel} ${bible.chapter}` : bookLabel;
+    } catch {
+      return null;
+    }
+  })();
 
   const handleExportQuest = async () => {
     if (!selectedQuestId || !session?.access_token || !user) return;
@@ -593,6 +612,7 @@ export function AclReorderView() {
                   <AssetAclList
                     key={asset.id}
                     asset={asset}
+                    bookChapterLabel={bookChapterLabel}
                     playingAclId={audioPlayer.playingAclId}
                     movingAclId={movingAclId}
                     onPlaySingle={audioPlayer.playSingle}
