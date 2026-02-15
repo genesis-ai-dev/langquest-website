@@ -62,6 +62,7 @@ export type Database = {
           created_at: string;
           id: string;
           last_updated: string;
+          order_index: number;
           text: string;
           source_language_id: string | null;
           languoid_id: string | null;
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           last_updated?: string;
+          order_index?: number;
           text: string;
           source_language_id?: string | null;
           languoid_id?: string | null;
@@ -84,6 +86,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           last_updated?: string;
+          order_index?: number;
           text?: string;
           source_language_id?: string | null;
           languoid_id?: string | null;
