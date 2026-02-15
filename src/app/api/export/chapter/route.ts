@@ -87,9 +87,14 @@ function generateShareToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Allow up to 60s for downloading audio from Supabase + worker concatenation
+export const maxDuration = 60;
+
 /**
  * POST /api/export/chapter
- * Initiate chapter export
+ * Export a quest's audio as a single concatenated file.
+ * Downloads audio from Supabase storage, sends to Cloudflare Worker for
+ * concatenation, and returns the result directly as an audio blob.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -954,94 +959,115 @@ export async function POST(request: NextRequest) {
     );
     console.log('[Export API] Calling worker at', concatUrl);
 
-    // Call worker (fire and forget - worker will update status)
-    fetch(concatUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        audioData,
-        outputKey: formatOutputKey,
-        format: outputFormat
-      })
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const text = await response.text();
-          console.error(
-            `[Export API] Worker responded with ${response.status}: ${text}`
-          );
-          throw new Error(`Worker error: ${response.status} ${text}`);
-        }
-        const result = (await response.json()) as {
-          success?: boolean;
-          audioUrl?: string;
-          durationMs?: number;
-          error?: string;
-        };
-        console.log('[Export API] Worker result:', result);
+    // Call worker synchronously and return audio directly to the client.
+    // Using returnData: true so the worker sends audio as base64 (no R2 storage needed).
+    try {
+      const workerHeaders: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (process.env.AUDIO_CONCAT_WORKER_TOKEN) {
+        workerHeaders['Authorization'] =
+          `Bearer ${process.env.AUDIO_CONCAT_WORKER_TOKEN}`;
+      }
+      const workerResponse = await fetch(concatUrl, {
+        method: 'POST',
+        headers: workerHeaders,
+        body: JSON.stringify({
+          audioData,
+          outputKey: formatOutputKey,
+          format: outputFormat,
+          returnData: true
+        })
+      });
 
-        if (result.success && result.audioUrl && result.durationMs) {
-          // Update manifest with duration
-          exportMetadata.manifest.total_duration_ms = result.durationMs;
-
-          // Update Bible verses if present (verse timings would come from concatenation result)
-          // For now, we'll leave it empty as the user mentioned it should be empty initially
-          // In the future, result.verseTimings could populate this object
-
-          // Generate full URL for the audio file
-          // In development, use local API endpoint
-          // In production, would use Cloudflare R2 public URL or CDN
-          const audioUrl =
-            env.NEXT_PUBLIC_ENVIRONMENT === 'development'
-              ? `${env.NEXT_PUBLIC_SITE_URL}/api/export/audio/${result.audioUrl}`
-              : result.audioUrl; // TODO: Generate proper R2/CDN URL for production
-
-          // Update export record
-          await (supabase
-            .from('export_quest_artifact' as any)
-            .update({
-              status: 'ready',
-              audio_url: audioUrl,
-              metadata: exportMetadata
-            })
-            .eq('id', exportRecord.id) as any);
-        } else {
-          // Update with error
-          await (supabase
-            .from('export_quest_artifact' as any)
-            .update({
-              status: 'failed',
-              error_message: result.error || 'Concatenation failed'
-            })
-            .eq('id', exportRecord.id) as any);
-        }
-      })
-      .catch(async (error) => {
+      if (!workerResponse.ok) {
+        const text = await workerResponse.text();
         console.error(
-          '[Export API] Worker call failed:',
-          error?.message ?? error
+          `[Export API] Worker responded with ${workerResponse.status}: ${text}`
         );
-        console.error('[Export API] Worker error cause:', error?.cause);
+        throw new Error(`Worker error: ${workerResponse.status} ${text}`);
+      }
+
+      const result = (await workerResponse.json()) as {
+        success?: boolean;
+        audioBase64?: string;
+        contentType?: string;
+        audioUrl?: string;
+        durationMs?: number;
+        error?: string;
+      };
+      console.log('[Export API] Worker result:', {
+        success: result.success,
+        hasAudioBase64: !!result.audioBase64,
+        contentType: result.contentType,
+        durationMs: result.durationMs,
+        error: result.error
+      });
+
+      if (result.success && result.audioBase64 && result.durationMs) {
+        // Update manifest with duration
+        exportMetadata.manifest.total_duration_ms = result.durationMs;
+
+        // Decode audio from base64
+        const audioBuffer = Buffer.from(result.audioBase64, 'base64');
+        const audioContentType =
+          result.contentType ||
+          (outputFormat === 'wav' ? 'audio/wav' : 'audio/mpeg');
+
+        // Update export record to 'ready' (audio_url null since we return inline)
+        await (supabase
+          .from('export_quest_artifact' as any)
+          .update({
+            status: 'ready',
+            metadata: exportMetadata
+          })
+          .eq('id', exportRecord.id) as any);
+
+        // Return audio directly as a binary response
+        return new NextResponse(audioBuffer, {
+          status: 200,
+          headers: {
+            'Content-Type': audioContentType,
+            'Content-Length': audioBuffer.length.toString(),
+            'Content-Disposition': `attachment; filename="${formatOutputKey}"`,
+            'Cache-Control': 'no-store'
+          }
+        });
+      } else {
+        // Worker returned failure
+        const errorMsg = result.error || 'Concatenation failed';
         await (supabase
           .from('export_quest_artifact' as any)
           .update({
             status: 'failed',
-            error_message:
-              error.message || 'Failed to call concatenation worker'
+            error_message: errorMsg
           })
           .eq('id', exportRecord.id) as any);
-      });
 
-    const shareUrl =
-      body.export_type === 'feedback' && shareToken
-        ? `${env.NEXT_PUBLIC_SITE_URL}/api/export/share/${shareToken}`
-        : undefined;
+        return NextResponse.json({ error: errorMsg }, { status: 500 });
+      }
+    } catch (workerError: any) {
+      console.error(
+        '[Export API] Worker call failed:',
+        workerError?.message ?? workerError
+      );
 
-    return NextResponse.json({
-      id: exportRecord.id,
-      status: 'processing',
-      share_url: shareUrl
-    });
+      await (supabase
+        .from('export_quest_artifact' as any)
+        .update({
+          status: 'failed',
+          error_message:
+            workerError.message || 'Failed to call concatenation worker'
+        })
+        .eq('id', exportRecord.id) as any);
+
+      return NextResponse.json(
+        {
+          error: `Audio concatenation failed: ${workerError.message || 'Worker unreachable'}`
+        },
+        { status: 502 }
+      );
+    }
   } catch (error: any) {
     console.error('Export error:', error);
     return NextResponse.json(

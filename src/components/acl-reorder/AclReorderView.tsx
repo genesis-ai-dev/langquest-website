@@ -352,7 +352,7 @@ export function AclReorderView() {
     if (!selectedQuestId || !session?.access_token || !user) return;
     setIsExporting(true);
     try {
-      const createRes = await fetch('/api/export/chapter', {
+      const res = await fetch('/api/export/chapter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -364,38 +364,69 @@ export function AclReorderView() {
           environment
         })
       });
-      const createData = await safeJson(createRes);
-      if (!createRes.ok) throw new Error(createData.error || 'Export failed');
 
-      const exportId = createData.id;
-      if (!exportId) throw new Error('No export ID returned');
-
-      if (createData.status === 'ready' && createData.audio_url) {
-        await downloadAudio(createData.audio_url);
-        setIsExporting(false);
-        return;
+      // Check for errors first (error responses are always JSON)
+      if (!res.ok) {
+        const errData = await safeJson(res);
+        throw new Error(errData.error || `Export failed (${res.status})`);
       }
 
-      const pollInterval = 2000;
-      const maxAttempts = 60;
-      for (let i = 0; i < maxAttempts; i++) {
-        await new Promise((r) => setTimeout(r, pollInterval));
-        const statusRes = await fetch(
-          `/api/export/${exportId}?environment=${environment}`,
-          {
-            headers: { Authorization: `Bearer ${session.access_token}` }
-          }
-        );
-        const statusData = await safeJson(statusRes);
-        if (!statusRes.ok)
-          throw new Error(statusData.error || 'Status check failed');
+      const contentType = res.headers.get('content-type') || '';
 
-        if (statusData.status === 'ready' && statusData.audio_url) {
-          await downloadAudio(statusData.audio_url);
-          break;
+      if (contentType.startsWith('audio/')) {
+        // Direct audio blob response (new synchronous flow)
+        const blob = await res.blob();
+        const timestamp = new Date()
+          .toISOString()
+          .replace(/[:.]/g, '-')
+          .slice(0, 19);
+        const safeQuest = sanitizeFilename(selectedQuestName || 'quest');
+        const safeUser = sanitizeFilename(
+          (user?.user_metadata?.username as string) ||
+            user?.email?.split('@')[0] ||
+            user?.id?.slice(0, 8) ||
+            'user'
+        );
+        const ext = contentType.includes('wav') ? 'wav' : 'mp3';
+        const filename = `${safeQuest}-${timestamp}-${safeUser}.${ext}`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast.success('Download started');
+      } else {
+        // JSON response (legacy/fallback flow with polling)
+        const createData = await safeJson(res);
+        const exportId = createData.id;
+        if (!exportId) throw new Error('No export ID returned');
+
+        if (createData.status === 'ready' && createData.audio_url) {
+          await downloadAudio(createData.audio_url);
+          return;
         }
-        if (statusData.status === 'failed') {
-          throw new Error(statusData.error_message || 'Export failed');
+
+        const pollInterval = 2000;
+        const maxAttempts = 60;
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise((r) => setTimeout(r, pollInterval));
+          const statusRes = await fetch(
+            `/api/export/${exportId}?environment=${environment}`,
+            {
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            }
+          );
+          const statusData = await safeJson(statusRes);
+          if (!statusRes.ok)
+            throw new Error(statusData.error || 'Status check failed');
+
+          if (statusData.status === 'ready' && statusData.audio_url) {
+            await downloadAudio(statusData.audio_url);
+            break;
+          }
+          if (statusData.status === 'failed') {
+            throw new Error(statusData.error_message || 'Export failed');
+          }
         }
       }
     } catch (err) {
