@@ -8,7 +8,8 @@ account_id = "6a80496d1e59948a9cbaa3c643ba81d7"
 binding = "R2_EXPORTS"
 bucket_name = "langquest-exports"
 
-# Environment variables set via Cloudflare dashboard or wrangler secret
+# Secrets (set via `wrangler secret put <NAME>`)
+# AUDIO_CONCAT_WORKER_TOKEN - Bearer token for authenticating requests from Next.js backend
 # LANGQUEST_SUPABASE_URL - Supabase project URL
 # LANGQUEST_SUPABASE_SERVICE_KEY - Service role key for storage access
 
