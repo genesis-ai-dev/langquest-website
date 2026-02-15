@@ -4,6 +4,7 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
 import type { SupabaseEnvironment } from '@/lib/supabase';
 import type { AclWithAudio } from './useAclAudioPlayer';
+import { extractAudioPaths } from './audioUtils';
 
 export interface ConcatProgress {
   phase: 'downloading' | 'decoding' | 'encoding';
@@ -44,20 +45,31 @@ export async function concatAclAudio(
   environment: SupabaseEnvironment,
   onProgress?: OnProgress
 ): Promise<Blob> {
-  // Collect audio paths in ACL order
+  // Collect audio paths in ACL order, handling all jsonb variants
   const audioPaths: string[] = [];
   for (const acl of acls) {
-    if (acl.audio && Array.isArray(acl.audio)) {
-      for (const p of acl.audio) {
-        if (typeof p === 'string' && p.trim()) {
-          audioPaths.push(p.trim());
-        }
-      }
-    }
+    const paths = extractAudioPaths(acl.audio);
+    audioPaths.push(...paths);
   }
 
+  console.log(
+    `[AudioConcat] Collected ${audioPaths.length} audio paths from ${acls.length} ACLs`
+  );
   if (audioPaths.length === 0) {
-    throw new Error('No audio files to concatenate');
+    // Log diagnostic info so we can debug what the audio field actually contains
+    const sample = acls.slice(0, 5).map((a) => ({
+      id: a.id.slice(0, 8),
+      audioType: typeof a.audio,
+      audioIsArray: Array.isArray(a.audio),
+      audioValue:
+        a.audio == null
+          ? 'null'
+          : JSON.stringify(a.audio).slice(0, 80)
+    }));
+    console.error('[AudioConcat] No audio paths found. Sample ACL audio fields:', sample);
+    throw new Error(
+      `No audio files to concatenate (${acls.length} ACLs had no resolvable audio paths)`
+    );
   }
 
   const audioContext = new AudioContext();
