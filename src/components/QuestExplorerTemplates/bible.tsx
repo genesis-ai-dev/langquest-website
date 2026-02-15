@@ -24,7 +24,8 @@ import {
 } from '@/components/ui/sidebar';
 import {
   FolderOpen,
-  ArrowLeft
+  ArrowLeft,
+  ListOrdered
   // Info,
   // Calendar
 } from 'lucide-react';
@@ -852,18 +853,42 @@ function QuestContent({
               </CardTitle>
             </div>
             {/* Action Buttons */}
-            {selectedChapter && currentChapterQuestId && (
-              <SubQuestMenu
-                canManage={canManage}
-                projectId={projectId}
-                selectedQuestId={getMenuQuestId()}
-                onQuestSuccess={onQuestSuccess}
-                onAssetSuccess={() =>
-                  onAssetSuccess?.(currentChapterQuestId || undefined)
-                }
-                disableQuests={true}
-              />
-            )}
+            <div className="flex items-center gap-2">
+              {selectedBookId && getMenuQuestId() && (
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
+                >
+                  <Link
+                    href={`/portal/acl-reorder?projectId=${projectId}&questId=${getMenuQuestId()}${environment !== 'production' ? `&env=${environment}` : ''}`}
+                    className="flex items-center gap-2"
+                  >
+                    <ListOrdered className="h-4 w-4" />
+                    Reorder & Export
+                    <Badge
+                      variant="outline"
+                      className="ml-1 border-amber-500/60 text-[10px] px-1.5 py-0"
+                    >
+                      Beta
+                    </Badge>
+                  </Link>
+                </Button>
+              )}
+              {selectedChapter && currentChapterQuestId && (
+                <SubQuestMenu
+                  canManage={canManage}
+                  projectId={projectId}
+                  selectedQuestId={getMenuQuestId()}
+                  onQuestSuccess={onQuestSuccess}
+                  onAssetSuccess={() =>
+                    onAssetSuccess?.(currentChapterQuestId || undefined)
+                  }
+                  disableQuests={true}
+                />
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 border-t">

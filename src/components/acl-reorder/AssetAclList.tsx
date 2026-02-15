@@ -34,11 +34,17 @@ export function AssetAclList({
 }: AssetAclListProps) {
   const sortedAcls = [...asset.acls].sort((a, b) => {
     if (a.order_index !== b.order_index) return a.order_index - b.order_index;
-    return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+    return (
+      new Date(a.created_at || 0).getTime() -
+      new Date(b.created_at || 0).getTime()
+    );
   });
 
   const hasAnyAudio = sortedAcls.some(
-    (a) => a.audio && Array.isArray(a.audio) && a.audio.some((p) => typeof p === 'string' && p.trim())
+    (a) =>
+      a.audio &&
+      Array.isArray(a.audio) &&
+      a.audio.some((p) => typeof p === 'string' && p.trim())
   );
 
   return (

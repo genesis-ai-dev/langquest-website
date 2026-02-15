@@ -20,7 +20,8 @@ import {
   Eye,
   Upload,
   UserRound,
-  Book
+  Book,
+  ListOrdered
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -344,12 +345,26 @@ function AdminContent() {
             <p className="text-muted-foreground mt-2">
               Manage your translation projects, quests and assets
             </p>
-            <Link
-              href={`/portal/acl-reorder${environment !== 'production' ? `?env=${environment}` : ''}`}
-              className="text-sm text-muted-foreground hover:text-foreground mt-1 inline-block"
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="mt-3 flex items-center gap-2 w-fit border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
             >
-              ACL Reorder
-            </Link>
+              <Link
+                href={`/portal/acl-reorder${environment !== 'production' ? `?env=${environment}` : ''}`}
+                className="flex items-center gap-2"
+              >
+                <ListOrdered className="h-4 w-4" />
+                Reorder & Export
+                <Badge
+                  variant="outline"
+                  className="ml-1 border-amber-500/60 text-[10px] px-1.5 py-0"
+                >
+                  Beta
+                </Badge>
+              </Link>
+            </Button>
           </div>
 
           {/* Environment Notice */}

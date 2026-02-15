@@ -11,19 +11,29 @@ import type { ConcatRequest, ConcatResponse, Env } from './types';
  */
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Max-Age': '86400'
         }
       });
     }
 
-    // Only allow POST requests
+    // Health check for readiness probes
+    if (
+      request.method === 'GET' &&
+      (url.pathname === '/health' || url.pathname === '/')
+    ) {
+      return jsonResponse({ ok: true }, 200);
+    }
+
+    // Only allow POST for /concat
     if (request.method !== 'POST') {
       return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
     }

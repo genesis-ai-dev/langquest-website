@@ -497,8 +497,9 @@ export async function POST(request: NextRequest) {
 
     const { data: assetContentLinks, error: contentLinksError } = await supabase
       .from(tableName)
-      .select('asset_id, audio, created_at')
+      .select('asset_id, audio, order_index, created_at')
       .in('asset_id', topLevelAssetIds)
+      .order('order_index', { ascending: true })
       .order('created_at', { ascending: true });
 
     console.log(
@@ -574,13 +575,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Process assets in order (by order_index)
-    // Within each asset, process content links by created_at
+    // Within each asset, process content links by order_index, then created_at
     for (const asset of topLevelAssets) {
       const assetContentLinksForAsset =
         contentLinksByAsset.get(asset.asset_id) || [];
 
-      // Sort content links by created_at to maintain order within asset
+      // Sort content links by order_index first, then created_at as tiebreaker
       assetContentLinksForAsset.sort((a, b) => {
+        const aIdx = (a as any).order_index ?? 0;
+        const bIdx = (b as any).order_index ?? 0;
+        if (aIdx !== bIdx) return aIdx - bIdx;
         const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
         return aTime - bTime;
@@ -780,8 +784,8 @@ export async function POST(request: NextRequest) {
       } | null;
     };
 
-    if (existingExport && existingExport.status === 'ready') {
-      // Return existing export
+    if (existingExport && existingExport.status !== 'failed') {
+      // Return existing export (ready or processing - caller can poll)
       const shareUrl =
         body.export_type === 'feedback' && existingExport.share_token
           ? `${env.NEXT_PUBLIC_SITE_URL}/api/export/share/${existingExport.share_token}`
@@ -790,12 +794,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         id: existingExport.id,
         status: existingExport.status,
-        audio_url: existingExport.audio_url,
+        audio_url: existingExport.audio_url ?? undefined,
         share_url: shareUrl
       });
     }
 
-    // Create export record
+    // If existing export is failed, retry by calling worker again (use existing id)
+    const retryExportId = existingExport?.id ?? null;
+
+    // Create export record (skip insert if retrying)
     // Extract bible chapter info if available (optional)
     let bookId: string | null = null;
     let chapterNum: number | null = null;
@@ -844,48 +851,89 @@ export async function POST(request: NextRequest) {
         ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
         : null;
 
-    const { data: exportRecord, error: insertError } = (await supabase
-      .from('export_quest_artifact' as any)
-      .insert({
-        quest_id: body.quest_id,
-        project_id: quest.project_id,
-        metadata: exportMetadata,
-        export_type: body.export_type,
-        status: 'pending',
-        checksum,
-        share_token: shareToken,
-        share_expires_at: shareExpiresAt,
-        created_by: user.id
-      })
-      .select('id, share_token')
-      .single()) as {
-      data: { id: string; share_token: string | null } | null;
-      error: any;
-    };
+    let exportRecord: { id: string; share_token: string | null } | null = null;
 
-    if (insertError || !exportRecord) {
-      console.error('Failed to create export record:', insertError);
-      return NextResponse.json(
-        { error: 'Failed to create export record' },
-        { status: 500 }
-      );
+    if (retryExportId) {
+      // Retry failed export: use existing record
+      exportRecord = {
+        id: retryExportId,
+        share_token: existingExport!.share_token
+      };
+      console.log('[Export API] Retrying failed export:', retryExportId);
+    } else {
+      const insertResult = (await supabase
+        .from('export_quest_artifact' as any)
+        .insert({
+          quest_id: body.quest_id,
+          project_id: quest.project_id,
+          metadata: exportMetadata,
+          export_type: body.export_type,
+          status: 'pending',
+          checksum,
+          share_token: shareToken,
+          share_expires_at: shareExpiresAt,
+          created_by: user.id
+        })
+        .select('id, share_token')
+        .single()) as {
+        data: { id: string; share_token: string | null } | null;
+        error: any;
+      };
+      exportRecord = insertResult.data;
+      const insertError = insertResult.error;
+
+      if (insertError || !exportRecord) {
+        // Unique violation: another request created the same export; return existing
+        if (insertError?.code === '23505') {
+          const { data: conflictExport } = (await supabase
+            .from('export_quest_artifact' as any)
+            .select('id, status, audio_url, share_token')
+            .eq('quest_id', body.quest_id)
+            .eq('checksum', checksum)
+            .maybeSingle()) as {
+            data: {
+              id: string;
+              status: string;
+              audio_url: string | null;
+              share_token: string | null;
+            } | null;
+          };
+          if (conflictExport) {
+            const shareUrl =
+              body.export_type === 'feedback' && conflictExport.share_token
+                ? `${env.NEXT_PUBLIC_SITE_URL}/api/export/share/${conflictExport.share_token}`
+                : undefined;
+            return NextResponse.json({
+              id: conflictExport.id,
+              status: conflictExport.status,
+              audio_url: conflictExport.audio_url ?? undefined,
+              share_url: shareUrl
+            });
+          }
+        }
+        console.error('Failed to create export record:', insertError);
+        return NextResponse.json(
+          { error: 'Failed to create export record' },
+          { status: 500 }
+        );
+      }
     }
 
     // Call audio concatenation worker asynchronously
     // In production, you might want to use a queue system
-    // For local dev, use http://localhost:8787 if wrangler dev is running
+    // For local dev, use 127.0.0.1 (more reliable than localhost on some systems)
     const workerUrl =
       process.env.AUDIO_CONCAT_WORKER_URL ||
       (env.NEXT_PUBLIC_ENVIRONMENT === 'development'
-        ? 'http://localhost:8787'
+        ? 'http://127.0.0.1:8787'
         : 'https://langquest-audio-concat.blue-darkness-7674.workers.dev');
     console.log('[Export API] Using worker URL:', workerUrl);
     const outputKey = `export-${exportRecord.id}.mp3`;
 
-    // Update status to processing
+    // Update status to processing (clear previous error when retrying)
     await (supabase
       .from('export_quest_artifact' as any)
-      .update({ status: 'processing' })
+      .update({ status: 'processing', error_message: null })
       .eq('id', exportRecord.id) as any);
 
     // Determine output format based on input files
@@ -900,12 +948,14 @@ export async function POST(request: NextRequest) {
       ? outputKey
       : outputKey.replace(/\.(mp3|wav)$/i, '') + `.${outputFormat}`;
 
+    const concatUrl = `${workerUrl}/concat`;
     console.log(
       `[Export API] Sending ${audioData.length} audio files (formats: ${inputFormats.join(', ')}) to worker, requesting ${outputFormat} output`
     );
+    console.log('[Export API] Calling worker at', concatUrl);
 
     // Call worker (fire and forget - worker will update status)
-    fetch(`${workerUrl}/concat`, {
+    fetch(concatUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -967,7 +1017,11 @@ export async function POST(request: NextRequest) {
         }
       })
       .catch(async (error) => {
-        console.error('Worker call failed:', error);
+        console.error(
+          '[Export API] Worker call failed:',
+          error?.message ?? error
+        );
+        console.error('[Export API] Worker error cause:', error?.cause);
         await (supabase
           .from('export_quest_artifact' as any)
           .update({
