@@ -16,6 +16,11 @@ import {
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AssetAclList, type AssetWithAcls } from './AssetAclList';
 import { useAclAudioPlayer, type AclWithAudio } from './useAclAudioPlayer';
@@ -45,6 +50,23 @@ export function AclReorderView() {
   const [movingAclId, setMovingAclId] = useState<string | null>(null);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Worker status (poll when quest selected)
+  const { data: workerStatus, isLoading: workerStatusLoading } = useQuery({
+    queryKey: ['export-worker-status'],
+    queryFn: async () => {
+      const res = await fetch('/api/export/worker-status');
+      const data = await res.json();
+      return data as { ready: boolean; error?: string };
+    },
+    refetchInterval: selectedQuestId ? 5000 : false,
+    staleTime: 2000,
+    enabled: !!selectedQuestId
+  });
+
+  const workerReady = workerStatus?.ready ?? false;
+  const workerChecking = workerStatusLoading;
+  const workerFailed = workerStatus && !workerStatus.ready;
 
   // Projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -501,16 +523,50 @@ export function AclReorderView() {
                 )}
                 {selectedQuestName}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportQuest}
-                disabled={isExporting || !session}
-                className="gap-2 shrink-0 min-h-[44px] sm:min-h-0"
-              >
-                <Download className="size-4" />
-                {isExporting ? 'Exporting…' : 'Export quest as audio'}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportQuest}
+                      disabled={
+                        isExporting ||
+                        !session ||
+                        !workerReady
+                      }
+                      className="gap-2 shrink-0 min-h-[44px] sm:min-h-0"
+                    >
+                      <span
+                        className={cn(
+                          'size-2 rounded-full shrink-0',
+                          workerReady && 'bg-emerald-500',
+                          workerChecking && 'bg-amber-500 animate-pulse',
+                          !workerReady && !workerChecking && 'bg-red-500'
+                        )}
+                        aria-hidden
+                      />
+                      <Download className="size-4" />
+                      {isExporting
+                        ? 'Exporting…'
+                        : workerChecking
+                          ? 'Checking worker…'
+                          : workerFailed
+                            ? 'Worker unavailable'
+                            : 'Export quest as audio'}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {workerFailed
+                    ? `Export worker unavailable: ${workerStatus?.error ?? 'Not running'}. Start with: cd cloud-services/audio-concat-worker && pnpm exec wrangler dev`
+                    : workerChecking
+                      ? 'Checking export worker…'
+                      : workerReady
+                        ? 'Export quest as concatenated audio'
+                        : 'Select a quest to check worker status'}
+                </TooltipContent>
+              </Tooltip>
             </div>
             {assetsLoading ? (
               <Spinner className="size-6" />
