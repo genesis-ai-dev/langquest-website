@@ -37,16 +37,16 @@ export function AclRow({
       animate={{ opacity: isMoving ? 0.7 : 1 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'flex items-center gap-2 py-2 px-3 rounded-md border bg-background',
+        'flex items-center gap-2 py-3 px-3 sm:py-2 rounded-md border bg-background',
         'hover:bg-muted/50 transition-colors'
       )}
     >
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {hasAudio ? (
           <Button
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="size-10 sm:size-8 min-w-10 min-h-10 sm:min-w-8 sm:min-h-8"
             onClick={onPlay}
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
@@ -57,12 +57,12 @@ export function AclRow({
             )}
           </Button>
         ) : (
-          <div className="size-8" />
+          <div className="size-10 sm:size-8 w-10 h-10 sm:w-8 sm:h-8" />
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="size-7"
+          className="size-10 sm:size-7 min-w-10 min-h-10 sm:min-w-7 sm:min-h-7"
           onClick={onMoveUp}
           disabled={index === 0}
           aria-label="Move up"
@@ -72,7 +72,7 @@ export function AclRow({
         <Button
           variant="ghost"
           size="icon"
-          className="size-7"
+          className="size-10 sm:size-7 min-w-10 min-h-10 sm:min-w-7 sm:min-h-7"
           onClick={onMoveDown}
           disabled={index >= total - 1}
           aria-label="Move down"

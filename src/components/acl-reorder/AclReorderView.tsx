@@ -7,6 +7,15 @@ import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { ChevronDown } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { AssetAclList, type AssetWithAcls } from './AssetAclList';
 import { useAclAudioPlayer, type AclWithAudio } from './useAclAudioPlayer';
 
@@ -23,6 +32,7 @@ export function AclReorderView() {
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [selectedQuestName, setSelectedQuestName] = useState('');
   const [movingAclId, setMovingAclId] = useState<string | null>(null);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
 
   // Projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -257,80 +267,109 @@ export function AclReorderView() {
     }
   }, [selectedQuestId, quests]);
 
-  return (
-    <div className="flex gap-8">
-      {/* Sidebar: Projects + Quests */}
-      <div className="w-64 shrink-0 space-y-4">
+  const selectorContent = (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-medium text-muted-foreground mb-2">
+          Projects
+        </h2>
+        {projectsLoading ? (
+          <Spinner className="size-5" />
+        ) : (
+          <ul className="space-y-1">
+            {projects.map((p) => (
+              <li key={p.id}>
+                <button
+                  onClick={() => {
+                    setSelectedProjectId(p.id);
+                    setSelectedProjectName(p.name);
+                    setSelectedQuestId(null);
+                    setSelectedQuestName('');
+                  }}
+                  className={cn(
+                    'w-full text-left px-3 py-2.5 rounded-md text-sm min-h-[44px] flex items-center',
+                    selectedProjectId === p.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
+                  )}
+                >
+                  {p.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {selectedProjectId && (
         <div>
           <h2 className="text-sm font-medium text-muted-foreground mb-2">
-            Projects
+            Quests
           </h2>
-          {projectsLoading ? (
+          {questsLoading ? (
             <Spinner className="size-5" />
           ) : (
             <ul className="space-y-1">
-              {projects.map((p) => (
-                <li key={p.id}>
+              {quests.map((q) => (
+                <li key={q.id}>
                   <button
                     onClick={() => {
-                      setSelectedProjectId(p.id);
-                      setSelectedProjectName(p.name);
-                      setSelectedQuestId(null);
-                      setSelectedQuestName('');
+                      setSelectedQuestId(q.id);
+                      setSelectedQuestName(q.name);
+                      setMobileSheetOpen(false);
                     }}
                     className={cn(
-                      'w-full text-left px-3 py-2 rounded-md text-sm',
-                      selectedProjectId === p.id
+                      'w-full text-left px-3 py-2.5 rounded-md text-sm min-h-[44px] flex items-center',
+                      selectedQuestId === q.id
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted'
                     )}
                   >
-                    {p.name}
+                    {q.name}
                   </button>
                 </li>
               ))}
             </ul>
           )}
         </div>
+      )}
+    </div>
+  );
 
-        {selectedProjectId && (
-          <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">
-              Quests
-            </h2>
-            {questsLoading ? (
-              <Spinner className="size-5" />
-            ) : (
-              <ul className="space-y-1">
-                {quests.map((q) => (
-                  <li key={q.id}>
-                    <button
-                      onClick={() => {
-                        setSelectedQuestId(q.id);
-                        setSelectedQuestName(q.name);
-                      }}
-                      className={cn(
-                        'w-full text-left px-3 py-2 rounded-md text-sm',
-                        selectedQuestId === q.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-muted'
-                      )}
-                    >
-                      {q.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+  return (
+    <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+      {/* Mobile: Sheet for project/quest selection */}
+      <div className="md:hidden">
+        <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full justify-between min-h-[44px]">
+              <span className="truncate">
+                {selectedQuestName
+                  ? `${selectedProjectName} / ${selectedQuestName}`
+                  : selectedProjectName
+                    ? `Project: ${selectedProjectName}`
+                    : 'Select project & quest'}
+              </span>
+              <ChevronDown className="size-4 shrink-0 ml-2" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[85vw] max-w-sm overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Select project & quest</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">{selectorContent}</div>
+          </SheetContent>
+        </Sheet>
       </div>
+
+      {/* Desktop: Sidebar */}
+      <div className="hidden md:block w-64 shrink-0">{selectorContent}</div>
 
       {/* Main: Nested ACL lists */}
       <div className="flex-1 min-w-0">
         {selectedQuestId && (
           <>
-            <div className="mb-4 text-sm text-muted-foreground">
+            <div className="mb-4 text-sm text-muted-foreground hidden md:block">
               {selectedProjectName && (
                 <span>{selectedProjectName} / </span>
               )}

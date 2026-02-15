@@ -56,9 +56,9 @@ function AclReorderPageContent() {
         user={user}
         onSignOut={signOut}
       />
-      <div className="container p-6 max-w-screen-xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">ACL Order Reorder</h1>
-        <p className="text-muted-foreground mb-6">
+      <div className="container p-4 sm:p-6 max-w-screen-xl mx-auto">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">ACL Order Reorder</h1>
+        <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">
           Reorder asset content links within each asset. Select a project and
           quest to get started.
         </p>
