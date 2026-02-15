@@ -16,6 +16,7 @@ export type Database = {
           id: string;
           images: string | null;
           last_updated: string;
+          metadata: string | null;
           name: string;
           source_language_id: string | null;
           creator_id: string | null;
@@ -30,6 +31,7 @@ export type Database = {
           id?: string;
           images?: string | null;
           last_updated?: string;
+          metadata?: string | null;
           name: string;
           source_language_id?: string | null;
           creator_id?: string | null;
@@ -44,6 +46,7 @@ export type Database = {
           id?: string;
           images?: string | null;
           last_updated?: string;
+          metadata?: string | null;
           name?: string;
           source_language_id?: string | null;
           creator_id?: string | null;

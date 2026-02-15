@@ -8,7 +8,7 @@ import { SupabaseEnvironment } from '@/lib/supabase';
 export type AclWithAudio = {
   id: string;
   asset_id: string;
-  order_index: number;
+  order_index: number | null;
   audio: string[] | null;
   text?: string | null;
   created_at?: string | null;
