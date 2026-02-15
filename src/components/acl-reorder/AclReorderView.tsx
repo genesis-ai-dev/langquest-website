@@ -93,14 +93,14 @@ export function AclReorderView() {
     enabled: !!user?.id
   });
 
-  // Quests
+  // Quests (include metadata for bible book/chapter context)
   const { data: quests = [], isLoading: questsLoading } = useQuery({
     queryKey: ['acl-reorder-quests', selectedProjectId, environment],
     queryFn: async () => {
       if (!selectedProjectId) return [];
       const { data, error } = await supabase
         .from('quest')
-        .select('id, name')
+        .select('id, name, metadata')
         .eq('project_id', selectedProjectId)
         .eq('active', true)
         .order('created_at', { ascending: true });
@@ -126,7 +126,7 @@ export function AclReorderView() {
 
       const { data: assets, error: assetsError } = await supabase
         .from('asset')
-        .select('id, name, order_index')
+        .select('id, name, order_index, metadata')
         .in('id', assetIds)
         .is('source_asset_id', null);
       if (assetsError) throw assetsError;
@@ -154,6 +154,7 @@ export function AclReorderView() {
         id: asset.id,
         name: asset.name,
         order_index: asset.order_index ?? 0,
+        metadata: asset.metadata ?? null,
         acls: aclsByAsset.get(asset.id) || []
       }));
     },
@@ -195,8 +196,9 @@ export function AclReorderView() {
 
       const asset = prev[assetIdx];
       const sorted = [...asset.acls].sort((a, b) => {
-        if (a.order_index !== b.order_index)
-          return a.order_index - b.order_index;
+        const aIdx = a.order_index ?? 0;
+        const bIdx = b.order_index ?? 0;
+        if (aIdx !== bIdx) return aIdx - bIdx;
         return (
           new Date(a.created_at || 0).getTime() -
           new Date(b.created_at || 0).getTime()
@@ -246,7 +248,9 @@ export function AclReorderView() {
     );
     if (!asset) return null;
     const sorted = [...asset.acls].sort((a, b) => {
-      if (a.order_index !== b.order_index) return a.order_index - b.order_index;
+      const aIdx = a.order_index ?? 0;
+      const bIdx = b.order_index ?? 0;
+      if (aIdx !== bIdx) return aIdx - bIdx;
       return (
         new Date(a.created_at || 0).getTime() -
         new Date(b.created_at || 0).getTime()
@@ -313,6 +317,37 @@ export function AclReorderView() {
     }
   }, [selectedQuestId, quests]);
 
+  // Derive bible book/chapter label from quest metadata (e.g. "Gen 1")
+  const bookChapterLabel = (() => {
+    if (!selectedQuestId || quests.length === 0) return null;
+    const q = quests.find((x) => x.id === selectedQuestId);
+    if (!q?.metadata) return null;
+    try {
+      const meta =
+        typeof q.metadata === 'string' ? JSON.parse(q.metadata) : q.metadata;
+      const bible = meta?.bible;
+      if (!bible?.book) return null;
+      const bookLabel =
+        bible.book.charAt(0).toUpperCase() + bible.book.slice(1);
+      return bible.chapter ? `${bookLabel} ${bible.chapter}` : bookLabel;
+    } catch {
+      return null;
+    }
+  })();
+
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(
+        !res.ok
+          ? `Server error (${res.status}): ${text.slice(0, 120)}`
+          : `Invalid response: ${text.slice(0, 120)}`
+      );
+    }
+  };
+
   const handleExportQuest = async () => {
     if (!selectedQuestId || !session?.access_token || !user) return;
     setIsExporting(true);
@@ -329,10 +364,12 @@ export function AclReorderView() {
           environment
         })
       });
-      const createData = await createRes.json();
+      const createData = await safeJson(createRes);
       if (!createRes.ok) throw new Error(createData.error || 'Export failed');
 
       const exportId = createData.id;
+      if (!exportId) throw new Error('No export ID returned');
+
       if (createData.status === 'ready' && createData.audio_url) {
         await downloadAudio(createData.audio_url);
         setIsExporting(false);
@@ -349,7 +386,7 @@ export function AclReorderView() {
             headers: { Authorization: `Bearer ${session.access_token}` }
           }
         );
-        const statusData = await statusRes.json();
+        const statusData = await safeJson(statusRes);
         if (!statusRes.ok)
           throw new Error(statusData.error || 'Status check failed');
 
@@ -593,6 +630,7 @@ export function AclReorderView() {
                   <AssetAclList
                     key={asset.id}
                     asset={asset}
+                    bookChapterLabel={bookChapterLabel}
                     playingAclId={audioPlayer.playingAclId}
                     movingAclId={movingAclId}
                     onPlaySingle={audioPlayer.playSingle}

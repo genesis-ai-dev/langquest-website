@@ -1,7 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play } from 'lucide-react';
+import { Play, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AclRow } from './AclRow';
 import type { AclWithAudio } from './useAclAudioPlayer';
@@ -10,11 +11,35 @@ export type AssetWithAcls = {
   id: string;
   name: string | null;
   order_index: number;
+  metadata: string | null;
   acls: AclWithAudio[];
 };
 
+/** Parse verse range from asset metadata JSON */
+function parseVerseRange(
+  metadata: string | null
+): { from: number; to: number } | null {
+  if (!metadata) return null;
+  try {
+    const parsed = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+    const verse = parsed?.verse;
+    if (
+      verse &&
+      typeof verse === 'object' &&
+      typeof verse.from === 'number' &&
+      typeof verse.to === 'number'
+    ) {
+      return { from: verse.from, to: verse.to };
+    }
+  } catch {
+    // invalid JSON
+  }
+  return null;
+}
+
 interface AssetAclListProps {
   asset: AssetWithAcls;
+  bookChapterLabel: string | null;
   playingAclId: string | null;
   movingAclId: string | null;
   onPlaySingle: (acl: AclWithAudio) => void;
@@ -25,6 +50,7 @@ interface AssetAclListProps {
 
 export function AssetAclList({
   asset,
+  bookChapterLabel,
   playingAclId,
   movingAclId,
   onPlaySingle,
@@ -33,7 +59,9 @@ export function AssetAclList({
   onMoveDown
 }: AssetAclListProps) {
   const sortedAcls = [...asset.acls].sort((a, b) => {
-    if (a.order_index !== b.order_index) return a.order_index - b.order_index;
+    const aIdx = a.order_index ?? 0;
+    const bIdx = b.order_index ?? 0;
+    if (aIdx !== bIdx) return aIdx - bIdx;
     return (
       new Date(a.created_at || 0).getTime() -
       new Date(b.created_at || 0).getTime()
@@ -47,12 +75,34 @@ export function AssetAclList({
       a.audio.some((p) => typeof p === 'string' && p.trim())
   );
 
+  // Parse verse label from asset metadata
+  const verseRange = useMemo(
+    () => parseVerseRange(asset.metadata),
+    [asset.metadata]
+  );
+
+  const verseLabel = useMemo(() => {
+    if (!verseRange) return null;
+    const { from, to } = verseRange;
+    const range = from === to ? `${from}` : `${from}-${to}`;
+    if (bookChapterLabel) return `${bookChapterLabel}:${range}`;
+    return `v${range}`;
+  }, [verseRange, bookChapterLabel]);
+
   return (
     <div className="border rounded-lg p-3 sm:p-4 space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h3 className="font-semibold text-sm sm:text-base truncate">
-          {asset.name || `Asset ${asset.id.slice(0, 8)}`}
-        </h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="font-semibold text-sm sm:text-base truncate">
+            {asset.name || `Asset ${asset.id.slice(0, 8)}`}
+          </h3>
+          {verseLabel && (
+            <span className="inline-flex items-center gap-1 shrink-0 rounded-md bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+              <BookOpen className="size-3" />
+              {verseLabel}
+            </span>
+          )}
+        </div>
         {hasAnyAudio && (
           <Button
             variant="outline"

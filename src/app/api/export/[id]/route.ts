@@ -16,6 +16,16 @@ export async function GET(
     // Await params in Next.js 15
     const { id } = await params;
 
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || !uuidRegex.test(id)) {
+      return NextResponse.json(
+        { error: 'Invalid export ID format' },
+        { status: 400 }
+      );
+    }
+
     // Authenticate request
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
