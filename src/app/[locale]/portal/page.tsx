@@ -45,7 +45,7 @@ import { BulkUpload } from '@/components/new-bulk-upload';
 
 import { env } from '@/lib/env';
 // import { UserProfile } from '@/components/user-profile';
-// import { Link } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { PortalHeader } from '@/components/portal-header';
 
 export default function AdminPage() {
@@ -344,6 +344,12 @@ function AdminContent() {
             <p className="text-muted-foreground mt-2">
               Manage your translation projects, quests and assets
             </p>
+            <Link
+              href={`/portal/acl-reorder${environment !== 'production' ? `?env=${environment}` : ''}`}
+              className="text-sm text-muted-foreground hover:text-foreground mt-1 inline-block"
+            >
+              ACL Reorder
+            </Link>
           </div>
 
           {/* Environment Notice */}
