@@ -320,170 +320,72 @@ export function AclReorderView() {
     }
   })();
 
-  const safeJson = async (res: Response) => {
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error(
-        !res.ok
-          ? `Server error (${res.status}): ${text.slice(0, 120)}`
-          : `Invalid response: ${text.slice(0, 120)}`
-      );
-    }
-  };
-
   const handleExportQuest = async () => {
-    if (!selectedQuestId || !session?.access_token || !user) return;
+    if (!selectedQuestId || !user) return;
     setIsExporting(true);
+    setExportProgress(null);
     try {
-      const res = await fetch('/api/export/chapter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          quest_id: selectedQuestId,
-          export_type: 'feedback',
-          environment
-        })
-      });
-
-      // Check for errors first (error responses are always JSON)
-      if (!res.ok) {
-        const errData = await safeJson(res);
-        throw new Error(errData.error || `Export failed (${res.status})`);
-      }
-
-      const data = await safeJson(res);
-
-      if (data.audioBase64) {
-        // Inline audio response -- decode base64 to a downloadable blob
-        const byteString = atob(data.audioBase64);
-        const bytes = new Uint8Array(byteString.length);
-        for (let i = 0; i < byteString.length; i++) {
-          bytes[i] = byteString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], {
-          type: data.contentType || 'audio/mpeg'
-        });
-
-        const timestamp = new Date()
-          .toISOString()
-          .replace(/[:.]/g, '-')
-          .slice(0, 19);
-        const safeQuest = sanitizeFilename(selectedQuestName || 'quest');
-        const safeUser = sanitizeFilename(
-          (user?.user_metadata?.username as string) ||
-            user?.email?.split('@')[0] ||
-            user?.id?.slice(0, 8) ||
-            'user'
-        );
-        const ext = (data.contentType || '').includes('wav') ? 'wav' : 'mp3';
-        const filename =
-          data.filename ||
-          `${safeQuest}-${timestamp}-${safeUser}.${ext}`;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        toast.success('Download started');
-      } else {
-        // JSON response (legacy/fallback flow with polling)
-        const createData = await safeJson(res);
-        const exportId = createData.id;
-        if (!exportId) throw new Error('No export ID returned');
-
-        if (createData.status === 'ready' && createData.audio_url) {
-          await downloadAudio(createData.audio_url);
-          return;
-        }
-
-        const pollInterval = 2000;
-        const maxAttempts = 60;
-        for (let i = 0; i < maxAttempts; i++) {
-          await new Promise((r) => setTimeout(r, pollInterval));
-          const statusRes = await fetch(
-            `/api/export/${exportId}?environment=${environment}`,
-            {
-              headers: { Authorization: `Bearer ${session.access_token}` }
-            }
+      // Collect all ACLs across every asset, in display order
+      const allAcls: AclWithAudio[] = [];
+      for (const asset of assetsWithAcls) {
+        const sorted = [...asset.acls].sort((a, b) => {
+          const aIdx = a.order_index ?? 0;
+          const bIdx = b.order_index ?? 0;
+          if (aIdx !== bIdx) return aIdx - bIdx;
+          return (
+            new Date(a.created_at || 0).getTime() -
+            new Date(b.created_at || 0).getTime()
           );
-          const statusData = await safeJson(statusRes);
-          if (!statusRes.ok)
-            throw new Error(statusData.error || 'Status check failed');
-
-          if (statusData.status === 'ready' && statusData.audio_url) {
-            await downloadAudio(statusData.audio_url);
-            break;
-          }
-          if (statusData.status === 'failed') {
-            throw new Error(statusData.error_message || 'Export failed');
-          }
-        }
+        });
+        allAcls.push(...sorted);
       }
+
+      if (allAcls.length === 0) {
+        throw new Error('No audio content to export');
+      }
+
+      const onProgress = (p: ConcatProgress) => {
+        switch (p.phase) {
+          case 'downloading':
+            setExportProgress(`Downloading ${p.current}/${p.total}…`);
+            break;
+          case 'decoding':
+            setExportProgress(`Decoding ${p.current}/${p.total}…`);
+            break;
+          case 'encoding':
+            setExportProgress('Encoding WAV…');
+            break;
+        }
+      };
+
+      const blob = await concatAclAudio(allAcls, environment, onProgress);
+
+      // Trigger browser download
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, 19);
+      const safeQuest = sanitizeFilename(selectedQuestName || 'quest');
+      const safeUser = sanitizeFilename(
+        (user?.user_metadata?.username as string) ||
+          user?.email?.split('@')[0] ||
+          user?.id?.slice(0, 8) ||
+          'user'
+      );
+      const filename = `${safeQuest}-${timestamp}-${safeUser}.wav`;
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success('Download started');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Export failed');
     } finally {
       setIsExporting(false);
+      setExportProgress(null);
     }
-  };
-
-  const downloadAudio = async (audioUrl: string) => {
-    let url: string;
-    if (audioUrl.startsWith('http')) {
-      try {
-        const u = new URL(audioUrl);
-        url = u.origin === window.location.origin ? audioUrl : u.pathname;
-      } catch {
-        url = audioUrl.startsWith('/')
-          ? audioUrl
-          : `/api/export/audio/${audioUrl}`;
-      }
-    } else {
-      url = audioUrl.startsWith('/')
-        ? audioUrl
-        : `/api/export/audio/${audioUrl}`;
-    }
-    const res = await fetch(url, { credentials: 'same-origin' });
-    if (!res.ok) {
-      const body = await res.text();
-      let msg = `Download failed (${res.status})`;
-      try {
-        const json = JSON.parse(body);
-        if (json.error) msg = json.error;
-      } catch {
-        if (body) msg += `: ${body.slice(0, 100)}`;
-      }
-      if (res.status === 404) {
-        msg += '. Make sure the audio worker (wrangler dev) is running.';
-      } else if (res.status === 501) {
-        msg += '. Audio download is not yet available in this environment.';
-      }
-      throw new Error(msg);
-    }
-    const blob = await res.blob();
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, '-')
-      .slice(0, 19);
-    const safeQuest = sanitizeFilename(selectedQuestName || 'quest');
-    const safeUser = sanitizeFilename(
-      (user?.user_metadata?.username as string) ||
-        user?.email?.split('@')[0] ||
-        user?.id?.slice(0, 8) ||
-        'user'
-    );
-    const ext = url.includes('.wav') ? 'wav' : 'mp3';
-    const filename = `${safeQuest}-${timestamp}-${safeUser}.${ext}`;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast.success('Download started');
   };
 
   const selectorContent = (
@@ -606,41 +508,22 @@ export function AclReorderView() {
                       variant="outline"
                       size="sm"
                       onClick={handleExportQuest}
-                      disabled={isExporting || !session || !workerReady}
+                      disabled={isExporting || !session}
                       className="gap-2 shrink-0 min-h-[44px] sm:min-h-0"
                     >
-                      <span
-                        className={cn(
-                          'size-2 rounded-full shrink-0',
-                          workerReady && 'bg-emerald-500',
-                          workerChecking && 'bg-amber-500 animate-pulse',
-                          !workerReady && !workerChecking && 'bg-red-500'
-                        )}
-                        aria-hidden
-                      />
                       {isExporting ? (
                         <Spinner className="size-4" />
                       ) : (
                         <Download className="size-4" />
                       )}
                       {isExporting
-                        ? 'Exporting…'
-                        : workerChecking
-                          ? 'Checking worker…'
-                          : workerFailed
-                            ? 'Worker unavailable'
-                            : 'Export quest as audio'}
+                        ? (exportProgress || 'Preparing…')
+                        : 'Export quest as audio'}
                     </Button>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {workerFailed
-                    ? `Export worker unavailable: ${workerStatus?.error ?? 'Not running'}. Start with: cd cloud-services/audio-concat-worker && pnpm exec wrangler dev`
-                    : workerChecking
-                      ? 'Checking export worker…'
-                      : workerReady
-                        ? 'Export quest as concatenated audio'
-                        : 'Select a quest to check worker status'}
+                  Decode and concatenate all audio in this quest into a single WAV file
                 </TooltipContent>
               </Tooltip>
             </div>
