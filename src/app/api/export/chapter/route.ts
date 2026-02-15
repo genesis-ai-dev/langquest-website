@@ -87,9 +87,9 @@ function generateShareToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Allow up to 1000s for downloading audio from Supabase + worker concatenation
+// Allow up to 300s for downloading audio from Supabase + worker concatenation
 // (large chapters can have hundreds of segments)
-export const maxDuration = 1000;
+export const maxDuration = 300;
 
 /**
  * POST /api/export/chapter
