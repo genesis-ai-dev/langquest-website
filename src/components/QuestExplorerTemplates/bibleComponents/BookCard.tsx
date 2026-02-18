@@ -30,7 +30,7 @@ export function BookCard({ quest, isSelected, onClick }: BookCardProps) {
         <img
           src={quest.icon}
           alt={`${quest.name} icon`}
-          className="w-10 h-10"
+          className="w-10 h-10 dark:invert"
         />
       </div>
       <div className="flex-1 flex flex-col justify-between p-2 py-3">

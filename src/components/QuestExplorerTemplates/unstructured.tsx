@@ -249,7 +249,7 @@ function QuestsSideBar({
               <img
                 src={quest.icon}
                 alt={quest.name}
-                className="h-5 w-5 rounded-sm object-cover"
+                className="h-5 w-5 rounded-sm object-cover dark:invert"
                 style={{ filter: 'hue-rotate(180deg)' }}
               />
             ) : (
@@ -320,7 +320,7 @@ function QuestsSideBar({
           )
         }
         className={cn(
-          'relative max-w-full truncate',
+          'relative max-w-full truncate hover:bg-accent/50',
           isSelected && 'font-bold'
         )}
         data-quest-id={quest.id}

@@ -483,12 +483,14 @@ function QuestsSideBar({
               </Badge>
             )}
             {quest.icon ? (
-              <img
-                src={quest.icon}
-                alt={quest.name}
-                className="h-5 w-5 rounded-sm object-cover"
-                style={{ filter: 'hue-rotate(180deg)' }}
-              />
+              <>
+                <img
+                  src={quest.icon}
+                  alt={quest.name}
+                  className="h-5 w-5 rounded-sm object-cover dark:invert"
+                  // style={{ filter: 'hue-rotate(180deg)' }}
+                />
+              </>
             ) : (
               <FolderOpen className="h-5 w-5" />
             )}
@@ -507,7 +509,7 @@ function QuestsSideBar({
       <SidebarMenuButton
         onClick={() => onSelectBook(bibleQuest.bookId, bibleQuest)}
         className={cn(
-          'relative max-w-full truncate',
+          'relative max-w-full truncate hover:bg-accent/50',
           isSelected && 'font-bold'
         )}
         data-quest-id={bibleQuest.bookId}
@@ -518,7 +520,7 @@ function QuestsSideBar({
     );
 
     return (
-      <SidebarMenuItem key={bibleQuest.bookId}>
+      <SidebarMenuItem key={bibleQuest.bookId} className="">
         {ButtonComponent}
       </SidebarMenuItem>
     );
@@ -817,7 +819,7 @@ function QuestContent({
               <CardTitle className="max-w-5/6 text-xl flex flex-row gap-2">
                 <Button
                   variant={'outline'}
-                  className="rounded-lg transition-all hover:bg-muted px-1 py-1"
+                  className="rounded-lg transition-all px-1 py-1 dark:bg-secondary/40 hover:bg-muted dark:hover:bg-secondary/80"
                   onClick={onGoBack}
                 >
                   <ArrowLeft className="w-8" />
@@ -826,7 +828,7 @@ function QuestContent({
                   <img
                     src={selectedBook?.icon}
                     alt={`${selectedBook?.name} icon`}
-                    className="w-8 h-8 inline-block mr-2"
+                    className="w-8 h-8 inline-block mr-2 dark:invert"
                   />
                   {selectedBook?.name || 'Book'}
                   {selectedChapter ? ` - Chapter ${selectedChapter}` : ''}
