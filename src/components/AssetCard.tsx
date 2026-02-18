@@ -52,24 +52,24 @@ export function AssetCard({
       }`}
       onClick={onClick}
     >
-      <CardHeader className="p-2 px-4 bg-primary text-primary-foreground h-12">
+      <CardHeader className="p-2 px-4 bg-primary dark:bg-primary/40 text-primary-foreground h-12">
         <CardTitle className="text-base flex items-center gap-2 mt-1">
           {asset.content &&
             asset.content.some(
               (item) => item.text && item.text.trim() !== ''
             ) && (
-              <div className="bg-primary-foreground/30 rounded p-1">
-                <FileText className="w-4 h-4" />
+              <div className="bg-primary-foreground/30 dark:bg-secondary-foreground/30 rounded p-1">
+                <FileText className="w-4 h-4 dark:invert dark:text-primary-foreground/60" />
               </div>
             )}
           {asset.images && asset.images.length > 0 && (
-            <div className="bg-primary-foreground/30 rounded p-1">
-              <Image className="w-4 h-4" />
+            <div className="bg-primary-foreground/30 dark:bg-secondary-foreground/30 rounded p-1">
+              <Image className="w-4 h-4 dark:invert dark:text-primary-foreground/60" />
             </div>
           )}
           {asset.content && asset.content?.some((item) => item.audio) && (
-            <div className="bg-primary-foreground/30 rounded p-1">
-              <Volume2 className="w-4 h-4" />
+            <div className="bg-primary-foreground/30 dark:bg-secondary-foreground/30 rounded p-1">
+              <Volume2 className="w-4 h-4 dark:invert dark:text-primary-foreground/60" />
             </div>
           )}
         </CardTitle>

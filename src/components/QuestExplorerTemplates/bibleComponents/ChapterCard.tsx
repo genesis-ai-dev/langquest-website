@@ -40,8 +40,8 @@ export function ChapterCard({
     <Card
       className={`h-36 flex justify-between p-2 px-0 group relative hover:shadow-lg transition-all duration-300 cursor-pointer border-l-4 gap-0 ${
         isSelected
-          ? 'border-l-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
-          : 'border-l-transparent hover:border-l-primary/50 hover:bg-accent/50'
+          ? 'border-l-primary bg-primary/5 shadow-md ring-1 ring-primary/20 dark:border-primary '
+          : 'border-l-transparent hover:border-l-primary/50 hover:bg-accent/50 dark:border-primary/10 dark:hover:border-primary/50 dark:hover:bg-accent/50'
       }`}
       onClick={onClick}
     >
