@@ -4,20 +4,20 @@ import { useCallback, useRef, useState } from 'react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
 import { SupabaseEnvironment } from '@/lib/supabase';
+import { extractAudioPaths } from './audioUtils';
 
 export type AclWithAudio = {
   id: string;
   asset_id: string;
   order_index: number | null;
-  audio: string[] | null;
+  audio: unknown; // jsonb — could be string[], string, or null at runtime
   text?: string | null;
   created_at?: string | null;
 };
 
 function getFirstAudioPath(acl: AclWithAudio): string | null {
-  if (!acl.audio || !Array.isArray(acl.audio)) return null;
-  const path = acl.audio.find((p) => typeof p === 'string' && p.trim());
-  return path?.trim() || null;
+  const paths = extractAudioPaths(acl.audio);
+  return paths[0] ?? null;
 }
 
 function resolveAudioUrl(

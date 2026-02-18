@@ -6,6 +6,7 @@ import { Play, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AclRow } from './AclRow';
 import type { AclWithAudio } from './useAclAudioPlayer';
+import { hasAudioPaths } from './audioUtils';
 
 export type AssetWithAcls = {
   id: string;
@@ -69,12 +70,7 @@ export function AssetAclList({
     );
   });
 
-  const hasAnyAudio = sortedAcls.some(
-    (a) =>
-      a.audio &&
-      Array.isArray(a.audio) &&
-      a.audio.some((p) => typeof p === 'string' && p.trim())
-  );
+  const hasAnyAudio = sortedAcls.some((a) => hasAudioPaths(a.audio));
 
   // Parse verse label from asset metadata
   const verseRange = useMemo(

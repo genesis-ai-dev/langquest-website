@@ -5,6 +5,7 @@ import { Play, Pause, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AclWithAudio } from './useAclAudioPlayer';
+import { hasAudioPaths } from './audioUtils';
 
 interface AclRowProps {
   acl: AclWithAudio;
@@ -27,10 +28,7 @@ export function AclRow({
   onMoveDown,
   isMoving = false
 }: AclRowProps) {
-  const hasAudio =
-    acl.audio &&
-    Array.isArray(acl.audio) &&
-    acl.audio.some((p) => typeof p === 'string' && p.trim());
+  const hasAudio = hasAudioPaths(acl.audio);
   const textPreview = acl.text
     ? acl.text.length > 60
       ? `${acl.text.slice(0, 60)}…`

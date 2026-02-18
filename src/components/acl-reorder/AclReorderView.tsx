@@ -340,6 +340,10 @@ export function AclReorderView() {
         allAcls.push(...sorted);
       }
 
+      console.log(
+        `[Export] ${assetsWithAcls.length} assets → ${allAcls.length} ACLs collected for export`
+      );
+
       if (allAcls.length === 0) {
         throw new Error('No audio content to export');
       }
