@@ -140,15 +140,19 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Portrait image */}
-            <div className="relative hidden lg:block h-[480px] xl:h-[560px] rounded-2xl overflow-hidden shadow-2xl">
-              <Image
-                src="/hero-image.jpeg"
-                alt="Community members using LangQuest"
-                fill
-                priority
-                className="object-cover object-center"
-              />
+            {/* Photo */}
+            <div className="flex items-center justify-center lg:justify-end">
+              <div className="rotate-1 hover:rotate-0 transition-transform duration-500 bg-white p-3 pb-10 shadow-[4px_8px_32px_rgba(0,0,0,0.18)] w-[280px] sm:w-[340px] lg:w-[380px] xl:w-[440px] shrink-0">
+                <div className="relative w-full aspect-[4/5] overflow-hidden">
+                  <Image
+                    src="/hero-image.jpeg"
+                    alt="Community members using LangQuest"
+                    fill
+                    priority
+                    className="object-cover object-center"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </ClientOnlyHero>
