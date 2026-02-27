@@ -114,13 +114,16 @@ const Header = () => {
               >
                 {t('userFriendlyData')}
               </Link>
-              {(!!user || DEV_ADMIN_MODE) && (
-                <Link href="/portal">
-                  <Button variant="outline" className="w-full mt-2">
-                    {!!user ? 'Project Management' : t('adminDashboard')}
-                  </Button>
-                </Link>
-              )}
+              <Separator className="my-2" />
+              <Link href="/portal">
+                <Button variant="outline" className="w-full">
+                  {!!user
+                    ? 'Project Management'
+                    : DEV_ADMIN_MODE
+                      ? t('adminDashboard')
+                      : t('goToUserArea')}
+                </Button>
+              </Link>
             </nav>
           </SheetContent>
         </Sheet>

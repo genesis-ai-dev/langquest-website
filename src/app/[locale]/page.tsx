@@ -59,21 +59,22 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* Hero Section with Three.js Globe */}
         <ClientOnlyHero>
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col p-8 justify-center space-y-4 bg-background/60 backdrop-blur-sm  rounded-lg border border-border/50 ">
-              <div className="space-y-2">
+          <div className="grid gap-12 lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_480px] items-center">
+            {/* CTA */}
+            <div className="flex flex-col justify-center space-y-6">
+              <div className="space-y-4">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   {t('hero.title')}
                 </h1>
-                <p className="max-w-[600px] md:text-xl">{t('hero.subtitle')}</p>
+                <p className="max-w-[600px] text-muted-foreground md:text-xl">{t('hero.subtitle')}</p>
               </div>
-              <div className="flex justify-end gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 <a
                   href="https://apps.apple.com/us/app/langquest-translation/id6752446665"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Get LangQuest on the App Store"
-                  className="inline-flex items-center bg-white rounded-lg p-2 drop-shadow-lg hover:drop-shadow-xl transition-shadow scale-[0.8]"
+                  className="inline-flex items-center bg-white rounded-lg p-2 drop-shadow-lg hover:drop-shadow-xl transition-shadow scale-[0.8] origin-left"
                 >
                   <Image
                     src="/app-store/marketing/guidelines/images/badge-example-preferred_2x.png"
@@ -89,7 +90,7 @@ export default function LandingPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Get LangQuest on Google Play"
-                  className="inline-flex items-center bg-white rounded-lg p-2 drop-shadow-lg hover:drop-shadow-xl transition-shadow scale-[0.8]"
+                  className="inline-flex items-center bg-white rounded-lg p-2 drop-shadow-lg hover:drop-shadow-xl transition-shadow scale-[0.8] origin-left"
                 >
                   <Image
                     src="/get-it-on-google-play-logo-png-transparent.jpg"
@@ -101,7 +102,7 @@ export default function LandingPage() {
                   />
                 </a>
               </div>
-              <div className="flex justify-center mt-2">
+              <div>
                 <a
                   href="https://discord.gg/RpFdRVdBqz"
                   target="_blank"
@@ -136,6 +137,21 @@ export default function LandingPage() {
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </a>
+              </div>
+            </div>
+
+            {/* Photo */}
+            <div className="flex items-center justify-center lg:justify-end">
+              <div className="rotate-1 hover:rotate-0 transition-transform duration-500 bg-white p-3 pb-10 shadow-[4px_8px_32px_rgba(0,0,0,0.18)] w-[280px] sm:w-[340px] lg:w-[380px] xl:w-[440px] shrink-0">
+                <div className="relative w-full aspect-[4/5] overflow-hidden">
+                  <Image
+                    src="/hero-image.jpeg"
+                    alt="Community members using LangQuest"
+                    fill
+                    priority
+                    className="object-cover object-center"
+                  />
+                </div>
               </div>
             </div>
           </div>
