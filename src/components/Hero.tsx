@@ -1,10 +1,13 @@
 'use client';
 
+// Three.js hero visualization — kept for future use
+// import { Canvas } from '@react-three/fiber';
+// import { OrbitControls } from '@react-three/drei';
+// import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, useTexture } from '@react-three/drei';
+import { useTexture } from '@react-three/drei';
 import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
 // Types for connections
 interface Connection {
@@ -711,19 +714,22 @@ function Connections() {
 
 export default function Hero({ children }: { children?: React.ReactNode }) {
   return (
-    <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
+    <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+      <div className="container mx-auto px-4 md:px-6">{children}</div>
+
+      {/* Three.js visualization — disabled, kept for future use
       <Canvas camera={{ position: [7, 4, 6], fov: 35 }}>
         <ambientLight intensity={0.8} />
         <Connections />
         <Earth />
         <EffectComposer>
           <Bloom
-            luminanceThreshold={0.6} // Increased to reduce blooming of darker areas
-            luminanceSmoothing={0.2} // Reduced for sharper bloom edges
-            intensity={0.8} // Reduced overall bloom intensity
-            radius={0.4} // Added to control bloom radius
+            luminanceThreshold={0.6}
+            luminanceSmoothing={0.2}
+            intensity={0.8}
+            radius={0.4}
             mipmapBlur={true}
-            levels={3} // Added to control bloom quality
+            levels={3}
           />
         </EffectComposer>
         <OrbitControls
@@ -733,9 +739,7 @@ export default function Hero({ children }: { children?: React.ReactNode }) {
           dampingFactor={0.05}
         />
       </Canvas>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="container mx-auto px-4 md:px-6">{children}</div>
-      </div>
+      */}
     </section>
   );
 }
