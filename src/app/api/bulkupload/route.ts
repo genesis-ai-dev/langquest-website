@@ -1517,6 +1517,7 @@ async function getLanguoidIdByName(
       .select('id')
       .ilike('name', languageName)
       .eq('active', true)
+      .limit(1)
       .single();
 
     if (languoid) {

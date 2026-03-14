@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
           .select('name')
           .ilike('name', trimmedName)
           .eq('active', true)
+          .limit(1)
           .single();
 
         if (error || !languoid) {
