@@ -62,11 +62,12 @@ export async function concatAclAudio(
       audioType: typeof a.audio,
       audioIsArray: Array.isArray(a.audio),
       audioValue:
-        a.audio == null
-          ? 'null'
-          : JSON.stringify(a.audio).slice(0, 80)
+        a.audio == null ? 'null' : JSON.stringify(a.audio).slice(0, 80)
     }));
-    console.error('[AudioConcat] No audio paths found. Sample ACL audio fields:', sample);
+    console.error(
+      '[AudioConcat] No audio paths found. Sample ACL audio fields:',
+      sample
+    );
     throw new Error(
       `No audio files to concatenate (${acls.length} ACLs had no resolvable audio paths)`
     );
