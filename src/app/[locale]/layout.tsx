@@ -58,6 +58,10 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <meta
+          name="apple-itunes-app"
+          content="app-id=6752446665"
+        />
         <Script
           defer
           src="https://cloud.umami.is/script.js"
