@@ -1756,7 +1756,7 @@ export function DatabaseViewer() {
     return (
       <div
         className={cn(
-          'flex flex-col gap-2 p-2 flex-1 overflow-y-auto h-full scrollbar-thin scrollbar-thumb-muted scrollbar-track-background',
+          'flex flex-col gap-2 p-2 flex-1 overflow-y-auto overflow-x-hidden h-full scrollbar-thin',
           className
         )}
       >
@@ -1769,7 +1769,7 @@ export function DatabaseViewer() {
               setIsSheetOpen(false);
             }}
             className={cn(
-              'w-full justify-between my-1',
+              'w-full justify-between',
               t.isLinkTable && 'text-muted-foreground',
               selectedTable === t.name && 'bg-accent'
             )}
@@ -1813,7 +1813,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r bg-background">
+      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col border-r bg-background">
         <Tables />
         <LinkTablesFooter />
       </div>
