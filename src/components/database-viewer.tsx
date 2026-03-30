@@ -1755,33 +1755,37 @@ export function DatabaseViewer() {
 
   const Tables = ({ className }: { className?: string }) => {
     return (
-      <ScrollArea className={cn('flex flex-col gap-2 p-2 flex-1', className)}>
-        {tables.map((t) => (
-          <Button
-            key={t.name}
-            variant="ghost"
-            onClick={() => {
-              setSelectedTable(t.name);
-              setIsSheetOpen(false);
-            }}
-            className={cn(
-              'w-full justify-between my-1',
-              t.isLinkTable && 'text-muted-foreground',
-              selectedTable === t.name && 'bg-accent'
-            )}
-            disabled={schemasLoading || dataLoading}
-          >
-            <span className="">{toProperCase(t.name)}</span>
-            <span className="text-muted-foreground">
-              {queryClient.getQueryData<TableData>([
-                'tableData',
-                t.name,
-                page,
-                pageSize
-              ])?.count ?? 0}
-            </span>
-          </Button>
-        ))}
+      <ScrollArea
+        className={cn('min-h-0 flex-1 overflow-hidden', className)}
+      >
+        <div className="flex flex-col gap-2 p-2">
+          {tables.map((t) => (
+            <Button
+              key={t.name}
+              variant="ghost"
+              onClick={() => {
+                setSelectedTable(t.name);
+                setIsSheetOpen(false);
+              }}
+              className={cn(
+                'w-full justify-between my-1',
+                t.isLinkTable && 'text-muted-foreground',
+                selectedTable === t.name && 'bg-accent'
+              )}
+              disabled={schemasLoading || dataLoading}
+            >
+              <span className="">{toProperCase(t.name)}</span>
+              <span className="text-muted-foreground">
+                {queryClient.getQueryData<TableData>([
+                  'tableData',
+                  t.name,
+                  page,
+                  pageSize
+                ])?.count ?? 0}
+              </span>
+            </Button>
+          ))}
+        </div>
       </ScrollArea>
     );
   };
@@ -1789,7 +1793,7 @@ export function DatabaseViewer() {
   const LinkTablesFooter = () => {
     const t = useTranslations('database_viewer');
     return (
-      <div className="p-3 border-t border-border">
+      <div className="shrink-0 border-t border-border p-3">
         <div className="flex items-center justify-between">
           <Label
             htmlFor="show-hidden-tables"
@@ -1809,7 +1813,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-background flex-col hidden md:flex overflow-y-scroll">
+      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r bg-background">
         <Tables />
         <LinkTablesFooter />
       </div>
@@ -1843,14 +1847,16 @@ export function DatabaseViewer() {
                       <PanelLeft className="size-4" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left">
-                    <SheetHeader>
+                  <SheetContent side="left" className="min-h-0 gap-2">
+                    <SheetHeader className="shrink-0">
                       <VisuallyHidden>
                         <SheetTitle>{t('tables')}</SheetTitle>
                       </VisuallyHidden>
                     </SheetHeader>
-                    <Tables />
-                    <LinkTablesFooter />
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                      <Tables />
+                      <LinkTablesFooter />
+                    </div>
                   </SheetContent>
                 </Sheet>
                 <Popover>
