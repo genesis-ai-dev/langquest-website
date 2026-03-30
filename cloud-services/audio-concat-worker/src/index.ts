@@ -109,8 +109,7 @@ export default {
         outputFormat
       );
 
-      const contentType =
-        outputFormat === 'wav' ? 'audio/wav' : 'audio/mpeg';
+      const contentType = outputFormat === 'wav' ? 'audio/wav' : 'audio/mpeg';
 
       // Always upload to R2 (primary storage)
       const outputKey = body.outputKey.endsWith(`.${outputFormat}`)

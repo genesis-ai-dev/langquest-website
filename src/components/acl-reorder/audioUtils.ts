@@ -9,9 +9,7 @@
  *
  * This helper normalises all variants into a clean string[].
  */
-export function extractAudioPaths(
-  audio: unknown
-): string[] {
+export function extractAudioPaths(audio: unknown): string[] {
   if (audio == null) return [];
 
   // Already an array (the happy path for jsonb arrays parsed by Supabase)

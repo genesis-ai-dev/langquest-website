@@ -248,22 +248,13 @@ const getJavascriptEvaluationOperator = (operator: string) => {
 };
 
 // Add API fetching functions
-const fetchTableSchemas = async () => {
-  const url = env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const fetchTableSchemas = async (environment: SupabaseEnvironment) => {
+  const response = await fetch(
+    `/api/schema?environment=${encodeURIComponent(environment)}`
+  );
 
-  if (!url || !anon) {
-    throw new Error('Missing API configuration');
-  }
-
-  const response = await fetch(`${url}/rest/v1/?apikey=${anon}`);
   if (!response.ok) {
     throw new Error('Failed to fetch schemas');
-  }
-
-  const contentType = response.headers.get('content-type');
-  if (!contentType?.includes('application/openapi+json')) {
-    throw new Error('Invalid content type');
   }
 
   const data = (await response.json()) as { definitions?: Record<string, any> };
@@ -271,7 +262,6 @@ const fetchTableSchemas = async () => {
     throw new Error('Invalid schema format');
   }
 
-  // Convert schemas to our format
   const convertedSchemas: Record<string, TableSchema> = {};
   Object.entries(data.definitions).forEach(
     ([tableName, schema]: [string, any]) => {
@@ -282,7 +272,6 @@ const fetchTableSchemas = async () => {
     }
   );
 
-  // Add reverse relationship columns
   addReverseRelationships(convertedSchemas);
 
   return convertedSchemas;
@@ -888,8 +877,8 @@ function PreviewTable({
   const t = useTranslations('database_viewer');
   const { environment } = useAuth();
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
-    queryKey: ['tableSchemas'],
-    queryFn: fetchTableSchemas
+    queryKey: ['tableSchemas', environment],
+    queryFn: () => fetchTableSchemas(environment)
   });
 
   const { data, isLoading } = useQuery({
@@ -1325,8 +1314,8 @@ function ReverseRelationshipPreview({
   });
 
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
-    queryKey: ['tableSchemas'],
-    queryFn: fetchTableSchemas
+    queryKey: ['tableSchemas', environment],
+    queryFn: () => fetchTableSchemas(environment)
   });
 
   // Determine which table's schema to use for displaying the data
@@ -1470,8 +1459,8 @@ export function DatabaseViewer() {
     isLoading: schemasLoading,
     error: schemasError
   } = useQuery<Record<string, TableSchema>, Error>({
-    queryKey: ['tableSchemas'],
-    queryFn: fetchTableSchemas
+    queryKey: ['tableSchemas', environment],
+    queryFn: () => fetchTableSchemas(environment)
   });
 
   const [selectedTable, setSelectedTable] = useQueryState('table', {
@@ -1766,33 +1755,35 @@ export function DatabaseViewer() {
 
   const Tables = ({ className }: { className?: string }) => {
     return (
-      <ScrollArea className={cn('flex flex-col gap-2 p-2 flex-1', className)}>
-        {tables.map((t) => (
-          <Button
-            key={t.name}
-            variant="ghost"
-            onClick={() => {
-              setSelectedTable(t.name);
-              setIsSheetOpen(false);
-            }}
-            className={cn(
-              'w-full justify-between my-1',
-              t.isLinkTable && 'text-muted-foreground',
-              selectedTable === t.name && 'bg-accent'
-            )}
-            disabled={schemasLoading || dataLoading}
-          >
-            <span className="">{toProperCase(t.name)}</span>
-            <span className="text-muted-foreground">
-              {queryClient.getQueryData<TableData>([
-                'tableData',
-                t.name,
-                page,
-                pageSize
-              ])?.count ?? 0}
-            </span>
-          </Button>
-        ))}
+      <ScrollArea className={cn('min-h-0 flex-1 overflow-hidden', className)}>
+        <div className="flex flex-col gap-2 p-2">
+          {tables.map((t) => (
+            <Button
+              key={t.name}
+              variant="ghost"
+              onClick={() => {
+                setSelectedTable(t.name);
+                setIsSheetOpen(false);
+              }}
+              className={cn(
+                'w-full justify-between my-1',
+                t.isLinkTable && 'text-muted-foreground',
+                selectedTable === t.name && 'bg-accent'
+              )}
+              disabled={schemasLoading || dataLoading}
+            >
+              <span className="">{toProperCase(t.name)}</span>
+              <span className="text-muted-foreground">
+                {queryClient.getQueryData<TableData>([
+                  'tableData',
+                  t.name,
+                  page,
+                  pageSize
+                ])?.count ?? 0}
+              </span>
+            </Button>
+          ))}
+        </div>
       </ScrollArea>
     );
   };
@@ -1800,7 +1791,7 @@ export function DatabaseViewer() {
   const LinkTablesFooter = () => {
     const t = useTranslations('database_viewer');
     return (
-      <div className="p-3 border-t border-border">
+      <div className="shrink-0 border-t border-border p-3">
         <div className="flex items-center justify-between">
           <Label
             htmlFor="show-hidden-tables"
@@ -1820,7 +1811,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-background flex-col hidden md:flex">
+      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r bg-background">
         <Tables />
         <LinkTablesFooter />
       </div>
@@ -1854,14 +1845,16 @@ export function DatabaseViewer() {
                       <PanelLeft className="size-4" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left">
-                    <SheetHeader>
+                  <SheetContent side="left" className="min-h-0 gap-2">
+                    <SheetHeader className="shrink-0">
                       <VisuallyHidden>
                         <SheetTitle>{t('tables')}</SheetTitle>
                       </VisuallyHidden>
                     </SheetHeader>
-                    <Tables />
-                    <LinkTablesFooter />
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                      <Tables />
+                      <LinkTablesFooter />
+                    </div>
                   </SheetContent>
                 </Sheet>
                 <Popover>

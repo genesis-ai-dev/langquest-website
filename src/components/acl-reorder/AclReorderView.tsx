@@ -521,13 +521,14 @@ export function AclReorderView() {
                         <Download className="size-4" />
                       )}
                       {isExporting
-                        ? (exportProgress || 'Preparing…')
+                        ? exportProgress || 'Preparing…'
                         : 'Export quest as audio'}
                     </Button>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Decode and concatenate all audio in this quest into a single WAV file
+                  Decode and concatenate all audio in this quest into a single
+                  WAV file
                 </TooltipContent>
               </Tooltip>
             </div>

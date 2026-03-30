@@ -8,7 +8,9 @@ export const env = createEnv({
     AUDIENCE_ID: z.string().min(1),
     RESEND_API_KEY: z.string().min(1),
     AUDIO_CONCAT_WORKER_URL: z.string().url().optional(),
-    AUDIO_CONCAT_WORKER_TOKEN: z.string().min(1).optional()
+    AUDIO_CONCAT_WORKER_TOKEN: z.string().min(1).optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    SUPABASE_PREVIEW_SERVICE_ROLE_KEY: z.string().min(1).optional()
   },
   client: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
