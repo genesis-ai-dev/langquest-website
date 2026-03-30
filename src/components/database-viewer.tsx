@@ -1811,7 +1811,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r bg-background">
+      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-x-hidden overflow-y-scroll scrollbar-thin scrollbar-thumb-muted scrollbar-track-background border-r bg-background">
         <Tables />
         <LinkTablesFooter />
       </div>
