@@ -1755,9 +1755,7 @@ export function DatabaseViewer() {
 
   const Tables = ({ className }: { className?: string }) => {
     return (
-      <ScrollArea
-        className={cn('min-h-0 flex-1 overflow-hidden', className)}
-      >
+      <ScrollArea className={cn('min-h-0 flex-1 overflow-hidden', className)}>
         <div className="flex flex-col gap-2 p-2">
           {tables.map((t) => (
             <Button
