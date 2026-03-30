@@ -1754,33 +1754,38 @@ export function DatabaseViewer() {
 
   const Tables = ({ className }: { className?: string }) => {
     return (
-      <div className={cn('flex flex-col gap-2 p-2 flex-1 overflow-y-auto', className)}>
-          {tables.map((t) => (
-            <Button
-              key={t.name}
-              variant="ghost"
-              onClick={() => {
-                setSelectedTable(t.name);
-                setIsSheetOpen(false);
-              }}
-              className={cn(
-                'w-full justify-between my-1',
-                t.isLinkTable && 'text-muted-foreground',
-                selectedTable === t.name && 'bg-accent'
-              )}
-              disabled={schemasLoading || dataLoading}
-            >
-              <span className="">{toProperCase(t.name)}</span>
-              <span className="text-muted-foreground">
-                {queryClient.getQueryData<TableData>([
-                  'tableData',
-                  t.name,
-                  page,
-                  pageSize
-                ])?.count ?? 0}
-              </span>
-            </Button>
-          ))}
+      <div
+        className={cn(
+          'flex flex-col gap-2 p-2 flex-1 overflow-y-auto h-full scrollbar-thin scrollbar-thumb-muted scrollbar-track-background',
+          className
+        )}
+      >
+        {tables.map((t) => (
+          <Button
+            key={t.name}
+            variant="ghost"
+            onClick={() => {
+              setSelectedTable(t.name);
+              setIsSheetOpen(false);
+            }}
+            className={cn(
+              'w-full justify-between my-1',
+              t.isLinkTable && 'text-muted-foreground',
+              selectedTable === t.name && 'bg-accent'
+            )}
+            disabled={schemasLoading || dataLoading}
+          >
+            <span className="">{toProperCase(t.name)}</span>
+            <span className="text-muted-foreground">
+              {queryClient.getQueryData<TableData>([
+                'tableData',
+                t.name,
+                page,
+                pageSize
+              ])?.count ?? 0}
+            </span>
+          </Button>
+        ))}
       </div>
     );
   };
@@ -1808,7 +1813,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-x-hidden overflow-y-scroll scrollbar-thin scrollbar-thumb-muted scrollbar-track-background border-r bg-background">
+      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r bg-background">
         <Tables />
         <LinkTablesFooter />
       </div>
