@@ -18,7 +18,6 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -1755,8 +1754,7 @@ export function DatabaseViewer() {
 
   const Tables = ({ className }: { className?: string }) => {
     return (
-      <ScrollArea className={cn('min-h-0 flex-1 overflow-hidden', className)}>
-        <div className="flex flex-col gap-2 p-2">
+      <div className={cn('flex flex-col gap-2 p-2 flex-1 overflow-y-auto', className)}>
           {tables.map((t) => (
             <Button
               key={t.name}
@@ -1783,8 +1781,7 @@ export function DatabaseViewer() {
               </span>
             </Button>
           ))}
-        </div>
-      </ScrollArea>
+      </div>
     );
   };
 
