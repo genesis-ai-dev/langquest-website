@@ -1809,7 +1809,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-background flex-col hidden md:flex overflow-hidden">
+      <div className="w-64 border-r bg-background flex-col hidden md:flex overflow-y-scroll">
         <Tables />
         <LinkTablesFooter />
       </div>
