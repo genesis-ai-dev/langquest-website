@@ -1,4 +1,4 @@
-import { QuestRecord } from '@/app/db/questExplorer';
+import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { BibleBook } from '@/components/QuestExplorerTemplates/bibleComponents/template';
 
 export type QuestTemplate = 'bible' | 'unstructured' | string;
@@ -25,6 +25,7 @@ export interface TemplateBehavior {
   allowAddQuest: boolean;
   allowAddAssets: boolean;
   allowNewVersion: boolean;
+  showAssetLabel: boolean;
 }
 
 export interface TemplateCopy {
@@ -44,6 +45,13 @@ export interface TemplateCopy {
   assetsSectionTitle: string;
   assetsEmptyMessage: string;
   newVersionConfirmDescription?: string;
+  msgQuestUpdated: string;
+  msgSubquestCreated: string;
+  msgAssetCreated: string;
+  msgSelectQuestForNewVersion: string;
+  msgNewVersionCreated: string;
+  msgNewVersionCreateError: string;
+  msgBulkAssetsUploaded: string;
 }
 
 export interface TemplateStrategy {
@@ -52,4 +60,5 @@ export interface TemplateStrategy {
   copy: TemplateCopy;
   getRootNodes: (roots: QuestRecord[]) => DisplayNode[];
   getChildrenNodes: (contextNode: DisplayNode | null) => DisplayNode[];
+  resolveAssetLabel: (quest: DisplayNode | null, asset: AssetSummary) => string;
 }

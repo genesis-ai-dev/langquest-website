@@ -61,7 +61,8 @@ export const bibleStrategy: TemplateStrategy = {
     allowDisabledQuests: true,
     allowAddQuest: false,
     allowAddAssets: true,
-    allowNewVersion: true
+    allowNewVersion: true,
+    showAssetLabel: true
   },
   copy: {
     leftColumnTitle: 'Bible Books',
@@ -80,7 +81,15 @@ export const bibleStrategy: TemplateStrategy = {
     assetsSectionTitle: 'Assets',
     assetsEmptyMessage: 'No assets linked to this quest.',
     newVersionConfirmDescription:
-      'This will create a new version of the same chapter. Do you want to continue?'
+      'This will create a new version of the same chapter. Do you want to continue?',
+    msgQuestUpdated: 'Bible quest updated',
+    msgSubquestCreated: 'Subquest created for this chapter',
+    msgAssetCreated: 'Asset created for this chapter',
+    msgSelectQuestForNewVersion:
+      'Select a chapter before creating a new version',
+    msgNewVersionCreated: 'New chapter version created',
+    msgNewVersionCreateError: 'Failed to create chapter version',
+    msgBulkAssetsUploaded: 'Assets uploaded successfully'
   },
   getRootNodes: (roots: QuestRecord[]) =>
     BIBLE_BOOKS.map((book) => {
@@ -163,5 +172,35 @@ export const bibleStrategy: TemplateStrategy = {
       kind: 'quest' as const,
       disabled: getQuestDisabledFlag(child)
     }));
+  },
+  resolveAssetLabel: (questNode, asset) => {
+    const questName = questNode?.quest?.name || questNode?.title || '';
+    const baseLabel = questName || 'Verse';
+    const metadata = asset.metadata as
+      | {
+          verse?: {
+            from?: number;
+            to?: number;
+          };
+        }
+      | null
+      | undefined;
+
+    const from = metadata?.verse?.from;
+    const to = metadata?.verse?.to;
+
+    if (typeof from !== 'number') {
+      return `No Labeled`;
+    }
+
+    if (from === to) {
+      return `${baseLabel}:${from}`;
+    }
+
+    if (!questName) {
+      return `${baseLabel} ${from}-${to}`;
+    }
+
+    return `${baseLabel}:${from}-${to}`;
   }
 };

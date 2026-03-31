@@ -24,7 +24,8 @@ export const unstructuredStrategy: TemplateStrategy = {
     allowDisabledQuests: true,
     allowAddQuest: true,
     allowAddAssets: true,
-    allowNewVersion: false
+    allowNewVersion: false,
+    showAssetLabel: false
   },
   copy: {
     leftColumnTitle: 'Quests List',
@@ -40,9 +41,18 @@ export const unstructuredStrategy: TemplateStrategy = {
     subquestsSectionTitle: 'Subquests',
     subquestsEmptyMessage: 'No subquests yet.',
     assetsSectionTitle: 'Assets',
-    assetsEmptyMessage: 'No assets linked to this quest.'
+    assetsEmptyMessage: 'No assets linked to this quest.',
+    msgQuestUpdated: 'Quest updated',
+    msgSubquestCreated: 'Subquest created',
+    msgAssetCreated: 'Asset created',
+    msgSelectQuestForNewVersion:
+      'Select a quest before creating a new version',
+    msgNewVersionCreated: 'New quest version created',
+    msgNewVersionCreateError: 'Failed to create quest version',
+    msgBulkAssetsUploaded: 'Assets uploaded successfully'
   },
   getRootNodes: (roots: QuestRecord[]) => roots.map(mapQuestNode),
   getChildrenNodes: (contextNode: DisplayNode | null) =>
-    (contextNode?.quest?.children || []).map(mapQuestNode)
+    (contextNode?.quest?.children || []).map(mapQuestNode),
+  resolveAssetLabel: (_quest, _asset) => ''
 };

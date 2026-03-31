@@ -31,6 +31,7 @@ import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SubQuestMenuPlusProps {
   canManage: boolean;
@@ -39,10 +40,16 @@ interface SubQuestMenuPlusProps {
   onQuestSuccess?: () => void;
   onAssetSuccess?: (currentQuestId?: string) => void;
   disableQuests?: boolean;
-  allowAddQuest?: boolean;
-  allowAddAssets?: boolean;
-  allowNewVersion?: boolean;
-  newVersionConfirmDescription?: string;
+  menuConfig?: {
+    allowAddQuest?: boolean;
+    allowAddAssets?: boolean;
+    allowNewVersion?: boolean;
+    newVersionConfirmDescription?: string;
+    msgSelectQuestForNewVersion?: string;
+    msgNewVersionCreated?: string;
+    msgNewVersionCreateError?: string;
+    msgBulkAssetsUploaded?: string;
+  };
 }
 
 export function SubQuestMenuPlus({
@@ -52,12 +59,10 @@ export function SubQuestMenuPlus({
   onQuestSuccess,
   onAssetSuccess,
   disableQuests = false,
-  allowAddQuest = true,
-  allowAddAssets = true,
-  allowNewVersion = false,
-  newVersionConfirmDescription
+  menuConfig
 }: SubQuestMenuPlusProps) {
   const { user, environment } = useAuth();
+  const queryClient = useQueryClient();
   const supabase = createBrowserClient(environment);
   const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
   const [showQuestForm, setShowQuestForm] = useState(false);
@@ -65,12 +70,25 @@ export function SubQuestMenuPlus({
   const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
 
-  const canAddQuest = allowAddQuest && !disableQuests;
-  const canAddAssets = allowAddAssets;
-  const canAddNewVersion = allowNewVersion && !disableQuests && !!selectedQuestId;
+  const canAddQuest = (menuConfig?.allowAddQuest ?? true) && !disableQuests;
+  const canAddAssets = menuConfig?.allowAddAssets ?? true;
+  const canAddNewVersion =
+    (menuConfig?.allowNewVersion ?? false) && !disableQuests && !!selectedQuestId;
 
-  const handleQuestSuccess = () => {
+  const invalidateQuestQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['qe-tree', projectId]
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['project-quests', projectId]
+      })
+    ]);
+  };
+
+  const handleQuestSuccess = async () => {
     setShowQuestForm(false);
+    await invalidateQuestQueries();
     onQuestSuccess?.();
   };
 
@@ -81,7 +99,10 @@ export function SubQuestMenuPlus({
 
   const handleCreateNewVersion = async () => {
     if (!selectedQuestId || !user) {
-      toast.error('Select a quest before creating a new version');
+      toast.error(
+        menuConfig?.msgSelectQuestForNewVersion ||
+          'Select a quest before creating a new version'
+      );
       return;
     }
 
@@ -139,10 +160,17 @@ export function SubQuestMenuPlus({
       }
 
       setShowNewVersionConfirm(false);
-      toast.success('New quest version created');
+      toast.success(
+        menuConfig?.msgNewVersionCreated || 'New quest version created'
+      );
+      await invalidateQuestQueries();
       onQuestSuccess?.();
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to create quest version');
+      toast.error(
+        error?.message ||
+          menuConfig?.msgNewVersionCreateError ||
+          'Failed to create quest version'
+      );
     } finally {
       setIsCreatingVersion(false);
     }
@@ -226,7 +254,10 @@ export function SubQuestMenuPlus({
             questId={selectedQuestId || undefined}
             onSuccess={() => {
               setShowBulkAssetUpload(false);
-              toast.success('Assets uploaded successfully');
+              toast.success(
+                menuConfig?.msgBulkAssetsUploaded ||
+                  'Assets uploaded successfully'
+              );
               handleAssetSuccess();
             }}
           />
@@ -254,7 +285,7 @@ export function SubQuestMenuPlus({
           <DialogHeader>
             <DialogTitle>Create New Version</DialogTitle>
             <DialogDescription>
-              {newVersionConfirmDescription ||
+              {menuConfig?.newVersionConfirmDescription ||
                 'This will create a new version of the same quest. Do you want to continue?'}
             </DialogDescription>
           </DialogHeader>

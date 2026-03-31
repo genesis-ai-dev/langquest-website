@@ -20,6 +20,8 @@ export interface AssetSummary {
   id: string;
   name: string | null;
   active: boolean;
+  order_index?: number | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
   last_updated?: string;
   images?: string[] | null;
@@ -178,6 +180,8 @@ export async function fetchQuestAssets(
         id,
         name,
         active,
+        order_index,
+        metadata,
         created_at,
         last_updated,
         images,
@@ -189,7 +193,8 @@ export async function fetchQuestAssets(
     )
     .eq('quest_id', questId)
     .is('asset.source_asset_id', null)
-    .order('created_at', { ascending: true });
+    .order('order_index', { ascending: true, referencedTable: 'asset' })
+    .order('created_at', { ascending: true, referencedTable: 'asset' });
 
   if (error) {
     throw error;
@@ -205,6 +210,8 @@ export async function fetchQuestAssets(
       id: asset.id,
       name: asset.name,
       active: asset.active,
+      order_index: asset.order_index ?? null,
+      metadata: parseMetadata(asset.metadata),
       created_at: asset.created_at,
       last_updated: asset.last_updated,
       images: asset.images,
@@ -221,7 +228,17 @@ export async function fetchQuestAssets(
     (asset): asset is AssetSummary => !!asset && !!asset.active
   );
 
-  return assets;
+  return assets.sort((a, b) => {
+    const aOrder = a.order_index ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = b.order_index ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+
+    const aCreated = new Date(a.created_at).getTime();
+    const bCreated = new Date(b.created_at).getTime();
+    return aCreated - bCreated;
+  });
 }
 
 export async function fetchAssetDetails(

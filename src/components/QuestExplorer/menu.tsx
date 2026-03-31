@@ -42,7 +42,7 @@ import {
 import { QuestList } from './quest-list';
 import { SubquestList } from './subquest-list';
 import { QuestCard } from './quest-card';
-import { QuestExplorerAssetCard } from './quest-explorer-asset-card';
+import { AssetsContainer } from './assets-container';
 import { QuestMenuPlus } from './quest-menu-plus';
 import { SubQuestMenuPlus } from './subquest-menu-plus';
 import { ArrowLeft, ChevronRight, FolderOpen } from 'lucide-react';
@@ -124,6 +124,28 @@ export function QuestExplorerMenu({
   const allowAddQuest = behavior.allowAddQuest;
   const allowAddAssets = behavior.allowAddAssets;
   const allowNewVersion = behavior.allowNewVersion;
+  const subQuestMenuConfig = useMemo(
+    () => ({
+      allowAddQuest,
+      allowAddAssets,
+      allowNewVersion,
+      newVersionConfirmDescription: copy.newVersionConfirmDescription,
+      msgSelectQuestForNewVersion: copy.msgSelectQuestForNewVersion,
+      msgNewVersionCreated: copy.msgNewVersionCreated,
+      msgNewVersionCreateError: copy.msgNewVersionCreateError,
+      msgBulkAssetsUploaded: copy.msgBulkAssetsUploaded
+    }),
+    [
+      allowAddAssets,
+      allowAddQuest,
+      allowNewVersion,
+      copy.newVersionConfirmDescription,
+      copy.msgBulkAssetsUploaded,
+      copy.msgNewVersionCreateError,
+      copy.msgNewVersionCreated,
+      copy.msgSelectQuestForNewVersion
+    ]
+  );
 
   const roots = data?.roots || [];
   const rawRootNodes = useMemo(
@@ -161,8 +183,38 @@ export function QuestExplorerMenu({
         : rawMiddleNodes.map((node) => ({ ...node, disabled: false })),
     [rawMiddleNodes, shouldAllowDisabledQuests]
   );
+  const selectedMiddleNodeResolved = useMemo(() => {
+    if (!selectedMiddleNode) {
+      return null;
+    }
+
+    const baseNode =
+      middleNodes.find((node) => node.key === selectedMiddleNode.key) ||
+      selectedMiddleNode;
+
+    if (!selectedMiddleNode.questId || !baseNode.variants?.length) {
+      return baseNode;
+    }
+
+    const selectedVariant =
+      baseNode.variants.find(
+        (variant) => variant.id === selectedMiddleNode.questId
+      ) || null;
+
+    if (!selectedVariant) {
+      return baseNode;
+    }
+
+    return {
+      ...baseNode,
+      questId: selectedVariant.id,
+      quest: selectedVariant,
+      versionName: getQuestVersionName(selectedVariant),
+      disabled: getQuestDisabledFlag(selectedVariant)
+    };
+  }, [middleNodes, selectedMiddleNode]);
   const selectedContentNode =
-    selectedMiddleNode ||
+    selectedMiddleNodeResolved ||
     (templateStrategy.id === 'unstructured' ? contextNode : null);
   const rawThirdLevelNodes = useMemo(
     () =>
@@ -425,10 +477,15 @@ export function QuestExplorerMenu({
         return node;
       }
 
+      const refreshedVariants =
+        node.variants?.map((variant) => byId[variant.id] || variant) ||
+        undefined;
+
       return {
         ...node,
         quest: latestQuest,
-        questId: latestQuest.id
+        questId: latestQuest.id,
+        variants: refreshedVariants
       };
     };
 
@@ -508,7 +565,7 @@ export function QuestExplorerMenu({
                       queryClient.invalidateQueries({
                         queryKey: ['project-quests', projectId, environment]
                       });
-                      toast.success('Quest updated');
+                      toast.success(copy.msgQuestUpdated);
                     }}
                   />
                 )}
@@ -655,12 +712,7 @@ export function QuestExplorerMenu({
                           canManage={canManage}
                           projectId={projectId}
                           selectedQuestId={selectedContentNode.questId}
-                          allowAddQuest={allowAddQuest}
-                          allowAddAssets={allowAddAssets}
-                          allowNewVersion={allowNewVersion}
-                          newVersionConfirmDescription={
-                            copy.newVersionConfirmDescription
-                          }
+                          menuConfig={subQuestMenuConfig}
                           onQuestSuccess={() => {
                             queryClient.invalidateQueries({
                               queryKey: ['qe-tree']
@@ -678,7 +730,7 @@ export function QuestExplorerMenu({
                                 selectedContentNode.questId
                               ]
                             });
-                            toast.success('Subquest created');
+                            toast.success(copy.msgSubquestCreated);
                           }}
                           onAssetSuccess={() => {
                             queryClient.invalidateQueries({
@@ -688,7 +740,7 @@ export function QuestExplorerMenu({
                               ]
                             });
                             refetchAssets();
-                            toast.success('Asset created');
+                            toast.success(copy.msgAssetCreated);
                           }}
                           disableQuests={false}
                         />
@@ -727,40 +779,16 @@ export function QuestExplorerMenu({
                           </div>
                         )}
 
-                        <div className="rounded-xl border border-border/70 bg-card/40 p-3 space-y-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-semibold">
-                              {copy.assetsSectionTitle}
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className="rounded-md tabular-nums"
-                            >
-                              {questAssets.length}
-                            </Badge>
-                          </div>
-                          {isLoadingAssets ? (
-                            <div className="py-10 flex justify-center">
-                              <Spinner className="text-primary h-5 w-5" />
-                            </div>
-                          ) : questAssets.length === 0 ? (
-                            <div className="text-sm text-muted-foreground py-6 text-center">
-                              {copy.assetsEmptyMessage}
-                            </div>
-                          ) : (
-                            <div className="flex w-full flex-col gap-3">
-                              {questAssets.map((asset) => (
-                                <QuestExplorerAssetCard
-                                  key={asset.id}
-                                  asset={asset}
-                                  onClick={() =>
-                                    handleOpenAssetDetails(asset.id)
-                                  }
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <AssetsContainer
+                          title={copy.assetsSectionTitle}
+                          emptyMessage={copy.assetsEmptyMessage}
+                          assets={questAssets}
+                          isLoading={isLoadingAssets}
+                          onOpenAsset={handleOpenAssetDetails}
+                          showAssetLabel={behavior.showAssetLabel}
+                          resolveAssetLabel={templateStrategy.resolveAssetLabel}
+                          quest={selectedContentNode}
+                        />
                       </div>
                     )}
                   </ScrollArea>
