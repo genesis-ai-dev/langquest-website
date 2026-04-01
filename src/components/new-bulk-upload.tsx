@@ -75,14 +75,13 @@ export function BulkUpload({
   });
   const [isLanguoidModalOpen, setIsLanguoidModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
   const [isCreatingLanguage, setIsCreatingLanguage] = useState(false);
   const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
 
-  // Get the supabase client for the current environment
   const supabaseClient = useMemo(() => {
-    return createBrowserClient(environment);
-  }, [environment]);
+    return createBrowserClient();
+  }, []);
 
   const downloadTemplate = useCallback(() => {
     const headers =
@@ -191,8 +190,7 @@ export function BulkUpload({
     // Use uploadZipDirect to upload file directly to storage
     const uploadPath = await uploadZipDirect(
       file,
-      session.access_token,
-      environment
+      session.access_token
     );
 
     console.log('Upload path:', uploadPath);
@@ -200,7 +198,6 @@ export function BulkUpload({
     // Now call the processing API with the uploaded file path
     const formData = new FormData();
     formData.append('uploadPath', uploadPath);
-    formData.append('environment', environment);
 
     // Map mode to API type
     const apiType =
@@ -239,7 +236,7 @@ export function BulkUpload({
     try {
       console.log('Deleting ZIP file:', uploadPath);
       const { deleteZipFile } = await import('@/lib/upload');
-      await deleteZipFile(uploadPath, session.access_token, environment);
+      await deleteZipFile(uploadPath, session.access_token);
     } catch (deleteError) {
       console.warn('Failed to delete ZIP file:', deleteError);
       // Don't throw error - the main operation was successful
@@ -256,7 +253,7 @@ export function BulkUpload({
     setShowAddLanguageAlert(false);
     try {
       // Get authentication token from Supabase client
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const {
         data: { session }
       } = await supabase.auth.getSession();
@@ -273,7 +270,6 @@ export function BulkUpload({
           Authorization: `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          environment: environment,
           name: languoid.name.trim(),
           iso639_3: isoValue || undefined
         })
@@ -329,8 +325,7 @@ export function BulkUpload({
 
     const validation = await validateZipFiles(
       file,
-      session.access_token,
-      environment
+      session.access_token
     );
     setIsValidating(false);
 

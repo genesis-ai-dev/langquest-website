@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { Database } from '../../../../database.types';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
 
 export async function POST(request: Request) {
@@ -9,14 +8,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       name?: string;
       iso639_3?: string;
-      environment?: string;
     };
-    const { name, iso639_3, environment } = body;
+    const { name, iso639_3 } = body;
 
-    const envAux = (environment ||
-      env.NEXT_PUBLIC_ENVIRONMENT ||
-      'production') as SupabaseEnvironment;
-    const { url, key } = getSupabaseCredentials(envAux);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     let accessToken: string | undefined;
 

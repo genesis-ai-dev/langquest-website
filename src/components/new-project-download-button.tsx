@@ -20,7 +20,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from './spinner';
 import { Download, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
 
@@ -75,7 +74,6 @@ interface ProjectData {
 export function ProjectDownloadButton({
   projectId
 }: ProjectDownloadButtonProps) {
-  const { environment } = useAuth();
   const [selectedQuests, setSelectedQuests] = useState<string[]>([]);
   const [downloadFormat, setDownloadFormat] = useState<'json' | 'csv'>('csv');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -83,9 +81,9 @@ export function ProjectDownloadButton({
 
   // Fetch detailed project data
   const { data: projectData, isLoading: projectDataLoading } = useQuery({
-    queryKey: ['project-download-data', projectId, environment],
+    queryKey: ['project-download-data', projectId],
     queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from('project')
         .select(
           `
@@ -381,7 +379,7 @@ export function ProjectDownloadButton({
     }
 
     try {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
 
       // All files are in the 'assets' bucket
       const { data, error } = await supabase.storage

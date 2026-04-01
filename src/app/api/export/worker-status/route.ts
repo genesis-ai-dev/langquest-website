@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { env } from '@/lib/env';
 
 /**
  * GET /api/export/worker-status
@@ -9,9 +8,7 @@ export async function GET() {
   try {
     const workerUrl =
       process.env.AUDIO_CONCAT_WORKER_URL ||
-      (env.NEXT_PUBLIC_ENVIRONMENT === 'development'
-        ? 'http://127.0.0.1:8787'
-        : 'https://langquest-audio-concat.blue-darkness-7674.workers.dev');
+      'https://langquest-audio-concat.blue-darkness-7674.workers.dev';
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);

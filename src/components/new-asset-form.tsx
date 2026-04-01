@@ -70,7 +70,7 @@ export function AssetForm({
   questId,
   hideContentTabs = false
 }: AssetFormProps) {
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags
@@ -101,11 +101,11 @@ export function AssetForm({
 
   // Fetch quests for the multi-select - from projects where user is owner
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
-    queryKey: ['owned-quests', user?.id, projectId, environment],
+    queryKey: ['owned-quests', user?.id, projectId],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from('quest')
         .select(`id, name, description, creator_id`)
         .eq('project_id', projectId)
@@ -219,7 +219,7 @@ export function AssetForm({
 
           // Simple upload without progress tracking
           const { data: uploadData, error: uploadError } =
-            await createBrowserClient(environment)
+            await createBrowserClient()
               .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
               .upload(`images/${fileName}`, image);
 
@@ -241,7 +241,7 @@ export function AssetForm({
         const fileName = `${Date.now()}-${file.name}`;
 
         const { data: uploadData, error: uploadError } =
-          await createBrowserClient(environment)
+          await createBrowserClient()
             .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
             //.upload(`audio/${fileName}`, file);
             .upload(`${fileName}`, file);
@@ -262,7 +262,7 @@ export function AssetForm({
 
       if (initialData?.id) {
         // Update existing asset
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await createBrowserClient()
           .from('asset')
           .update({
             name: values.name,
@@ -276,7 +276,7 @@ export function AssetForm({
         assetId = data.id;
 
         // Delete existing content
-        await createBrowserClient(environment)
+        await createBrowserClient()
           .from('asset_content_link')
           .delete()
           .eq('asset_id', assetId);
@@ -293,7 +293,7 @@ export function AssetForm({
         };
         console.log('Creating asset with data:', assetInsertData);
 
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await createBrowserClient()
           .from('asset')
           .insert(assetInsertData)
           .select('id')
@@ -322,7 +322,7 @@ export function AssetForm({
         }));
         console.log('Creating content links:', contentLinks);
 
-        const { error: contentError } = await createBrowserClient(environment)
+        const { error: contentError } = await createBrowserClient()
           .from('asset_content_link')
           .insert(contentLinks);
 
@@ -336,9 +336,7 @@ export function AssetForm({
 
       // Handle tags - first remove existing tags
       if (initialData?.id) {
-        const { error: deleteTagsError } = await createBrowserClient(
-          environment
-        )
+        const { error: deleteTagsError } = await createBrowserClient()
           .from('asset_tag_link')
           .delete()
           .eq('asset_id', assetId);
@@ -356,7 +354,7 @@ export function AssetForm({
           active: true
         }));
 
-        const { error: tagError } = await createBrowserClient(environment)
+        const { error: tagError } = await createBrowserClient()
           .from('asset_tag_link')
           .insert(tagLinks);
 
@@ -368,9 +366,7 @@ export function AssetForm({
 
       // Handle quests - first remove existing quest links
       if (initialData?.id) {
-        const { error: deleteQuestsError } = await createBrowserClient(
-          environment
-        )
+        const { error: deleteQuestsError } = await createBrowserClient()
           .from('quest_asset_link')
           .delete()
           .eq('asset_id', assetId);
@@ -406,7 +402,7 @@ export function AssetForm({
         );
 
         const { data: insertedLinks, error: questError } =
-          await createBrowserClient(environment)
+          await createBrowserClient()
             .from('quest_asset_link')
             .insert(questLinksPayload)
             .select(); // Ask Supabase to return the inserted rows
@@ -559,7 +555,7 @@ export function AssetForm({
                     src={
                       url.startsWith('blob:')
                         ? url
-                        : createBrowserClient(environment)
+                        : createBrowserClient()
                             .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                             .getPublicUrl(url).data.publicUrl
                     }
@@ -644,7 +640,7 @@ export function AssetForm({
                         <div className="flex items-center gap-2">
                           <AudioButton
                             src={
-                              createBrowserClient(environment)
+                              createBrowserClient()
                                 .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                                 .getPublicUrl(item.audio_id).data.publicUrl
                             }
@@ -724,7 +720,6 @@ export function AssetForm({
                       <TagSelector
                         selectedTags={selectedTags}
                         onTagsChange={setSelectedTags}
-                        environment={environment}
                         label="Tags"
                         description="Add tags to categorize this asset."
                         disabled={isSubmitting}

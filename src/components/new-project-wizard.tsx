@@ -114,7 +114,7 @@ export function ProjectWizard({
   );
   // const [selectedImage, setSelectedImage] = useState<File | null>(null);
   // const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
   const [cloneJob, setCloneJob] = useState<{
     id?: string;
     status?: string;
@@ -124,9 +124,9 @@ export function ProjectWizard({
 
   // Fetch existing projects for cloning
   const { data: existingProjects } = useQuery({
-    queryKey: ['projects', environment],
+    queryKey: ['projects'],
     queryFn: async () => {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const { data, error } = await supabase
         .from('project')
         .select('id, name, description, template')
@@ -247,7 +247,7 @@ export function ProjectWizard({
           return;
         }
 
-        const supabase = createBrowserClient(environment);
+        const supabase = createBrowserClient();
 
         // Start clone job via RPC - note: clone RPC still uses language_id for now
         // TODO: Update clone RPC to use languoid_id
@@ -269,7 +269,7 @@ export function ProjectWizard({
 
         // Persist minimal job tracking so dashboard can gray out destination once visible
         try {
-          const storageKey = `cloneJobs:${environment}:${user.id}`;
+          const storageKey = `cloneJobs:${user.id}`;
           const existingRaw = localStorage.getItem(storageKey);
           const existing: any[] = existingRaw ? JSON.parse(existingRaw) : [];
           const entry = { jobId, name: newName };
@@ -326,7 +326,7 @@ export function ProjectWizard({
       }
 
       // Non-clone path: create a fresh project directly
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const projectData = {
         name: step2Values.name || '',
         description: step2Values.description || null,
@@ -348,7 +348,7 @@ export function ProjectWizard({
 
       // Create project ownership FIRST (required by RLS policy for project_language_link)
       try {
-        await createProjectOwnership(data.id, user.id, environment);
+        await createProjectOwnership(data.id, user.id);
         console.log('Project ownership created successfully');
       } catch (ownershipError) {
         console.error('Error creating project ownership:', ownershipError);
@@ -499,15 +499,13 @@ export function ProjectWizard({
                         Create a new project from scratch
                       </Label>
                     </div>
-                    {environment !== 'production' && (
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="clone" id="clone" />
-                        <Label htmlFor="clone" className="flex items-center">
-                          <Copy className="mr-2 h-4 w-4" />
-                          Clone an existing project
-                        </Label>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="clone" id="clone" />
+                      <Label htmlFor="clone" className="flex items-center">
+                        <Copy className="mr-2 h-4 w-4" />
+                        Clone an existing project
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />

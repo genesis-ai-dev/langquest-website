@@ -96,12 +96,11 @@ export function BulkUpload({
   });
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
 
-  // Get the supabase client for the current environment
   const supabaseClient = useMemo(() => {
-    return createBrowserClient(environment);
-  }, [environment]);
+    return createBrowserClient();
+  }, []);
 
   const downloadTemplate = useCallback(() => {
     const headers =
@@ -395,7 +394,7 @@ export function BulkUpload({
             // Create project ownership FIRST (required by RLS policy for project_language_link)
             if (user?.id && projectId) {
               try {
-                await createProjectOwnership(projectId, user.id, environment);
+                await createProjectOwnership(projectId, user.id);
               } catch (ownershipError) {
                 console.error(
                   'Error creating project ownership:',
@@ -1036,9 +1035,7 @@ export function BulkUpload({
                 <AlertTitle>Upload Information</AlertTitle>
                 <AlertDescription>
                   Uploading as:{' '}
-                  <span className="font-medium">{user.email}</span> to{' '}
-                  <span className="font-medium capitalize">{environment}</span>{' '}
-                  environment
+                  <span className="font-medium">{user.email}</span>
                 </AlertDescription>
               </Alert>
             )}

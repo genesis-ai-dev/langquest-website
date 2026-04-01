@@ -22,8 +22,7 @@ import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/auth-provider';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { getSupabaseEnvironment, SupabaseEnvironment } from '@/lib/supabase';
-import { useSearchParams } from 'next/navigation';
+import { env } from '@/lib/env';
 
 function ErrorMessage({
   error
@@ -43,54 +42,10 @@ function ErrorMessage({
 
 function ResetPasswordForm() {
   const [showForm, setShowForm] = useState(false);
-  const { isLoading: authLoading, environment } = useAuth();
-  const searchParams = useSearchParams();
+  const { isLoading: authLoading } = useAuth();
   const t = useTranslations('reset_password');
 
-  // Determine environment from URL params (same logic as AuthProvider)
-  // Extract values to make dependencies stable
-  const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const projectRef = searchParams.get('project_ref');
-
-  // Memoize the environment detection to ensure stability
-  const detectedEnvironment = useMemo(() => {
-    const envFromProjectRef = projectRef
-      ? getSupabaseEnvironment(projectRef)
-      : null;
-    const env: SupabaseEnvironment =
-      envParam || envFromProjectRef || 'production';
-
-    console.log('[RESET PASSWORD] Detected environment:', env, {
-      envParam,
-      projectRef,
-      envFromProjectRef
-    });
-
-    return env;
-  }, [envParam, projectRef]);
-
-  // Create the supabase client directly based on URL params to avoid context issues
-  // Memoize to prevent recreating on every render
-  const supabase = useMemo(() => {
-    console.log(
-      '[RESET PASSWORD] Creating supabase client for environment:',
-      detectedEnvironment
-    );
-    const client = createBrowserClient(detectedEnvironment);
-    // Verify the client was created with the correct URL
-    const clientUrl = (client as any).supabaseUrl || 'unknown';
-    console.log('[RESET PASSWORD] Created client with URL:', clientUrl);
-    if (
-      detectedEnvironment === 'preview' &&
-      !clientUrl.includes('yjgdgsycxmlvaiuynlbv')
-    ) {
-      console.error(
-        '[RESET PASSWORD] CRITICAL: Wrong client created! Expected preview but got:',
-        clientUrl
-      );
-    }
-    return client;
-  }, [detectedEnvironment]);
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   const toastError = (error: AuthError | { code: string; message: string }) => {
     toast.error(() => <ErrorMessage error={error} />);
@@ -150,7 +105,7 @@ function ResetPasswordForm() {
 
       if (isMobile()) {
         toast.success(t('redirecting'));
-        const deepLink = `langquest://reset-password#access_token=${access_token}&refresh_token=${refresh_token}`;
+        const deepLink = `${env.NEXT_PUBLIC_APP_SCHEME}://reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
         const playStoreUrl =
           'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
@@ -163,41 +118,8 @@ function ResetPasswordForm() {
         return () => clearTimeout(timeout);
       } else {
         console.log('[RESET PASSWORD] Setting session');
-        console.log(
-          '[RESET PASSWORD] Detected environment:',
-          detectedEnvironment
-        );
-        console.log('[RESET PASSWORD] Context environment:', environment);
         console.log('[RESET PASSWORD] Has access_token:', !!access_token);
         console.log('[RESET PASSWORD] Has refresh_token:', !!refresh_token);
-
-        // Log the actual Supabase client URL to verify it's correct
-        // Access the internal URL property (Supabase client stores it internally)
-        const clientUrl = (supabase as any).supabaseUrl || 'unknown';
-        console.log('[RESET PASSWORD] Supabase client URL:', clientUrl);
-        console.log(
-          '[RESET PASSWORD] Expected preview URL: https://yjgdgsycxmlvaiuynlbv.supabase.co'
-        );
-
-        if (
-          clientUrl !== 'https://yjgdgsycxmlvaiuynlbv.supabase.co' &&
-          detectedEnvironment === 'preview'
-        ) {
-          console.error(
-            '[RESET PASSWORD] ERROR: Client URL mismatch! Using:',
-            clientUrl
-          );
-        }
-
-        // Verify we're using the correct environment
-        if (projectRef && detectedEnvironment !== 'preview') {
-          console.warn(
-            '[RESET PASSWORD] Environment mismatch! Expected preview but got:',
-            detectedEnvironment
-          );
-        }
-
-        // Check if Supabase already processed the tokens from the URL (via detectSessionInUrl)
         const {
           data: { session: existingSession }
         } = await supabase.auth.getSession();
@@ -258,7 +180,7 @@ function ResetPasswordForm() {
     };
 
     processTokens();
-  }, [supabase, authLoading, detectedEnvironment, environment, projectRef, t]);
+  }, [supabase, authLoading, t]);
 
   const {
     mutate: updatePassword,

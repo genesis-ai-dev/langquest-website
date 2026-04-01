@@ -1,35 +1,16 @@
 import { env } from '@/lib/env';
-import { SupabaseEnvironment } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
-function getServiceRoleCredentials(environment: SupabaseEnvironment) {
-  switch (environment) {
-    case 'development':
-      return {
-        url: 'http://localhost:54321',
-        key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
-      };
-    case 'preview':
-      return {
-        url: env.NEXT_PUBLIC_SUPABASE_PREVIEW_URL,
-        key:
-          env.SUPABASE_PREVIEW_SERVICE_ROLE_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY
-      };
-    case 'production':
-    default:
-      return {
-        url: env.NEXT_PUBLIC_SUPABASE_URL,
-        key: env.SUPABASE_SERVICE_ROLE_KEY
-      };
-  }
+function getServiceRoleCredentials() {
+  return {
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    key: env.SUPABASE_SERVICE_ROLE_KEY
+  };
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const environment = (request.nextUrl.searchParams.get('environment') ??
-      'production') as SupabaseEnvironment;
-
-    const { url, key } = getServiceRoleCredentials(environment);
+    const { url, key } = getServiceRoleCredentials();
 
     const response = await fetch(`${url}/rest/v1/`, {
       headers: {

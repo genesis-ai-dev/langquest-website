@@ -15,8 +15,7 @@ export interface LanguageValidationResult {
 
 export const validateZipFiles = async (
   file: File,
-  accessToken: string,
-  environment: string
+  accessToken: string
 ): Promise<ValidationResult> => {
   const errors: string[] = [];
 
@@ -142,8 +141,7 @@ export const validateZipFiles = async (
       const languageArray = Array.from(languageValues);
       const languageValidation = await validateLanguages(
         languageArray,
-        accessToken,
-        environment
+        accessToken
       );
 
       if (languageValidation.hasErrors) {
@@ -161,8 +159,7 @@ export const validateZipFiles = async (
 
 export async function uploadZipDirect(
   file: File,
-  accessToken: string,
-  environment?: string
+  accessToken: string
 ) {
   // 1. Create Signed URL
   const res = await fetch('/api/upload-url', {
@@ -172,8 +169,7 @@ export async function uploadZipDirect(
       Authorization: `Bearer ${accessToken}`
     },
     body: JSON.stringify({
-      filename: file.name,
-      environment: environment || ''
+      filename: file.name
     })
   });
 
@@ -194,8 +190,7 @@ export async function uploadZipDirect(
 
 export async function deleteZipFile(
   uploadPath: string,
-  accessToken: string,
-  environment?: string
+  accessToken: string
 ) {
   try {
     const response = await fetch('/api/delete-upload', {
@@ -205,8 +200,7 @@ export async function deleteZipFile(
         Authorization: `Bearer ${accessToken}`
       },
       body: JSON.stringify({
-        uploadPath,
-        environment: environment || 'production'
+        uploadPath
       })
     });
 
@@ -220,8 +214,7 @@ export async function deleteZipFile(
 
 export const validateLanguages = async (
   languageValues: string[],
-  accessToken: string,
-  environment?: string
+  accessToken: string
 ): Promise<LanguageValidationResult> => {
   const errors: string[] = [];
 
@@ -237,8 +230,7 @@ export const validateLanguages = async (
         Authorization: `Bearer ${accessToken}`
       },
       body: JSON.stringify({
-        languages: languageValues,
-        environment: environment || env.NEXT_PUBLIC_ENVIRONMENT || 'production'
+        languages: languageValues
       })
     });
 

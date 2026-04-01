@@ -42,7 +42,7 @@ import {
   SelectValue
 } from './ui/select';
 import { useAuth } from '@/components/auth-provider';
-// import { getSupabaseCredentials } from '@/lib/supabase';
+
 // import { env } from '@/lib/env';
 import { AssetCard } from '@/components/asset-card';
 
@@ -219,8 +219,6 @@ export function DataView({
     { path: string; sort: 'asc' | 'desc' }[]
   >('sort', parseAsSorting.withDefault([]));
 
-  const { environment } = useAuth();
-  // const credentials = getSupabaseCredentials(environment);
 
   const { data, isLoading, error } = useQuery<Root>({
     queryKey: [
@@ -230,12 +228,11 @@ export function DataView({
       filters,
       sort,
       projectId,
-      questId,
-      environment
+      questId
     ],
     queryFn: async () => {
       try {
-        const supabase = createBrowserClient(environment);
+        const supabase = createBrowserClient();
 
         // Build the main query with filters
         let query = supabase.from('asset').select(
@@ -351,9 +348,9 @@ export function DataView({
 
   // Fetch filter options
   const { data: filterOptions } = useQuery({
-    queryKey: ['filter-options', environment],
+    queryKey: ['filter-options'],
     queryFn: async () => {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
 
       const [projectsRes, questsRes, tagsRes] = await Promise.all([
         supabase.from('project').select('id, name').order('name'),

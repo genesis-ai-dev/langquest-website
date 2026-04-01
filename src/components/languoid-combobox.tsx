@@ -23,12 +23,10 @@ import { toast } from 'sonner';
 import { Spinner } from './spinner';
 
 import { LanguoidModal } from '@/components/languoid-modal';
-import { useSearchParams } from 'next/navigation';
+
 import { createBrowserClient } from '@/lib/supabase/client';
-import { SupabaseEnvironment } from '@/lib/supabase';
-import { env } from '@/lib/env';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/components/auth-provider';
+
 import type { LanguoidSearchResult } from '../../database.types';
 
 export type Languoid = {
@@ -70,15 +68,6 @@ export function LanguoidCombobox({
     useState<Languoid | null>(null);
   const [isLanguoidModalOpen, setIsLanguoidModalOpen] = useState(false);
 
-  // Get environment from auth context or URL parameters
-  const { environment: authEnvironment } = useAuth();
-  const searchParams = useSearchParams();
-  const environment =
-    authEnvironment ||
-    (searchParams.get('env') as SupabaseEnvironment) ||
-    env.NEXT_PUBLIC_ENVIRONMENT ||
-    'production';
-
   // Query client for invalidating queries
   const queryClient = useQueryClient();
 
@@ -89,9 +78,9 @@ export function LanguoidCombobox({
 
   // Search languoids using RPC function
   const { data: languoids = [], isLoading } = useQuery({
-    queryKey: ['languoids-search', environment, inputValue],
+    queryKey: ['languoids-search', inputValue],
     queryFn: async () => {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
 
       // If search query is less than 2 chars, get some default languoids
       if (!inputValue || inputValue.length < 2) {
@@ -145,7 +134,7 @@ export function LanguoidCombobox({
     setIsCreating(true);
     try {
       // Get authentication token from Supabase client
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const {
         data: { session }
       } = await supabase.auth.getSession();
@@ -162,7 +151,6 @@ export function LanguoidCombobox({
           Authorization: `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          environment: environment,
           name: languoid.name.trim(),
           iso639_3: isoValue || undefined
         })
@@ -180,7 +168,7 @@ export function LanguoidCombobox({
 
       // Invalidate languoid queries to refresh the list
       queryClient.invalidateQueries({
-        queryKey: ['languoids-search', environment]
+        queryKey: ['languoids-search']
       });
 
       toast.success(`Added language: ${data.name}`);

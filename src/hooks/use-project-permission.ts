@@ -58,14 +58,14 @@ export function useProjectPermission(
   projectId: string | null | undefined,
   action: Permission
 ) {
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
 
   const { data: membership, isLoading } = useQuery<MembershipRole>({
-    queryKey: ['project-membership', projectId, user?.id, environment],
+    queryKey: ['project-membership', projectId, user?.id],
     enabled: Boolean(projectId && user?.id),
     queryFn: async () => {
       if (!projectId || !user?.id) return null;
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from('profile_project_link')
         .select('membership, active')
         .eq('project_id', projectId)

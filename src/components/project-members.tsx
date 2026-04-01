@@ -49,8 +49,8 @@ type Invitation = {
 };
 
 export function ProjectMembers({ projectId }: { projectId: string }) {
-  const { user, environment } = useAuth();
-  const supabase = createBrowserClient(environment);
+  const { user } = useAuth();
+  const supabase = createBrowserClient();
   const queryClient = useQueryClient();
 
   const canSendInvites = useProjectPermission(projectId, 'send_invite_section');
@@ -62,7 +62,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   );
 
   const { data: memberLinks = [], isLoading: memberLinksLoading } = useQuery({
-    queryKey: ['project-member-links', projectId, environment],
+    queryKey: ['project-member-links', projectId],
     enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -84,7 +84,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   );
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['member-profiles', projectId, profileIds.join(','), environment],
+    queryKey: ['member-profiles', projectId, profileIds.join(',')],
     enabled: profileIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -126,7 +126,7 @@ export function ProjectMembers({ projectId }: { projectId: string }) {
   }, [memberLinks, profilesById, user?.id]);
 
   const { data: invites = [] } = useQuery({
-    queryKey: ['project-invites', projectId, environment],
+    queryKey: ['project-invites', projectId],
     enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase

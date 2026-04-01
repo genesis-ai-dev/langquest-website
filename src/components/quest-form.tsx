@@ -61,16 +61,16 @@ export function QuestForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialData?.tags || []
   );
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
 
   // Fetch projects for the dropdown - only projects where user is creator/owner
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['owned-projects', user?.id, environment],
+    queryKey: ['owned-projects', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
       // Get projects where user is the creator
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from('project')
         .select('id, name, creator_id')
         .order('name');
@@ -102,8 +102,7 @@ export function QuestForm({
     // Server-side check to ensure user is still an owner.
     const isOwner = await checkProjectOwnership(
       values.project_id,
-      user.id,
-      environment
+      user.id
     );
     if (!isOwner) {
       toast.error('You must be an owner of the project to create quests.');
@@ -119,7 +118,7 @@ export function QuestForm({
 
       if (initialData?.id) {
         // Update existing quest
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await createBrowserClient()
           .from('quest')
           .update({
             name: values.name,
@@ -135,7 +134,7 @@ export function QuestForm({
         toast.success('Quest updated successfully');
       } else {
         // Create new quest
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await createBrowserClient()
           .from('quest')
           .insert({
             name: values.name,
@@ -152,7 +151,7 @@ export function QuestForm({
 
       // Handle tags - first remove existing tags
       if (initialData?.id) {
-        await createBrowserClient(environment)
+        await createBrowserClient()
           .from('quest_tag_link')
           .delete()
           .eq('quest_id', questId);
@@ -165,7 +164,7 @@ export function QuestForm({
           tag_id: tagId
         }));
 
-        const { error: tagError } = await createBrowserClient(environment)
+        const { error: tagError } = await createBrowserClient()
           .from('quest_tag_link')
           .insert(tagLinks);
 
@@ -292,7 +291,6 @@ export function QuestForm({
             setSelectedTags(tags);
             form.setValue('tags', tags);
           }}
-          environment={environment}
           label="Tags"
           description="Add tags to categorize this quest."
           disabled={isSubmitting || !user}

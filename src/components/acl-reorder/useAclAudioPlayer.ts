@@ -3,7 +3,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
-import { SupabaseEnvironment } from '@/lib/supabase';
 import { extractAudioPaths } from './audioUtils';
 
 export type AclWithAudio = {
@@ -20,10 +19,7 @@ function getFirstAudioPath(acl: AclWithAudio): string | null {
   return paths[0] ?? null;
 }
 
-function resolveAudioUrl(
-  path: string,
-  environment: SupabaseEnvironment
-): string {
+function resolveAudioUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
@@ -31,12 +27,12 @@ function resolveAudioUrl(
     env.NEXT_PUBLIC_SUPABASE_BUCKET ||
     process.env.NEXT_PUBLIC_SUPABASE_BUCKET ||
     'local';
-  const supabase = createBrowserClient(environment);
+  const supabase = createBrowserClient();
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
 
-export function useAclAudioPlayer(environment: SupabaseEnvironment) {
+export function useAclAudioPlayer() {
   const [playingAclId, setPlayingAclId] = useState<string | null>(null);
   const [playingAssetId, setPlayingAssetId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -60,7 +56,7 @@ export function useAclAudioPlayer(environment: SupabaseEnvironment) {
       const path = getFirstAudioPath(acl);
       if (!path) return;
 
-      const url = resolveAudioUrl(path, environment);
+      const url = resolveAudioUrl(path);
       const audio = new Audio(url);
       audioRef.current = audio;
 
@@ -72,7 +68,7 @@ export function useAclAudioPlayer(environment: SupabaseEnvironment) {
       setPlayingAclId(acl.id);
       await audio.play();
     },
-    [environment, stop]
+    [stop]
   );
 
   const playAll = useCallback(
@@ -101,7 +97,7 @@ export function useAclAudioPlayer(environment: SupabaseEnvironment) {
         }
 
         setPlayingAclId(acl.id);
-        const url = resolveAudioUrl(path, environment);
+        const url = resolveAudioUrl(path);
         const audio = new Audio(url);
         audioRef.current = audio;
         audio.addEventListener('ended', () => {
@@ -113,7 +109,7 @@ export function useAclAudioPlayer(environment: SupabaseEnvironment) {
 
       playNext();
     },
-    [environment, stop]
+    [stop]
   );
 
   const pause = useCallback(() => {
