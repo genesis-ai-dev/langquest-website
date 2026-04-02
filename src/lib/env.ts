@@ -9,7 +9,14 @@ export const env = createEnv({
     RESEND_API_KEY: z.string().min(1),
     AUDIO_CONCAT_WORKER_URL: z.string().url().optional(),
     AUDIO_CONCAT_WORKER_TOKEN: z.string().min(1).optional(),
-    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1)
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    /** Comma-separated bundle/package IDs (e.g. "com.example.app,com.example.app.preview") */
+    APP_IDS: z
+      .string()
+      .min(1)
+      .transform((s) => s.split(',').map((id) => id.trim())),
+    TEAM_ID: z.string().min(1),
+    ANDROID_SHA256_FINGERPRINT: z.string().min(1)
   },
   client: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),

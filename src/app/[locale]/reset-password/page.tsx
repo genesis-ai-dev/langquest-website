@@ -72,114 +72,70 @@ function ResetPasswordForm() {
   });
 
   useEffect(() => {
-    // Wait for auth provider to finish initializing before processing tokens
-    if (authLoading) {
+    if (authLoading) return;
+
+    const { params } = getQueryParams(window.location.href);
+
+    const error_code = params.error_code;
+    const error_description = params.error_description;
+    if (error_code) {
+      toastError({ code: error_code, message: error_description });
       return;
     }
 
-    const processTokens = async () => {
-      const { params } = getQueryParams(window.location.href);
+    const access_token = params.access_token;
+    const refresh_token = params.refresh_token;
 
-      console.log('[RESET PASSWORD] Full URL:', window.location.href);
-      console.log('[RESET PASSWORD] URL hash:', window.location.hash);
-      console.log('[RESET PASSWORD] Extracted params:', Object.keys(params));
-      console.log(
-        '[RESET PASSWORD] access_token in params:',
-        !!params.access_token
-      );
-      console.log(
-        '[RESET PASSWORD] refresh_token in params:',
-        !!params.refresh_token
-      );
+    if (isMobile()) {
+      if (!access_token || !refresh_token) return;
 
-      const error_code = params.error_code;
-      const error_description = params.error_description;
+      toast.success(t('redirecting'));
+      const deepLink = `${env.NEXT_PUBLIC_APP_SCHEME}://reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+      const playStoreUrl =
+        'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 
-      if (error_code) {
-        toastError({ code: error_code, message: error_description });
+      window.location.href = deepLink;
+
+      const timeout = setTimeout(() => {
+        window.location.href = playStoreUrl;
+      }, 5000);
+
+      return () => clearTimeout(timeout);
+    }
+
+    const setUpSession = async () => {
+      const {
+        data: { session: existingSession }
+      } = await supabase.auth.getSession();
+
+      if (existingSession) {
+        setShowForm(true);
         return;
       }
 
-      const access_token = params.access_token;
-      const refresh_token = params.refresh_token;
-
-      if (isMobile()) {
-        toast.success(t('redirecting'));
-        const deepLink = `${env.NEXT_PUBLIC_APP_SCHEME}://reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
-        const playStoreUrl =
-          'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
-
-        window.location.href = deepLink;
-
-        const timeout = setTimeout(() => {
-          window.location.href = playStoreUrl;
-        }, 5000);
-
-        return () => clearTimeout(timeout);
-      } else {
-        console.log('[RESET PASSWORD] Setting session');
-        console.log('[RESET PASSWORD] Has access_token:', !!access_token);
-        console.log('[RESET PASSWORD] Has refresh_token:', !!refresh_token);
-        const {
-          data: { session: existingSession }
-        } = await supabase.auth.getSession();
-
-        if (existingSession) {
-          console.log(
-            '[RESET PASSWORD] Session already exists (from URL detection)'
-          );
-          setShowForm(true);
-          return;
-        }
-
-        // If tokens are missing, Supabase might have already consumed them
-        if (!access_token || !refresh_token) {
-          console.warn(
-            '[RESET PASSWORD] Tokens missing from URL - may have been consumed by Supabase'
-          );
-          // Check again after a brief delay
-          setTimeout(async () => {
-            const {
-              data: { session: delayedSession }
-            } = await supabase.auth.getSession();
-            if (delayedSession) {
-              console.log('[RESET PASSWORD] Session found after delay');
-              setShowForm(true);
-            } else {
-              console.error(
-                '[RESET PASSWORD] No session found and tokens are missing'
-              );
-              toastError({
-                code: 'token_missing',
-                message:
-                  'Password reset tokens are missing or expired. Please request a new password reset link.'
-              });
-            }
-          }, 100);
-          return;
-        }
-
-        supabase.auth
-          .setSession({
-            access_token: access_token!,
-            refresh_token: refresh_token!
-          })
-          .then(({ error: sessionError }: { error: AuthError | null }) => {
-            if (sessionError) {
-              console.error('[RESET PASSWORD] Session error:', sessionError);
-              toastError(sessionError);
-              throw sessionError;
-            }
-            console.log('[RESET PASSWORD] Session set successfully');
-            setShowForm(true);
-          })
-          .catch((error) => {
-            console.error('[RESET PASSWORD] Error setting session:', error);
-          });
+      if (!access_token || !refresh_token) {
+        toastError({
+          code: 'token_missing',
+          message:
+            'Password reset tokens are missing or expired. Please request a new password reset link.'
+        });
+        return;
       }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token
+      });
+
+      if (sessionError) {
+        toastError(sessionError);
+        return;
+      }
+
+      setShowForm(true);
     };
 
-    processTokens();
+    setUpSession();
   }, [supabase, authLoading, t]);
 
   const {
