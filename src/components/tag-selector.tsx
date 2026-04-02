@@ -144,10 +144,7 @@ export function TagSelector({
       return;
     /* Verify if a tag with same name exists */
     const { data: existingTags, error: existingTagsError } =
-      await createBrowserClient()
-        .from('tag')
-        .select('*')
-        .eq('name', tagName);
+      await createBrowserClient().from('tag').select('*').eq('name', tagName);
     if (existingTagsError) throw existingTagsError;
     if (existingTags && existingTags.length > 0) {
       return;

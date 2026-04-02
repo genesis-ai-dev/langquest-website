@@ -156,10 +156,7 @@ export const validateZipFiles = async (
   }
 };
 
-export async function uploadZipDirect(
-  file: File,
-  accessToken: string
-) {
+export async function uploadZipDirect(file: File, accessToken: string) {
   // 1. Create Signed URL
   const res = await fetch('/api/upload-url', {
     method: 'POST',
@@ -187,10 +184,7 @@ export async function uploadZipDirect(
   return path;
 }
 
-export async function deleteZipFile(
-  uploadPath: string,
-  accessToken: string
-) {
+export async function deleteZipFile(uploadPath: string, accessToken: string) {
   try {
     const response = await fetch('/api/delete-upload', {
       method: 'DELETE',

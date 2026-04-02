@@ -219,17 +219,8 @@ export function DataView({
     { path: string; sort: 'asc' | 'desc' }[]
   >('sort', parseAsSorting.withDefault([]));
 
-
   const { data, isLoading, error } = useQuery<Root>({
-    queryKey: [
-      'assets',
-      page,
-      pageSize,
-      filters,
-      sort,
-      projectId,
-      questId
-    ],
+    queryKey: ['assets', page, pageSize, filters, sort, projectId, questId],
     queryFn: async () => {
       try {
         const supabase = createBrowserClient();

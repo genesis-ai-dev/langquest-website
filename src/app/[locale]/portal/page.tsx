@@ -332,7 +332,6 @@ function AdminContent() {
               </Link>
             </Button>
           </div>
-
         </div>
 
         {/* Main Content Area */}

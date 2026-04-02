@@ -240,7 +240,7 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
 
       const isOwner = await checkProjectOwnership(
         questData.project_id,
-        user.id,
+        user.id
       );
 
       if (!isOwner) {

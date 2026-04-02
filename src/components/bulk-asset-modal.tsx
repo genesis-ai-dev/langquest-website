@@ -838,7 +838,6 @@ export function BulkAssetModal({
                 onTagsChange={(tags) =>
                   handleTagsUpdate(currentAssetIndex, tags)
                 }
-                
                 allowTagCreation={true}
               />
               <div className="flex justify-end gap-2 mt-4">
@@ -866,7 +865,6 @@ export function BulkAssetModal({
             <TagSelector
               selectedTags={globalTags}
               onTagsChange={handleGlobalTagsUpdate}
-                
               allowTagCreation={true}
             />
             <div className="flex justify-end gap-2 mt-4">

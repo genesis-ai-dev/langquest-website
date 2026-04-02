@@ -169,9 +169,7 @@ function ProjectPageContent() {
   useEffect(() => {
     if (!isLoading && !user) {
       const currentUrl = `/project/${projectId}`;
-      router.push(
-        `/login?redirectTo=${encodeURIComponent(currentUrl)}`
-      );
+      router.push(`/login?redirectTo=${encodeURIComponent(currentUrl)}`);
     }
   }, [isLoading, user, router, projectId]);
 
@@ -249,10 +247,7 @@ function ProjectPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader
-        user={user}
-        onSignOut={handleSignOut}
-      />
+      <PortalHeader user={user} onSignOut={handleSignOut} />
 
       {/* Project Header - Original Model with Stats */}
       <div className="container p-6 max-w-screen-xl mx-auto">

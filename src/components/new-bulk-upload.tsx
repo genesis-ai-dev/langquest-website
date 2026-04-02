@@ -188,10 +188,7 @@ export function BulkUpload({
     }
 
     // Use uploadZipDirect to upload file directly to storage
-    const uploadPath = await uploadZipDirect(
-      file,
-      session.access_token
-    );
+    const uploadPath = await uploadZipDirect(file, session.access_token);
 
     console.log('Upload path:', uploadPath);
 
@@ -323,10 +320,7 @@ export function BulkUpload({
       return;
     }
 
-    const validation = await validateZipFiles(
-      file,
-      session.access_token
-    );
+    const validation = await validateZipFiles(file, session.access_token);
     setIsValidating(false);
 
     if (!validation.isValid) {

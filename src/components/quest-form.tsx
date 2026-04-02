@@ -100,10 +100,7 @@ export function QuestForm({
     }
 
     // Server-side check to ensure user is still an owner.
-    const isOwner = await checkProjectOwnership(
-      values.project_id,
-      user.id
-    );
+    const isOwner = await checkProjectOwnership(values.project_id, user.id);
     if (!isOwner) {
       toast.error('You must be an owner of the project to create quests.');
       return;
