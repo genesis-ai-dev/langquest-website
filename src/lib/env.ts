@@ -11,10 +11,7 @@ export const env = createEnv({
     AUDIO_CONCAT_WORKER_TOKEN: z.string().min(1).optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     /** Comma-separated bundle/package IDs (e.g. "com.example.app,com.example.app.preview") */
-    APP_IDS: z
-      .string()
-      .min(1)
-      .transform((s) => s.split(',').map((id) => id.trim())),
+    APP_IDS: z.string().min(1),
     TEAM_ID: z.string().min(1),
     ANDROID_SHA256_FINGERPRINT: z.string().min(1)
   },
@@ -34,3 +31,5 @@ export const env = createEnv({
   },
   skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === 'lint'
 });
+
+export const appIds = env.APP_IDS.split(',').map((id) => id.trim());

@@ -1,10 +1,10 @@
-import { env } from '@/lib/env';
+import { appIds, env } from '@/lib/env';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-static';
 
 export function GET() {
-  const qualifiedIds = env.APP_IDS.map((id) => `${env.TEAM_ID}.${id}`);
+  const qualifiedIds = appIds.map((id) => `${env.TEAM_ID}.${id}`);
   const paths = ['/*/reset-password', '/*/registration-confirmation'];
 
   return NextResponse.json(
