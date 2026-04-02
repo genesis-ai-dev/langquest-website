@@ -1,6 +1,5 @@
 import JSZip from 'jszip';
 import Papa from 'papaparse';
-import { env } from './env';
 
 export interface ValidationResult {
   isValid: boolean;

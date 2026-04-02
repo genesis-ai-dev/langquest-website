@@ -1,9 +1,10 @@
-import { appIds, env } from '@/lib/env';
+import { env } from '@/lib/env';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-static';
 
 export function GET() {
+  const appIds = env.APP_IDS.split(',').map((id) => id.trim());
   const entries = appIds.map((id) => ({
     relation: [
       'delegate_permission/common.handle_all_urls',

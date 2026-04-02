@@ -31,5 +31,3 @@ export const env = createEnv({
   },
   skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === 'lint'
 });
-
-export const appIds = env.APP_IDS.split(',').map((id) => id.trim());
