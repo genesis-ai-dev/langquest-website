@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { DisplayNode } from './template-strategies';
 import { AssetLabelBadge } from './asset-label-badge';
-import { QuestExplorerAssetCard } from './quest-explorer-asset-card';
+import { AssetCard } from './asset-card';
 
 interface AssetsContainerProps {
   title: string;
@@ -91,7 +91,7 @@ export function AssetsContainer({
             return (
               <div key={asset.id}>
                 {shouldShowLabel && <AssetLabelBadge text={resolved} />}
-                <QuestExplorerAssetCard
+                <AssetCard
                   asset={asset}
                   onClick={() => onOpenAsset(asset.id)}
                 />

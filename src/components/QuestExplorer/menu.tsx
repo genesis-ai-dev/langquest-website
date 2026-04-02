@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Spinner } from '@/components/spinner';
@@ -23,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   useAssetDetails,
   useCreateBibleChapter,
@@ -51,7 +51,7 @@ import { QuestCard } from './quest-card';
 import { AssetsContainer } from './assets-container';
 import { QuestMenuPlus } from './quest-menu-plus';
 import { SubQuestMenuPlus } from './subquest-menu-plus';
-import { ArrowLeft, ChevronRight, FolderOpen } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FolderOpen, ListOrdered } from 'lucide-react';
 
 interface QuestExplorerMenuProps {
   projectId: string;
@@ -397,24 +397,27 @@ export function QuestExplorerMenu({
   };
 
   const handleSelectVersion = (versionQuestId: string) => {
-    setSelectedMiddleNode((prev) => {
-      if (!prev?.variants || prev.variants.length <= 1) {
-        return prev;
-      }
+    const baseNode =
+      selectedMiddleNodeResolved ||
+      (selectedMiddleNode
+        ? middleNodes.find((node) => node.key === selectedMiddleNode.key) || null
+        : null);
+    if (!baseNode?.variants || baseNode.variants.length <= 1) {
+      return;
+    }
 
-      const selectedQuest =
-        prev.variants.find((quest) => quest.id === versionQuestId) || null;
-      if (!selectedQuest) {
-        return prev;
-      }
+    const selectedQuest =
+      baseNode.variants.find((quest) => quest.id === versionQuestId) || null;
+    if (!selectedQuest) {
+      return;
+    }
 
-      return {
-        ...prev,
-        questId: selectedQuest.id,
-        quest: selectedQuest,
-        versionName: getQuestVersionName(selectedQuest),
-        disabled: getQuestDisabledFlag(selectedQuest)
-      };
+    setSelectedMiddleNode({
+      ...baseNode,
+      questId: selectedQuest.id,
+      quest: selectedQuest,
+      versionName: getQuestVersionName(selectedQuest),
+      disabled: getQuestDisabledFlag(selectedQuest)
     });
     setSelectedAssetId(null);
   };
@@ -560,6 +563,10 @@ export function QuestExplorerMenu({
     [selectedContentNode]
   );
   const showVersionSelector = selectedContentVariants.length > 1;
+  const reorderQuestId = selectedContentNode?.questId || null;
+  const reorderHref = reorderQuestId
+    ? `/portal/acl-reorder?projectId=${projectId}&questId=${reorderQuestId}${environment !== 'production' ? `&env=${environment}` : ''}`
+    : null;
 
   const middleHeaderNode = contextNode;
 
@@ -695,7 +702,7 @@ export function QuestExplorerMenu({
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="scroll-thin-soft flex-1 min-h-0 overflow-y-auto">
               {isLoading ? (
                 <div className="py-12 flex justify-center">
                   <Spinner className="text-primary h-6 w-6" />
@@ -783,7 +790,7 @@ export function QuestExplorerMenu({
                   </span>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="scroll-thin-soft flex-1 min-h-0 overflow-y-auto">
                   {contextNode ? (
                     <SubquestList
                       nodes={middleNodes}
@@ -812,6 +819,25 @@ export function QuestExplorerMenu({
                       ) : null}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {reorderHref && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
+                        >
+                          <Link href={reorderHref} className="flex items-center gap-2">
+                            <ListOrdered className="h-4 w-4" />
+                            Reorder & Export
+                            <Badge
+                              variant="outline"
+                              className="ml-1 border-amber-500/60 text-[10px] px-1.5 py-0"
+                            >
+                              Beta
+                            </Badge>
+                          </Link>
+                        </Button>
+                      )}
                       {showVersionSelector && selectedContentNode && (
                         <Select
                           value={selectedContentNode.questId || ''}
@@ -871,8 +897,8 @@ export function QuestExplorerMenu({
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0">
-                  <ScrollArea className="h-full pr-2">
+                <div className="scroll-thin-soft flex-1 min-h-0 overflow-y-auto">
+                  <div className="pr-2">
                     {!selectedContentNode ? (
                       <div className="text-sm text-muted-foreground py-8 text-center">
                         {copy.rightSelectMessageByContext?.(contextNode) ||
@@ -913,7 +939,7 @@ export function QuestExplorerMenu({
                         />
                       </div>
                     )}
-                  </ScrollArea>
+                  </div>
                 </div>
               </div>
             </div>

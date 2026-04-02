@@ -5,15 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { FileText, Image as ImageIcon, Languages, Volume2 } from 'lucide-react';
 
-interface QuestExplorerAssetCardProps {
+interface AssetCardProps {
   asset: AssetSummary;
   onClick?: () => void;
 }
 
-export function QuestExplorerAssetCard({
-  asset,
-  onClick
-}: QuestExplorerAssetCardProps) {
+export function AssetCard({ asset, onClick }: AssetCardProps) {
   const hasText = !!asset.content?.some((item) => item.text?.trim());
   const hasImage = !!asset.images?.length;
   const hasAudio = !!asset.content?.some((item) => !!item.audio);
@@ -28,9 +25,9 @@ export function QuestExplorerAssetCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'group w-full text-left rounded-lg border border-border/60',
+        'group h-[88px] min-h-[88px] max-h-[88px] w-full text-left rounded-lg border border-border/60',
         'hover:border-primary/40 hover:bg-accent/30 transition-all duration-150',
-        'flex flex-row items-center gap-0 overflow-hidden'
+        'flex flex-row items-stretch gap-0 overflow-hidden'
       )}
     >
       {/* Left: type icon column */}
@@ -45,7 +42,7 @@ export function QuestExplorerAssetCard({
       </div>
 
       {/* Center: main content */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1 px-3 py-2.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 justify-between overflow-hidden px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-medium leading-tight">
             {asset.name || 'Untitled asset'}
@@ -55,11 +52,9 @@ export function QuestExplorerAssetCard({
           </span>
         </div>
 
-        {preview && (
-          <p className="line-clamp-1 text-xs text-muted-foreground">
-            {preview}
-          </p>
-        )}
+        <p className="line-clamp-1 min-h-4 text-xs text-muted-foreground">
+          {preview || '\u00A0'}
+        </p>
 
         <div className="flex items-center justify-between gap-2 pt-0.5">
           <div className="flex flex-wrap gap-1">
