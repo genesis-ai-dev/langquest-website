@@ -13,7 +13,6 @@ interface QuestExplorerProps {
   userPermission: any;
 }
 
-// Tipo para representar uma quest com estrutura hierárquica
 export interface Quest {
   id: string;
   name: string;

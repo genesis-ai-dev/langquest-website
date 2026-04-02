@@ -27,13 +27,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   useAssetDetails,
   useCreateBibleChapter,
+  useCreateFiaPericope,
+  useFiaPericopes,
   useQuestAssets,
   useQuestTree
 } from '@/app/db/useQuestExplorerQueries';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { getChildrenNodes, getRootNodes } from './model';
-import { DisplayNode, getTemplateStrategy } from './template-strategies';
+import {
+  DisplayNode,
+  TemplateStrategyContext,
+  getTemplateStrategy
+} from './template-strategies';
 import {
   getQuestDisabledFlag,
   getQuestVersionLabel,
@@ -67,6 +73,16 @@ interface PendingBibleChapter {
   existingBookQuestId?: string | null;
 }
 
+interface PendingFiaPericope {
+  node: DisplayNode;
+  bookName: string;
+  bookId: string;
+  pericopeId: string;
+  sequence: number;
+  verseRange: string;
+  existingBookQuestId?: string | null;
+}
+
 export function QuestExplorerMenu({
   projectId,
   userPermission,
@@ -94,6 +110,8 @@ export function QuestExplorerMenu({
   });
   const { data, isLoading } = useQuestTree(projectId);
   const createBibleChapterMutation = useCreateBibleChapter();
+  const createFiaPericopeMutation = useCreateFiaPericope();
+  const { data: fiaPericopes } = useFiaPericopes(projectId, template === 'fia');
 
   const [activeRootNode, setActiveRootNode] = useState<DisplayNode | null>(
     null
@@ -108,6 +126,10 @@ export function QuestExplorerMenu({
   const [pendingBibleChapter, setPendingBibleChapter] =
     useState<PendingBibleChapter | null>(null);
   const [showChapterConfirmModal, setShowChapterConfirmModal] = useState(false);
+  const [pendingFiaPericope, setPendingFiaPericope] =
+    useState<PendingFiaPericope | null>(null);
+  const [showFiaPericopeConfirmModal, setShowFiaPericopeConfirmModal] =
+    useState(false);
 
   const templateStrategy = useMemo(
     () => getTemplateStrategy(template),
@@ -146,11 +168,17 @@ export function QuestExplorerMenu({
       copy.msgSelectQuestForNewVersion
     ]
   );
+  const strategyContext = useMemo<TemplateStrategyContext>(
+    () => ({
+      fiaPericopes
+    }),
+    [fiaPericopes]
+  );
 
   const roots = data?.roots || [];
   const rawRootNodes = useMemo(
-    () => getRootNodes(template, roots),
-    [template, roots]
+    () => getRootNodes(template, roots, strategyContext),
+    [template, roots, strategyContext]
   );
   const rootNodes = useMemo(
     () =>
@@ -173,8 +201,8 @@ export function QuestExplorerMenu({
     userPermission?.membership === 'admin';
 
   const rawMiddleNodes = useMemo(
-    () => getChildrenNodes(template, contextNode),
-    [template, contextNode]
+    () => getChildrenNodes(template, contextNode, strategyContext),
+    [template, contextNode, strategyContext]
   );
   const middleNodes = useMemo(
     () =>
@@ -283,6 +311,33 @@ export function QuestExplorerMenu({
         existingBookQuestId: contextNode?.questId || null
       });
       setShowChapterConfirmModal(true);
+      return;
+    }
+
+    if (
+      templateStrategy.id === 'fia' &&
+      node.kind === 'pericope' &&
+      !node.questId
+    ) {
+      if (
+        !node.book ||
+        !node.pericopeId ||
+        !node.pericopeSequence ||
+        !node.pericopeVerseRange
+      ) {
+        return;
+      }
+
+      setPendingFiaPericope({
+        node,
+        bookName: contextNode?.title || node.book.name,
+        bookId: node.book.id,
+        pericopeId: node.pericopeId,
+        sequence: node.pericopeSequence,
+        verseRange: node.pericopeVerseRange,
+        existingBookQuestId: contextNode?.questId || null
+      });
+      setShowFiaPericopeConfirmModal(true);
       return;
     }
 
@@ -429,6 +484,66 @@ export function QuestExplorerMenu({
       setPendingBibleChapter(null);
     } catch {
       toast.error('Failed to create chapter quest');
+    }
+  };
+
+  const handleConfirmFiaPericope = async () => {
+    if (!pendingFiaPericope) {
+      return;
+    }
+
+    try {
+      const result = await createFiaPericopeMutation.mutateAsync({
+        projectId,
+        bookId: pendingFiaPericope.bookId,
+        bookName: pendingFiaPericope.bookName,
+        pericopeId: pendingFiaPericope.pericopeId,
+        sequence: pendingFiaPericope.sequence,
+        verseRange: pendingFiaPericope.verseRange,
+        existingBookQuestId: pendingFiaPericope.existingBookQuestId
+      });
+
+      setContextNode((prev) =>
+        prev
+          ? {
+              ...prev,
+              questId: result.bookQuestId
+            }
+          : prev
+      );
+
+      const createdAt = new Date().toISOString();
+      const createdQuest = {
+        id: result.pericopeQuestId,
+        name: `${pendingFiaPericope.bookName} ${pendingFiaPericope.verseRange}`,
+        description: pendingFiaPericope.verseRange,
+        metadata: {
+          fia: {
+            bookId: pendingFiaPericope.bookId,
+            pericopeId: pendingFiaPericope.pericopeId,
+            verseRange: pendingFiaPericope.verseRange
+          }
+        },
+        parent_id: result.bookQuestId,
+        created_at: createdAt,
+        children: []
+      };
+
+      setSelectedMiddleNode({
+        ...pendingFiaPericope.node,
+        questId: result.pericopeQuestId,
+        quest: createdQuest,
+        variants: [createdQuest],
+        versionName: undefined
+      });
+
+      toast.success(
+        `Created ${pendingFiaPericope.bookName} ${pendingFiaPericope.verseRange}`
+      );
+      setShowFiaPericopeConfirmModal(false);
+      setPendingFiaPericope(null);
+    } catch {
+      toast.error('Failed to create pericope quest');
     }
   };
 
@@ -688,7 +803,14 @@ export function QuestExplorerMenu({
               <div className="lg:col-span-6 flex flex-col min-h-0 border-t lg:border-t-0 lg:border-l">
                 <div className="px-4 py-3 border-b">
                   <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="truncate">{contentTitle}</CardTitle>
+                    <div className="min-w-0">
+                      <CardTitle className="truncate">{contentTitle}</CardTitle>
+                      {selectedContentNode?.quest?.description ? (
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {selectedContentNode.quest.description}
+                        </p>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {showVersionSelector && selectedContentNode && (
                         <Select
@@ -847,6 +969,42 @@ export function QuestExplorerMenu({
             <Button
               onClick={handleConfirmBibleChapter}
               disabled={createBibleChapterMutation.isPending}
+            >
+              Create
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showFiaPericopeConfirmModal}
+        onOpenChange={setShowFiaPericopeConfirmModal}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Pericope Quest</DialogTitle>
+            <DialogDescription>
+              Do you want to create{' '}
+              <b>
+                {pendingFiaPericope?.bookName} - Pericope{' '}
+                {pendingFiaPericope?.sequence}
+              </b>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowFiaPericopeConfirmModal(false);
+                setPendingFiaPericope(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmFiaPericope}
+              disabled={createFiaPericopeMutation.isPending}
             >
               Create
             </Button>

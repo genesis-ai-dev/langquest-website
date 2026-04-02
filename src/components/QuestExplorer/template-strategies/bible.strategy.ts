@@ -1,8 +1,5 @@
 import { QuestRecord } from '@/app/db/questExplorer';
-import {
-  BIBLE_BOOKS,
-  ICONS_PATH
-} from '@/components/QuestExplorerTemplates/bibleComponents/template';
+import { BIBLE_BOOKS, ICONS_PATH } from './bible.template';
 import { getQuestDisabledFlag, getQuestVersionName } from './helpers';
 import { DisplayNode, TemplateStrategy } from './types';
 

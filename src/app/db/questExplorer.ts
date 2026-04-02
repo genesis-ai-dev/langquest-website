@@ -398,3 +398,90 @@ export async function createBibleChapterQuest(
     chapterQuestId: chapterQuest.id as string
   };
 }
+
+export interface CreateFiaPericopeParams {
+  projectId: string;
+  userId?: string;
+  bookId: string;
+  bookName: string;
+  pericopeId: string;
+  sequence: number;
+  verseRange: string;
+  existingBookQuestId?: string | null;
+}
+
+export interface CreateFiaPericopeResult {
+  bookQuestId: string;
+  pericopeQuestId: string;
+}
+
+export async function createFiaPericopeQuest(
+  supabase: SupabaseClient,
+  params: CreateFiaPericopeParams
+): Promise<CreateFiaPericopeResult> {
+  const {
+    projectId,
+    userId,
+    bookId,
+    bookName,
+    pericopeId,
+    sequence,
+    verseRange,
+    existingBookQuestId
+  } = params;
+
+  let bookQuestId = existingBookQuestId || '';
+
+  if (!bookQuestId) {
+    const { data: bookQuest, error: bookError } = await supabase
+      .from('quest')
+      .insert({
+        name: bookName,
+        description: null,
+        project_id: projectId,
+        parent_id: null,
+        metadata: {
+          fia: {
+            bookId
+          }
+        },
+        creator_id: userId
+      })
+      .select()
+      .single();
+
+    if (bookError) {
+      throw bookError;
+    }
+
+    bookQuestId = bookQuest.id as string;
+  }
+
+  const { data: pericopeQuest, error: pericopeError } = await supabase
+    .from('quest')
+    .insert({
+      name: `${bookName} ${verseRange}`,
+      description: verseRange,
+      project_id: projectId,
+      parent_id: bookQuestId,
+      metadata: {
+        fia: {
+          bookId,
+          pericopeId,
+          verseRange
+        }
+      },
+      creator_id: userId
+    })
+    .select()
+    .single();
+
+  if (pericopeError) {
+    throw pericopeError;
+  }
+
+  return {
+    bookQuestId,
+    pericopeQuestId: pericopeQuest.id as string
+  };
+}
