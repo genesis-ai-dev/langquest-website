@@ -16,7 +16,7 @@ import {
   ListOrdered
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
-import { useAuth } from '@/components/auth-provider';
+
 import { ProjectDownloadButton } from './new-project-download-button';
 import { ProjectMembersModal } from './new-project-members';
 
@@ -34,8 +34,7 @@ export function ProjectHeaderV1({
   translationsCount
 }: ProjectHeaderV1Props) {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-  const { environment } = useAuth();
-  const aclReorderHref = `/portal/acl-reorder?projectId=${project.id}${environment !== 'production' ? `&env=${environment}` : ''}`;
+  const aclReorderHref = `/portal/acl-reorder?projectId=${project.id}`;
 
   return (
     <div className="space-y-6">

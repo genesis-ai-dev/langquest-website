@@ -36,16 +36,11 @@ import {
 } from '@/components/ui/dialog';
 
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SupabaseEnvironment } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulkUpload } from '@/components/new-bulk-upload';
 
-import { env } from '@/lib/env';
-// import { UserProfile } from '@/components/user-profile';
 import { Link } from '@/i18n/navigation';
 import { PortalHeader } from '@/components/portal-header';
 
@@ -66,9 +61,6 @@ export default function AdminPage() {
 function AdminContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment =
-    envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
   const { user, isLoading, signOut } = useAuth();
 
   const [cloningByProjectId, setCloningByProjectId] = useState<
@@ -131,10 +123,8 @@ function AdminContent() {
   // Poll in-progress clone jobs and map to destination project ids
   useEffect(() => {
     if (!user) return;
-    // clone_job exists only in preview; skip polling elsewhere to avoid 404 noise
-    // if (environment !== 'preview') return;
 
-    const supabase = createBrowserClient(environment);
+    const supabase = createBrowserClient();
     let isCancelled = false;
     const tick = async () => {
       const { data } = await supabase
@@ -165,16 +155,13 @@ function AdminContent() {
       isCancelled = true;
       clearInterval(id);
     };
-  }, [environment, user]);
+  }, [user]);
 
-  // Function to update URL with current state
-
-  // Check authentication for the specific environment
   useEffect(() => {
     if (!isLoading && !user) {
-      window.location.href = `/login?redirectTo=/portal${environment !== 'production' ? `?env=${environment}` : ''}&env=${environment}`;
+      window.location.href = '/login?redirectTo=/portal';
     }
-  }, [user, isLoading, environment]);
+  }, [user, isLoading]);
 
   // Fetch projects with ownership information
   const {
@@ -182,30 +169,11 @@ function AdminContent() {
     isLoading: projectsLoading,
     refetch: refetchProjects
   } = useQuery({
-    queryKey: ['admin-projects', user?.id, environment],
+    queryKey: ['admin-projects', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // const { data, error } = await createBrowserClient(environment)
-      //   .from('project')
-      //   .select(
-      //     `
-      //     id,
-      //     name,
-      //     description,
-      //     template,
-      //     creator_id,
-      //     target_language:target_language_id(english_name),
-      //     quests:quest(id),
-      //     profile_project_link(
-      //       membership,
-      //       active,
-      //       profile_id
-      //     )
-      //   `
-      //   )
-      //   .order('name');
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from('project')
         .select(
           `
@@ -296,9 +264,7 @@ function AdminContent() {
 
   // Navigation handlers with URL updates
   const handleSelectProject = (project: any) => {
-    // Redirect to individual project page
-    const envQuery = environment !== 'production' ? `?env=${environment}` : '';
-    router.push(`/project/${project.id}${envQuery}`);
+    router.push(`/project/${project.id}`);
   };
 
   // Clone project handler
@@ -335,7 +301,7 @@ function AdminContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader environment={environment} user={user} onSignOut={signOut} />
+      <PortalHeader user={user} onSignOut={signOut} />
 
       <div className="container p-6 max-w-screen-xl mx-auto">
         <div className="flex flex-col gap-6">
@@ -352,7 +318,7 @@ function AdminContent() {
               className="mt-3 flex items-center gap-2 w-fit border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
             >
               <Link
-                href={`/portal/acl-reorder${environment !== 'production' ? `?env=${environment}` : ''}`}
+                href="/portal/acl-reorder"
                 className="flex items-center gap-2"
               >
                 <ListOrdered className="h-4 w-4" />
@@ -366,22 +332,6 @@ function AdminContent() {
               </Link>
             </Button>
           </div>
-
-          {/* Environment Notice */}
-          {environment !== 'production' && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Non-Production Environment</AlertTitle>
-              <AlertDescription>
-                You are currently working in the <strong>{environment}</strong>{' '}
-                environment. Data created here is separate from production.
-                {environment === 'preview' &&
-                  ' This is the staging/test environment.'}
-                {environment === 'development' &&
-                  ' This requires a local Supabase instance.'}
-              </AlertDescription>
-            </Alert>
-          )}
         </div>
 
         {/* Main Content Area */}
@@ -521,18 +471,16 @@ function AdminContent() {
                                       <Badge variant="secondary">
                                         {project.quests?.length || 0} Quest(s)
                                       </Badge>
-                                      {environment !== 'production' && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCloneProject(project.id);
-                                          }}
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
-                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCloneProject(project.id);
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
                                     </>
                                   )}
                                 </div>
@@ -614,18 +562,16 @@ function AdminContent() {
                                       <Badge variant="secondary">
                                         {project.quests?.length || 0} Quest(s)
                                       </Badge>
-                                      {environment !== 'production' && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCloneProject(project.id);
-                                          }}
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
-                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCloneProject(project.id);
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
                                     </>
                                   )}
                                 </div>

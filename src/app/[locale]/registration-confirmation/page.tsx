@@ -4,6 +4,7 @@ import { getQueryParams } from '@/lib/supabase-query-params';
 import { isMobile } from '@/lib/utils';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { Spinner } from '@/components/spinner';
+import { env } from '@/lib/env';
 import { useTranslations } from 'next-intl';
 
 export default function RegistrationConfirmationPage() {
@@ -77,7 +78,7 @@ function RegistrationConfirmation() {
       }
 
       // Mobile deep linking
-      const deepLink = `langquest:///#access_token=${access_token}&refresh_token=${refresh_token}`;
+      const deepLink = `${env.NEXT_PUBLIC_APP_SCHEME}:///#access_token=${access_token}&refresh_token=${refresh_token}`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
 

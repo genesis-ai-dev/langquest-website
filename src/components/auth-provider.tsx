@@ -10,17 +10,13 @@ import {
 } from 'react';
 import { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { SupabaseEnvironment } from '@/lib/supabase';
-import router from 'next/router';
-import { env } from '@/lib/env';
+import { usePathname } from 'next/navigation';
 
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
-  environment: SupabaseEnvironment;
   supabase: SupabaseClient;
 };
 
@@ -29,7 +25,6 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isLoading: false,
   signOut: async () => {},
-  environment: 'production',
   supabase: createBrowserClient()
 });
 
@@ -41,53 +36,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  // Determine environment from URL params
-  const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const projectRef = searchParams.get('project_ref') as SupabaseEnvironment;
-
-  const environment: SupabaseEnvironment =
-    projectRef || envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
-  // const envFromProjectRef = projectRef
-  //   ? getSupabaseEnvironment(projectRef)
-  //   : null;
-
-  // const environment: SupabaseEnvironment =
-  //   envParam || envFromProjectRef || 'production';
-
-  console.log('[AUTH PROVIDER] Environment:', environment);
-
-  // Create environment-specific supabase client (memoized to ensure stability)
-  const supabase = useMemo(() => {
-    console.log(
-      '[AUTH PROVIDER] Creating supabase client for environment:',
-      environment
-    );
-    return createBrowserClient(environment);
-  }, [environment]);
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   useEffect(() => {
     let mounted = true;
 
-    // Get the initial session
     const getInitialSession = async () => {
       try {
-        console.log(
-          '[AUTH PROVIDER] Getting initial session for environment:',
-          environment
-        );
-        const supabase = createBrowserClient(environment);
         const {
           data: { session }
         } = await supabase.auth.getSession();
-
-        console.log(
-          '[AUTH PROVIDER] Session:',
-          session ? 'Found' : 'Not found',
-          'for environment:',
-          environment
-        );
 
         if (mounted) {
           setSession(session);
@@ -106,17 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession();
 
-    // Listen for auth changes
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log(
-        '[AUTH PROVIDER] Auth state changed:',
-        _event,
-        'for environment:',
-        environment
-      );
-
       if (mounted) {
         setSession(session);
         setUser(session?.user ?? null);
@@ -128,32 +79,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [environment, supabase.auth]); // Re-run when environment changes
+  }, [supabase]);
 
   const signOut = useCallback(async () => {
     try {
-      console.log('[AUTH PROVIDER] Signing out from environment:', environment);
-
       setIsLoading(true);
       await supabase.auth.signOut();
-      router.replace(`/?env=${environment}`);
       setUser(null);
       setSession(null);
 
-      // After signing out, redirect to home page with environment param
-      console.log('[AUTH PROVIDER] Current pathname:', pathname);
-
       if (pathname !== '/') {
-        console.log('[AUTH PROVIDER] Redirecting to home after signout');
-        router.push(`/`);
-        // window.location.href = `/?env=${environment}`;
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('[AUTH PROVIDER] Error signing out:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, environment, pathname]);
+  }, [supabase, pathname]);
 
   const value = useMemo(
     () => ({
@@ -161,10 +104,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       isLoading: isLoading || !isInitialized,
       signOut,
-      environment,
       supabase
     }),
-    [user, session, isLoading, isInitialized, environment, supabase, signOut]
+    [user, session, isLoading, isInitialized, supabase, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

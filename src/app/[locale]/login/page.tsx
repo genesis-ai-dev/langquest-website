@@ -16,12 +16,8 @@ import {
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SupabaseEnvironment } from '@/lib/supabase';
 import Link from 'next/link';
-import { EnvironmentBadge } from '@/components/environment-badge';
-import { env } from '@/lib/env';
 
-// Main component that serves as the page
 export default function LoginPage() {
   return (
     <Suspense
@@ -36,7 +32,6 @@ export default function LoginPage() {
   );
 }
 
-// Client component with all the login logic
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,16 +42,9 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const searchParams = useSearchParams();
-  const redirectTo =
-    searchParams.get('redirectTo') ||
-    //    `/admin${searchParams.get('env') && searchParams.get('env') !== 'production' ? `?env=${searchParams.get('env')}` : ''}`;
-    `/portal${searchParams.get('env') && searchParams.get('env') !== env.NEXT_PUBLIC_ENVIRONMENT ? `?env=${searchParams.get('env')}` : ''}`;
-  const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment =
-    envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
+  const redirectTo = searchParams.get('redirectTo') || '/portal';
   const [activeTab, setActiveTab] = useState('login');
 
-  // Load remember me state from localStorage on component mount
   useEffect(() => {
     const savedRememberMe = localStorage.getItem('rememberMe');
     if (savedRememberMe === 'true') {
@@ -64,12 +52,10 @@ function LoginForm() {
     }
   }, []);
 
-  // Save remember me state to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('rememberMe', rememberMe.toString());
   }, [rememberMe]);
 
-  // Clear form when switching tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'login') {
@@ -83,19 +69,19 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
-        toast.error(`Login failed in ${environment}: ${error.message}`);
+        toast.error(`Login failed: ${error.message}`);
         setIsLoading(false);
         return;
       }
 
-      toast.success(`Logged in successfully to ${environment} environment`);
+      toast.success('Logged in successfully');
       setRedirecting(true);
 
       setTimeout(() => {
@@ -111,19 +97,16 @@ function LoginForm() {
     e.preventDefault();
     if (isLoading || redirecting) return;
 
-    // Validate terms acceptance
     if (!termsAccepted) {
       toast.error('Please accept the terms and conditions to continue');
       return;
     }
 
-    // Validate password confirmation
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
@@ -132,7 +115,7 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -142,7 +125,7 @@ function LoginForm() {
             terms_accepted: termsAccepted,
             terms_accepted_at: new Date().toISOString()
           },
-          emailRedirectTo: `${window.location.origin}/login?redirectTo=${redirectTo}&env=${environment}`
+          emailRedirectTo: `${window.location.origin}/login?redirectTo=${redirectTo}`
         }
       });
 
@@ -159,19 +142,6 @@ function LoginForm() {
     }
   };
 
-  // const envColors = {
-  //   production: 'bg-green-500',
-  //   preview: 'bg-yellow-500',
-  //   development: 'bg-blue-500'
-  // };
-
-  const environments: SupabaseEnvironment[] = [
-    'production',
-    'preview',
-    'development'
-  ];
-  const otherEnvironments = environments.filter((env) => env !== environment);
-
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
       <Card className="w-full max-w-md">
@@ -180,9 +150,6 @@ function LoginForm() {
           <CardDescription>
             Sign in or create an account to manage your projects
           </CardDescription>
-          <div className="flex justify-center items-center">
-            <EnvironmentBadge environment={environment} />
-          </div>
         </CardHeader>
         <CardContent>
           <Tabs
@@ -357,24 +324,6 @@ function LoginForm() {
               </form>
             </TabsContent>
           </Tabs>
-          {env.NEXT_PUBLIC_ENVIRONMENT == 'development' && (
-            <div className="mt-4 pt-4 border-t text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Login to a different environment:
-              </p>
-              <div className="flex gap-2 justify-center">
-                {otherEnvironments.map((env) => (
-                  <Link
-                    key={env}
-                    href={`/login?env=${env}`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {env.charAt(0).toUpperCase() + env.slice(1)}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

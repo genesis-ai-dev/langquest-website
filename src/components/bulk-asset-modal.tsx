@@ -40,7 +40,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { TagSelector } from '@/components/tag-selector';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { getSupabaseCredentials } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
@@ -106,7 +105,7 @@ export function BulkAssetModal({
   const { user } = useAuth();
 
   const supabase = createBrowserClient();
-  const credentials = getSupabaseCredentials('production');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
   // Clean up object URLs and local files when modal closes
   useEffect(() => {
@@ -618,7 +617,7 @@ export function BulkAssetModal({
                                             setPreviewImageUrl(localUrl);
                                           } else {
                                             // Fallback to server URL for existing files
-                                            const imageUrl = `${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${imageId}`;
+                                            const imageUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${imageId}`;
                                             setPreviewImageUrl(imageUrl);
                                           }
                                           setImagePreviewOpen(true);
@@ -839,7 +838,6 @@ export function BulkAssetModal({
                 onTagsChange={(tags) =>
                   handleTagsUpdate(currentAssetIndex, tags)
                 }
-                environment="production"
                 allowTagCreation={true}
               />
               <div className="flex justify-end gap-2 mt-4">
@@ -867,7 +865,6 @@ export function BulkAssetModal({
             <TagSelector
               selectedTags={globalTags}
               onTagsChange={handleGlobalTagsUpdate}
-              environment="development"
               allowTagCreation={true}
             />
             <div className="flex justify-end gap-2 mt-4">

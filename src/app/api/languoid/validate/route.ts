@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { languages, environment } = body;
+    const { languages } = body;
 
     if (!languages || !Array.isArray(languages)) {
       return NextResponse.json(
@@ -25,10 +24,8 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = authHeader.substring(7);
-    const envAux = (environment ||
-      env.NEXT_PUBLIC_ENVIRONMENT ||
-      'production') as SupabaseEnvironment;
-    const { url, key } = getSupabaseCredentials(envAux);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const supabaseAuth = createClient(url, key);
     const {

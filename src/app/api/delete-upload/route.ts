@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../../../../database.types';
 import { env } from '@/lib/env';
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { uploadPath, environment } = await request.json();
+    const { uploadPath } = await request.json();
 
     if (!uploadPath) {
       return NextResponse.json(
@@ -25,10 +24,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // const accessToken = authHeader.substring(7);
-    const envAux = (environment ||
-      env.NEXT_PUBLIC_ENVIRONMENT ||
-      'production') as SupabaseEnvironment;
-    const { url, key } = getSupabaseCredentials(envAux);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     // Create Supabase client with service role key for admin operations
     const supabase = createClient<Database>(url, key);

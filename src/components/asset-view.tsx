@@ -25,7 +25,6 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './ui/dialog';
 import { useAuth } from '@/components/auth-provider';
-import { getSupabaseCredentials } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
@@ -223,8 +222,7 @@ function AudioPlayer({ src, className = '' }: AudioPlayerProps) {
 
 export function AssetView({ asset }: AssetViewProps) {
   const t = useTranslations('data_view');
-  const { environment } = useAuth();
-  const credentials = getSupabaseCredentials(environment);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
   console.log('Rendering AssetView for asset:', asset);
 
@@ -319,7 +317,7 @@ export function AssetView({ asset }: AssetViewProps) {
                             <DialogTrigger asChild>
                               <div className="relative aspect-video rounded-xl overflow-hidden bg-muted cursor-pointer group">
                                 <img
-                                  src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
+                                  src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
                                   alt={`${asset.name} - Image ${index + 1}`}
                                   className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105"
                                 />
@@ -333,7 +331,7 @@ export function AssetView({ asset }: AssetViewProps) {
                                 {asset.name} - Image {index + 1}
                               </DialogTitle>
                               <img
-                                src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
+                                src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
                                 alt={`${asset.name} - Image ${index + 1}`}
                                 className="w-full h-auto"
                               />
@@ -363,11 +361,11 @@ export function AssetView({ asset }: AssetViewProps) {
                     </p>
                     {Array.isArray(content.audio) && content.audio[0] ? (
                       <AudioPlayer
-                        src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio[0]}`}
+                        src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio[0]}`}
                       />
                     ) : typeof content.audio === 'string' && content.audio ? (
                       <AudioPlayer
-                        src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
+                        src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
                       />
                     ) : null}
                   </div>
@@ -421,7 +419,7 @@ export function AssetView({ asset }: AssetViewProps) {
                             {item.audio ? (
                               <div className="flex-1 min-w-0">
                                 <AudioPlayer
-                                  src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${item.audio}`}
+                                  src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${item.audio}`}
                                 />
                               </div>
                             ) : (
