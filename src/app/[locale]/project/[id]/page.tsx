@@ -167,8 +167,9 @@ function ProjectPageContent() {
   };
 
   const handleBackToProjects = () => {
-    const envQuery = environment !== 'production' ? `?env=${environment}` : '';
-    router.push(`/portal${envQuery}`);
+    // const envQuery = environment !== 'production' ? `?env=${environment}` : '';
+    // router.push(`/portal${envQuery}`);
+    router.push(`/portal`);
   };
 
   // Redirect to login if not authenticated

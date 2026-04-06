@@ -1,9 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createBrowserClient } from '@/lib/supabase/client';
-import { getSupabaseCredentials } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import {
   createBibleChapterQuest,
@@ -117,28 +114,20 @@ function normalizeFiaPericopesResponse(payload: unknown): FiaPericopesResponse {
 }
 
 export function useQuestTree(projectId: string) {
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
 
   return useQuery({
-    queryKey: ['qe-tree', projectId, environment],
+    queryKey: ['qe-tree', projectId],
     enabled: !!projectId && !!user,
     queryFn: () => fetchProjectQuestTree(supabase, projectId)
   });
 }
 
 export function useFiaPericopes(projectId: string, enabled = true) {
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
 
   return useQuery({
-    queryKey: ['qe-fia-pericopes', projectId, environment],
+    queryKey: ['qe-fia-pericopes', projectId],
     enabled: enabled && !!projectId && !!user,
     queryFn: async (): Promise<FiaPericopesResponse | null> => {
       const {
@@ -177,54 +166,45 @@ export function useFiaPericopes(projectId: string, enabled = true) {
         return null;
       }
 
-      const { url: supabaseUrl } = getSupabaseCredentials(
-        environment ?? 'production'
-      );
-      const response = await fetch(`${supabaseUrl}/functions/v1/fia-pericopes`, {
+      const response = await fetch('/api/fia-pericopes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ fiaLanguageCode })
+        body: JSON.stringify({
+          fiaLanguageCode
+        })
       });
 
       if (!response.ok) {
-        const text = await response.text();
+        const errorText = await response.text();
         throw new Error(
-          `Failed to fetch FIA pericopes (${response.status}): ${text || 'Unknown error'}`
+          `Failed to fetch FIA pericopes (${response.status}): ${errorText || 'Unknown error'}`
         );
       }
 
-      const payload = (await response.json()) as unknown;
-      return normalizeFiaPericopesResponse(payload);
+      const data = (await response.json()) as unknown;
+      return normalizeFiaPericopesResponse(data);
     }
   });
 }
 
 export function useQuestAssets(questId: string | null) {
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
 
   return useQuery({
-    queryKey: ['qe-assets', questId, environment],
+    queryKey: ['qe-assets', questId],
     enabled: !!questId && !!user,
     queryFn: () => fetchQuestAssets(supabase, questId || '')
   });
 }
 
 export function useAssetDetails(assetId: string | null) {
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
 
   return useQuery({
-    queryKey: ['qe-asset-details', assetId, environment],
+    queryKey: ['qe-asset-details', assetId],
     enabled: !!assetId && !!user,
     queryFn: () => fetchAssetDetails(supabase, assetId || '')
   });
@@ -251,11 +231,7 @@ interface CreateFiaPericopePayload {
 
 export function useCreateBibleChapter() {
   const queryClient = useQueryClient();
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
 
   return useMutation({
     mutationFn: (payload: CreateBibleChapterPayload) =>
@@ -265,7 +241,7 @@ export function useCreateBibleChapter() {
       }),
     onSuccess: (_data, payload) => {
       queryClient.invalidateQueries({
-        queryKey: ['qe-tree', payload.projectId, environment]
+        queryKey: ['qe-tree', payload.projectId]
       });
     }
   });
@@ -273,11 +249,7 @@ export function useCreateBibleChapter() {
 
 export function useCreateFiaPericope() {
   const queryClient = useQueryClient();
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
 
   return useMutation({
     mutationFn: (payload: CreateFiaPericopePayload) =>
@@ -287,10 +259,10 @@ export function useCreateFiaPericope() {
       }),
     onSuccess: (_data, payload) => {
       queryClient.invalidateQueries({
-        queryKey: ['qe-tree', payload.projectId, environment]
+        queryKey: ['qe-tree', payload.projectId]
       });
       queryClient.invalidateQueries({
-        queryKey: ['qe-fia-pericopes', payload.projectId, environment]
+        queryKey: ['qe-fia-pericopes', payload.projectId]
       });
     }
   });
