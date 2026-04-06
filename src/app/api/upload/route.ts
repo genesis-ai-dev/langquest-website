@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../../../../database.types';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
+import { env } from '@/lib/env';
 import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs'; // necessário para processar FormData
@@ -15,8 +15,6 @@ export async function POST(req: NextRequest) {
     const type = formData.get('type') as string | null;
     const projectId = formData.get('projectId') as string | null;
     const questId = formData.get('questId') as string | null;
-    const environment = formData.get('environment') as string | null;
-
     if (!file) {
       return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     }
@@ -31,8 +29,8 @@ export async function POST(req: NextRequest) {
     }
 
     const accessToken = authHeader.substring(7);
-    const envAux = (environment || 'production') as SupabaseEnvironment;
-    const { url, key } = getSupabaseCredentials(envAux);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const supabaseAuth = createClient<Database>(url, key);
     const {
@@ -84,8 +82,7 @@ export async function POST(req: NextRequest) {
       meta: {
         type,
         projectId,
-        questId,
-        environment
+        questId
       }
     });
   } catch (err) {

@@ -41,7 +41,6 @@ import { Badge } from '@/components/ui/badge';
 import { TagSelector } from '@/components/new-tag-selector';
 import { LanguoidCombobox } from '@/components/languoid-combobox';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { getSupabaseCredentials } from '@/lib/supabase';
 import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
@@ -106,11 +105,11 @@ export function BulkAssetModal({
   const [assetAudioFiles, setAssetAudioFiles] = useState<Record<number, File>>(
     {}
   );
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const supabase = createBrowserClient(environment);
-  const credentials = getSupabaseCredentials(environment);
+  const supabase = createBrowserClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
   // Clean up object URLs and local files when modal closes
   useEffect(() => {
@@ -500,7 +499,7 @@ export function BulkAssetModal({
 
       allQuestIds.forEach((questId) => {
         queryClient.invalidateQueries({
-          queryKey: ['quest-assets', questId, environment]
+          queryKey: ['quest-assets', questId]
         });
       });
 
@@ -757,7 +756,7 @@ export function BulkAssetModal({
                                             setPreviewImageUrl(localUrl);
                                           } else {
                                             // Fallback to server URL for existing files
-                                            const imageUrl = `${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${imageId}`;
+                                            const imageUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${imageId}`;
                                             setPreviewImageUrl(imageUrl);
                                           }
                                           setImagePreviewOpen(true);
@@ -978,7 +977,6 @@ export function BulkAssetModal({
                 onTagsChange={(tags) =>
                   handleTagsUpdate(currentAssetIndex, tags)
                 }
-                environment={environment}
                 allowTagCreation={true}
               />
               <div className="flex justify-end gap-2 mt-4">
@@ -1006,7 +1004,6 @@ export function BulkAssetModal({
             <TagSelector
               selectedTags={globalTags}
               onTagsChange={handleGlobalTagsUpdate}
-              environment={environment}
               allowTagCreation={true}
             />
             <div className="flex justify-end gap-2 mt-4">

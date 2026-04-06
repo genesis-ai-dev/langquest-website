@@ -57,7 +57,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
 
   // Set up form with default values
   const form = useForm<ProjectFormValues>({
@@ -129,7 +129,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
     setIsSubmitting(true);
     try {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const projectData = {
         name: values.name,
         description: values.description || null,
@@ -192,7 +192,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
         // Create project ownership FIRST (required by RLS policy for project_language_link)
         try {
-          await createProjectOwnership(data.id, user.id, environment);
+          await createProjectOwnership(data.id, user.id);
         } catch (ownershipError) {
           console.error('Error creating project ownership:', ownershipError);
           toast.error('Failed to set project ownership');

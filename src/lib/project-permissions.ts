@@ -1,23 +1,19 @@
 import { createBrowserClient } from '@/lib/supabase/client';
-import { SupabaseEnvironment } from '@/lib/supabase';
 
 export async function checkProjectOwnership(
   projectId: string,
-  authUserId: string,
-  environment: SupabaseEnvironment
+  authUserId: string
 ): Promise<boolean> {
   if (!authUserId || !projectId) return false;
 
-  // Owner if creator
-  const projectRes = await createBrowserClient(environment)
+  const projectRes = await createBrowserClient()
     .from('project')
     .select('creator_id')
     .eq('id', projectId)
     .single();
   if (projectRes.data?.creator_id === authUserId) return true;
 
-  // Or owner via ACL link (policy typically allows reading own links)
-  const linkRes = await createBrowserClient(environment)
+  const linkRes = await createBrowserClient()
     .from('profile_project_link')
     .select('membership')
     .eq('project_id', projectId)
@@ -31,18 +27,16 @@ export async function checkProjectOwnership(
 
 export async function canEditProject(
   projectId: string,
-  authUserId: string,
-  environment: SupabaseEnvironment
+  authUserId: string
 ): Promise<boolean> {
-  return checkProjectOwnership(projectId, authUserId, environment);
+  return checkProjectOwnership(projectId, authUserId);
 }
 
 export async function createProjectOwnership(
   projectId: string,
-  authUserId: string,
-  environment: SupabaseEnvironment
+  authUserId: string
 ): Promise<void> {
-  const { error } = await createBrowserClient(environment).rpc(
+  const { error } = await createBrowserClient().rpc(
     'create_project_ownership',
     {
       p_project_id: projectId,

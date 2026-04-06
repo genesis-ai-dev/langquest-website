@@ -1,13 +1,10 @@
 'use client';
 
 import { Suspense, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
 import { PortalHeader } from '@/components/portal-header';
 import { AclReorderView } from '@/components/acl-reorder/AclReorderView';
-import { SupabaseEnvironment } from '@/lib/supabase';
-import { env } from '@/lib/env';
 
 export default function AclReorderPage() {
   return (
@@ -24,18 +21,13 @@ export default function AclReorderPage() {
 }
 
 function AclReorderPageContent() {
-  const searchParams = useSearchParams();
-  const envParam = searchParams.get('env') as SupabaseEnvironment;
-  const environment: SupabaseEnvironment =
-    envParam || env.NEXT_PUBLIC_ENVIRONMENT || 'production';
   const { user, isLoading, signOut } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !user) {
-      const redirectTo = `/portal/acl-reorder${environment !== 'production' ? `?env=${environment}` : ''}`;
-      window.location.href = `/login?redirectTo=${encodeURIComponent(redirectTo)}&env=${environment}`;
+      window.location.href = `/login?redirectTo=${encodeURIComponent('/portal/acl-reorder')}`;
     }
-  }, [user, isLoading, environment]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (
@@ -51,7 +43,7 @@ function AclReorderPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader environment={environment} user={user} onSignOut={signOut} />
+      <PortalHeader user={user} onSignOut={signOut} />
       <div className="container p-4 sm:p-6 max-w-screen-xl mx-auto">
         <h1 className="text-xl sm:text-2xl font-bold mb-2">
           ACL Order Reorder

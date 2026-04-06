@@ -77,7 +77,7 @@ export function QuestsBible({
   selectedQuest
 }: QuestsBibleProps) {
   const queryClient = useQueryClient();
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
 
   // Modal states
@@ -197,7 +197,7 @@ export function QuestsBible({
     if (!pendingChapter) return;
 
     const { bookName, chapterNumber, book } = pendingChapter;
-    const supabase = createBrowserClient(environment);
+    const supabase = createBrowserClient();
 
     try {
       let bookQuestId = book.id;
@@ -341,15 +341,15 @@ export function QuestsBible({
     });
     // Also invalidate asset counts to update the project header
     queryClient.invalidateQueries({
-      queryKey: ['assets-translations-count', projectId, environment]
+      queryKey: ['assets-translations-count', projectId]
     });
     // And invalidate quest-assets query to refresh asset list in quest view
     queryClient.invalidateQueries({
-      queryKey: ['quest-assets', actualQuestId, environment]
+      queryKey: ['quest-assets', actualQuestId]
     });
     if (currentQuestId && currentQuestId !== actualQuestId)
       queryClient.invalidateQueries({
-        queryKey: ['quest-assets', currentQuestId, environment]
+        queryKey: ['quest-assets', currentQuestId]
       });
   };
 
@@ -598,8 +598,8 @@ function QuestContent({
   onAssetSuccess?: (currentQuestId?: string) => void;
 }) {
   const [chaptersQuest, setChaptersQuest] = useState<BibleBookQuest[]>([]);
-  const { user, environment } = useAuth();
-  const supabase = createBrowserClient(environment);
+  const { user } = useAuth();
+  const supabase = createBrowserClient();
 
   const canManage = userRole === 'owner' || userRole === 'admin';
 
@@ -652,7 +652,7 @@ function QuestContent({
 
   // Fetch assets for the selected quest through quest_asset_link
   const { data: questAssets, isLoading: questAssetsLoading } = useQuery({
-    queryKey: ['quest-assets', currentChapterQuestId, environment],
+    queryKey: ['quest-assets', currentChapterQuestId],
     queryFn: async () => {
       if (!currentChapterQuestId) return [];
 
@@ -864,7 +864,7 @@ function QuestContent({
                   className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
                 >
                   <Link
-                    href={`/portal/acl-reorder?projectId=${projectId}&questId=${getMenuQuestId()}${environment !== 'production' ? `&env=${environment}` : ''}`}
+                    href={`/portal/acl-reorder?projectId=${projectId}&questId=${getMenuQuestId()}`}
                     className="flex items-center gap-2"
                   >
                     <ListOrdered className="h-4 w-4" />

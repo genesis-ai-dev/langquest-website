@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/supabase/:project/:path*',
-        destination: 'https://:project.supabase.co/:path*'
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`
       }
     ];
   },

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../../../../../database.types';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import crypto from 'crypto';
 
 interface ExportRequest {
   quest_id: string;
   export_type: 'feedback' | 'distribution';
-  environment?: SupabaseEnvironment;
 }
 
 interface LanguoidSource {
@@ -130,16 +128,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const environment =
-      body.environment || (env.NEXT_PUBLIC_ENVIRONMENT as SupabaseEnvironment);
-    console.log('[Export API] Using environment:', environment);
-    console.log('[Export API] Request environment:', body.environment);
-    console.log(
-      '[Export API] Default environment:',
-      env.NEXT_PUBLIC_ENVIRONMENT
-    );
-    const { url, key } = getSupabaseCredentials(environment);
-    console.log('[Export API] Supabase URL:', url);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const supabaseAuth = createClient<Database>(url, key);
     const {
@@ -493,10 +483,7 @@ export async function POST(request: NextRequest) {
     // Only fetch content links for top-level assets (excluding translations)
     // Note: For published chapters, we need to query the synced table
     // Check if we're in development and need to query synced tables
-    const tableName =
-      environment === 'development'
-        ? 'asset_content_link'
-        : 'asset_content_link';
+    const tableName = 'asset_content_link';
     console.log(
       `[Export API] Querying table: ${tableName} for ${topLevelAssetIds.length} top-level assets`
     );
@@ -541,10 +528,7 @@ export async function POST(request: NextRequest) {
       'local';
 
     // In development, files might be in 'public' bucket with 'local/' prefix
-    const bucketsToTry =
-      environment === 'development'
-        ? ['public', bucketName].filter((b, i, arr) => arr.indexOf(b) === i) // unique buckets
-        : [bucketName];
+    const bucketsToTry = [bucketName];
 
     // Debug: List what's actually in storage
     console.log(`[Export API] Will try buckets:`, bucketsToTry);
@@ -930,9 +914,7 @@ export async function POST(request: NextRequest) {
     // For local dev, use 127.0.0.1 (more reliable than localhost on some systems)
     const workerUrl =
       process.env.AUDIO_CONCAT_WORKER_URL ||
-      (env.NEXT_PUBLIC_ENVIRONMENT === 'development'
-        ? 'http://127.0.0.1:8787'
-        : 'https://langquest-audio-concat.blue-darkness-7674.workers.dev');
+      'https://langquest-audio-concat.blue-darkness-7674.workers.dev';
     console.log('[Export API] Using worker URL:', workerUrl);
     const outputKey = `export-${exportRecord.id}.mp3`;
 

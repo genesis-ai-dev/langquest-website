@@ -40,8 +40,8 @@ export function QuestExplorer({
   };
 
   // Auth and supabase client
-  const { user, environment } = useAuth();
-  const supabase = createBrowserClient(environment);
+  const { user } = useAuth();
+  const supabase = createBrowserClient();
 
   // Calculate userRole from userPermission
   const isOwner = userPermission?.membership === 'owner';
