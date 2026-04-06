@@ -71,7 +71,9 @@ export function SubQuestMenuPlus({
   const canAddQuest = (menuConfig?.allowAddQuest ?? true) && !disableQuests;
   const canAddAssets = menuConfig?.allowAddAssets ?? true;
   const canAddNewVersion =
-    (menuConfig?.allowNewVersion ?? false) && !disableQuests && !!selectedQuestId;
+    (menuConfig?.allowNewVersion ?? false) &&
+    !disableQuests &&
+    !!selectedQuestId;
 
   const invalidateQuestQueries = async () => {
     await Promise.all([
@@ -182,7 +184,12 @@ export function SubQuestMenuPlus({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0" title="Add">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0"
+            title="Add"
+          >
             <Plus className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -278,7 +285,10 @@ export function SubQuestMenuPlus({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showNewVersionConfirm} onOpenChange={setShowNewVersionConfirm}>
+      <Dialog
+        open={showNewVersionConfirm}
+        onOpenChange={setShowNewVersionConfirm}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Version</DialogTitle>
@@ -295,7 +305,10 @@ export function SubQuestMenuPlus({
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateNewVersion} disabled={isCreatingVersion}>
+            <Button
+              onClick={handleCreateNewVersion}
+              disabled={isCreatingVersion}
+            >
               {isCreatingVersion ? 'Creating...' : 'Create Version'}
             </Button>
           </div>
@@ -306,7 +319,9 @@ export function SubQuestMenuPlus({
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Asset</DialogTitle>
-            <DialogDescription>Add a new asset to this quest.</DialogDescription>
+            <DialogDescription>
+              Add a new asset to this quest.
+            </DialogDescription>
           </DialogHeader>
           <AssetForm
             onSuccess={handleAssetSuccess}

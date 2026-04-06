@@ -202,26 +202,26 @@ export async function fetchQuestAssets(
 
   const mappedAssets: Array<AssetSummary | null> = (data || []).map(
     (item: any) => {
-    const value = item?.asset;
-    const asset = Array.isArray(value) ? value[0] : value;
-    if (!asset) return null;
+      const value = item?.asset;
+      const asset = Array.isArray(value) ? value[0] : value;
+      if (!asset) return null;
 
-    return {
-      id: asset.id,
-      name: asset.name,
-      active: asset.active,
-      order_index: asset.order_index ?? null,
-      metadata: parseMetadata(asset.metadata),
-      created_at: asset.created_at,
-      last_updated: asset.last_updated,
-      images: asset.images,
-      content: asset.content || [],
-      tags: (asset.tags || []).map((tagLink: any) => ({
-        tag: Array.isArray(tagLink?.tag) ? tagLink.tag[0] : tagLink?.tag
-      })),
-      translations: asset.translations || []
-    };
-  }
+      return {
+        id: asset.id,
+        name: asset.name,
+        active: asset.active,
+        order_index: asset.order_index ?? null,
+        metadata: parseMetadata(asset.metadata),
+        created_at: asset.created_at,
+        last_updated: asset.last_updated,
+        images: asset.images,
+        content: asset.content || [],
+        tags: (asset.tags || []).map((tagLink: any) => ({
+          tag: Array.isArray(tagLink?.tag) ? tagLink.tag[0] : tagLink?.tag
+        })),
+        translations: asset.translations || []
+      };
+    }
   );
 
   const assets = mappedAssets.filter(
@@ -281,7 +281,9 @@ export async function fetchAssetDetails(
       tag: Array.isArray(tagLink?.tag) ? tagLink.tag[0] : tagLink?.tag
     })),
     quests: (rawAsset.quests || []).map((questLink: any) => ({
-      quest: Array.isArray(questLink?.quest) ? questLink.quest[0] : questLink?.quest
+      quest: Array.isArray(questLink?.quest)
+        ? questLink.quest[0]
+        : questLink?.quest
     }))
   };
 

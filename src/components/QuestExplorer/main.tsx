@@ -395,7 +395,8 @@ export function QuestExplorerMenu({
     const baseNode =
       selectedMiddleNodeResolved ||
       (selectedMiddleNode
-        ? middleNodes.find((node) => node.key === selectedMiddleNode.key) || null
+        ? middleNodes.find((node) => node.key === selectedMiddleNode.key) ||
+          null
         : null);
     if (!baseNode?.variants || baseNode.variants.length <= 1) {
       return;
@@ -821,7 +822,10 @@ export function QuestExplorerMenu({
                           variant="outline"
                           className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
                         >
-                          <Link href={reorderHref} className="flex items-center gap-2">
+                          <Link
+                            href={reorderHref}
+                            className="flex items-center gap-2"
+                          >
                             <ListOrdered className="h-4 w-4" />
                             Reorder & Export
                             <Badge
@@ -861,10 +865,7 @@ export function QuestExplorerMenu({
                               queryKey: ['qe-tree']
                             });
                             queryClient.invalidateQueries({
-                              queryKey: [
-                                'project-quests',
-                                projectId
-                              ]
+                              queryKey: ['project-quests', projectId]
                             });
                             queryClient.invalidateQueries({
                               queryKey: [

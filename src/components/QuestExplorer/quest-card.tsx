@@ -11,11 +11,7 @@ interface QuestCardProps {
   onSelect: (node: DisplayNode) => void;
 }
 
-export function QuestCard({
-  nodes,
-  emptyMessage,
-  onSelect
-}: QuestCardProps) {
+export function QuestCard({ nodes, emptyMessage, onSelect }: QuestCardProps) {
   if (nodes.length === 0) {
     return (
       <div className="text-sm text-muted-foreground py-6 text-center">

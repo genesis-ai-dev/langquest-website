@@ -73,7 +73,12 @@ function getPericopeNameFromId(pericopeId: string): string {
 
 function parseFiaVerseRange(
   verseRange: string
-): { startChapter: number; startVerse: number; endChapter: number; endVerse: number } | null {
+): {
+  startChapter: number;
+  startVerse: number;
+  endChapter: number;
+  endVerse: number;
+} | null {
   const normalized = verseRange.trim();
   const match = normalized.match(/^(\d+):(\d+)-(?:(\d+):)?(\d+)$/);
   if (!match) {

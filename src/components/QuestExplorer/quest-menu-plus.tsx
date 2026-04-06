@@ -49,7 +49,12 @@ export function QuestMenuPlus({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0" title="Add">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0"
+            title="Add"
+          >
             <Plus className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -88,7 +93,9 @@ export function QuestMenuPlus({
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Upload Quests to Project</DialogTitle>
-            <DialogDescription>Add multiple quests with their assets.</DialogDescription>
+            <DialogDescription>
+              Add multiple quests with their assets.
+            </DialogDescription>
           </DialogHeader>
           <BulkUpload
             mode="quest"

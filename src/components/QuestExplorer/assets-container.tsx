@@ -16,7 +16,10 @@ interface AssetsContainerProps {
   isLoading: boolean;
   onOpenAsset: (assetId: string) => void;
   showAssetLabel?: boolean;
-  resolveAssetLabel?: (quest: DisplayNode | null, asset: AssetSummary) => string;
+  resolveAssetLabel?: (
+    quest: DisplayNode | null,
+    asset: AssetSummary
+  ) => string;
   quest: DisplayNode | null;
 }
 
@@ -86,7 +89,8 @@ export function AssetsContainer({
               showAssetLabel && index > 0
                 ? filteredAssetsWithLabel[index - 1].label
                 : '';
-            const shouldShowLabel = showAssetLabel && (index === 0 || resolved !== previousResolved);
+            const shouldShowLabel =
+              showAssetLabel && (index === 0 || resolved !== previousResolved);
 
             return (
               <div key={asset.id}>

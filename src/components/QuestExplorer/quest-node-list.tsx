@@ -113,7 +113,8 @@ export function QuestNodeList({
               isSelected
                 ? 'border-l-primary bg-primary/5'
                 : 'border-l-transparent hover:border-l-primary/40',
-              isDisabled && 'cursor-not-allowed opacity-55 hover:border-l-transparent'
+              isDisabled &&
+                'cursor-not-allowed opacity-55 hover:border-l-transparent'
             )}
             onClick={() => {
               if (isDisabled) return;

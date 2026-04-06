@@ -45,8 +45,7 @@ export const unstructuredStrategy: TemplateStrategy = {
     msgQuestUpdated: 'Quest updated',
     msgSubquestCreated: 'Subquest created',
     msgAssetCreated: 'Asset created',
-    msgSelectQuestForNewVersion:
-      'Select a quest before creating a new version',
+    msgSelectQuestForNewVersion: 'Select a quest before creating a new version',
     msgNewVersionCreated: 'New quest version created',
     msgNewVersionCreateError: 'Failed to create quest version',
     msgBulkAssetsUploaded: 'Assets uploaded successfully'
