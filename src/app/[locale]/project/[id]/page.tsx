@@ -8,7 +8,7 @@ import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { QuestExplorerMenu } from '@/components/QuestExplorer/menu';
+import { QuestExplorerMenu } from '@/components/QuestExplorer/main';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProjectHeaderV1 } from '@/components/project-header-v1';
