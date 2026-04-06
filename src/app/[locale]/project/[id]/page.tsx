@@ -7,8 +7,9 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { QuestExplorer } from '@/components/quest-explorer';
-import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { QuestExplorerMenu } from '@/components/QuestExplorer/main';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProjectHeaderV1 } from '@/components/project-header-v1';
 import { PortalHeader } from '@/components/portal-header';
@@ -165,6 +166,12 @@ function ProjectPageContent() {
     }
   };
 
+  const handleBackToProjects = () => {
+    // const envQuery = environment !== 'production' ? `?env=${environment}` : '';
+    // router.push(`/portal${envQuery}`);
+    router.push(`/portal`);
+  };
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !user) {
@@ -251,6 +258,15 @@ function ProjectPageContent() {
 
       {/* Project Header - Original Model with Stats */}
       <div className="container p-6 max-w-screen-xl mx-auto">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToProjects}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Projects
+        </Button>
         <ProjectHeaderV1
           project={project}
           userRole={
@@ -269,10 +285,10 @@ function ProjectPageContent() {
 
       <div className="container p-6 max-w-screen-xl mx-auto ">
         {/* Quest Explorer - Template-based quest organization */}
-        <QuestExplorer
-          project={project}
+        <QuestExplorerMenu
           projectId={projectId}
           userPermission={userPermission}
+          template={project?.template || 'unstructured'}
         />
       </div>
     </div>
