@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../../../../database.types';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
 import { env } from '@/lib/env';
@@ -99,15 +98,12 @@ export async function POST(request: NextRequest) {
     const type = formData.get('type') as string;
     const projectId = formData.get('projectId') as string | null;
     const questId = formData.get('questId') as string | null;
-    const environment =
-      (formData.get('environment') as string) || env.NEXT_PUBLIC_ENVIRONMENT;
     const uploadPath = formData.get('uploadPath') as string;
 
     // Debug logging
     console.log('[BULK UPLOAD] Received uploadPath:', {
       uploadPath,
-      type,
-      environment
+      type
     });
 
     if (!uploadPath) {
@@ -120,18 +116,6 @@ export async function POST(request: NextRequest) {
     if (!type || !['project', 'quest', 'asset'].includes(type)) {
       return NextResponse.json(
         { error: 'Parameter "type" must be one of: project, quest, asset' },
-        { status: 400 }
-      );
-    }
-
-    if (
-      !environment ||
-      !['production', 'preview', 'development'].includes(environment)
-    ) {
-      return NextResponse.json(
-        {
-          error: `Parameter "environment" is invalid: ${environment}`
-        },
         { status: 400 }
       );
     }
@@ -168,8 +152,8 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = authHeader.substring(7);
-    const envAux = (environment || 'production') as SupabaseEnvironment;
-    const { url, key } = getSupabaseCredentials(envAux);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const supabaseAuth = createClient<Database>(url, key);
     const {
@@ -661,7 +645,6 @@ async function processProjectUpload(
   supabase: any,
   userId: string,
   fileMap: FileMap
-  // environment: SupabaseEnvironment
 ): Promise<UploadResult> {
   const result: UploadResult = {
     success: true,

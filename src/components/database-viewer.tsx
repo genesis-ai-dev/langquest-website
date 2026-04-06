@@ -18,7 +18,6 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -89,8 +88,6 @@ import {
   SheetTrigger
 } from './ui/sheet';
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/components/auth-provider';
-import { SupabaseEnvironment } from '@/lib/supabase';
 
 // Tables to exclude from the database viewer
 const EXCLUDED_TABLES = [
@@ -113,8 +110,7 @@ const EXCLUDED_TABLES = [
 const EXCLUDED_COLUMNS = ['download_profiles', 'ingest_batch_id'];
 
 function useSupabaseClient() {
-  const { environment } = useAuth();
-  return createBrowserClient(environment);
+  return createBrowserClient();
 }
 
 // Define base types
@@ -249,21 +245,10 @@ const getJavascriptEvaluationOperator = (operator: string) => {
 
 // Add API fetching functions
 const fetchTableSchemas = async () => {
-  const url = env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const response = await fetch('/api/schema');
 
-  if (!url || !anon) {
-    throw new Error('Missing API configuration');
-  }
-
-  const response = await fetch(`${url}/rest/v1/?apikey=${anon}`);
   if (!response.ok) {
     throw new Error('Failed to fetch schemas');
-  }
-
-  const contentType = response.headers.get('content-type');
-  if (!contentType?.includes('application/openapi+json')) {
-    throw new Error('Invalid content type');
   }
 
   const data = (await response.json()) as { definitions?: Record<string, any> };
@@ -271,7 +256,6 @@ const fetchTableSchemas = async () => {
     throw new Error('Invalid schema format');
   }
 
-  // Convert schemas to our format
   const convertedSchemas: Record<string, TableSchema> = {};
   Object.entries(data.definitions).forEach(
     ([tableName, schema]: [string, any]) => {
@@ -282,7 +266,6 @@ const fetchTableSchemas = async () => {
     }
   );
 
-  // Add reverse relationship columns
   addReverseRelationships(convertedSchemas);
 
   return convertedSchemas;
@@ -535,8 +518,6 @@ function useTransformedColumns({
   tableSchemas?: Record<string, TableSchema>;
 }) {
   const t = useTranslations('database_viewer');
-  const { environment } = useAuth();
-
   return React.useMemo(() => {
     if (!schema) return [];
     return [
@@ -754,7 +735,7 @@ function useTransformedColumns({
               return (
                 <div className="flex w-30 justify-center">
                   {imageSources.map((item, index) => {
-                    const source = createBrowserClient(environment)
+                    const source = createBrowserClient()
                       .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                       .getPublicUrl(item).data.publicUrl;
 
@@ -803,7 +784,7 @@ function useTransformedColumns({
                     <AudioButton
                       key={item}
                       src={
-                        createBrowserClient(environment)
+                        createBrowserClient()
                           .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                           .getPublicUrl(item).data.publicUrl
                       }
@@ -873,7 +854,7 @@ function useTransformedColumns({
           }
         }))
     ];
-  }, [schema, onForeignKeySelect, isPreview, tableSchemas, t, environment]);
+  }, [schema, onForeignKeySelect, isPreview, tableSchemas, t]);
 }
 
 function PreviewTable({
@@ -886,16 +867,15 @@ function PreviewTable({
   filterValue: string;
 }) {
   const t = useTranslations('database_viewer');
-  const { environment } = useAuth();
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ['tableSchemas'],
-    queryFn: fetchTableSchemas
+    queryFn: () => fetchTableSchemas()
   });
 
   const { data, isLoading } = useQuery({
     queryKey: ['previewData', tableName, filterColumn, filterValue],
     queryFn: async () => {
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from(tableName)
         .select('*')
         .eq(filterColumn, filterValue);
@@ -1045,8 +1025,7 @@ const downloadAsZip = async (
 
 const processAttachments = async (
   data: any[],
-  includeAttachments: boolean,
-  environment: SupabaseEnvironment
+  includeAttachments: boolean
 ): Promise<{
   transformedData: any[];
   attachments: { path: string; url: string }[];
@@ -1079,7 +1058,7 @@ const processAttachments = async (
 
               // Collect attachments for download
               sources.forEach((source: string) => {
-                const url = createBrowserClient(environment)
+                const url = createBrowserClient()
                   .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
                   .getPublicUrl(source).data.publicUrl;
                 attachments.push({ path: `${source}.${fileExtension}`, url });
@@ -1101,7 +1080,6 @@ const exportAllTables = async (
   format: 'json' | 'csv',
   includeAttachments: boolean,
   tables: string[],
-  environment: SupabaseEnvironment,
   onProgress?: (tableName: string) => void
 ) => {
   const zip = new JSZip();
@@ -1109,15 +1087,14 @@ const exportAllTables = async (
 
   for (const tableName of tables) {
     onProgress?.(tableName);
-    const { data } = await createBrowserClient(environment)
+    const { data } = await createBrowserClient()
       .from(tableName as keyof Database['public']['Tables'])
       .select('*');
     if (!data) continue;
 
     const { transformedData, attachments } = await processAttachments(
       data,
-      includeAttachments,
-      environment
+      includeAttachments
     );
 
     // Add table data to zip
@@ -1175,13 +1152,11 @@ const exportAllTables = async (
 const exportToJson = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string,
-  environment: SupabaseEnvironment
+  tableName: string
 ) => {
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments,
-    environment
+    includeAttachments
   );
   const jsonStr = JSON.stringify(transformedData, null, 2);
 
@@ -1200,15 +1175,13 @@ const exportToJson = async (
 const exportToCsv = async (
   data: any[],
   includeAttachments: boolean,
-  tableName: string,
-  environment: SupabaseEnvironment
+  tableName: string
 ) => {
   if (!data.length) return;
 
   const { transformedData, attachments } = await processAttachments(
     data,
-    includeAttachments,
-    environment
+    includeAttachments
   );
   const headers = Object.keys(transformedData[0]);
   const csvContent = [
@@ -1258,7 +1231,6 @@ function ReverseRelationshipPreview({
   throughTargetColumn?: string;
 }) {
   const t = useTranslations('database_viewer');
-  const { environment } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: [
@@ -1281,7 +1253,7 @@ function ReverseRelationshipPreview({
       ) {
         // For link tables, we need to join through to the target table
         // First, get the foreign key table that the throughTargetColumn points to
-        const { data: schemaData } = await createBrowserClient(environment)
+        const { data: schemaData } = await createBrowserClient()
           .from('_metadata')
           .select('*');
 
@@ -1293,7 +1265,7 @@ function ReverseRelationshipPreview({
         if (foreignKeyTable) {
           // Use a join to get the related records
           const { data: linkData, error: linkError } =
-            await createBrowserClient(environment)
+            await createBrowserClient()
               .from(throughTable)
               .select(`*, ${foreignKeyTable}(*)`)
               .eq(throughSourceColumn, recordId);
@@ -1303,7 +1275,7 @@ function ReverseRelationshipPreview({
         } else {
           // Fallback to just getting the link table records
           const { data: linkData, error: linkError } =
-            await createBrowserClient(environment)
+            await createBrowserClient()
               .from(throughTable)
               .select('*')
               .eq(throughSourceColumn, recordId);
@@ -1313,7 +1285,7 @@ function ReverseRelationshipPreview({
         }
       } else {
         // For direct relationships
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await createBrowserClient()
           .from(tableName)
           .select('*')
           .eq(columnName, recordId);
@@ -1326,10 +1298,9 @@ function ReverseRelationshipPreview({
 
   const { data: tableSchemas } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ['tableSchemas'],
-    queryFn: fetchTableSchemas
+    queryFn: () => fetchTableSchemas()
   });
 
-  // Determine which table's schema to use for displaying the data
   const targetTable = React.useMemo(() => {
     if (isLinkTable && throughTargetColumn && data?.foreignKeyTable) {
       return data.foreignKeyTable;
@@ -1462,16 +1433,14 @@ function ReverseRelationshipPreview({
 
 export function DatabaseViewer() {
   const t = useTranslations('database_viewer');
-  const { environment } = useAuth();
 
-  // Fetch table schemas
   const {
     data: tableSchemas,
     isLoading: schemasLoading,
     error: schemasError
   } = useQuery<Record<string, TableSchema>, Error>({
     queryKey: ['tableSchemas'],
-    queryFn: fetchTableSchemas
+    queryFn: () => fetchTableSchemas()
   });
 
   const [selectedTable, setSelectedTable] = useQueryState('table', {
@@ -1766,7 +1735,12 @@ export function DatabaseViewer() {
 
   const Tables = ({ className }: { className?: string }) => {
     return (
-      <ScrollArea className={cn('flex flex-col gap-2 p-2 flex-1', className)}>
+      <div
+        className={cn(
+          'flex flex-col gap-2 p-2 flex-1 overflow-y-auto overflow-x-hidden h-full scrollbar-thin',
+          className
+        )}
+      >
         {tables.map((t) => (
           <Button
             key={t.name}
@@ -1776,7 +1750,7 @@ export function DatabaseViewer() {
               setIsSheetOpen(false);
             }}
             className={cn(
-              'w-full justify-between my-1',
+              'w-full justify-between',
               t.isLinkTable && 'text-muted-foreground',
               selectedTable === t.name && 'bg-accent'
             )}
@@ -1793,14 +1767,14 @@ export function DatabaseViewer() {
             </span>
           </Button>
         ))}
-      </ScrollArea>
+      </div>
     );
   };
 
   const LinkTablesFooter = () => {
     const t = useTranslations('database_viewer');
     return (
-      <div className="p-3 border-t border-border">
+      <div className="shrink-0 border-t border-border p-3">
         <div className="flex items-center justify-between">
           <Label
             htmlFor="show-hidden-tables"
@@ -1820,7 +1794,7 @@ export function DatabaseViewer() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-background flex-col hidden md:flex">
+      <div className="hidden md:flex h-full min-h-0 w-64 shrink-0 flex-col border-r bg-background">
         <Tables />
         <LinkTablesFooter />
       </div>
@@ -1854,14 +1828,16 @@ export function DatabaseViewer() {
                       <PanelLeft className="size-4" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left">
-                    <SheetHeader>
+                  <SheetContent side="left" className="min-h-0 gap-2">
+                    <SheetHeader className="shrink-0">
                       <VisuallyHidden>
                         <SheetTitle>{t('tables')}</SheetTitle>
                       </VisuallyHidden>
                     </SheetHeader>
-                    <Tables />
-                    <LinkTablesFooter />
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                      <Tables />
+                      <LinkTablesFooter />
+                    </div>
                   </SheetContent>
                 </Sheet>
                 <Popover>
@@ -1928,7 +1904,6 @@ export function DatabaseViewer() {
                                 'json',
                                 includeAttachments,
                                 getExportableTables(tableSchemas),
-                                environment,
                                 setExportProgress
                               ).finally(() => setExportProgress(null));
                             } else {
@@ -1937,8 +1912,7 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable,
-                                environment
+                                selectedTable
                               );
                             }
                           }}
@@ -1957,7 +1931,6 @@ export function DatabaseViewer() {
                                 'csv',
                                 includeAttachments,
                                 getExportableTables(tableSchemas),
-                                environment,
                                 setExportProgress
                               ).finally(() => setExportProgress(null));
                             } else {
@@ -1966,8 +1939,7 @@ export function DatabaseViewer() {
                                   .getFilteredRowModel()
                                   .rows.map((row) => row.original),
                                 includeAttachments,
-                                selectedTable,
-                                environment
+                                selectedTable
                               );
                             }
                           }}

@@ -32,10 +32,10 @@ function sanitizeFilename(s: string): string {
 
 export function AclReorderView() {
   const searchParams = useSearchParams();
-  const { user, session, environment } = useAuth();
+  const { user, session } = useAuth();
   const queryClient = useQueryClient();
-  const supabase = createBrowserClient(environment);
-  const audioPlayer = useAclAudioPlayer(environment);
+  const supabase = createBrowserClient();
+  const audioPlayer = useAclAudioPlayer();
 
   const urlProjectId = searchParams.get('projectId');
   const urlQuestId = searchParams.get('questId');
@@ -55,7 +55,7 @@ export function AclReorderView() {
 
   // Projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['acl-reorder-projects', user?.id, environment],
+    queryKey: ['acl-reorder-projects', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
@@ -80,7 +80,7 @@ export function AclReorderView() {
 
   // Quests (include metadata for bible book/chapter context)
   const { data: quests = [], isLoading: questsLoading } = useQuery({
-    queryKey: ['acl-reorder-quests', selectedProjectId, environment],
+    queryKey: ['acl-reorder-quests', selectedProjectId],
     queryFn: async () => {
       if (!selectedProjectId) return [];
       const { data, error } = await supabase
@@ -97,7 +97,7 @@ export function AclReorderView() {
 
   // Assets + ACLs for selected quest
   const { data: assetsWithAcls = [], isLoading: assetsLoading } = useQuery({
-    queryKey: ['acl-reorder', selectedQuestId, environment],
+    queryKey: ['acl-reorder', selectedQuestId],
     queryFn: async (): Promise<AssetWithAcls[]> => {
       if (!selectedQuestId) return [];
 
@@ -168,7 +168,7 @@ export function AclReorderView() {
     },
     onMutate: async ({ aclId, direction, questId }) => {
       setMovingAclId(aclId);
-      const queryKey = ['acl-reorder', questId, environment];
+      const queryKey = ['acl-reorder', questId];
       await queryClient.cancelQueries({ queryKey });
 
       const prev = queryClient.getQueryData<AssetWithAcls[]>(queryKey);
@@ -213,7 +213,7 @@ export function AclReorderView() {
     onError: (err: Error, variables, context) => {
       if (context?.prev) {
         queryClient.setQueryData(
-          ['acl-reorder', variables.questId, environment],
+          ['acl-reorder', variables.questId],
           context.prev
         );
       }
@@ -362,7 +362,7 @@ export function AclReorderView() {
         }
       };
 
-      const blob = await concatAclAudio(allAcls, environment, onProgress);
+      const blob = await concatAclAudio(allAcls, onProgress);
 
       // Trigger browser download
       const timestamp = new Date()
@@ -521,13 +521,14 @@ export function AclReorderView() {
                         <Download className="size-4" />
                       )}
                       {isExporting
-                        ? (exportProgress || 'Preparing…')
+                        ? exportProgress || 'Preparing…'
                         : 'Export quest as audio'}
                     </Button>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Decode and concatenate all audio in this quest into a single WAV file
+                  Decode and concatenate all audio in this quest into a single
+                  WAV file
                 </TooltipContent>
               </Tooltip>
             </div>

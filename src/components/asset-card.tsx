@@ -25,7 +25,6 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './ui/dialog';
 import { useAuth } from '@/components/auth-provider';
-import { getSupabaseCredentials } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
@@ -227,8 +226,7 @@ function AudioPlayer({ src, className = '' }: AudioPlayerProps) {
 
 export function AssetCard({ asset }: AssetCardProps) {
   const t = useTranslations('data_view');
-  const { environment } = useAuth();
-  const credentials = getSupabaseCredentials(environment);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
   return (
     <div className="space-y-6 p-6">
@@ -319,7 +317,7 @@ export function AssetCard({ asset }: AssetCardProps) {
                             <DialogTrigger asChild>
                               <div className="relative aspect-video rounded-xl overflow-hidden bg-muted cursor-pointer group">
                                 <img
-                                  src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
+                                  src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
                                   alt={`${asset.name} - Image ${index + 1}`}
                                   className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105"
                                 />
@@ -333,7 +331,7 @@ export function AssetCard({ asset }: AssetCardProps) {
                                 {asset.name} - Image {index + 1}
                               </DialogTitle>
                               <img
-                                src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
+                                src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${image}`}
                                 alt={`${asset.name} - Image ${index + 1}`}
                                 className="w-full h-auto"
                               />
@@ -363,14 +361,14 @@ export function AssetCard({ asset }: AssetCardProps) {
                     </p>
                     {typeof content.audio === 'string' ? (
                       <AudioPlayer
-                        src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
+                        src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${content.audio}`}
                       />
                     ) : Array.isArray(content.audio) ? (
                       content.audio.map(
                         (audioUrl: string, audioIndex: number) => (
                           <AudioPlayer
                             key={audioIndex}
-                            src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${audioUrl}`}
+                            src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${audioUrl}`}
                           />
                         )
                       )
@@ -437,7 +435,7 @@ export function AssetCard({ asset }: AssetCardProps) {
                         {translation.content?.[0]?.audio ? (
                           <div className="flex-1 min-w-0">
                             <AudioPlayer
-                              src={`${credentials.url.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${translation.content[0].audio}`}
+                              src={`${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${env.NEXT_PUBLIC_SUPABASE_BUCKET}/${translation.content[0].audio}`}
                             />
                           </div>
                         ) : (

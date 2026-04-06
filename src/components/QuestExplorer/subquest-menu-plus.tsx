@@ -29,7 +29,6 @@ import BulkAssetModal from '@/components/new-bulk-asset-modal';
 import { BulkUpload } from '@/components/new-bulk-upload';
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
-import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -61,9 +60,8 @@ export function SubQuestMenuPlus({
   disableQuests = false,
   menuConfig
 }: SubQuestMenuPlusProps) {
-  const { user, environment } = useAuth();
+  const { user, supabase } = useAuth();
   const queryClient = useQueryClient();
-  const supabase = createBrowserClient(environment);
   const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
   const [showQuestForm, setShowQuestForm] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);

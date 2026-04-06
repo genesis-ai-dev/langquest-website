@@ -77,7 +77,6 @@ export function QuestsUnstructured({
   selectedQuest
 }: QuestsUnstructuredProps) {
   const queryClient = useQueryClient();
-  const { environment } = useAuth();
   const searchParams = useSearchParams();
 
   // Modal states
@@ -97,7 +96,7 @@ export function QuestsUnstructured({
       queryKey: ['child-quests', selectedQuestId]
     });
     queryClient.invalidateQueries({
-      queryKey: ['project-quests', projectId, environment]
+      queryKey: ['project-quests', projectId]
     });
   };
 
@@ -108,11 +107,11 @@ export function QuestsUnstructured({
     });
     // Also invalidate asset counts to update the project header
     queryClient.invalidateQueries({
-      queryKey: ['assets-translations-count', projectId, environment]
+      queryKey: ['assets-translations-count', projectId]
     });
     // And invalidate quest-assets query to refresh asset list in quest view
     queryClient.invalidateQueries({
-      queryKey: ['quest-assets', selectedQuestId, environment]
+      queryKey: ['quest-assets', selectedQuestId]
     });
   };
 
@@ -403,8 +402,8 @@ function QuestContent({
   onQuestSuccess?: () => void;
   onAssetSuccess?: () => void;
 }) {
-  const { user, environment } = useAuth();
-  const supabase = createBrowserClient(environment);
+  const { user } = useAuth();
+  const supabase = createBrowserClient();
 
   // Calculate permissions from userRole
   const canManage = userRole === 'owner' || userRole === 'admin';
@@ -416,7 +415,7 @@ function QuestContent({
 
   // Fetch counts for each child quest (sub-quests and assets)
   const { data: questCounts } = useQuery({
-    queryKey: ['quest-counts', selectedQuestId, environment],
+    queryKey: ['quest-counts', selectedQuestId],
     queryFn: async () => {
       if (!selectedQuestId || !childQuests || childQuests.length === 0)
         return {};
@@ -466,7 +465,7 @@ function QuestContent({
 
   // Fetch assets for the selected quest through quest_asset_link
   const { data: questAssets, isLoading: questAssetsLoading } = useQuery({
-    queryKey: ['quest-assets', selectedQuestId, environment],
+    queryKey: ['quest-assets', selectedQuestId],
     queryFn: async () => {
       if (!selectedQuestId) return [];
 
@@ -667,7 +666,7 @@ function QuestContent({
                 className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
               >
                 <Link
-                  href={`/portal/acl-reorder?projectId=${projectId}&questId=${selectedQuestId}${environment !== 'production' ? `&env=${environment}` : ''}`}
+                  href={`/portal/acl-reorder?projectId=${projectId}&questId=${selectedQuestId}`}
                   className="flex items-center gap-2"
                 >
                   <ListOrdered className="h-4 w-4" />

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../../../../database.types';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { randomUUID } from 'crypto';
 import { env } from '@/lib/env';
 
 export async function POST(req: NextRequest) {
   try {
-    const { filename, environment } = await req.json();
+    const { filename } = await req.json();
 
     if (!filename) {
       return NextResponse.json({ error: 'Missing filename' }, { status: 400 });
@@ -22,15 +21,8 @@ export async function POST(req: NextRequest) {
     }
 
     const accessToken = authHeader.substring(7);
-    const envAux = (
-      environment && environment !== ''
-        ? environment
-        : env.NEXT_PUBLIC_ENVIRONMENT
-    ) as SupabaseEnvironment;
-
-    console.log('Using environment:', envAux);
-
-    const { url, key } = getSupabaseCredentials(envAux);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const supabaseAuth = createClient<Database>(url, key);
     const {
