@@ -71,9 +71,7 @@ function getPericopeNameFromId(pericopeId: string): string {
   return pericopeId.slice(separatorIndex + 1);
 }
 
-function parseFiaVerseRange(
-  verseRange: string
-): {
+function parseFiaVerseRange(verseRange: string): {
   startChapter: number;
   startVerse: number;
   endChapter: number;
