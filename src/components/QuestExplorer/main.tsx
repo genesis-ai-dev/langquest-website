@@ -32,7 +32,6 @@ import {
   useQuestAssets,
   useQuestTree
 } from '@/app/db/useQuestExplorerQueries';
-import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { getChildrenNodes, getRootNodes } from './model';
 import {
@@ -91,13 +90,9 @@ export function QuestExplorerMenu({
   allowDisabledQuests
 }: QuestExplorerMenuProps) {
   const queryClient = useQueryClient();
-  const { user, environment } = useAuth();
-  const supabase = useMemo(
-    () => createBrowserClient(environment),
-    [environment]
-  );
+  const { user, supabase } = useAuth();
   const { data: projectName } = useQuery({
-    queryKey: ['qe-project-name', projectId, environment],
+    queryKey: ['qe-project-name', projectId],
     enabled: !!projectId && !!user,
     queryFn: async () => {
       const { data } = await supabase
@@ -565,7 +560,7 @@ export function QuestExplorerMenu({
   const showVersionSelector = selectedContentVariants.length > 1;
   const reorderQuestId = selectedContentNode?.questId || null;
   const reorderHref = reorderQuestId
-    ? `/portal/acl-reorder?projectId=${projectId}&questId=${reorderQuestId}${environment !== 'production' ? `&env=${environment}` : ''}`
+    ? `/portal/acl-reorder?projectId=${projectId}&questId=${reorderQuestId}`
     : null;
 
   const middleHeaderNode = contextNode;
@@ -685,7 +680,7 @@ export function QuestExplorerMenu({
                         queryKey: ['qe-tree']
                       });
                       queryClient.invalidateQueries({
-                        queryKey: ['project-quests', projectId, environment]
+                        queryKey: ['project-quests', projectId]
                       });
                       toast.success(copy.msgQuestUpdated);
                     }}
@@ -868,8 +863,7 @@ export function QuestExplorerMenu({
                             queryClient.invalidateQueries({
                               queryKey: [
                                 'project-quests',
-                                projectId,
-                                environment
+                                projectId
                               ]
                             });
                             queryClient.invalidateQueries({

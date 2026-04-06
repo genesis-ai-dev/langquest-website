@@ -10,7 +10,6 @@ export const env = createEnv({
     AUDIO_CONCAT_WORKER_URL: z.string().url().optional(),
     AUDIO_CONCAT_WORKER_TOKEN: z.string().min(1).optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    SUPABASE_PREVIEW_SERVICE_ROLE_KEY: z.string().min(1).optional(),
     APP_IDS: z.string().min(1),
     TEAM_ID: z.string().min(1),
     ANDROID_SHA256_FINGERPRINTS: z.string().min(1)
