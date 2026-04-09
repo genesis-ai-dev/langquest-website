@@ -29,6 +29,12 @@ import { X, Plus, Upload, Image as ImageIcon, CheckIcon } from 'lucide-react';
 import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
+import {
+  LabelSelector,
+  LabelSelectorSelection
+} from './QuestExplorer/label-selector';
+import { getTemplateStrategy } from './QuestExplorer/template-strategies';
+import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 // import { checkProjectOwnership } from '@/lib/project-permissions';
 
 const assetFormSchema = z.object({
@@ -60,7 +66,13 @@ interface AssetFormProps {
   projectId: string;
   onSuccess?: (data: { id: string }) => void;
   questId?: string; // Optional pre-selected quest ID
+  questAssetsCount?: number; // Optional current asset count for quest
   hideContentTabs?: boolean; // Optional flag to hide content tabs
+  labelContext?: {
+    template: string;
+    quest: QuestRecord | null;
+    assets: AssetSummary[];
+  };
 }
 
 export function AssetForm({
@@ -68,7 +80,9 @@ export function AssetForm({
   projectId,
   onSuccess,
   questId,
-  hideContentTabs = false
+  questAssetsCount,
+  hideContentTabs = false,
+  labelContext
 }: AssetFormProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +105,8 @@ export function AssetForm({
   const [contents, setContents] = useState<
     { text: string; audio_id?: string }[]
   >(initialData?.content || [{ text: '', audio_id: undefined }]);
+  const [selectedLabel, setSelectedLabel] =
+    useState<LabelSelectorSelection | null>(null);
 
   // Set quest from prop if provided
   useEffect(() => {
@@ -98,6 +114,12 @@ export function AssetForm({
       setSelectedQuests((prev) => [...prev, questId]);
     }
   }, [questId, selectedQuests]);
+
+  const templateStrategy = getTemplateStrategy(
+    labelContext?.template || 'unstructured'
+  );
+  const showQuestTab =
+    templateStrategy.behavior.showQuestTabInAssetForm && !hideContentTabs;
 
   // Fetch quests for the multi-select - from projects where user is owner
   const { data: questsData = [], isLoading: questsLoading } = useQuery({
@@ -118,8 +140,28 @@ export function AssetForm({
 
       return (data || []).filter((quest) => quest.creator_id === user.id);
     },
-    enabled: !!user?.id && !!projectId
+    enabled: !!user?.id && !!projectId && showQuestTab
   });
+  const allowLabel =
+    Boolean(labelContext) && templateStrategy.behavior.allowLabel;
+  const availableLabels =
+    allowLabel && labelContext
+      ? templateStrategy.getAvailableLabels?.(
+          labelContext.quest,
+          labelContext.assets
+        ) || []
+      : [];
+  const selectedLabelMetadata = templateStrategy.formatLabelMetadata
+    ? templateStrategy.formatLabelMetadata(selectedLabel)
+    : null;
+  const orderIndexCounter =
+    typeof questAssetsCount === 'number' && Number.isFinite(questAssetsCount)
+      ? questAssetsCount
+      : 0;
+  const computedOrderIndex = templateStrategy.getOrderIndex(
+    selectedLabelMetadata,
+    orderIndexCounter
+  );
 
   // Set up form with default values
   const form = useForm<AssetFormValues>({
@@ -266,6 +308,8 @@ export function AssetForm({
           .from('asset')
           .update({
             name: values.name,
+            metadata: selectedLabelMetadata,
+            order_index: computedOrderIndex,
             images: finalImagePaths.length > 0 ? finalImagePaths : null
           })
           .eq('id', initialData.id)
@@ -287,11 +331,12 @@ export function AssetForm({
         const assetInsertData = {
           name: values.name,
           images: finalImagePaths.length > 0 ? finalImagePaths : null,
+          metadata: selectedLabelMetadata,
+          order_index: computedOrderIndex,
           active: true,
           project_id: projectId,
           creator_id: user.id
         };
-        console.log('Creating asset with data:', assetInsertData);
 
         const { data, error } = await createBrowserClient()
           .from('asset')
@@ -304,7 +349,6 @@ export function AssetForm({
           throw error;
         }
         assetId = data.id;
-        console.log('Asset created successfully with id:', assetId);
 
         toast.success('Asset created successfully');
       }
@@ -381,13 +425,13 @@ export function AssetForm({
         }
       }
 
-      // Log selectedQuests state just before the linking logic for quests
-      console.log(
-        '[AssetForm - onSubmit] Just before quest linking. assetId:',
-        assetId,
-        'selectedQuests state:',
-        selectedQuests
-      );
+      // // Log selectedQuests state just before the linking logic for quests
+      // console.log(
+      //   '[AssetForm - onSubmit] Just before quest linking. assetId:',
+      //   assetId,
+      //   'selectedQuests state:',
+      //   selectedQuests
+      // );
 
       // Add new quest links
       if (selectedQuests.length > 0) {
@@ -694,11 +738,26 @@ export function AssetForm({
           </FormDescription>
         </div>
 
+        {allowLabel && (
+          <div className="space-y-2">
+            <FormLabel>{templateStrategy.copy.labelSelectorTitle}</FormLabel>
+            <LabelSelector
+              labels={availableLabels}
+              allowRange={true}
+              onApply={(selection) => {
+                setSelectedLabel(selection);
+              }}
+            />
+          </div>
+        )}
+
         <Tabs defaultValue="tags" className="w-full">
           {!hideContentTabs && (
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList
+              className={`grid w-full ${showQuestTab ? 'grid-cols-2' : 'grid-cols-1'}`}
+            >
               <TabsTrigger value="tags">Tags</TabsTrigger>
-              <TabsTrigger value="quests">Quests</TabsTrigger>
+              {showQuestTab && <TabsTrigger value="quests">Quests</TabsTrigger>}
             </TabsList>
           )}
 
@@ -732,129 +791,137 @@ export function AssetForm({
             />
           </TabsContent>
 
-          <TabsContent value="quests" className="space-y-4 pt-4">
-            <FormField
-              control={form.control}
-              name="quests"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Quests</FormLabel>
-                  <FormControl>
-                    <div className="flex flex-col gap-2">
-                      {/* Hidden input to store quests for form validation */}
-                      <input
-                        type="hidden"
-                        {...form.register('quests')}
-                        value={JSON.stringify(selectedQuests)}
-                      />
-                      <div className="flex flex-wrap gap-1 p-2 border rounded-md">
-                        {selectedQuests.length > 0 ? (
-                          selectedQuests.map((selectedQuestId) => {
-                            const quest = allQuests?.find(
-                              (q) => q.id === selectedQuestId
-                            );
-                            return (
-                              <Badge
-                                key={selectedQuestId}
-                                variant="secondary"
-                                className="m-1 py-2"
-                              >
-                                {quest?.name}
-                                <button
-                                  type="button"
-                                  className="h-auto p-0 ml-1 hover:bg-destructive/20 rounded"
-                                  onClick={() => {
-                                    // Don't allow removing pre-selected quest
-                                    if (questId !== selectedQuestId) {
-                                      setSelectedQuests(
-                                        selectedQuests.filter(
-                                          (id) => id !== selectedQuestId
-                                        )
-                                      );
-                                    }
-                                  }}
-                                  disabled={questId === selectedQuestId}
+          {showQuestTab && (
+            <TabsContent value="quests" className="space-y-4 pt-4">
+              <FormField
+                control={form.control}
+                name="quests"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Quests</FormLabel>
+                    <FormControl>
+                      <div className="flex flex-col gap-2">
+                        {/* Hidden input to store quests for form validation */}
+                        <input
+                          type="hidden"
+                          {...form.register('quests')}
+                          value={JSON.stringify(selectedQuests)}
+                        />
+                        <div className="flex flex-wrap gap-1 p-2 border rounded-md">
+                          {selectedQuests.length > 0 ? (
+                            selectedQuests.map((selectedQuestId) => {
+                              const quest = allQuests?.find(
+                                (q) => q.id === selectedQuestId
+                              );
+                              return (
+                                <Badge
+                                  key={selectedQuestId}
+                                  variant="secondary"
+                                  className="m-1 py-2"
                                 >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            );
-                          })
-                        ) : (
-                          <div className="text-sm text-muted-foreground p-2">
-                            No quests selected
-                          </div>
-                        )}
-                      </div>
-                      {
-                        // Only show quest selector if not pre-selected
-                        <div className="border rounded-md p-4">
-                          <div className="mb-4">
-                            <label className="text-sm font-medium mb-2 block">
-                              Available Quests
-                            </label>
-                            <div className="text-sm text-muted-foreground mb-2">
-                              Click on quests to select/deselect them
-                            </div>
-                            {allQuests && allQuests.length > 0 ? (
-                              <div className="flex flex-wrap gap-2">
-                                {allQuests.map((quest) => {
-                                  return (
-                                    <Badge
-                                      key={quest.id}
-                                      variant={
-                                        selectedQuests.includes(quest.id)
-                                          ? 'default'
-                                          : 'outline'
+                                  {quest?.name}
+                                  <button
+                                    type="button"
+                                    className="h-auto p-0 ml-1 hover:bg-destructive/20 rounded"
+                                    onClick={() => {
+                                      // Don't allow removing pre-selected quest
+                                      if (questId !== selectedQuestId) {
+                                        setSelectedQuests(
+                                          selectedQuests.filter(
+                                            (id) => id !== selectedQuestId
+                                          )
+                                        );
                                       }
-                                      className={`cursor-pointer ${
-                                        questId === quest.id ? 'opacity-70' : ''
-                                      }`}
-                                      onClick={() => {
-                                        if (questId !== quest.id) {
-                                          let newSelectedQuests;
-                                          if (
-                                            !selectedQuests.includes(quest.id)
-                                          ) {
-                                            newSelectedQuests = [
-                                              ...selectedQuests,
-                                              quest.id
-                                            ];
-                                          } else {
-                                            newSelectedQuests =
-                                              selectedQuests.filter(
-                                                (id) => id !== quest.id
-                                              );
-                                          }
-                                          setSelectedQuests(newSelectedQuests);
-                                        }
-                                      }}
-                                      title={quest.description || ''}
-                                    >
-                                      {quest.name}
-                                      {selectedQuests.includes(quest.id) && (
-                                        <CheckIcon className="ml-1 h-3 w-3" />
-                                      )}
-                                    </Badge>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="text-center py-4 text-sm text-muted-foreground">
-                                No quests available
-                              </div>
-                            )}
-                          </div>
+                                    }}
+                                    disabled={questId === selectedQuestId}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <div className="text-sm text-muted-foreground p-2">
+                              No quests selected
+                            </div>
+                          )}
                         </div>
-                      }
-                    </div>
-                  </FormControl>
-                  <FormDescription>Link this asset to quests.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </TabsContent>
+                        {
+                          // Only show quest selector if not pre-selected
+                          <div className="border rounded-md p-4">
+                            <div className="mb-4">
+                              <label className="text-sm font-medium mb-2 block">
+                                Available Quests
+                              </label>
+                              <div className="text-sm text-muted-foreground mb-2">
+                                Click on quests to select/deselect them
+                              </div>
+                              {allQuests && allQuests.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {allQuests.map((quest) => {
+                                    return (
+                                      <Badge
+                                        key={quest.id}
+                                        variant={
+                                          selectedQuests.includes(quest.id)
+                                            ? 'default'
+                                            : 'outline'
+                                        }
+                                        className={`cursor-pointer ${
+                                          questId === quest.id
+                                            ? 'opacity-70'
+                                            : ''
+                                        }`}
+                                        onClick={() => {
+                                          if (questId !== quest.id) {
+                                            let newSelectedQuests;
+                                            if (
+                                              !selectedQuests.includes(quest.id)
+                                            ) {
+                                              newSelectedQuests = [
+                                                ...selectedQuests,
+                                                quest.id
+                                              ];
+                                            } else {
+                                              newSelectedQuests =
+                                                selectedQuests.filter(
+                                                  (id) => id !== quest.id
+                                                );
+                                            }
+                                            setSelectedQuests(
+                                              newSelectedQuests
+                                            );
+                                          }
+                                        }}
+                                        title={quest.description || ''}
+                                      >
+                                        {quest.name}
+                                        {selectedQuests.includes(quest.id) && (
+                                          <CheckIcon className="ml-1 h-3 w-3" />
+                                        )}
+                                      </Badge>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="text-center py-4 text-sm text-muted-foreground">
+                                  No quests available
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Link this asset to quests.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+          )}
         </Tabs>
 
         <Button type="submit" disabled={isSubmitting || !user}>

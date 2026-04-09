@@ -52,11 +52,14 @@ export interface TemplateBehavior {
   allowAddQuest: boolean;
   allowAddAssets: boolean;
   allowNewVersion: boolean;
+  allowLabel: boolean;
   showAssetLabel: boolean;
+  showQuestTabInAssetForm: boolean;
 }
 
 export interface TemplateCopy {
   leftColumnTitle: string;
+  labelSelectorTitle: string;
   rootSearchPlaceholder: string;
   rootEmptyMessage: string;
   breadcrumbEmpty: string;
@@ -81,6 +84,28 @@ export interface TemplateCopy {
   msgBulkAssetsUploaded: string;
 }
 
+export interface AvailableLabel {
+  name: string;
+  inUse: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface LabelSelection {
+  from: AvailableLabel;
+  to: AvailableLabel;
+  items: AvailableLabel[];
+  isRange: boolean;
+}
+
+export interface BibleAvailableLabel extends AvailableLabel {
+  metadata: {
+    verse: {
+      from: number;
+      to: number;
+    };
+  };
+}
+
 export interface TemplateStrategy {
   id: string;
   behavior: TemplateBehavior;
@@ -93,6 +118,17 @@ export interface TemplateStrategy {
     contextNode: DisplayNode | null,
     strategyContext?: TemplateStrategyContext
   ) => DisplayNode[];
+  getAvailableLabels?: (
+    quest: QuestRecord | null,
+    assets: AssetSummary[]
+  ) => AvailableLabel[];
+  formatLabelMetadata?: (
+    selection: LabelSelection | null
+  ) => Record<string, unknown> | null;
+  getOrderIndex: (
+    assetMetadata: Record<string, unknown> | null | undefined,
+    counter: number
+  ) => number;
   resolveAssetLabel: (quest: DisplayNode | null, asset: AssetSummary) => string;
 }
 

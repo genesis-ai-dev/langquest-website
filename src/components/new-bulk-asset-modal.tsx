@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,6 +46,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
 import { env } from '@/lib/env';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getTemplateStrategy } from '@/components/QuestExplorer/template-strategies';
 
 const assetRowSchema = z
   .object({
@@ -82,6 +83,9 @@ interface BulkAssetModalProps {
   onAssetsCreated?: (assets: any[]) => void;
   defaultQuestId?: string; // Optional quest ID to pre-select
   disableQuestsChange?: boolean; // Disable changing quests if true
+  allowMultiQuest?: boolean;
+  questAssetsCount?: number;
+  template?: string;
 }
 
 export function BulkAssetModal({
@@ -89,7 +93,10 @@ export function BulkAssetModal({
   trigger,
   onAssetsCreated,
   defaultQuestId,
-  disableQuestsChange = false
+  disableQuestsChange = false,
+  allowMultiQuest = true,
+  questAssetsCount,
+  template = 'unstructured'
 }: BulkAssetModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,6 +114,12 @@ export function BulkAssetModal({
   );
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const templateStrategy = getTemplateStrategy(template);
+  const canChangeQuests = !disableQuestsChange && allowMultiQuest;
+  const initialQuestIds = useMemo(
+    () => (defaultQuestId ? [defaultQuestId] : []),
+    [defaultQuestId]
+  );
 
   const supabase = createBrowserClient();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -162,7 +175,7 @@ export function BulkAssetModal({
     defaultValues: {
       assets: [
         {
-          questIds: defaultQuestId ? [defaultQuestId] : [],
+          questIds: initialQuestIds,
           name: '',
           source_languoid_id: '',
           images: [],
@@ -185,7 +198,7 @@ export function BulkAssetModal({
       form.reset({
         assets: [
           {
-            questIds: defaultQuestId ? [defaultQuestId] : [],
+            questIds: initialQuestIds,
             name: '',
             source_languoid_id: '',
             images: [],
@@ -195,7 +208,7 @@ export function BulkAssetModal({
         ]
       });
     }
-  }, [isOpen, defaultQuestId, form]);
+  }, [isOpen, initialQuestIds, form]);
 
   // Helper function to get tag name by ID
   const getTagName = (tagId: string) => {
@@ -209,7 +222,7 @@ export function BulkAssetModal({
   // Add new asset row
   const addAssetRow = () => {
     append({
-      questIds: defaultQuestId ? [defaultQuestId] : [],
+      questIds: initialQuestIds,
       name: '',
       source_languoid_id: '',
       images: [],
@@ -380,6 +393,14 @@ export function BulkAssetModal({
 
       for (let i = 0; i < data.assets.length; i++) {
         const asset = data.assets[i];
+        const counterBase =
+          typeof questAssetsCount === 'number' && Number.isFinite(questAssetsCount)
+            ? questAssetsCount
+            : 0;
+        const orderIndex = templateStrategy.getOrderIndex(
+          null,
+          counterBase + i
+        );
 
         // First, upload all files to storage
         const uploadedImageIds: string[] = [];
@@ -430,6 +451,7 @@ export function BulkAssetModal({
           .insert({
             name: asset.name,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
+            order_index: orderIndex,
             active: true,
             project_id: projectId,
             creator_id: user?.id
@@ -575,14 +597,40 @@ export function BulkAssetModal({
                             name={`assets.${index}.questIds`}
                             render={({ field }) => (
                               <FormItem>
-                                {disableQuestsChange ? (
-                                  // Show only the default quest name as read-only text
-                                  <div className="bg-primary-foreground border rounded-md px-3 py-2 text-sm">
-                                    {(defaultQuestId &&
-                                      quests?.find(
-                                        (q) => q.id === defaultQuestId
-                                      )?.name) ||
-                                      'Default Quest'}
+                                {!canChangeQuests ? (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {(field.value && field.value.length > 0
+                                      ? field.value
+                                      : initialQuestIds
+                                    ).length > 0 ? (
+                                      (
+                                        field.value && field.value.length > 0
+                                          ? field.value
+                                          : initialQuestIds
+                                      ).map((questId: string) => {
+                                        const quest = quests?.find(
+                                          (q) => q.id === questId
+                                        );
+                                        return (
+                                          <Badge
+                                            key={questId}
+                                            variant="secondary"
+                                            className="text-xs max-w-24 truncate"
+                                            title={quest?.name || 'Default Quest'}
+                                          >
+                                            {quest?.name || 'Default Quest'}
+                                          </Badge>
+                                        );
+                                      })
+                                    ) : (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs max-w-24 truncate"
+                                        title="Default Quest"
+                                      >
+                                        Default Quest
+                                      </Badge>
+                                    )}
                                   </div>
                                 ) : (
                                   <>

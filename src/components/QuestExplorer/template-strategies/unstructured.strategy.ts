@@ -25,10 +25,13 @@ export const unstructuredStrategy: TemplateStrategy = {
     allowAddQuest: true,
     allowAddAssets: true,
     allowNewVersion: false,
-    showAssetLabel: false
+    allowLabel: false,
+    showAssetLabel: false,
+    showQuestTabInAssetForm: true
   },
   copy: {
     leftColumnTitle: 'Quests List',
+    labelSelectorTitle: 'Labels',
     rootSearchPlaceholder: 'Search Quest',
     rootEmptyMessage: 'No root quests found.',
     breadcrumbEmpty: 'No selection',
@@ -53,5 +56,7 @@ export const unstructuredStrategy: TemplateStrategy = {
   getRootNodes: (roots: QuestRecord[]) => roots.map(mapQuestNode),
   getChildrenNodes: (contextNode: DisplayNode | null) =>
     (contextNode?.quest?.children || []).map(mapQuestNode),
+  formatLabelMetadata: () => null,
+  getOrderIndex: (_assetMetadata, counter) => counter,
   resolveAssetLabel: (_quest, _asset) => ''
 };

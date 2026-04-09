@@ -150,10 +150,13 @@ export const fiaStrategy: TemplateStrategy = {
     allowAddQuest: false,
     allowAddAssets: true,
     allowNewVersion: true,
-    showAssetLabel: true
+    allowLabel: true,
+    showAssetLabel: true,
+    showQuestTabInAssetForm: false
   },
   copy: {
     leftColumnTitle: 'Bible Books',
+    labelSelectorTitle: 'Verses',
     rootSearchPlaceholder: 'Search Book',
     rootEmptyMessage: 'No books found for this project.',
     breadcrumbEmpty: 'No selection',
@@ -285,6 +288,42 @@ export const fiaStrategy: TemplateStrategy = {
       kind: 'quest' as const,
       disabled: getQuestDisabledFlag(child)
     }));
+  },
+  formatLabelMetadata: (selection) => {
+    const fromVerse = (
+      selection?.from?.metadata as
+        | {
+            verse?: { from?: number };
+          }
+        | undefined
+    )?.verse?.from;
+    const toVerse = (
+      selection?.to?.metadata as
+        | {
+            verse?: { to?: number };
+          }
+        | undefined
+    )?.verse?.to;
+
+    if (typeof fromVerse !== 'number') {
+      return null;
+    }
+
+    return {
+      verse: {
+        from: fromVerse,
+        to: typeof toVerse === 'number' ? toVerse : fromVerse
+      }
+    };
+  },
+  getOrderIndex: (assetMetadata, counter) => {
+    const verseFrom = (assetMetadata as { verse?: { from?: number } } | null)
+      ?.verse?.from;
+    const normalizedCounter = Number.isFinite(counter) ? counter : 0;
+    const verseBase =
+      typeof verseFrom === 'number' ? Math.floor(verseFrom) : 999;
+
+    return verseBase * 1000 * 1000 + normalizedCounter * 1000;
   },
   resolveAssetLabel: (questNode, asset) => {
     const metadata = asset.metadata as

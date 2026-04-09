@@ -859,6 +859,12 @@ export function QuestExplorerMenu({
                           canManage={canManage}
                           projectId={projectId}
                           selectedQuestId={selectedContentNode.questId}
+                          questAssetsCount={questAssets.length}
+                            labelContext={{
+                              template: templateStrategy.id,
+                              quest: selectedContentNode.quest || null,
+                              assets: questAssets
+                            }}
                           menuConfig={subQuestMenuConfig}
                           onQuestSuccess={() => {
                             queryClient.invalidateQueries({
@@ -885,7 +891,7 @@ export function QuestExplorerMenu({
                             refetchAssets();
                             toast.success(copy.msgAssetCreated);
                           }}
-                          disableQuests={false}
+                          disableQuests={!behavior.showQuestTabInAssetForm}
                         />
                       )}
                     </div>
