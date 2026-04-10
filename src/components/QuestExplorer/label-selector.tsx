@@ -166,7 +166,9 @@ export function LabelSelector({
                     isSelected && isPrevSelected && '-ml-px',
                     !isSelected && isPrevSelected && 'ml-1',
                     isSelected && !isNextSelected && 'mr-1',
-                    label.inUse && !isSelected && 'opacity-80'
+                    label.inUse &&
+                      !isSelected &&
+                      'border-dashed border-border/80'
                   )}
                 >
                   {label.name}

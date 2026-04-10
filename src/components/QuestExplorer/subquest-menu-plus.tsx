@@ -40,7 +40,8 @@ interface SubQuestMenuPlusProps {
   questAssetsCount?: number;
   onQuestSuccess?: () => void;
   onAssetSuccess?: (currentQuestId?: string) => void;
-  disableQuests?: boolean;
+  disableQuestSelection?: boolean;
+  disableSubquestCreation?: boolean;
   labelContext?: {
     template: string;
     quest: QuestRecord | null;
@@ -65,7 +66,8 @@ export function SubQuestMenuPlus({
   questAssetsCount,
   onQuestSuccess,
   onAssetSuccess,
-  disableQuests = false,
+  disableQuestSelection = false,
+  disableSubquestCreation = false,
   labelContext,
   menuConfig
 }: SubQuestMenuPlusProps) {
@@ -77,12 +79,11 @@ export function SubQuestMenuPlus({
   const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
 
-  const canAddQuest = (menuConfig?.allowAddQuest ?? true) && !disableQuests;
+  const canAddQuest =
+    (menuConfig?.allowAddQuest ?? true) && !disableSubquestCreation;
   const canAddAssets = menuConfig?.allowAddAssets ?? true;
   const canAddNewVersion =
-    (menuConfig?.allowNewVersion ?? false) &&
-    !disableQuests &&
-    !!selectedQuestId;
+    (menuConfig?.allowNewVersion ?? false) && !!selectedQuestId;
 
   const invalidateQuestQueries = async () => {
     await Promise.all([
@@ -230,10 +231,11 @@ export function SubQuestMenuPlus({
             <BulkAssetModal
               projectId={projectId}
               defaultQuestId={selectedQuestId || undefined}
-              disableQuestsChange={disableQuests}
-              allowMultiQuest={!disableQuests}
+              disableQuestsChange={disableQuestSelection}
+              allowMultiQuest={!disableQuestSelection}
               questAssetsCount={questAssetsCount}
               template={labelContext?.template || 'unstructured'}
+              labelContext={labelContext}
               onAssetsCreated={(assets) => {
                 toast.success(`Successfully created ${assets.length} assets`);
                 onAssetSuccess?.(selectedQuestId || undefined);
@@ -340,7 +342,7 @@ export function SubQuestMenuPlus({
             projectId={projectId}
             questId={selectedQuestId || undefined}
             questAssetsCount={questAssetsCount}
-            hideContentTabs={disableQuests}
+            hideContentTabs={disableQuestSelection}
             labelContext={labelContext}
           />
         </DialogContent>

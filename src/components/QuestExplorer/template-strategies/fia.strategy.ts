@@ -1,4 +1,4 @@
-import { QuestRecord } from '@/app/db/questExplorer';
+import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { BIBLE_BOOKS, ICONS_PATH } from './fia.template';
 import { getQuestDisabledFlag, getQuestVersionName } from './helpers';
 import {
@@ -139,6 +139,104 @@ function resolveSequentialVerseToReference(
   }
 
   return null;
+}
+
+function countVersesInRange(
+  bookVerses: number[],
+  startChapter: number,
+  startVerse: number,
+  endChapter: number,
+  endVerse: number
+): number {
+  if (
+    startChapter < 1 ||
+    endChapter < 1 ||
+    startChapter > bookVerses.length ||
+    endChapter > bookVerses.length
+  ) {
+    return 0;
+  }
+
+  if (
+    endChapter < startChapter ||
+    (endChapter === startChapter && endVerse < startVerse)
+  ) {
+    return 0;
+  }
+
+  let total = 0;
+  for (let chapter = startChapter; chapter <= endChapter; chapter += 1) {
+    const chapterTotal = bookVerses[chapter - 1];
+    if (!chapterTotal || chapterTotal < 1) {
+      return 0;
+    }
+
+    if (chapter === startChapter && chapter === endChapter) {
+      const start = Math.max(1, startVerse);
+      const end = Math.min(chapterTotal, endVerse);
+      if (end < start) {
+        return 0;
+      }
+      total += end - start + 1;
+      continue;
+    }
+
+    if (chapter === startChapter) {
+      const start = Math.max(1, startVerse);
+      if (start > chapterTotal) {
+        return 0;
+      }
+      total += chapterTotal - start + 1;
+      continue;
+    }
+
+    if (chapter === endChapter) {
+      const end = Math.min(chapterTotal, endVerse);
+      if (end < 1) {
+        return 0;
+      }
+      total += end;
+      continue;
+    }
+
+    total += chapterTotal;
+  }
+
+  return total;
+}
+
+function formatSequentialVerseRangeLabel(
+  bookVerses: number[],
+  startChapter: number,
+  startVerse: number,
+  from: number,
+  to: number
+): string {
+  const fromReference = resolveSequentialVerseToReference(
+    bookVerses,
+    startChapter,
+    startVerse,
+    from
+  );
+  const toReference = resolveSequentialVerseToReference(
+    bookVerses,
+    startChapter,
+    startVerse,
+    to
+  );
+
+  if (!fromReference || !toReference) {
+    return from === to ? `${from}` : `${from}-${to}`;
+  }
+
+  if (
+    fromReference.chapter === toReference.chapter &&
+    fromReference.verse === toReference.verse
+  ) {
+    return `${fromReference.chapter}:${fromReference.verse}`;
+  }
+
+  return `${fromReference.chapter}:${fromReference.verse}-${toReference.chapter}:${toReference.verse}`;
 }
 
 export const fiaStrategy: TemplateStrategy = {
@@ -288,6 +386,163 @@ export const fiaStrategy: TemplateStrategy = {
       kind: 'quest' as const,
       disabled: getQuestDisabledFlag(child)
     }));
+  },
+  getAvailableLabels: (
+    quest: QuestRecord | null,
+    assets: AssetSummary[] = []
+  ) => {
+    if (!quest?.metadata) {
+      return [];
+    }
+
+    const metadata = getFiaMetadata(quest.metadata);
+    const bookId = metadata?.bookId;
+    const verseRange = metadata?.verseRange;
+    if (!bookId || !verseRange) {
+      return [];
+    }
+
+    const parsedRange = parseFiaVerseRange(verseRange);
+    if (!parsedRange) {
+      return [];
+    }
+
+    const book = BIBLE_BOOKS.find((item) => item.id === bookId);
+    if (!book) {
+      return [];
+    }
+
+    const totalVerses = countVersesInRange(
+      book.verses,
+      parsedRange.startChapter,
+      parsedRange.startVerse,
+      parsedRange.endChapter,
+      parsedRange.endVerse
+    );
+    if (totalVerses < 1) {
+      return [];
+    }
+
+    const usedRanges = assets
+      .map((asset) => {
+        const assetMetadata = asset.metadata as
+          | {
+              verse?: {
+                from?: number;
+                to?: number;
+              };
+            }
+          | null
+          | undefined;
+
+        const fromRaw = assetMetadata?.verse?.from;
+        const toRaw = assetMetadata?.verse?.to;
+        if (typeof fromRaw !== 'number') {
+          return null;
+        }
+
+        const from = Math.max(1, Math.min(totalVerses, Math.floor(fromRaw)));
+        const to =
+          typeof toRaw === 'number'
+            ? Math.max(1, Math.min(totalVerses, Math.floor(toRaw)))
+            : from;
+
+        return {
+          start: Math.min(from, to),
+          end: Math.max(from, to)
+        };
+      })
+      .filter(
+        (range): range is { start: number; end: number } => range !== null
+      )
+      .sort((a, b) => {
+        if (a.start !== b.start) {
+          return a.start - b.start;
+        }
+        return a.end - b.end;
+      });
+
+    const mergedUsedRanges: Array<{ start: number; end: number }> = [];
+    for (const range of usedRanges) {
+      const last = mergedUsedRanges[mergedUsedRanges.length - 1];
+      if (!last) {
+        mergedUsedRanges.push({ ...range });
+        continue;
+      }
+
+      if (range.start <= last.end) {
+        last.end = Math.max(last.end, range.end);
+        continue;
+      }
+
+      mergedUsedRanges.push({ ...range });
+    }
+
+    const labels: Array<{
+      name: string;
+      inUse: boolean;
+      metadata: {
+        verse: {
+          from: number;
+          to: number;
+        };
+      };
+    }> = [];
+
+    let verse = 1;
+    for (const range of mergedUsedRanges) {
+      while (verse < range.start) {
+        labels.push({
+          name: formatSequentialVerseRangeLabel(
+            book.verses,
+            parsedRange.startChapter,
+            parsedRange.startVerse,
+            verse,
+            verse
+          ),
+          inUse: false,
+          metadata: {
+            verse: { from: verse, to: verse }
+          }
+        });
+        verse += 1;
+      }
+
+      labels.push({
+        name: formatSequentialVerseRangeLabel(
+          book.verses,
+          parsedRange.startChapter,
+          parsedRange.startVerse,
+          range.start,
+          range.end
+        ),
+        inUse: true,
+        metadata: {
+          verse: { from: range.start, to: range.end }
+        }
+      });
+
+      verse = range.end + 1;
+    }
+
+    while (verse <= totalVerses) {
+      labels.push({
+        name: formatSequentialVerseRangeLabel(
+          book.verses,
+          parsedRange.startChapter,
+          parsedRange.startVerse,
+          verse,
+          verse
+        ),
+        inUse: false,
+        metadata: {
+          verse: { from: verse, to: verse }
+        }
+      });
+      verse += 1;
+    }
+
+    return labels;
   },
   formatLabelMetadata: (selection) => {
     const fromVerse = (

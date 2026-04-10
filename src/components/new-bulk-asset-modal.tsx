@@ -40,6 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { TagSelector } from '@/components/new-tag-selector';
 import { LanguoidCombobox } from '@/components/languoid-combobox';
+import { LabelSelectorModal } from '@/components/QuestExplorer/label-selector-modal';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
@@ -47,6 +48,8 @@ import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
 import { env } from '@/lib/env';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTemplateStrategy } from '@/components/QuestExplorer/template-strategies';
+import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
+import { DisplayNode } from '@/components/QuestExplorer/template-strategies/types';
 
 const assetRowSchema = z
   .object({
@@ -56,7 +59,8 @@ const assetRowSchema = z
     images: z.array(z.string()).optional().default([]),
     content: z.string().optional().default(''),
     audioFile: z.any().optional(),
-    tags: z.array(z.string()).optional().default([])
+    tags: z.array(z.string()).optional().default([]),
+    labelMetadata: z.record(z.string(), z.unknown()).nullable().optional()
   })
   .refine(
     (data) => {
@@ -86,6 +90,11 @@ interface BulkAssetModalProps {
   allowMultiQuest?: boolean;
   questAssetsCount?: number;
   template?: string;
+  labelContext?: {
+    template: string;
+    quest: QuestRecord | null;
+    assets: AssetSummary[];
+  };
 }
 
 export function BulkAssetModal({
@@ -96,7 +105,8 @@ export function BulkAssetModal({
   disableQuestsChange = false,
   allowMultiQuest = true,
   questAssetsCount,
-  template = 'unstructured'
+  template = 'unstructured',
+  labelContext
 }: BulkAssetModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,6 +116,10 @@ export function BulkAssetModal({
   );
   const [globalTagModalOpen, setGlobalTagModalOpen] = useState(false);
   const [globalTags, setGlobalTags] = useState<string[]>([]);
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
+  const [currentLabelAssetIndex, setCurrentLabelAssetIndex] = useState<
+    number | null
+  >(null);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   const [assetImages, setAssetImages] = useState<Record<string, File>>({});
@@ -120,6 +134,23 @@ export function BulkAssetModal({
     () => (defaultQuestId ? [defaultQuestId] : []),
     [defaultQuestId]
   );
+  const allowLabel =
+    Boolean(labelContext) && templateStrategy.behavior.allowLabel;
+  const labelQuestNode = useMemo<DisplayNode | null>(() => {
+    if (!labelContext?.quest) {
+      return null;
+    }
+
+    return {
+      key: labelContext.quest.id,
+      title: labelContext.quest.name,
+      subtitle: labelContext.quest.description || undefined,
+      questId: labelContext.quest.id,
+      quest: labelContext.quest,
+      variants: [labelContext.quest],
+      kind: 'quest'
+    };
+  }, [labelContext?.quest]);
 
   const supabase = createBrowserClient();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -180,7 +211,8 @@ export function BulkAssetModal({
           source_languoid_id: '',
           images: [],
           content: '',
-          tags: []
+          tags: [],
+          labelMetadata: null
         }
       ]
     }
@@ -203,7 +235,8 @@ export function BulkAssetModal({
             source_languoid_id: '',
             images: [],
             content: '',
-            tags: []
+            tags: [],
+            labelMetadata: null
           }
         ]
       });
@@ -227,8 +260,47 @@ export function BulkAssetModal({
       source_languoid_id: '',
       images: [],
       content: '',
-      tags: [...globalTags] // Include global tags in new assets
+      tags: [...globalTags], // Include global tags in new assets
+      labelMetadata: null
     });
+  };
+
+  const getPendingAssetsForLabels = (excludeIndex?: number): AssetSummary[] => {
+    const currentAssets = form.getValues('assets');
+    return currentAssets
+      .map((asset, index) => {
+        if (excludeIndex !== undefined && index === excludeIndex) {
+          return null;
+        }
+
+        if (!asset.labelMetadata) {
+          return null;
+        }
+
+        return {
+          id: `pending-${index}`,
+          name: asset.name || null,
+          active: true,
+          metadata: asset.labelMetadata as Record<string, unknown>,
+          created_at: new Date().toISOString()
+        } as AssetSummary;
+      })
+      .filter((value): value is AssetSummary => value !== null);
+  };
+
+  const getAvailableLabelsForIndex = (index: number) => {
+    if (!allowLabel || !labelContext) {
+      return [];
+    }
+
+    const existingAssets = labelContext.assets || [];
+    const pendingAssets = getPendingAssetsForLabels(index);
+    return (
+      templateStrategy.getAvailableLabels?.(labelContext.quest, [
+        ...existingAssets,
+        ...pendingAssets
+      ]) || []
+    );
   };
 
   // Remove asset row
@@ -394,11 +466,12 @@ export function BulkAssetModal({
       for (let i = 0; i < data.assets.length; i++) {
         const asset = data.assets[i];
         const counterBase =
-          typeof questAssetsCount === 'number' && Number.isFinite(questAssetsCount)
+          typeof questAssetsCount === 'number' &&
+          Number.isFinite(questAssetsCount)
             ? questAssetsCount
             : 0;
         const orderIndex = templateStrategy.getOrderIndex(
-          null,
+          (asset.labelMetadata as Record<string, unknown> | null) || null,
           counterBase + i
         );
 
@@ -451,6 +524,7 @@ export function BulkAssetModal({
           .insert({
             name: asset.name,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
+            metadata: asset.labelMetadata || null,
             order_index: orderIndex,
             active: true,
             project_id: projectId,
@@ -564,6 +638,9 @@ export function BulkAssetModal({
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[16%]">Quest Name</TableHead>
+                      {allowLabel && (
+                        <TableHead className="w-[12%]">Label</TableHead>
+                      )}
                       <TableHead className="w-[18%]">Asset Name</TableHead>
                       <TableHead className="w-[15%]">Source Language</TableHead>
                       <TableHead className="w-[10%]">Images</TableHead>
@@ -603,10 +680,9 @@ export function BulkAssetModal({
                                       ? field.value
                                       : initialQuestIds
                                     ).length > 0 ? (
-                                      (
-                                        field.value && field.value.length > 0
-                                          ? field.value
-                                          : initialQuestIds
+                                      (field.value && field.value.length > 0
+                                        ? field.value
+                                        : initialQuestIds
                                       ).map((questId: string) => {
                                         const quest = quests?.find(
                                           (q) => q.id === questId
@@ -616,7 +692,9 @@ export function BulkAssetModal({
                                             key={questId}
                                             variant="secondary"
                                             className="text-xs max-w-24 truncate"
-                                            title={quest?.name || 'Default Quest'}
+                                            title={
+                                              quest?.name || 'Default Quest'
+                                            }
                                           >
                                             {quest?.name || 'Default Quest'}
                                           </Badge>
@@ -733,6 +811,62 @@ export function BulkAssetModal({
                             )}
                           />
                         </TableCell>
+
+                        {allowLabel && (
+                          <TableCell>
+                            <div className="flex items-center justify-between gap-2">
+                              {(() => {
+                                const labelMetadata =
+                                  form.watch(`assets.${index}.labelMetadata`) ||
+                                  null;
+                                const labelText = labelMetadata
+                                  ? templateStrategy.resolveAssetLabel(
+                                      labelQuestNode,
+                                      {
+                                        id: `pending-${index}`,
+                                        name:
+                                          form.watch(`assets.${index}.name`) ||
+                                          null,
+                                        active: true,
+                                        metadata: labelMetadata as Record<
+                                          string,
+                                          unknown
+                                        >,
+                                        created_at: new Date().toISOString()
+                                      }
+                                    )
+                                  : '';
+
+                                return labelText ? (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs max-w-32 truncate"
+                                    title={labelText}
+                                  >
+                                    {labelText}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    No label
+                                  </span>
+                                );
+                              })()}
+
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="p-0 w-6 h-6"
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentLabelAssetIndex(index);
+                                  setLabelModalOpen(true);
+                                }}
+                              >
+                                <Plus className="size-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
 
                         {/* Asset Name */}
                         <TableCell>
@@ -1037,6 +1171,33 @@ export function BulkAssetModal({
               </div>
             </DialogContent>
           </Dialog>
+        )}
+
+        {/* Label Selection Modal */}
+        {allowLabel && currentLabelAssetIndex !== null && (
+          <LabelSelectorModal
+            open={labelModalOpen}
+            onOpenChange={(open) => {
+              setLabelModalOpen(open);
+              if (!open) {
+                setCurrentLabelAssetIndex(null);
+              }
+            }}
+            template={labelContext?.template || template}
+            labels={getAvailableLabelsForIndex(currentLabelAssetIndex)}
+            allowRange={true}
+            handleApply={(selection) => {
+              const currentAssets = form.getValues('assets');
+              const updatedAssets = [...currentAssets];
+              updatedAssets[currentLabelAssetIndex] = {
+                ...updatedAssets[currentLabelAssetIndex],
+                labelMetadata: templateStrategy.formatLabelMetadata
+                  ? templateStrategy.formatLabelMetadata(selection)
+                  : null
+              };
+              form.setValue('assets', updatedAssets);
+            }}
+          />
         )}
 
         {/* Global Tags Modal */}
