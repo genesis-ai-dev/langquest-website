@@ -31,14 +31,22 @@ import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
 import { useAuth } from '@/components/auth-provider';
 import { useQueryClient } from '@tanstack/react-query';
+import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 
 interface SubQuestMenuPlusProps {
   canManage: boolean;
   projectId: string;
   selectedQuestId: string | null;
+  questAssetsCount?: number;
   onQuestSuccess?: () => void;
   onAssetSuccess?: (currentQuestId?: string) => void;
-  disableQuests?: boolean;
+  disableQuestSelection?: boolean;
+  disableSubquestCreation?: boolean;
+  labelContext?: {
+    template: string;
+    quest: QuestRecord | null;
+    assets: AssetSummary[];
+  };
   menuConfig?: {
     allowAddQuest?: boolean;
     allowAddAssets?: boolean;
@@ -55,9 +63,12 @@ export function SubQuestMenuPlus({
   canManage,
   projectId,
   selectedQuestId,
+  questAssetsCount,
   onQuestSuccess,
   onAssetSuccess,
-  disableQuests = false,
+  disableQuestSelection = false,
+  disableSubquestCreation = false,
+  labelContext,
   menuConfig
 }: SubQuestMenuPlusProps) {
   const { user, supabase } = useAuth();
@@ -68,12 +79,11 @@ export function SubQuestMenuPlus({
   const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
 
-  const canAddQuest = (menuConfig?.allowAddQuest ?? true) && !disableQuests;
+  const canAddQuest =
+    (menuConfig?.allowAddQuest ?? true) && !disableSubquestCreation;
   const canAddAssets = menuConfig?.allowAddAssets ?? true;
   const canAddNewVersion =
-    (menuConfig?.allowNewVersion ?? false) &&
-    !disableQuests &&
-    !!selectedQuestId;
+    (menuConfig?.allowNewVersion ?? false) && !!selectedQuestId;
 
   const invalidateQuestQueries = async () => {
     await Promise.all([
@@ -221,7 +231,11 @@ export function SubQuestMenuPlus({
             <BulkAssetModal
               projectId={projectId}
               defaultQuestId={selectedQuestId || undefined}
-              disableQuestsChange={disableQuests}
+              disableQuestsChange={disableQuestSelection}
+              allowMultiQuest={!disableQuestSelection}
+              questAssetsCount={questAssetsCount}
+              template={labelContext?.template || 'unstructured'}
+              labelContext={labelContext}
               onAssetsCreated={(assets) => {
                 toast.success(`Successfully created ${assets.length} assets`);
                 onAssetSuccess?.(selectedQuestId || undefined);
@@ -327,7 +341,9 @@ export function SubQuestMenuPlus({
             onSuccess={handleAssetSuccess}
             projectId={projectId}
             questId={selectedQuestId || undefined}
-            hideContentTabs={disableQuests}
+            questAssetsCount={questAssetsCount}
+            hideContentTabs={disableQuestSelection}
+            labelContext={labelContext}
           />
         </DialogContent>
       </Dialog>

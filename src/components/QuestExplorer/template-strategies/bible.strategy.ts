@@ -1,7 +1,7 @@
-import { QuestRecord } from '@/app/db/questExplorer';
+import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { BIBLE_BOOKS, ICONS_PATH } from './bible.template';
 import { getQuestDisabledFlag, getQuestVersionName } from './helpers';
-import { DisplayNode, TemplateStrategy } from './types';
+import { BibleAvailableLabel, DisplayNode, TemplateStrategy } from './types';
 
 function getBibleMetadata(
   metadata: Record<string, unknown> | null
@@ -59,10 +59,13 @@ export const bibleStrategy: TemplateStrategy = {
     allowAddQuest: false,
     allowAddAssets: true,
     allowNewVersion: true,
-    showAssetLabel: true
+    allowLabel: true,
+    showAssetLabel: true,
+    showQuestTabInAssetForm: false
   },
   copy: {
     leftColumnTitle: 'Bible Books',
+    labelSelectorTitle: 'Verses',
     rootSearchPlaceholder: 'Search Book',
     rootEmptyMessage: 'No books found for this project.',
     breadcrumbEmpty: 'No selection',
@@ -169,6 +172,153 @@ export const bibleStrategy: TemplateStrategy = {
       kind: 'quest' as const,
       disabled: getQuestDisabledFlag(child)
     }));
+  },
+  getAvailableLabels: (
+    quest: QuestRecord | null,
+    assets: AssetSummary[] = []
+  ): BibleAvailableLabel[] => {
+    if (!quest?.metadata) {
+      return [];
+    }
+
+    const metadata = getBibleMetadata(quest.metadata);
+    const bookId = metadata?.book;
+    const chapterNumber = metadata?.chapter;
+    if (!bookId || !chapterNumber) {
+      return [];
+    }
+
+    const book = BIBLE_BOOKS.find((item) => item.id === bookId);
+    const totalVerses = book?.verses?.[chapterNumber - 1];
+    if (!totalVerses || totalVerses < 1) {
+      return [];
+    }
+
+    const usedRanges = assets
+      .map((asset) => {
+      const assetMetadata = asset.metadata as
+        | {
+            verse?: {
+              from?: number;
+              to?: number;
+            };
+          }
+        | null
+        | undefined;
+
+      const fromRaw = assetMetadata?.verse?.from;
+      const toRaw = assetMetadata?.verse?.to;
+
+      if (typeof fromRaw !== 'number') {
+        return null;
+      }
+
+      const from = Math.max(1, Math.min(totalVerses, Math.floor(fromRaw)));
+      const to =
+        typeof toRaw === 'number'
+          ? Math.max(1, Math.min(totalVerses, Math.floor(toRaw)))
+          : from;
+
+      const start = Math.min(from, to);
+      const end = Math.max(from, to);
+      return { start, end };
+    })
+      .filter((range): range is { start: number; end: number } => range !== null)
+      .sort((a, b) => {
+        if (a.start !== b.start) {
+          return a.start - b.start;
+        }
+        return a.end - b.end;
+      });
+
+    const mergedUsedRanges: Array<{ start: number; end: number }> = [];
+    for (const range of usedRanges) {
+      const last = mergedUsedRanges[mergedUsedRanges.length - 1];
+      if (!last) {
+        mergedUsedRanges.push({ ...range });
+        continue;
+      }
+
+      if (range.start <= last.end) {
+        last.end = Math.max(last.end, range.end);
+        continue;
+      }
+
+      mergedUsedRanges.push({ ...range });
+    }
+
+    const labels: BibleAvailableLabel[] = [];
+    let verse = 1;
+    for (const range of mergedUsedRanges) {
+      while (verse < range.start) {
+        labels.push({
+          name: `${verse}`,
+          inUse: false,
+          metadata: {
+            verse: { from: verse, to: verse }
+          }
+        });
+        verse += 1;
+      }
+
+      labels.push({
+        name: range.start === range.end ? `${range.start}` : `${range.start}-${range.end}`,
+        inUse: true,
+        metadata: {
+          verse: { from: range.start, to: range.end }
+        }
+      });
+      verse = range.end + 1;
+    }
+
+    while (verse <= totalVerses) {
+      labels.push({
+        name: `${verse}`,
+        inUse: false,
+        metadata: {
+          verse: { from: verse, to: verse }
+        }
+      });
+      verse += 1;
+    }
+
+    return labels;
+  },
+  formatLabelMetadata: (selection) => {
+    const fromVerse = (
+      selection?.from?.metadata as
+        | {
+            verse?: { from?: number };
+          }
+        | undefined
+    )?.verse?.from;
+    const toVerse = (
+      selection?.to?.metadata as
+        | {
+            verse?: { to?: number };
+          }
+        | undefined
+    )?.verse?.to;
+
+    if (typeof fromVerse !== 'number') {
+      return null;
+    }
+
+    return {
+      verse: {
+        from: fromVerse,
+        to: typeof toVerse === 'number' ? toVerse : fromVerse
+      }
+    };
+  },
+  getOrderIndex: (assetMetadata, counter) => {
+    const verseFrom = (assetMetadata as { verse?: { from?: number } } | null)
+      ?.verse?.from;
+    const normalizedCounter = Number.isFinite(counter) ? counter : 0;
+    const verseBase =
+      typeof verseFrom === 'number' ? Math.floor(verseFrom) : 999;
+
+    return verseBase * 1000 * 1000 + normalizedCounter * 1000;
   },
   resolveAssetLabel: (questNode, asset) => {
     const questName = questNode?.quest?.name || questNode?.title || '';

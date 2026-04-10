@@ -136,8 +136,6 @@ export function ProjectDownloadButton({
     enabled: !!projectId && isOpen
   });
 
-  console.log('Project data for download:', projectData);
-
   // Auto-select all quests when data loads
   useEffect(() => {
     if (projectData) {
