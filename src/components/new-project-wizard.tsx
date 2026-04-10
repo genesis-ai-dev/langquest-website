@@ -58,6 +58,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { createProjectOwnership } from '@/lib/project-permissions';
 import { projectTemplates } from '@/templates';
+import { fetchFiaLanguoids } from '@/app/db/languoid';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -74,6 +75,7 @@ const projectDetailsSchema = z.object({
   template: z.string().min(1, {
     message: 'Template is required.'
   }),
+  fia_source_languoid_id: z.string().optional(),
   target_languoid_id: z.string().min(1, {
     message: 'Target language is required.'
   }),
@@ -157,12 +159,14 @@ export function ProjectWizard({
       name: '',
       description: '',
       template: 'unstructured',
+      fia_source_languoid_id: '',
       target_languoid_id: '',
       private: false,
       color: '#3b82f6'
     },
     mode: 'onChange'
   });
+  const selectedTemplate = step2Form.watch('template');
 
   // Get clone project data and populate form when available
   const projectForCloning = useMemo(() => {
@@ -172,6 +176,22 @@ export function ProjectWizard({
     }
     return undefined;
   }, [existingProjects, projectToClone, templateId, creationMethod]);
+
+  const effectiveTemplate =
+    creationMethod === 'clone'
+      ? projectForCloning?.template || ''
+      : selectedTemplate;
+  const isFiaTemplate = effectiveTemplate === 'fia';
+
+  const { data: fiaLanguoids = [], isLoading: isLoadingFiaLanguoids } =
+    useQuery({
+      queryKey: ['fia-languoids'],
+      queryFn: async () => {
+        const supabase = createBrowserClient();
+        return fetchFiaLanguoids(supabase);
+      },
+      enabled: step === 2 && isFiaTemplate
+    });
 
   // When projectToClone prop is provided, pre-populate fields for cloning
   useEffect(() => {
@@ -197,6 +217,14 @@ export function ProjectWizard({
 
   // Handle step 2 submission
   const onStep2Submit = async () => {
+    const values = step2Form.getValues();
+    if (isFiaTemplate && !values.fia_source_languoid_id?.trim()) {
+      step2Form.setError('fia_source_languoid_id', {
+        type: 'manual',
+        message: 'FIA content language is required.'
+      });
+      return;
+    }
     setStep(3);
   };
 
@@ -356,6 +384,25 @@ export function ProjectWizard({
         toast.error('Failed to set project ownership');
       }
 
+      // Create project_language_link for source language (requires ownership to exist first)
+      if (isFiaTemplate && step2Values.fia_source_languoid_id) {
+        const { error: sourceLinkError } = await supabase
+          .from('project_language_link')
+          .insert({
+            project_id: data.id,
+            languoid_id: step2Values.fia_source_languoid_id,
+            language_type: 'source'
+          });
+
+        console.log('sourceLinkError:', step2Values.fia_source_languoid_id);
+
+        if (sourceLinkError) {
+          toast.error(
+            `Failed to link FIA content language: ${sourceLinkError.message || 'Unknown error'}`
+          );
+        }
+      }
+
       // Create project_language_link for target language (requires ownership to exist first)
       if (step2Values.target_languoid_id) {
         console.log('Creating project_language_link with:', {
@@ -418,6 +465,10 @@ export function ProjectWizard({
   const getLanguoidName = (id: string) => {
     if (selectedLanguoid && selectedLanguoid.id === id) {
       return selectedLanguoid.name || 'Unknown';
+    }
+    const fiaMatch = fiaLanguoids.find((languoid) => languoid.id === id);
+    if (fiaMatch) {
+      return fiaMatch.name || 'Unknown';
     }
     // Fallback to ID if not found
     return id;
@@ -676,6 +727,49 @@ export function ProjectWizard({
               )}
             />
           )}
+          {isFiaTemplate && (
+            <FormField
+              control={step2Form.control}
+              name="fia_source_languoid_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>FIA Content Language</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                    disabled={isLoadingFiaLanguoids}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select FIA content language" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {isLoadingFiaLanguoids ? (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          Loading languages...
+                        </div>
+                      ) : fiaLanguoids.length === 0 ? (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          No FIA languages available
+                        </div>
+                      ) : (
+                        fiaLanguoids.map((languoid) => (
+                          <SelectItem key={languoid.id} value={languoid.id}>
+                            {languoid.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Source language used for FIA content.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={step2Form.control}
             name="target_languoid_id"
@@ -901,6 +995,15 @@ export function ProjectWizard({
                       (t) => t.id === projectDetails?.template
                     )?.name || projectDetails?.template}
               </div>
+
+              {isFiaTemplate && (
+                <div>
+                  <span className="font-medium">FIA Content Language:</span>{' '}
+                  {getLanguoidName(
+                    projectDetails?.fia_source_languoid_id || ''
+                  )}
+                </div>
+              )}
 
               <div>
                 <span className="font-medium">Target Language:</span>{' '}
