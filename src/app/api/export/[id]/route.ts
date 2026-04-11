@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../../../../../database.types';
-import { getSupabaseCredentials, SupabaseEnvironment } from '@/lib/supabase';
 import { env } from '@/lib/env';
 
 /**
@@ -36,12 +35,8 @@ export async function GET(
     }
 
     const accessToken = authHeader.substring(7);
-    const environment =
-      (request.nextUrl.searchParams.get(
-        'environment'
-      ) as SupabaseEnvironment) ||
-      (env.NEXT_PUBLIC_ENVIRONMENT as SupabaseEnvironment);
-    const { url, key } = getSupabaseCredentials(environment);
+    const url = env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const supabaseAuth = createClient<Database>(url, key);
     const {

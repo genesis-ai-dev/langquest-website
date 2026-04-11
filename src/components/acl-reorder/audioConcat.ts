@@ -2,7 +2,6 @@
 
 import { createBrowserClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
-import type { SupabaseEnvironment } from '@/lib/supabase';
 import type { AclWithAudio } from './useAclAudioPlayer';
 import { extractAudioPaths } from './audioUtils';
 
@@ -17,10 +16,7 @@ export type OnProgress = (progress: ConcatProgress) => void;
 /**
  * Resolve a storage path to a fetchable URL (mirrors useAclAudioPlayer logic).
  */
-function resolveAudioUrl(
-  path: string,
-  environment: SupabaseEnvironment
-): string {
+function resolveAudioUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
@@ -28,7 +24,7 @@ function resolveAudioUrl(
     env.NEXT_PUBLIC_SUPABASE_BUCKET ||
     process.env.NEXT_PUBLIC_SUPABASE_BUCKET ||
     'local';
-  const supabase = createBrowserClient(environment);
+  const supabase = createBrowserClient();
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
@@ -42,7 +38,6 @@ function resolveAudioUrl(
  */
 export async function concatAclAudio(
   acls: AclWithAudio[],
-  environment: SupabaseEnvironment,
   onProgress?: OnProgress
 ): Promise<Blob> {
   // Collect audio paths in ACL order, handling all jsonb variants
@@ -62,11 +57,12 @@ export async function concatAclAudio(
       audioType: typeof a.audio,
       audioIsArray: Array.isArray(a.audio),
       audioValue:
-        a.audio == null
-          ? 'null'
-          : JSON.stringify(a.audio).slice(0, 80)
+        a.audio == null ? 'null' : JSON.stringify(a.audio).slice(0, 80)
     }));
-    console.error('[AudioConcat] No audio paths found. Sample ACL audio fields:', sample);
+    console.error(
+      '[AudioConcat] No audio paths found. Sample ACL audio fields:',
+      sample
+    );
     throw new Error(
       `No audio files to concatenate (${acls.length} ACLs had no resolvable audio paths)`
     );
@@ -84,7 +80,7 @@ export async function concatAclAudio(
         total: audioPaths.length
       });
 
-      const url = resolveAudioUrl(audioPaths[i], environment);
+      const url = resolveAudioUrl(audioPaths[i]);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(

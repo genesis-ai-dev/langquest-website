@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 // import { useQuery } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { SupabaseEnvironment } from '@/lib/supabase';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +28,6 @@ interface Tag {
 interface TagSelectorProps {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
-  environment: SupabaseEnvironment;
   label?: string;
   description?: string;
   placeholder?: string;
@@ -45,7 +43,6 @@ interface TagSelectorProps {
 export function TagSelector({
   selectedTags,
   onTagsChange,
-  environment,
   label = 'Tags',
   description = 'Add tags to categorize this item.',
   placeholder = 'Search tags...',
@@ -69,7 +66,7 @@ export function TagSelector({
   useEffect(() => {
     if (selectedTags.length === 0) return;
     async function fetchRecoveredTags() {
-      const { data, error } = await createBrowserClient(environment)
+      const { data, error } = await createBrowserClient()
         .from('tag')
         .select('*')
         .in('id', selectedTags)
@@ -95,7 +92,7 @@ export function TagSelector({
           Math.ceil(data ? data.length / maxVisibleTagsExtended : 0)
         );
       } else {
-        const { data, error } = await createBrowserClient(environment)
+        const { data, error } = await createBrowserClient()
           .from('tag')
           .select('*')
           .ilike('name', `${searchQuery}%`)
@@ -147,16 +144,13 @@ export function TagSelector({
       return;
     /* Verify if a tag with same name exists */
     const { data: existingTags, error: existingTagsError } =
-      await createBrowserClient(environment)
-        .from('tag')
-        .select('*')
-        .eq('name', tagName);
+      await createBrowserClient().from('tag').select('*').eq('name', tagName);
     if (existingTagsError) throw existingTagsError;
     if (existingTags && existingTags.length > 0) {
       return;
     }
 
-    const { data, error } = await createBrowserClient(environment)
+    const { data, error } = await createBrowserClient()
       .from('tag')
       .insert({ name: tagName })
       .select()
@@ -407,10 +401,7 @@ export function TagSelector({
   );
 }
 
-export function useTagSelector(
-  environment: SupabaseEnvironment,
-  initialTags: string[] = []
-) {
+export function useTagSelector(initialTags: string[] = []) {
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
 
   console.log('Selected tags in hook:', initialTags);
@@ -419,7 +410,6 @@ export function useTagSelector(
     <TagSelector
       selectedTags={selectedTags}
       onTagsChange={setSelectedTags}
-      environment={environment}
       {...props}
     />
   );

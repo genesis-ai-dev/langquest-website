@@ -58,6 +58,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { createProjectOwnership } from '@/lib/project-permissions';
 import { projectTemplates } from '@/templates';
+import { fetchFiaLanguoids } from '@/app/db/languoid';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -74,6 +75,7 @@ const projectDetailsSchema = z.object({
   template: z.string().min(1, {
     message: 'Template is required.'
   }),
+  fia_source_languoid_id: z.string().optional(),
   target_languoid_id: z.string().min(1, {
     message: 'Target language is required.'
   }),
@@ -114,7 +116,7 @@ export function ProjectWizard({
   );
   // const [selectedImage, setSelectedImage] = useState<File | null>(null);
   // const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const { user, environment } = useAuth();
+  const { user } = useAuth();
   const [cloneJob, setCloneJob] = useState<{
     id?: string;
     status?: string;
@@ -124,9 +126,9 @@ export function ProjectWizard({
 
   // Fetch existing projects for cloning
   const { data: existingProjects } = useQuery({
-    queryKey: ['projects', environment],
+    queryKey: ['projects'],
     queryFn: async () => {
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const { data, error } = await supabase
         .from('project')
         .select('id, name, description, template')
@@ -157,12 +159,14 @@ export function ProjectWizard({
       name: '',
       description: '',
       template: 'unstructured',
+      fia_source_languoid_id: '',
       target_languoid_id: '',
       private: false,
       color: '#3b82f6'
     },
     mode: 'onChange'
   });
+  const selectedTemplate = step2Form.watch('template');
 
   // Get clone project data and populate form when available
   const projectForCloning = useMemo(() => {
@@ -172,6 +176,22 @@ export function ProjectWizard({
     }
     return undefined;
   }, [existingProjects, projectToClone, templateId, creationMethod]);
+
+  const effectiveTemplate =
+    creationMethod === 'clone'
+      ? projectForCloning?.template || ''
+      : selectedTemplate;
+  const isFiaTemplate = effectiveTemplate === 'fia';
+
+  const { data: fiaLanguoids = [], isLoading: isLoadingFiaLanguoids } =
+    useQuery({
+      queryKey: ['fia-languoids'],
+      queryFn: async () => {
+        const supabase = createBrowserClient();
+        return fetchFiaLanguoids(supabase);
+      },
+      enabled: step === 2 && isFiaTemplate
+    });
 
   // When projectToClone prop is provided, pre-populate fields for cloning
   useEffect(() => {
@@ -197,6 +217,14 @@ export function ProjectWizard({
 
   // Handle step 2 submission
   const onStep2Submit = async () => {
+    const values = step2Form.getValues();
+    if (isFiaTemplate && !values.fia_source_languoid_id?.trim()) {
+      step2Form.setError('fia_source_languoid_id', {
+        type: 'manual',
+        message: 'FIA content language is required.'
+      });
+      return;
+    }
     setStep(3);
   };
 
@@ -247,7 +275,7 @@ export function ProjectWizard({
           return;
         }
 
-        const supabase = createBrowserClient(environment);
+        const supabase = createBrowserClient();
 
         // Start clone job via RPC - note: clone RPC still uses language_id for now
         // TODO: Update clone RPC to use languoid_id
@@ -269,7 +297,7 @@ export function ProjectWizard({
 
         // Persist minimal job tracking so dashboard can gray out destination once visible
         try {
-          const storageKey = `cloneJobs:${environment}:${user.id}`;
+          const storageKey = `cloneJobs:${user.id}`;
           const existingRaw = localStorage.getItem(storageKey);
           const existing: any[] = existingRaw ? JSON.parse(existingRaw) : [];
           const entry = { jobId, name: newName };
@@ -326,7 +354,7 @@ export function ProjectWizard({
       }
 
       // Non-clone path: create a fresh project directly
-      const supabase = createBrowserClient(environment);
+      const supabase = createBrowserClient();
       const projectData = {
         name: step2Values.name || '',
         description: step2Values.description || null,
@@ -348,12 +376,31 @@ export function ProjectWizard({
 
       // Create project ownership FIRST (required by RLS policy for project_language_link)
       try {
-        await createProjectOwnership(data.id, user.id, environment);
+        await createProjectOwnership(data.id, user.id);
         console.log('Project ownership created successfully');
       } catch (ownershipError) {
         console.error('Error creating project ownership:', ownershipError);
         // This is more serious now - without ownership, language link will fail
         toast.error('Failed to set project ownership');
+      }
+
+      // Create project_language_link for source language (requires ownership to exist first)
+      if (isFiaTemplate && step2Values.fia_source_languoid_id) {
+        const { error: sourceLinkError } = await supabase
+          .from('project_language_link')
+          .insert({
+            project_id: data.id,
+            languoid_id: step2Values.fia_source_languoid_id,
+            language_type: 'source'
+          });
+
+        console.log('sourceLinkError:', step2Values.fia_source_languoid_id);
+
+        if (sourceLinkError) {
+          toast.error(
+            `Failed to link FIA content language: ${sourceLinkError.message || 'Unknown error'}`
+          );
+        }
       }
 
       // Create project_language_link for target language (requires ownership to exist first)
@@ -418,6 +465,10 @@ export function ProjectWizard({
   const getLanguoidName = (id: string) => {
     if (selectedLanguoid && selectedLanguoid.id === id) {
       return selectedLanguoid.name || 'Unknown';
+    }
+    const fiaMatch = fiaLanguoids.find((languoid) => languoid.id === id);
+    if (fiaMatch) {
+      return fiaMatch.name || 'Unknown';
     }
     // Fallback to ID if not found
     return id;
@@ -499,15 +550,13 @@ export function ProjectWizard({
                         Create a new project from scratch
                       </Label>
                     </div>
-                    {environment !== 'production' && (
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="clone" id="clone" />
-                        <Label htmlFor="clone" className="flex items-center">
-                          <Copy className="mr-2 h-4 w-4" />
-                          Clone an existing project
-                        </Label>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="clone" id="clone" />
+                      <Label htmlFor="clone" className="flex items-center">
+                        <Copy className="mr-2 h-4 w-4" />
+                        Clone an existing project
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
@@ -672,6 +721,49 @@ export function ProjectWizard({
                   <FormDescription>
                     The template determines the project structure and available
                     features.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {isFiaTemplate && (
+            <FormField
+              control={step2Form.control}
+              name="fia_source_languoid_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>FIA Content Language</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                    disabled={isLoadingFiaLanguoids}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select FIA content language" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {isLoadingFiaLanguoids ? (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          Loading languages...
+                        </div>
+                      ) : fiaLanguoids.length === 0 ? (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          No FIA languages available
+                        </div>
+                      ) : (
+                        fiaLanguoids.map((languoid) => (
+                          <SelectItem key={languoid.id} value={languoid.id}>
+                            {languoid.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Source language used for FIA content.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -903,6 +995,15 @@ export function ProjectWizard({
                       (t) => t.id === projectDetails?.template
                     )?.name || projectDetails?.template}
               </div>
+
+              {isFiaTemplate && (
+                <div>
+                  <span className="font-medium">FIA Content Language:</span>{' '}
+                  {getLanguoidName(
+                    projectDetails?.fia_source_languoid_id || ''
+                  )}
+                </div>
+              )}
 
               <div>
                 <span className="font-medium">Target Language:</span>{' '}

@@ -47,7 +47,7 @@ export function AssetCard({
 }: AssetCardProps) {
   return (
     <Card
-      className={`gap-4 h-36 hover:shadow-md transition-shadow cursor-pointer p-0 overflow-hidden  ${
+      className={`flex h-36 min-h-36 max-h-36 flex-col gap-0 overflow-hidden p-0 hover:shadow-md transition-shadow cursor-pointer ${
         isSelected ? 'ring-2 ring-primary' : ''
       }`}
       onClick={onClick}
@@ -74,11 +74,11 @@ export function AssetCard({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-4 max-h-4">
-        <p className="text-muted-foreground line-clamp-3 overflow-clip font-semibold truncate">
+      <CardContent className="flex-1 min-h-0 overflow-hidden py-2">
+        <p className="text-muted-foreground line-clamp-2 overflow-hidden font-semibold">
           {asset.name}
         </p>
-        <div className="text-xs text-muted-foreground truncate">
+        <div className="mt-1 text-xs text-muted-foreground truncate">
           {asset.tags && asset.tags.length > 0
             ? asset.tags
                 .map((tagLink) => `${tagLink.tag.key}:${tagLink.tag.value}`)
@@ -98,10 +98,10 @@ export function AssetCard({
           </Badge>
         </div> */}
       </CardContent>
-      <CardFooter className="mt-4 text-xs text-muted-foreground pt-1 border-t flex justify-between">
-        <div className="flex items-center gap-1">
+      <CardFooter className="h-8 border-t px-4 text-xs text-muted-foreground flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1">
           <Languages className="w-3 h-3" />
-          <span>
+          <span className="truncate">
             {asset.translations && asset.translations.length > 0
               ? `${asset.translations[0].count} Translation${
                   asset.translations[0].count !== 1 ? 's' : ''
@@ -109,8 +109,10 @@ export function AssetCard({
               : '0 Translations'}
           </span>
         </div>
-        <div>
-          <span>{new Date(asset.created_at).toLocaleDateString()}</span>
+        <div className="shrink-0">
+          <span className="whitespace-nowrap">
+            {new Date(asset.created_at).toLocaleDateString()}
+          </span>
         </div>
       </CardFooter>
     </Card>

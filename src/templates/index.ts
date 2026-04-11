@@ -14,5 +14,10 @@ export const projectTemplates: ProjectTemplate[] = [
     id: 'bible',
     name: 'Bible',
     description: 'Specialized template for Bible translation projects'
+  },
+  {
+    id: 'fia',
+    name: 'FIA',
+    description: 'Specialized template for FIA translation projects'
   }
 ];

@@ -7,8 +7,9 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { QuestExplorer } from '@/components/quest-explorer';
-import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { QuestExplorerMenu } from '@/components/QuestExplorer/main';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProjectHeaderV1 } from '@/components/project-header-v1';
 import { PortalHeader } from '@/components/portal-header';
@@ -31,8 +32,8 @@ function ProjectPageContent() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
-  const { user, isLoading, signOut, environment } = useAuth();
-  const supabase = createBrowserClient(environment);
+  const { user, isLoading, signOut } = useAuth();
+  const supabase = createBrowserClient();
   // const queryClient = useQueryClient();
 
   // Fetch project data
@@ -41,7 +42,7 @@ function ProjectPageContent() {
     isLoading: projectLoading,
     error: projectError
   } = useQuery({
-    queryKey: ['project', projectId, environment],
+    queryKey: ['project', projectId],
     enabled: !!projectId && !!user,
     queryFn: async () => {
       // Check if project exists (without filters first)
@@ -104,7 +105,7 @@ function ProjectPageContent() {
 
   // Check user permission to access this project
   const { data: userPermission } = useQuery({
-    queryKey: ['project-permission', projectId, user?.id, environment],
+    queryKey: ['project-permission', projectId, user?.id],
     enabled: !!projectId && !!user,
     queryFn: async () => {
       console.log(
@@ -130,7 +131,7 @@ function ProjectPageContent() {
 
   // Single query to fetch Assets and Translations
   const { data: assetsCounts = { assets: 0, translations: 0 } } = useQuery({
-    queryKey: ['assets-translations-count', projectId, environment],
+    queryKey: ['assets-translations-count', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('asset')
@@ -165,17 +166,19 @@ function ProjectPageContent() {
     }
   };
 
+  const handleBackToProjects = () => {
+    // const envQuery = environment !== 'production' ? `?env=${environment}` : '';
+    // router.push(`/portal${envQuery}`);
+    router.push(`/portal`);
+  };
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !user) {
       const currentUrl = `/project/${projectId}`;
-      const envQuery =
-        environment !== 'production' ? `?env=${environment}` : '';
-      router.push(
-        `/login${envQuery}&redirectTo=${encodeURIComponent(currentUrl)}`
-      );
+      router.push(`/login?redirectTo=${encodeURIComponent(currentUrl)}`);
     }
-  }, [isLoading, user, router, projectId, environment]);
+  }, [isLoading, user, router, projectId]);
 
   // Show loading state while authentication is being checked
   if (isLoading || projectLoading) {
@@ -197,8 +200,7 @@ function ProjectPageContent() {
       projectError,
       project,
       projectLoading,
-      projectId,
-      environment
+      projectId
     });
 
     return (
@@ -213,7 +215,6 @@ function ProjectPageContent() {
             </p>
             <div className="text-xs text-muted-foreground mt-2 space-y-1">
               <p>Project ID: {projectId}</p>
-              <p>Environment: {environment}</p>
               {projectError && <p>Error: {projectError.message}</p>}
             </div>
           </AlertDescription>
@@ -253,14 +254,19 @@ function ProjectPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader
-        environment={environment}
-        user={user}
-        onSignOut={handleSignOut}
-      />
+      <PortalHeader user={user} onSignOut={handleSignOut} />
 
       {/* Project Header - Original Model with Stats */}
       <div className="container p-6 max-w-screen-xl mx-auto">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToProjects}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Projects
+        </Button>
         <ProjectHeaderV1
           project={project}
           userRole={
@@ -279,10 +285,10 @@ function ProjectPageContent() {
 
       <div className="container p-6 max-w-screen-xl mx-auto ">
         {/* Quest Explorer - Template-based quest organization */}
-        <QuestExplorer
-          project={project}
+        <QuestExplorerMenu
           projectId={projectId}
           userPermission={userPermission}
+          template={project?.template || 'unstructured'}
         />
       </div>
     </div>

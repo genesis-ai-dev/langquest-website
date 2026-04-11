@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../../css/scroll.css';
 
 @plugin 'tailwindcss-animate';
 @plugin 'tailwind-scrollbar';
@@ -86,9 +87,9 @@
     --accent: hsl(240 33.33% 28.24%);
     --accent-foreground: hsl(240 48.72% 92.35%);
     --destructive: hsl(350.18 100% 66.47%);
-    --border: hsl(240 26.15% 25.49%);
-    --input: hsl(240 27.78% 14.12%);
-    --ring: hsl(251.25 100% 78.04%);
+    --border: hsl(240 22% 34%);
+    --input: hsl(240 22% 26%);
+    --ring: hsl(251.25 100% 82%);
     --chart-1: hsl(251.25 100% 78.04%);
     --chart-2: hsl(230.49 44.09% 63.53%);
     --chart-3: hsl(206.71 89.02% 67.84%);
