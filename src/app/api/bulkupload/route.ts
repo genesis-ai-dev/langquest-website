@@ -512,6 +512,17 @@ function normalizeRowData(
   };
 }
 
+function hasAtLeastOneAssetPayload(normalizedData: {
+  assetContent: string | null;
+  imageFiles: string | null;
+  audioFiles: string | null;
+}): boolean {
+  const hasContent = Boolean(normalizedData.assetContent?.trim());
+  const hasImages = Boolean(normalizedData.imageFiles?.trim());
+  const hasAudio = Boolean(normalizedData.audioFiles?.trim());
+  return hasContent || hasImages || hasAudio;
+}
+
 // Helper function to process multiple content/audio pairs and create asset_content_link records
 async function processContentAndAudio(
   supabase: any,
@@ -566,7 +577,7 @@ async function processContentAndAudio(
     try {
       await supabase.from('asset_content_link').insert({
         asset_id: assetId,
-        text: contentText || '', // Use empty string if no content
+        text: contentText || (audioFilePath ? ' ' : ''),
         audio: audioFilePath ? [audioFilePath] : null, // Use array format for audio
         // languoid_id: languoidId,
         languoid_id: normalizedData.sourceLanguage,
@@ -702,6 +713,15 @@ async function processProjectUpload(
       }
 
       const normalizedData = normalizeRowData(row, languoidMap);
+
+      if (!hasAtLeastOneAssetPayload(normalizedData)) {
+        result.stats.errors.push({
+          row: i + 1,
+          message:
+            'Asset row must include at least one of source_images, source_content, or source_audio'
+        });
+        continue;
+      }
 
       // Get or create project
       const projectId = projectIdsByName.get(row.project_name);
@@ -899,6 +919,15 @@ async function processQuestUpload(
 
       const normalizedData = normalizeRowData(row, languoidMap);
 
+      if (!hasAtLeastOneAssetPayload(normalizedData)) {
+        result.stats.errors.push({
+          row: i + 1,
+          message:
+            'Asset row must include at least one of source_images, source_content, or source_audio'
+        });
+        continue;
+      }
+
       // Get quest ID from prepared quests
       const questKey = `${projectId}:${row.parent_quest_name}:${row.quest_name}`;
       const questId = questIdsByName.get(questKey);
@@ -1082,6 +1111,15 @@ async function processAssetUpload(
       }
 
       const normalizedData = normalizeRowData(row, languoidMap);
+
+      if (!hasAtLeastOneAssetPayload(normalizedData)) {
+        result.stats.errors.push({
+          row: i + 1,
+          message:
+            'Asset row must include at least one of source_images, source_content, or source_audio'
+        });
+        continue;
+      }
 
       // Prepare images array using normalized data
       const imageFiles = normalizedData.imageFiles
