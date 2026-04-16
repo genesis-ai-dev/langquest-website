@@ -235,19 +235,22 @@ export function AssetForm({
 
     setIsSubmitting(true);
     try {
-      // Filter out empty content items
-      const filteredContent = contents.filter(
+      const updatedContent = contents.map((item) => ({ ...item }));
+      const hasTextContent = updatedContent.some(
         (item) => item.text.trim() !== ''
       );
-      values.content = filteredContent.length > 0 ? filteredContent : [];
+      const hasAudioContent =
+        Object.keys(audioFiles).length > 0 ||
+        updatedContent.some((item) => Boolean(item.audio_id));
 
-      // Check if we have at least an image or content
+      // Check if we have at least an image, content, or audio
       if (
         images.length === 0 &&
         (!imageUrls || imageUrls.length === 0) &&
-        filteredContent.length === 0
+        !hasTextContent &&
+        !hasAudioContent
       ) {
-        toast.error('Please add at least an image or content item');
+        toast.error('Please add at least an image, content item, or audio');
         setIsSubmitting(false);
         return;
       }
@@ -277,7 +280,6 @@ export function AssetForm({
           : uploadedImagePaths;
 
       // Upload audio files if any
-      const updatedContent = [...(values.content || [])];
       for (const [indexStr, file] of Object.entries(audioFiles)) {
         const index = parseInt(indexStr);
         const fileName = `${Date.now()}-${file.name}`;
@@ -299,6 +301,15 @@ export function AssetForm({
         //   [fileName]: 100
         // }));
       }
+
+      const contentToSave = updatedContent
+        .filter((item) => item.text.trim() !== '' || Boolean(item.audio_id))
+        .map((item) => ({
+          ...item,
+          text: item.text.trim() === '' && item.audio_id ? ' ' : item.text
+        }));
+
+      values.content = contentToSave;
 
       let assetId: string;
 
@@ -354,9 +365,9 @@ export function AssetForm({
       }
 
       // Add content items
-      console.log('Updated content items:', updatedContent);
-      if (updatedContent.length > 0) {
-        const contentLinks = updatedContent.map((item) => ({
+      console.log('Updated content items:', contentToSave);
+      if (contentToSave.length > 0) {
+        const contentLinks = contentToSave.map((item) => ({
           asset_id: assetId,
           text: item.text,
           audio: item.audio_id ? [item.audio_id] : null, // Only set audio if we have a value

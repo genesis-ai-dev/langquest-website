@@ -51,29 +51,16 @@ import { getTemplateStrategy } from '@/components/QuestExplorer/template-strateg
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { DisplayNode } from '@/components/QuestExplorer/template-strategies/types';
 
-const assetRowSchema = z
-  .object({
-    questIds: z.array(z.string()).min(1, 'At least one quest is required'),
-    name: z.string().min(2, 'Asset name must be at least 2 characters'),
-    source_languoid_id: z.string().optional(),
-    images: z.array(z.string()).optional().default([]),
-    content: z.string().optional().default(''),
-    audioFile: z.any().optional(),
-    tags: z.array(z.string()).optional().default([]),
-    labelMetadata: z.record(z.string(), z.unknown()).nullable().optional()
-  })
-  .refine(
-    (data) => {
-      if (data.audioFile && (!data.content || data.content.trim() === '')) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'Content is required when audio file is selected',
-      path: ['content']
-    }
-  );
+const assetRowSchema = z.object({
+  questIds: z.array(z.string()).min(1, 'At least one quest is required'),
+  name: z.string().min(2, 'Asset name must be at least 2 characters'),
+  source_languoid_id: z.string().optional(),
+  images: z.array(z.string()).optional().default([]),
+  content: z.string().optional().default(''),
+  audioFile: z.any().optional(),
+  tags: z.array(z.string()).optional().default([]),
+  labelMetadata: z.record(z.string(), z.unknown()).nullable().optional()
+});
 
 const bulkAssetFormSchema = z.object({
   assets: z.array(assetRowSchema).min(1, 'At least one asset is required')
@@ -465,6 +452,15 @@ export function BulkAssetModal({
 
       for (let i = 0; i < data.assets.length; i++) {
         const asset = data.assets[i];
+        const hasImage = (asset.images?.length || 0) > 0;
+        const normalizedContent = asset.content?.trim() || '';
+        const hasAudio = Boolean(asset.audioFile);
+
+        if (!hasImage && !normalizedContent && !hasAudio) {
+          throw new Error(
+            `Asset "${asset.name}" must include at least image, content, or audio`
+          );
+        }
         const counterBase =
           typeof questAssetsCount === 'number' &&
           Number.isFinite(questAssetsCount)
@@ -535,13 +531,13 @@ export function BulkAssetModal({
 
         if (assetError) throw assetError;
 
-        // Add content if provided
-        if (asset.content) {
+        // Add content and/or audio
+        if (normalizedContent || uploadedAudioId) {
           const { error: contentError } = await supabase
             .from('asset_content_link')
             .insert({
               asset_id: assetData.id,
-              text: asset.content,
+              text: normalizedContent || ' ',
               audio: uploadedAudioId ? [uploadedAudioId] : null, // Only set audio if we have a value
               id: crypto.randomUUID(),
               active: true,
