@@ -90,6 +90,39 @@ interface FileMap {
   [originalName: string]: string; // original filename -> storage filename
 }
 
+async function canCreateContentInProject(
+  supabase: ReturnType<typeof createClient<Database>>,
+  projectId: string,
+  authUserId: string
+): Promise<boolean> {
+  if (!projectId || !authUserId) return false;
+
+  const { data: project, error: projectError } = await supabase
+    .from('project')
+    .select('creator_id')
+    .eq('id', projectId)
+    .single();
+
+  if (projectError || !project) {
+    return false;
+  }
+
+  if (project.creator_id === authUserId) {
+    return true;
+  }
+
+  const { data: membership } = await supabase
+    .from('profile_project_link')
+    .select('membership')
+    .eq('project_id', projectId)
+    .eq('profile_id', authUserId)
+    .eq('active', true)
+    .in('membership', ['owner', 'admin', 'member'])
+    .maybeSingle();
+
+  return !!membership;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Parse multipart form data
@@ -175,6 +208,43 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+
+    if (type === 'quest' && projectId) {
+      const allowed = await canCreateContentInProject(supabase, projectId, user.id);
+      if (!allowed) {
+        return NextResponse.json(
+          { error: 'You must be an active project member to upload quests.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (type === 'asset' && questId) {
+      const { data: questProject, error: questProjectError } = await supabase
+        .from('quest')
+        .select('project_id')
+        .eq('id', questId)
+        .single();
+
+      if (questProjectError || !questProject?.project_id) {
+        return NextResponse.json(
+          { error: 'Failed to validate quest project for asset upload.' },
+          { status: 400 }
+        );
+      }
+
+      const allowed = await canCreateContentInProject(
+        supabase,
+        questProject.project_id,
+        user.id
+      );
+      if (!allowed) {
+        return NextResponse.json(
+          { error: 'You must be an active project member to upload assets.' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Download ZIP file from Supabase Storage
     const { data: zipData, error: downloadError } = await supabase.storage
@@ -761,6 +831,7 @@ async function processProjectUpload(
           name: row.asset_name,
           creator_id: userId,
           project_id: projectId,
+          source_language_id: normalizedData.sourceLanguage,
           visible: true,
           created_at: new Date().toISOString(),
           source_asset_id: null,
@@ -967,6 +1038,7 @@ async function processQuestUpload(
           name: row.asset_name,
           creator_id: userId,
           project_id: projectId,
+          source_language_id: normalizedData.sourceLanguage,
           visible: true,
           created_at: new Date().toISOString(),
           source_asset_id: null,
@@ -1143,6 +1215,7 @@ async function processAssetUpload(
           name: row.asset_name,
           creator_id: userId,
           project_id: quest.project_id,
+          source_language_id: normalizedData.sourceLanguage,
           visible: true,
           created_at: new Date().toISOString(),
           source_asset_id: null,
