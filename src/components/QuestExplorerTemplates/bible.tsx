@@ -445,7 +445,8 @@ function QuestsSideBar({
   searchParams: ReadonlyURLSearchParams;
 }) {
   // Calculate permissions from userRole
-  const canManage = userRole === 'owner' || userRole === 'admin';
+  const canManage =
+    userRole === 'owner' || userRole === 'admin' || userRole === 'member';
 
   // Build hierarchical quest structure
   // const buildQuestTree = (
@@ -601,7 +602,8 @@ function QuestContent({
   const { user } = useAuth();
   const supabase = createBrowserClient();
 
-  const canManage = userRole === 'owner' || userRole === 'admin';
+  const canManage =
+    userRole === 'owner' || userRole === 'admin' || userRole === 'member';
 
   useEffect(() => {
     if (!selectedBookId) return;
