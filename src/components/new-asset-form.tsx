@@ -35,6 +35,7 @@ import {
 } from './QuestExplorer/label-selector';
 import { getTemplateStrategy } from './QuestExplorer/template-strategies';
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
+import { canCreateContentInProject } from '@/lib/project-permissions';
 // import { checkProjectOwnership } from '@/lib/project-permissions';
 
 const assetFormSchema = z.object({
@@ -227,6 +228,14 @@ export function AssetForm({
       return;
     }
 
+    const canCreateContent = await canCreateContentInProject(projectId, user.id);
+    if (!canCreateContent) {
+      toast.error(
+        'You must be an active project member to create assets in this project.'
+      );
+      return;
+    }
+
     // --- Ownership Validation ---
     if (selectedQuests.length === 0 && !initialData) {
       toast.error('A new asset must be associated with at least one quest.');
@@ -321,6 +330,7 @@ export function AssetForm({
             name: values.name,
             metadata: selectedLabelMetadata,
             order_index: computedOrderIndex,
+            source_language_id: values.source_languoid_id || null,
             images: finalImagePaths.length > 0 ? finalImagePaths : null
           })
           .eq('id', initialData.id)
@@ -344,6 +354,7 @@ export function AssetForm({
           images: finalImagePaths.length > 0 ? finalImagePaths : null,
           metadata: selectedLabelMetadata,
           order_index: computedOrderIndex,
+          source_language_id: values.source_languoid_id || null,
           active: true,
           project_id: projectId,
           creator_id: user.id

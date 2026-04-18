@@ -50,6 +50,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTemplateStrategy } from '@/components/QuestExplorer/template-strategies';
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { DisplayNode } from '@/components/QuestExplorer/template-strategies/types';
+import { canCreateContentInProject } from '@/lib/project-permissions';
 
 const assetRowSchema = z.object({
   questIds: z.array(z.string()).min(1, 'At least one quest is required'),
@@ -445,6 +446,14 @@ export function BulkAssetModal({
       return;
     }
 
+    const canCreateContent = await canCreateContentInProject(projectId, user.id);
+    if (!canCreateContent) {
+      toast.error(
+        'You must be an active project member to create assets in this project.'
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -522,6 +531,7 @@ export function BulkAssetModal({
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
             metadata: asset.labelMetadata || null,
             order_index: orderIndex,
+            source_language_id: asset.source_languoid_id || null,
             active: true,
             project_id: projectId,
             creator_id: user?.id

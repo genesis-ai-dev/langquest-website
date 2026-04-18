@@ -189,7 +189,8 @@ function QuestsSideBar({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Calculate permissions from userRole
-  const canManage = userRole === 'owner' || userRole === 'admin';
+  const canManage =
+    userRole === 'owner' || userRole === 'admin' || userRole === 'member';
 
   // Function to get all parent quest IDs for a given quest
   const getParentPath = (questId: string, questList: any[]): string[] => {
@@ -406,7 +407,8 @@ function QuestContent({
   const supabase = createBrowserClient();
 
   // Calculate permissions from userRole
-  const canManage = userRole === 'owner' || userRole === 'admin';
+  const canManage =
+    userRole === 'owner' || userRole === 'admin' || userRole === 'member';
 
   const childQuests = selectedQuest?.children || [];
 
