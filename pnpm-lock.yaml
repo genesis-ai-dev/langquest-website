@@ -70,13 +70,13 @@ importers:
         version: 1.2.3(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)
       '@react-three/drei':
         specifier: ^10.0.4
-        version: 10.7.6(@react-three/fiber@9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/react@19.1.13)(@types/three@0.174.0)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
+        version: 10.7.6(@react-three/fiber@9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/react@19.1.13)(@types/three@0.174.0)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
       '@react-three/fiber':
         specifier: ^9.0.4
-        version: 9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
+        version: 9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
       '@react-three/postprocessing':
         specifier: ^3.0.4
-        version: 3.0.4(@react-three/fiber@9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/three@0.174.0)(react@19.0.1)(three@0.174.0)
+        version: 3.0.4(@react-three/fiber@9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/three@0.174.0)(react@19.0.1)(three@0.174.0)
       '@supabase/ssr':
         specifier: ^0.6.1
         version: 0.6.1(@supabase/supabase-js@2.57.4)
@@ -119,6 +119,12 @@ importers:
       framer-motion:
         specifier: ^12.4.10
         version: 12.23.15(react-dom@19.0.1(react@19.0.1))(react@19.0.1)
+      idb:
+        specifier: ^8.0.3
+        version: 8.0.3
+      immer:
+        specifier: ^11.1.4
+        version: 11.1.4
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.0.1(react@19.0.1))(react@19.0.1)
@@ -131,6 +137,9 @@ importers:
       lucide-react:
         specifier: ^0.475.0
         version: 0.475.0(react@19.0.1)
+      nanoid:
+        specifier: ^5.1.9
+        version: 5.1.9
       next:
         specifier: 15.2.6
         version: 15.2.6(react-dom@19.0.1(react@19.0.1))(react@19.0.1)
@@ -155,6 +164,9 @@ importers:
       react:
         specifier: 19.0.1
         version: 19.0.1
+      react-arborist:
+        specifier: ^3.4.3
+        version: 3.4.3(@types/node@20.19.17)(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)
       react-day-picker:
         specifier: ^9.5.1
         version: 9.10.0(react@19.0.1)
@@ -1213,6 +1225,15 @@ packages:
   '@radix-ui/rect@1.1.1':
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
 
+  '@react-dnd/asap@4.0.1':
+    resolution: {integrity: sha512-kLy0PJDDwvwwTXxqTFNAAllPHD73AycE9ypWeln/IguoGBEbvFcPDbCV03G52bEcC5E+YgupBE0VzHGdC8SIXg==}
+
+  '@react-dnd/invariant@2.0.0':
+    resolution: {integrity: sha512-xL4RCQBCBDJ+GRwKTFhGUW8GXa4yoDfJrPbLblc3U09ciS+9ZJXJ3Qrcs/x2IODOdIE5kQxvMmE2UKyqUictUw==}
+
+  '@react-dnd/shallowequal@2.0.0':
+    resolution: {integrity: sha512-Pc/AFTdwZwEKJxFJvlxrSmGe/di+aAOBn60sremrpLo6VI/6cmiUYNNwlI5KNYttg7uypzA3ILPMPgxB2GYZEg==}
+
   '@react-email/render@1.1.2':
     resolution: {integrity: sha512-RnRehYN3v9gVlNMehHPHhyp2RQo7+pSkHDtXPvg3s0GbzM9SQMW4Qrf8GRNvtpLC4gsI+Wt0VatNRUFqjvevbw==}
     engines: {node: '>=18.0.0'}
@@ -1945,6 +1966,9 @@ packages:
   detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
 
+  dnd-core@14.0.1:
+    resolution: {integrity: sha512-+PVS2VPTgKFPYWo3vAFEA8WPbTf7/xo43TifH9G8S1KqnrQu0o77A3unrF5yOugy4mIz7K5wAVFHUcha7wsz6A==}
+
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
@@ -2308,12 +2332,18 @@ packages:
   hls.js@1.6.12:
     resolution: {integrity: sha512-Pz+7IzvkbAht/zXvwLzA/stUHNqztqKvlLbfpq6ZYU68+gZ+CZMlsbQBPUviRap+3IQ41E39ke7Ia+yvhsehEQ==}
 
+  hoist-non-react-statics@3.3.2:
+    resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
+
   html-to-text@9.0.5:
     resolution: {integrity: sha512-qY60FjREgVZL03vJU6IfMV4GDjGBIoOyvuFdpBDIX9yTlDw0TjxVBQp+P8NvpdIXNJvfWBTNul7fsAQJq2FNpg==}
     engines: {node: '>=14'}
 
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
+
+  idb@8.0.3:
+    resolution: {integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -2328,6 +2358,9 @@ packages:
 
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
+
+  immer@11.1.4:
+    resolution: {integrity: sha512-XREFCPo6ksxVzP4E0ekD5aMdf8WMwmdNaz6vuvxgI40UaEiu6q3p8X52aU6GdyvLY3XXX/8R7JOTXStz/nBbRw==}
 
   import-fresh@3.3.1:
     resolution: {integrity: sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==}
@@ -2634,6 +2667,9 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
+  memoize-one@5.2.1:
+    resolution: {integrity: sha512-zYiwtZUcYyXKo/np96AGZAckk+FWWsUdJ3cHGGmld7+AhvcWmQyGCYUh1hc4Q/pkOhb65dQR/pqCyK0cOaHz4Q==}
+
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -2691,6 +2727,11 @@ packages:
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
+  nanoid@5.1.9:
+    resolution: {integrity: sha512-ZUvP7KeBLe3OZ1ypw6dI/TzYJuvHP77IM4Ry73waSQTLn8/g8rpdjfyVAh7t1/+FjBtG4lCP42MEbDxOsRpBMw==}
+    engines: {node: ^18 || >=20}
     hasBin: true
 
   napi-postinstall@0.3.3:
@@ -2899,11 +2940,35 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
+  react-arborist@3.4.3:
+    resolution: {integrity: sha512-yFnq1nIQhT2uJY4TZVz2tgAiBb9lxSyvF4vC3S8POCK8xLzjGIxVv3/4dmYquQJ7AHxaZZArRGHiHKsEewKdTQ==}
+    peerDependencies:
+      react: '>= 16.14'
+      react-dom: '>= 16.14'
+
   react-day-picker@9.10.0:
     resolution: {integrity: sha512-tedecLSd+fpSN+J08601MaMsf122nxtqZXxB6lwX37qFoLtuPNuRJN8ylxFjLhyJS1kaLfAqL1GUkSLd2BMrpQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: '>=16.8.0'
+
+  react-dnd-html5-backend@14.1.0:
+    resolution: {integrity: sha512-6ONeqEC3XKVf4eVmMTe0oPds+c5B9Foyj8p/ZKLb7kL2qh9COYxiBHv3szd6gztqi/efkmriywLUVlPotqoJyw==}
+
+  react-dnd@14.0.5:
+    resolution: {integrity: sha512-9i1jSgbyVw0ELlEVt/NkCUkxy1hmhJOkePoCH713u75vzHGyXhPDm28oLfc2NMSBjZRM1Y+wRjHXJT3sPrTy+A==}
+    peerDependencies:
+      '@types/hoist-non-react-statics': '>= 3.3.1'
+      '@types/node': '>= 12'
+      '@types/react': '>= 16'
+      react: '>= 16.14'
+    peerDependenciesMeta:
+      '@types/hoist-non-react-statics':
+        optional: true
+      '@types/node':
+        optional: true
+      '@types/react':
+        optional: true
 
   react-dom@19.0.1:
     resolution: {integrity: sha512-3TJg51HSbJiLVYCS6vWwWsyqoS36aGEOCmtLLHxROlSZZ5Bk10xpxHFbrCu4DdqgR85DDc9Vucxqhai3g2xjtA==}
@@ -2982,12 +3047,25 @@ packages:
       react-dom:
         optional: true
 
+  react-window@1.8.11:
+    resolution: {integrity: sha512-+SRbUVT2scadgFSWx+R1P754xHPEqvcfSfVX10QYg6POOz+WNgkN48pS+BtZNIMGiL1HYrSEiCkwsMS15QogEQ==}
+    engines: {node: '>8.0.0'}
+    peerDependencies:
+      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   react@19.0.1:
     resolution: {integrity: sha512-nVRaZCuEyvu69sWrkdwjP6QY57C+lY+uMNNMyWUFJb9Z/JlaBOQus7mSMfGYsblv7R691u6SSJA/dX9IRnyyLQ==}
     engines: {node: '>=0.10.0'}
 
   readable-stream@2.3.8:
     resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
+
+  redux@4.2.1:
+    resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
+
+  redux@5.0.1:
+    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   reflect.getprototypeof@1.0.10:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
@@ -4408,6 +4486,12 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
+  '@react-dnd/asap@4.0.1': {}
+
+  '@react-dnd/invariant@2.0.0': {}
+
+  '@react-dnd/shallowequal@2.0.0': {}
+
   '@react-email/render@1.1.2(react-dom@19.0.1(react@19.0.1))(react@19.0.1)':
     dependencies:
       html-to-text: 9.0.5
@@ -4416,12 +4500,12 @@ snapshots:
       react-dom: 19.0.1(react@19.0.1)
       react-promise-suspense: 0.3.4
 
-  '@react-three/drei@10.7.6(@react-three/fiber@9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/react@19.1.13)(@types/three@0.174.0)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)':
+  '@react-three/drei@10.7.6(@react-three/fiber@9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/react@19.1.13)(@types/three@0.174.0)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)':
     dependencies:
       '@babel/runtime': 7.28.4
       '@mediapipe/tasks-vision': 0.10.17
       '@monogrid/gainmap-js': 3.1.0(three@0.174.0)
-      '@react-three/fiber': 9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
+      '@react-three/fiber': 9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
       '@use-gesture/react': 10.3.1(react@19.0.1)
       camera-controls: 3.1.0(three@0.174.0)
       cross-env: 7.0.3
@@ -4438,10 +4522,10 @@ snapshots:
       three-mesh-bvh: 0.8.3(three@0.174.0)
       three-stdlib: 2.36.0(three@0.174.0)
       troika-three-text: 0.52.4(three@0.174.0)
-      tunnel-rat: 0.1.2(@types/react@19.1.13)(react@19.0.1)
+      tunnel-rat: 0.1.2(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1)
       use-sync-external-store: 1.5.0(react@19.0.1)
       utility-types: 3.11.0
-      zustand: 5.0.8(@types/react@19.1.13)(react@19.0.1)(use-sync-external-store@1.5.0(react@19.0.1))
+      zustand: 5.0.8(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1)(use-sync-external-store@1.5.0(react@19.0.1))
     optionalDependencies:
       react-dom: 19.0.1(react@19.0.1)
     transitivePeerDependencies:
@@ -4449,7 +4533,7 @@ snapshots:
       - '@types/three'
       - immer
 
-  '@react-three/fiber@9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)':
+  '@react-three/fiber@9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)':
     dependencies:
       '@babel/runtime': 7.28.4
       '@types/react-reconciler': 0.32.1(@types/react@19.1.13)
@@ -4464,16 +4548,16 @@ snapshots:
       suspend-react: 0.1.3(react@19.0.1)
       three: 0.174.0
       use-sync-external-store: 1.5.0(react@19.0.1)
-      zustand: 5.0.8(@types/react@19.1.13)(react@19.0.1)(use-sync-external-store@1.5.0(react@19.0.1))
+      zustand: 5.0.8(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1)(use-sync-external-store@1.5.0(react@19.0.1))
     optionalDependencies:
       react-dom: 19.0.1(react@19.0.1)
     transitivePeerDependencies:
       - '@types/react'
       - immer
 
-  '@react-three/postprocessing@3.0.4(@react-three/fiber@9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/three@0.174.0)(react@19.0.1)(three@0.174.0)':
+  '@react-three/postprocessing@3.0.4(@react-three/fiber@9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0))(@types/three@0.174.0)(react@19.0.1)(three@0.174.0)':
     dependencies:
-      '@react-three/fiber': 9.3.0(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
+      '@react-three/fiber': 9.3.0(@types/react@19.1.13)(immer@11.1.4)(react-dom@19.0.1(react@19.0.1))(react@19.0.1)(three@0.174.0)
       maath: 0.6.0(@types/three@0.174.0)(three@0.174.0)
       n8ao: 1.10.1(postprocessing@6.37.8(three@0.174.0))(three@0.174.0)
       postprocessing: 6.37.8(three@0.174.0)
@@ -5160,6 +5244,12 @@ snapshots:
 
   detect-node-es@1.1.0: {}
 
+  dnd-core@14.0.1:
+    dependencies:
+      '@react-dnd/asap': 4.0.1
+      '@react-dnd/invariant': 2.0.0
+      redux: 4.2.1
+
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
@@ -5670,6 +5760,10 @@ snapshots:
 
   hls.js@1.6.12: {}
 
+  hoist-non-react-statics@3.3.2:
+    dependencies:
+      react-is: 16.13.1
+
   html-to-text@9.0.5:
     dependencies:
       '@selderee/plugin-htmlparser2': 0.11.0
@@ -5685,6 +5779,8 @@ snapshots:
       domutils: 3.2.2
       entities: 4.5.0
 
+  idb@8.0.3: {}
+
   ieee754@1.2.1: {}
 
   ignore@5.3.2: {}
@@ -5692,6 +5788,8 @@ snapshots:
   ignore@7.0.5: {}
 
   immediate@3.0.6: {}
+
+  immer@11.1.4: {}
 
   import-fresh@3.3.1:
     dependencies:
@@ -5988,6 +6086,8 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
+  memoize-one@5.2.1: {}
+
   merge2@1.4.1: {}
 
   meshline@3.3.1(three@0.174.0):
@@ -6033,6 +6133,8 @@ snapshots:
       three: 0.174.0
 
   nanoid@3.3.11: {}
+
+  nanoid@5.1.9: {}
 
   napi-postinstall@0.3.3: {}
 
@@ -6226,12 +6328,42 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
+  react-arborist@3.4.3(@types/node@20.19.17)(@types/react@19.1.13)(react-dom@19.0.1(react@19.0.1))(react@19.0.1):
+    dependencies:
+      react: 19.0.1
+      react-dnd: 14.0.5(@types/node@20.19.17)(@types/react@19.1.13)(react@19.0.1)
+      react-dnd-html5-backend: 14.1.0
+      react-dom: 19.0.1(react@19.0.1)
+      react-window: 1.8.11(react-dom@19.0.1(react@19.0.1))(react@19.0.1)
+      redux: 5.0.1
+      use-sync-external-store: 1.5.0(react@19.0.1)
+    transitivePeerDependencies:
+      - '@types/hoist-non-react-statics'
+      - '@types/node'
+      - '@types/react'
+
   react-day-picker@9.10.0(react@19.0.1):
     dependencies:
       '@date-fns/tz': 1.4.1
       date-fns: 4.1.0
       date-fns-jalali: 4.1.0-0
       react: 19.0.1
+
+  react-dnd-html5-backend@14.1.0:
+    dependencies:
+      dnd-core: 14.0.1
+
+  react-dnd@14.0.5(@types/node@20.19.17)(@types/react@19.1.13)(react@19.0.1):
+    dependencies:
+      '@react-dnd/invariant': 2.0.0
+      '@react-dnd/shallowequal': 2.0.0
+      dnd-core: 14.0.1
+      fast-deep-equal: 3.1.3
+      hoist-non-react-statics: 3.3.2
+      react: 19.0.1
+    optionalDependencies:
+      '@types/node': 20.19.17
+      '@types/react': 19.1.13
 
   react-dom@19.0.1(react@19.0.1):
     dependencies:
@@ -6301,6 +6433,13 @@ snapshots:
     optionalDependencies:
       react-dom: 19.0.1(react@19.0.1)
 
+  react-window@1.8.11(react-dom@19.0.1(react@19.0.1))(react@19.0.1):
+    dependencies:
+      '@babel/runtime': 7.28.4
+      memoize-one: 5.2.1
+      react: 19.0.1
+      react-dom: 19.0.1(react@19.0.1)
+
   react@19.0.1: {}
 
   readable-stream@2.3.8:
@@ -6312,6 +6451,12 @@ snapshots:
       safe-buffer: 5.1.2
       string_decoder: 1.1.1
       util-deprecate: 1.0.2
+
+  redux@4.2.1:
+    dependencies:
+      '@babel/runtime': 7.28.4
+
+  redux@5.0.1: {}
 
   reflect.getprototypeof@1.0.10:
     dependencies:
@@ -6661,9 +6806,9 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tunnel-rat@0.1.2(@types/react@19.1.13)(react@19.0.1):
+  tunnel-rat@0.1.2(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1):
     dependencies:
-      zustand: 4.5.7(@types/react@19.1.13)(react@19.0.1)
+      zustand: 4.5.7(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -6841,15 +6986,17 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zustand@4.5.7(@types/react@19.1.13)(react@19.0.1):
+  zustand@4.5.7(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1):
     dependencies:
       use-sync-external-store: 1.5.0(react@19.0.1)
     optionalDependencies:
       '@types/react': 19.1.13
+      immer: 11.1.4
       react: 19.0.1
 
-  zustand@5.0.8(@types/react@19.1.13)(react@19.0.1)(use-sync-external-store@1.5.0(react@19.0.1)):
+  zustand@5.0.8(@types/react@19.1.13)(immer@11.1.4)(react@19.0.1)(use-sync-external-store@1.5.0(react@19.0.1)):
     optionalDependencies:
       '@types/react': 19.1.13
+      immer: 11.1.4
       react: 19.0.1
       use-sync-external-store: 1.5.0(react@19.0.1)

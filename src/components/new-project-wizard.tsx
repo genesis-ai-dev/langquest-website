@@ -59,6 +59,8 @@ import { AlertCircle } from 'lucide-react';
 import { createProjectOwnership } from '@/lib/project-permissions';
 import { projectTemplates } from '@/templates';
 import { fetchFiaLanguoids } from '@/app/db/languoid';
+import { BlueprintPicker } from '@/components/blueprint-picker';
+import type { TemplateBlueprintRow } from '@/lib/blueprint/types';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -75,6 +77,7 @@ const projectDetailsSchema = z.object({
   template: z.string().min(1, {
     message: 'Template is required.'
   }),
+  blueprint_id: z.string().optional(),
   fia_source_languoid_id: z.string().optional(),
   target_languoid_id: z.string().min(1, {
     message: 'Target language is required.'
@@ -159,6 +162,7 @@ export function ProjectWizard({
       name: '',
       description: '',
       template: 'unstructured',
+      blueprint_id: '',
       fia_source_languoid_id: '',
       target_languoid_id: '',
       private: false,
@@ -377,11 +381,26 @@ export function ProjectWizard({
       // Create project ownership FIRST (required by RLS policy for project_language_link)
       try {
         await createProjectOwnership(data.id, user.id);
-        console.log('Project ownership created successfully');
       } catch (ownershipError) {
         console.error('Error creating project ownership:', ownershipError);
-        // This is more serious now - without ownership, language link will fail
         toast.error('Failed to set project ownership');
+      }
+
+      // Create project_blueprint_link (requires ownership to exist first)
+      if (step2Values.blueprint_id) {
+        const { error: bpLinkError } = await supabase
+          .from('project_blueprint_link')
+          .insert({
+            project_id: data.id,
+            blueprint_id: step2Values.blueprint_id,
+            role: 'primary',
+            active: true
+          });
+
+        if (bpLinkError) {
+          console.error('Blueprint link error:', bpLinkError);
+          toast.error('Failed to link template to project');
+        }
       }
 
       // Create project_language_link for source language (requires ownership to exist first)
@@ -675,7 +694,7 @@ export function ProjectWizard({
           {step1Form.watch('creationMethod') !== 'clone' && (
             <FormField
               control={step2Form.control}
-              name="template"
+              name="blueprint_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -687,37 +706,32 @@ export function ProjectWizard({
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            Choose a project template that best fits your
-                            content type.
+                            Choose a template that defines the project structure.
                           </p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a template" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {projectTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{template.name}</span>
-                            {/* {template.description && (
-                            <span className="text-sm text-muted-foreground">
-                              {template.description}
-                            </span>
-                          )} */}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <BlueprintPicker
+                      value={field.value || null}
+                      onChange={(id, bp) => {
+                        field.onChange(id ?? '');
+                        if (bp) {
+                          const slugToTemplate: Record<string, string> = {
+                            'protestant-bible-v2-frozen': 'bible',
+                            'fia-v2-frozen': 'fia'
+                          };
+                          step2Form.setValue(
+                            'template',
+                            slugToTemplate[bp.slug ?? ''] ?? 'unstructured'
+                          );
+                        } else {
+                          step2Form.setValue('template', 'unstructured');
+                        }
+                      }}
+                    />
+                  </FormControl>
                   <FormDescription>
                     The template determines the project structure and available
                     features.

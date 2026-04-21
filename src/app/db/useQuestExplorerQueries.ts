@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/auth-provider';
 import {
   createBibleChapterQuest,
+  createBlueprintQuest,
   createFiaPericopeQuest,
   fetchAssetDetails,
   fetchProjectQuestTree,
   fetchQuestAssets
 } from './questExplorer';
+import type { CreateBlueprintQuestParams } from './questExplorer';
 import { lookupFiaLanguageCode } from './languoid';
 
 export interface FiaPericope {
@@ -263,6 +265,26 @@ export function useCreateFiaPericope() {
       });
       queryClient.invalidateQueries({
         queryKey: ['qe-fia-pericopes', payload.projectId]
+      });
+    }
+  });
+}
+
+type CreateBlueprintQuestPayload = Omit<CreateBlueprintQuestParams, 'userId'>;
+
+export function useCreateBlueprintQuest() {
+  const queryClient = useQueryClient();
+  const { user, supabase } = useAuth();
+
+  return useMutation({
+    mutationFn: (payload: CreateBlueprintQuestPayload) =>
+      createBlueprintQuest(supabase, {
+        ...payload,
+        userId: user?.id ?? ''
+      }),
+    onSuccess: (_data, payload) => {
+      queryClient.invalidateQueries({
+        queryKey: ['qe-tree', payload.projectId]
       });
     }
   });

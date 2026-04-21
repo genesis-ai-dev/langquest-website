@@ -32,6 +32,26 @@ pnpm dlx vercel@latest env pull .env.local
 
 - Choose which set to pull (Development/Preview/Production) when prompted.
 
+## Local Development (Docker)
+
+To run the website against a local Supabase Docker container, copy the example file:
+
+```bash
+cp .env.example .env.development.local
+```
+
+Then fill in the local Supabase values (the default demo keys from `npx supabase status`):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from supabase status>
+NEXT_PUBLIC_SUPABASE_BUCKET=local
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+SUPABASE_SERVICE_ROLE_KEY=<service_role key from supabase status>
+```
+
+Next.js automatically loads `.env.development.local` over `.env.local` during `pnpm dev`, so no other changes are needed. To switch back to the remote environment, rename or delete `.env.development.local`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -27,6 +27,7 @@ import {
 import {
   useAssetDetails,
   useCreateBibleChapter,
+  useCreateBlueprintQuest,
   useCreateFiaPericope,
   useFiaPericopes,
   useQuestAssets,
@@ -39,6 +40,12 @@ import {
   TemplateStrategyContext,
   getTemplateStrategy
 } from './template-strategies';
+import type { BlueprintStructure } from '@/lib/blueprint/types';
+import {
+  getRootNodesFromBlueprint,
+  getChildNodesFromBlueprint,
+  type BlueprintResolverContext
+} from '@/lib/blueprint/node-resolver';
 import {
   getQuestDisabledFlag,
   getQuestVersionLabel,
@@ -56,6 +63,8 @@ interface QuestExplorerMenuProps {
   projectId: string;
   userPermission: any;
   template: string;
+  blueprintStructure?: BlueprintStructure;
+  blueprintLinkId?: string;
   showActionMenus?: {
     left?: boolean;
     right?: boolean;
@@ -82,10 +91,19 @@ interface PendingFiaPericope {
   existingBookQuestId?: string | null;
 }
 
+interface PendingBlueprintQuest {
+  node: DisplayNode;
+  blueprintNodeId: string;
+  name: string;
+  parentQuestId: string | null;
+}
+
 export function QuestExplorerMenu({
   projectId,
   userPermission,
   template,
+  blueprintStructure,
+  blueprintLinkId,
   showActionMenus,
   allowDisabledQuests
 }: QuestExplorerMenuProps) {
@@ -106,6 +124,7 @@ export function QuestExplorerMenu({
   const { data, isLoading } = useQuestTree(projectId);
   const createBibleChapterMutation = useCreateBibleChapter();
   const createFiaPericopeMutation = useCreateFiaPericope();
+  const createBlueprintQuestMutation = useCreateBlueprintQuest();
   const { data: fiaPericopes } = useFiaPericopes(projectId, template === 'fia');
 
   const [activeRootNode, setActiveRootNode] = useState<DisplayNode | null>(
@@ -121,6 +140,10 @@ export function QuestExplorerMenu({
   const [pendingBibleChapter, setPendingBibleChapter] =
     useState<PendingBibleChapter | null>(null);
   const [showChapterConfirmModal, setShowChapterConfirmModal] = useState(false);
+  const [pendingBlueprintQuest, setPendingBlueprintQuest] =
+    useState<PendingBlueprintQuest | null>(null);
+  const [showBlueprintQuestConfirmModal, setShowBlueprintQuestConfirmModal] =
+    useState(false);
   const [pendingFiaPericope, setPendingFiaPericope] =
     useState<PendingFiaPericope | null>(null);
   const [showFiaPericopeConfirmModal, setShowFiaPericopeConfirmModal] =
@@ -171,9 +194,18 @@ export function QuestExplorerMenu({
   );
 
   const roots = data?.roots || [];
+
+  const blueprintCtx = useMemo<BlueprintResolverContext | null>(() => {
+    if (!blueprintStructure || !blueprintLinkId || !data) return null;
+    return { structure: blueprintStructure, questTree: data, blueprintLinkId };
+  }, [blueprintStructure, blueprintLinkId, data]);
+
   const rawRootNodes = useMemo(
-    () => getRootNodes(template, roots, strategyContext),
-    [template, roots, strategyContext]
+    () =>
+      blueprintCtx
+        ? getRootNodesFromBlueprint(blueprintCtx)
+        : getRootNodes(template, roots, strategyContext),
+    [blueprintCtx, template, roots, strategyContext]
   );
   const rootNodes = useMemo(
     () =>
@@ -196,8 +228,11 @@ export function QuestExplorerMenu({
     userPermission?.membership === 'admin';
 
   const rawMiddleNodes = useMemo(
-    () => getChildrenNodes(template, contextNode, strategyContext),
-    [template, contextNode, strategyContext]
+    () =>
+      blueprintCtx && contextNode
+        ? getChildNodesFromBlueprint(contextNode.key, blueprintCtx)
+        : getChildrenNodes(template, contextNode, strategyContext),
+    [blueprintCtx, template, contextNode, strategyContext]
   );
   const middleNodes = useMemo(
     () =>
@@ -287,7 +322,21 @@ export function QuestExplorerMenu({
       return;
     }
 
+    // Blueprint-aware path: if we have a blueprint and node has no quest yet, prompt creation
+    if (blueprintCtx && !node.questId && blueprintLinkId) {
+      setPendingBlueprintQuest({
+        node,
+        blueprintNodeId: node.key,
+        name: node.title,
+        parentQuestId: contextNode?.questId ?? null
+      });
+      setShowBlueprintQuestConfirmModal(true);
+      return;
+    }
+
+    // Legacy Bible strategy path
     if (
+      !blueprintCtx &&
       templateStrategy.id === 'bible' &&
       node.kind === 'chapter' &&
       !node.questId
@@ -309,7 +358,9 @@ export function QuestExplorerMenu({
       return;
     }
 
+    // Legacy FIA strategy path
     if (
+      !blueprintCtx &&
       templateStrategy.id === 'fia' &&
       node.kind === 'pericope' &&
       !node.questId
@@ -455,6 +506,8 @@ export function QuestExplorerMenu({
             }
           },
           parent_id: result.bookQuestId,
+          blueprint_node_id: null,
+          blueprint_link_id: null,
           created_at: new Date().toISOString(),
           children: []
         },
@@ -470,6 +523,8 @@ export function QuestExplorerMenu({
               }
             },
             parent_id: result.bookQuestId,
+            blueprint_node_id: null,
+            blueprint_link_id: null,
             created_at: new Date().toISOString(),
             children: []
           }
@@ -483,6 +538,47 @@ export function QuestExplorerMenu({
       setPendingBibleChapter(null);
     } catch {
       toast.error('Failed to create chapter quest');
+    }
+  };
+
+  const handleConfirmBlueprintQuest = async () => {
+    if (!pendingBlueprintQuest || !blueprintLinkId) return;
+
+    try {
+      const result = await createBlueprintQuestMutation.mutateAsync({
+        projectId,
+        blueprintLinkId,
+        blueprintNodeId: pendingBlueprintQuest.blueprintNodeId,
+        name: pendingBlueprintQuest.name,
+        parentQuestId: pendingBlueprintQuest.parentQuestId
+      });
+
+      if (pendingBlueprintQuest.parentQuestId) {
+        setContextNode((prev) =>
+          prev ? { ...prev, questId: prev.questId ?? pendingBlueprintQuest.parentQuestId } : prev
+        );
+      }
+
+      setSelectedMiddleNode({
+        ...pendingBlueprintQuest.node,
+        questId: result.questId,
+        quest: {
+          id: result.questId,
+          name: pendingBlueprintQuest.name,
+          description: null,
+          metadata: null,
+          parent_id: pendingBlueprintQuest.parentQuestId,
+          blueprint_node_id: pendingBlueprintQuest.blueprintNodeId,
+          blueprint_link_id: blueprintLinkId,
+          created_at: new Date().toISOString(),
+          children: []
+        }
+      });
+      toast.success(`Created ${pendingBlueprintQuest.name}`);
+      setShowBlueprintQuestConfirmModal(false);
+      setPendingBlueprintQuest(null);
+    } catch {
+      toast.error('Failed to create quest');
     }
   };
 
@@ -524,6 +620,8 @@ export function QuestExplorerMenu({
           }
         },
         parent_id: result.bookQuestId,
+        blueprint_node_id: null,
+        blueprint_link_id: null,
         created_at: createdAt,
         children: []
       };
@@ -1034,6 +1132,38 @@ export function QuestExplorerMenu({
             <Button
               onClick={handleConfirmFiaPericope}
               disabled={createFiaPericopeMutation.isPending}
+            >
+              Create
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showBlueprintQuestConfirmModal}
+        onOpenChange={setShowBlueprintQuestConfirmModal}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Quest</DialogTitle>
+            <DialogDescription>
+              Do you want to create{' '}
+              <b>{pendingBlueprintQuest?.name}</b>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowBlueprintQuestConfirmModal(false);
+                setPendingBlueprintQuest(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmBlueprintQuest}
+              disabled={createBlueprintQuestMutation.isPending}
             >
               Create
             </Button>

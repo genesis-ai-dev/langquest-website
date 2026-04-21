@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe } from 'lucide-react';
+import { Globe, LayoutTemplate } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { UserProfile } from '@/components/user-profile';
 
@@ -22,6 +22,13 @@ export function PortalHeader({ user, onSignOut }: PortalHeaderProps) {
         </Link>
 
         <div className="flex items-center gap-4">
+          <Link
+            href="/portal/templates"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors no-underline"
+          >
+            <LayoutTemplate className="h-4 w-4" />
+            Templates
+          </Link>
           {user && <UserProfile user={user} onSignOut={onSignOut} />}
         </div>
       </div>

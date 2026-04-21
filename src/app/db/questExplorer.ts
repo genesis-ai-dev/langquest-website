@@ -6,6 +6,8 @@ export interface QuestRecord {
   description: string | null;
   metadata: Record<string, unknown> | null;
   parent_id: string | null;
+  blueprint_node_id: string | null;
+  blueprint_link_id: string | null;
   created_at: string;
   children: QuestRecord[];
 }
@@ -118,6 +120,8 @@ function normalizeQuestRow(row: any): QuestRecord {
     description: row.description,
     metadata: parseMetadata(row.metadata),
     parent_id: row.parent_id,
+    blueprint_node_id: row.blueprint_node_id ?? null,
+    blueprint_link_id: row.blueprint_link_id ?? null,
     created_at: row.created_at,
     children: []
   };
@@ -486,4 +490,39 @@ export async function createFiaPericopeQuest(
     bookQuestId,
     pericopeQuestId: pericopeQuest.id as string
   };
+}
+
+export interface CreateBlueprintQuestParams {
+  projectId: string;
+  userId: string;
+  blueprintLinkId: string;
+  blueprintNodeId: string;
+  name: string;
+  parentQuestId?: string | null;
+}
+
+export interface CreateBlueprintQuestResult {
+  questId: string;
+}
+
+export async function createBlueprintQuest(
+  supabase: SupabaseClient,
+  params: CreateBlueprintQuestParams
+): Promise<CreateBlueprintQuestResult> {
+  const { data: quest, error } = await supabase
+    .from('quest')
+    .insert({
+      name: params.name,
+      project_id: params.projectId,
+      parent_id: params.parentQuestId ?? null,
+      blueprint_link_id: params.blueprintLinkId,
+      blueprint_node_id: params.blueprintNodeId,
+      creator_id: params.userId
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+
+  return { questId: quest.id as string };
 }
