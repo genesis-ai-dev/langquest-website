@@ -27,7 +27,6 @@ import {
   ArrowLeftRight,
   Circle,
   ChevronRight,
-  Download,
   FileAudio,
   Folder,
   Layers,
@@ -41,6 +40,7 @@ import {
   createUpdatePropsAction,
   type BlueprintAction
 } from '@/lib/blueprint/actions';
+import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
 
 const NODE_TYPE_PRESETS = [
@@ -103,6 +103,7 @@ export function BlueprintNodePanel({
   onBatchActions,
   onClose
 }: BlueprintNodePanelProps) {
+  const dialogs = useConfirm();
   const [customNodeTypes, setCustomNodeTypes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -134,7 +135,7 @@ export function BlueprintNodePanel({
   );
 
   const applyContentTypeChange = useCallback(
-    (next: 'quest' | 'asset') => {
+    async (next: 'quest' | 'asset') => {
       const current = effectiveLinkableType(node);
       if (current === next) return;
 
@@ -159,9 +160,12 @@ export function BlueprintNodePanel({
       // cannot stay. Soft-delete descendants, then set type (only when needed).
       if (descendantIds.length > 0) {
         const n = descendantIds.length;
-        const ok = window.confirm(
-          `Recordings are single rows in this outline — they can’t keep nested items underneath.\n\nThis row has ${n} nested item${n === 1 ? '' : 's'}. Switching to Recordings will drop those rows from the tree (they’re soft-deleted in the blueprint so existing links stay valid). Use Undo in this session if you change your mind.\n\nContinue?`
-        );
+        const ok = await dialogs.confirm({
+          title: 'Switch to Recordings?',
+          description: `Recordings are single rows — they can’t keep nested items. This row has ${n} nested item${n === 1 ? '' : 's'} that will be dropped from the tree. They’re soft-deleted so existing links stay valid. Use Undo if you change your mind.`,
+          confirmLabel: 'Switch to Recordings',
+          variant: 'destructive'
+        });
         if (!ok) return;
 
         const removals = descendantIds.map((id) => createRemoveNodeAction(id));
@@ -174,7 +178,7 @@ export function BlueprintNodePanel({
 
       onBatchActions([createUpdatePropsAction(node.id, propsForAsset)]);
     },
-    [node, descendantIds, onBatchActions]
+    [node, descendantIds, onBatchActions, dialogs]
   );
 
   const setSections = useCallback(() => {
@@ -185,11 +189,13 @@ export function BlueprintNodePanel({
     applyContentTypeChange('asset');
   }, [applyContentTypeChange]);
 
-  const addCustomNodeType = useCallback(() => {
-    const raw = window.prompt(
-      'Name for this kind (for example "episode" or "lesson part"):'
-    );
-    const trimmed = raw?.trim();
+  const addCustomNodeType = useCallback(async () => {
+    const trimmed = await dialogs.prompt({
+      title: 'Add custom node type',
+      description: 'Enter a name for this kind (for example "episode" or "lesson part").',
+      placeholder: 'Type name',
+      confirmLabel: 'Add'
+    });
     if (!trimmed) return;
     setCustomNodeTypes((prev) => {
       const next = Array.from(new Set([...prev, trimmed]));
@@ -197,7 +203,7 @@ export function BlueprintNodePanel({
       return next;
     });
     onBatchActions([createUpdatePropsAction(node.id, { node_type: trimmed })]);
-  }, [node.id, onBatchActions]);
+  }, [node.id, onBatchActions, dialogs]);
 
   const primaryListLabel = node.short_label?.trim() || node.name;
   const hasChildren =
@@ -416,14 +422,6 @@ export function BlueprintNodePanel({
             <p className="text-xs font-medium text-muted-foreground">
               Section options
             </p>
-            <ToggleRow
-              icon={<Download className="h-4 w-4" aria-hidden />}
-              label="Downloadable section"
-              hint="Lets people download everything inside this section for offline use."
-              checked={!!node.is_download_unit}
-              disabled={!canEdit}
-              onChange={(v) => update({ is_download_unit: v || undefined })}
-            />
             <ToggleRow
               icon={<Layers className="h-4 w-4" aria-hidden />}
               label="Allow versions"

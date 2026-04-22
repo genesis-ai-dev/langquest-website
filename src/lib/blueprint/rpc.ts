@@ -3,96 +3,46 @@ import type { BlueprintStructure, TemplateBlueprintRow } from './types';
 
 type RpcResult<T = unknown> = { ok: true } & T | { ok: false; reason: string };
 
-export async function acquireBlueprintLock(
-  client: SupabaseClient,
-  blueprintId: string
-): Promise<RpcResult<{ structure_version: number }>> {
-  const { data, error } = await client.rpc('acquire_blueprint_lock', {
-    p_blueprint_id: blueprintId
-  });
-  if (error) throw error;
-  return data as RpcResult<{ structure_version: number }>;
-}
-
-export async function heartbeatBlueprintLock(
-  client: SupabaseClient,
-  blueprintId: string
-): Promise<RpcResult> {
-  const { data, error } = await client.rpc('heartbeat_blueprint_lock', {
-    p_blueprint_id: blueprintId
-  });
-  if (error) throw error;
-  return data as RpcResult;
-}
-
-export async function releaseBlueprintLock(
-  client: SupabaseClient,
-  blueprintId: string
-): Promise<RpcResult> {
-  const { data, error } = await client.rpc('release_blueprint_lock', {
-    p_blueprint_id: blueprintId
-  });
-  if (error) throw error;
-  return data as RpcResult;
-}
-
-export async function forceReleaseStaleLock(
-  client: SupabaseClient,
-  blueprintId: string
-): Promise<RpcResult> {
-  const { data, error } = await client.rpc('force_release_stale_lock', {
-    p_blueprint_id: blueprintId
-  });
-  if (error) throw error;
-  return data as RpcResult;
-}
-
 export async function publishBlueprint(
   client: SupabaseClient,
-  blueprintId: string,
-  baseVersion: number,
-  newStructure: BlueprintStructure,
-  targetLinkIds: string[]
-): Promise<
-  RpcResult<{
-    forked?: boolean;
-    new_blueprint_id?: string;
-    new_version: number;
-  }>
-> {
-  const { data, error } = await client.rpc('publish_blueprint', {
-    p_blueprint_id: blueprintId,
-    p_base_version: baseVersion,
-    p_new_structure: newStructure as unknown as Record<string, unknown>,
-    p_target_link_ids: targetLinkIds
-  });
-  if (error) throw error;
-  return data as RpcResult<{
-    forked?: boolean;
-    new_blueprint_id?: string;
-    new_version: number;
-  }>;
-}
-
-export async function createBlueprint(
-  client: SupabaseClient,
   params: {
+    sourceBlueprintId: string | null;
     structure: BlueprintStructure;
     name: string;
     icon?: string;
-    sourceLanguageId?: string;
     shared?: boolean;
+    targetLinkIds?: string[];
+    actions?: unknown;
   }
 ): Promise<RpcResult<{ blueprint_id: string }>> {
-  const { data, error } = await client.rpc('create_blueprint', {
+  const { data, error } = await client.rpc('publish_blueprint', {
+    p_source_blueprint_id: params.sourceBlueprintId,
     p_structure: params.structure as unknown as Record<string, unknown>,
     p_name: params.name,
     p_icon: params.icon ?? null,
-    p_source_language_id: params.sourceLanguageId ?? null,
-    p_shared: params.shared ?? false
+    p_shared: params.shared ?? false,
+    p_target_link_ids: params.targetLinkIds ?? [],
+    p_actions: params.actions ?? null
   });
   if (error) throw error;
   return data as RpcResult<{ blueprint_id: string }>;
+}
+
+export async function fetchProjectsForBlueprint(
+  client: SupabaseClient,
+  blueprintId: string
+): Promise<{ linkId: string; projectId: string; projectName: string }[]> {
+  const { data, error } = await client
+    .from('project_blueprint_link')
+    .select('id, project_id, project:project_id(name)')
+    .eq('blueprint_id', blueprintId)
+    .eq('active', true);
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    linkId: row.id,
+    projectId: row.project_id,
+    projectName: row.project?.name ?? 'Unknown project'
+  }));
 }
 
 export async function forkBlueprint(

@@ -49,13 +49,14 @@ export type BlueprintStructure = {
   root: BlueprintNode;
 };
 
+export type DraftMode = 'starting_point' | 'update';
+
 export type TemplateBlueprintRow = {
   id: string;
   slug: string | null;
   name: string;
   icon: string | null;
   structure: BlueprintStructure;
-  structure_version: number;
   source_language_id: string | null;
   copied_from_blueprint_id: string | null;
   auto_sync: boolean;
@@ -64,8 +65,6 @@ export type TemplateBlueprintRow = {
   locked_for_backward_compat: boolean;
   creator_id: string | null;
   project_count: number;
-  locked_by: string | null;
-  locked_at: string | null;
   created_at: string;
   last_updated: string;
 };

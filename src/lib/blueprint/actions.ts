@@ -89,8 +89,7 @@ export function applyAction(
         const { nodeId } = action.payload as { nodeId: string };
         const result = findNodeAndParent(draft.root, nodeId);
         if (result?.parent?.children) {
-          const node = result.parent.children[result.index];
-          node.deleted = true;
+          result.parent.children.splice(result.index, 1);
         }
         break;
       }
@@ -220,6 +219,22 @@ export function createUpdatePropsAction(
   return {
     type: 'update_node_props',
     payload: { nodeId, props },
+    timestamp: Date.now()
+  };
+}
+
+export function createHideNodeAction(nodeId: string): BlueprintAction {
+  return {
+    type: 'update_node_props',
+    payload: { nodeId, props: { deleted: true } },
+    timestamp: Date.now()
+  };
+}
+
+export function createUnhideNodeAction(nodeId: string): BlueprintAction {
+  return {
+    type: 'update_node_props',
+    payload: { nodeId, props: { deleted: false } },
     timestamp: Date.now()
   };
 }

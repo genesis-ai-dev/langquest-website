@@ -27,13 +27,16 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
-import type { BlueprintNode } from '@/lib/blueprint/types';
+import type { BlueprintNode, DraftMode } from '@/lib/blueprint/types';
 import {
   createAddNodeAction,
+  createHideNodeAction,
   createMoveNodeAction,
   createRemoveNodeAction,
   createRenameNodeAction,
+  createUnhideNodeAction,
   type BlueprintAction
 } from '@/lib/blueprint/actions';
 import {
@@ -44,6 +47,8 @@ import {
   ChevronRight,
   Download,
   EllipsisVertical,
+  Eye,
+  EyeOff,
   FileAudio,
   Folder,
   FolderInput,
@@ -54,10 +59,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+type DialogFns = ReturnType<typeof useConfirm>;
+
 interface TreeActionsContextValue {
   canEdit: boolean;
+  mode: DraftMode | null;
+  dialogs: DialogFns;
   onAddChild: (parentId: string, parentDisplayName: string) => void;
   onAddSibling: (node: NodeApi<BlueprintNode>) => void;
+  onHide: (nodeId: string) => void;
+  onUnhide: (nodeId: string) => void;
   moveTarget: string | null;
   onPickMoveTarget: (nodeId: string) => void;
   selectedNodeId: string | null;
@@ -77,7 +88,8 @@ function filterDeletedDeep(nodes: BlueprintNode[]): BlueprintNode[] {
     }));
 }
 
-export function toTreeData(root: BlueprintNode): BlueprintNode[] {
+export function toTreeData(root: BlueprintNode, showHidden?: boolean): BlueprintNode[] {
+  if (showHidden) return root.children ?? [];
   return filterDeletedDeep(root.children ?? []);
 }
 
@@ -88,6 +100,7 @@ function collectDirectChildIds(node: NodeApi<BlueprintNode>): string[] {
 export interface BlueprintEditorTreeProps {
   root: BlueprintNode;
   canEdit: boolean;
+  mode?: DraftMode;
   selectedNodeId: string | null;
   onNodeSelect: (nodeId: string | null) => void;
   onBatchActions: (actions: BlueprintAction[]) => void;
@@ -96,10 +109,12 @@ export interface BlueprintEditorTreeProps {
 export function BlueprintEditorTree({
   root,
   canEdit,
+  mode,
   selectedNodeId,
   onNodeSelect,
   onBatchActions
 }: BlueprintEditorTreeProps) {
+  const dialogs = useConfirm();
   const treeRef = useRef<TreeApi<BlueprintNode>>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 520 });
@@ -113,31 +128,36 @@ export function BlueprintEditorTree({
     []
   );
 
-  const data = useMemo(() => toTreeData(root), [root]);
+  const showHidden = mode === 'update';
+  const data = useMemo(() => toTreeData(root, showHidden), [root, showHidden]);
 
   const onAddChild = useCallback(
-    (parentId: string, parentDisplayName: string) => {
-      const name = window.prompt(
-        `Add a sub-item inside “${parentDisplayName}”\n\nName for the new row:`
-      );
-      if (!name?.trim()) return;
-      const trimmed = name.trim();
-      onBatchActions([createAddNodeAction(parentId, trimmed)]);
+    async (parentId: string, parentDisplayName: string) => {
+      const name = await dialogs.prompt({
+        title: `Add inside “${parentDisplayName}”`,
+        description: 'Enter a name for the new row.',
+        placeholder: 'Row name',
+        confirmLabel: 'Add'
+      });
+      if (!name) return;
+      onBatchActions([createAddNodeAction(parentId, name)]);
       toast.success(
-        `“${trimmed}” was added inside “${parentDisplayName}”. If you don’t see it, expand “${parentDisplayName}” using the arrow on the left.`
+        `“${name}” was added inside “${parentDisplayName}”. If you don’t see it, expand “${parentDisplayName}” using the arrow on the left.`
       );
     },
-    [onBatchActions]
+    [onBatchActions, dialogs]
   );
 
   const onAddSibling = useCallback(
-    (node: NodeApi<BlueprintNode>) => {
+    async (node: NodeApi<BlueprintNode>) => {
       const d = node.data;
-      const name = window.prompt(
-        `Add a row below “${d.name}”\n\nName for the new row:`
-      );
-      if (!name?.trim()) return;
-      const trimmed = name.trim();
+      const name = await dialogs.prompt({
+        title: `Add below “${d.name}”`,
+        description: 'Enter a name for the new row.',
+        placeholder: 'Row name',
+        confirmLabel: 'Add'
+      });
+      if (!name) return;
       const parent = node.parent;
       const blueprintParentId = parent?.isRoot ? root.id : parent?.id;
       if (!blueprintParentId || node.childIndex < 0) {
@@ -146,16 +166,16 @@ export function BlueprintEditorTree({
       }
       const insertIndex = node.childIndex + 1;
       onBatchActions([
-        createAddNodeAction(blueprintParentId, trimmed, {
+        createAddNodeAction(blueprintParentId, name, {
           insertIndex,
           ...(d.linkable_type !== undefined
             ? { linkableType: d.linkable_type }
             : {})
         })
       ]);
-      toast.success(`“${trimmed}” was added below “${d.name}”.`);
+      toast.success(`“${name}” was added below “${d.name}”.`);
     },
-    [onBatchActions, root.id]
+    [onBatchActions, root.id, dialogs]
   );
 
   useEffect(() => {
@@ -183,7 +203,25 @@ export function BlueprintEditorTree({
 
   const handleDelete = useCallback<DeleteHandler<BlueprintNode>>(
     ({ ids }) => {
-      onBatchActions(ids.map((id) => createRemoveNodeAction(id)));
+      if (mode === 'update') {
+        onBatchActions(ids.map((id) => createHideNodeAction(id)));
+      } else {
+        onBatchActions(ids.map((id) => createRemoveNodeAction(id)));
+      }
+    },
+    [onBatchActions, mode]
+  );
+
+  const onHide = useCallback(
+    (nodeId: string) => {
+      onBatchActions([createHideNodeAction(nodeId)]);
+    },
+    [onBatchActions]
+  );
+
+  const onUnhide = useCallback(
+    (nodeId: string) => {
+      onBatchActions([createUnhideNodeAction(nodeId)]);
     },
     [onBatchActions]
   );
@@ -271,7 +309,11 @@ export function BlueprintEditorTree({
     const api = treeRef.current;
     if (!api) return;
     const node =
-      api.focusedNode ?? api.mostRecentNode ?? api.selectedNodes[0] ?? null;
+      api.focusedNode ??
+      api.mostRecentNode ??
+      api.selectedNodes[0] ??
+      (selectedNodeId ? api.get(selectedNodeId) : null) ??
+      null;
     if (!node || node.isRoot) {
       toast.message('Select a folder first');
       return;
@@ -287,13 +329,17 @@ export function BlueprintEditorTree({
       mostRecent: null
     });
     toast.success(`Selected ${childIds.length} item(s)`);
-  }, []);
+  }, [selectedNodeId]);
 
   const ctxValue = useMemo<TreeActionsContextValue>(
     () => ({
       canEdit,
+      mode: mode ?? null,
+      dialogs,
       onAddChild,
       onAddSibling,
+      onHide,
+      onUnhide,
       moveTarget,
       onPickMoveTarget: handlePickMoveTarget,
       selectedNodeId,
@@ -301,8 +347,12 @@ export function BlueprintEditorTree({
     }),
     [
       canEdit,
+      mode,
+      dialogs,
       onAddChild,
       onAddSibling,
+      onHide,
+      onUnhide,
       moveTarget,
       handlePickMoveTarget,
       selectedNodeId,
@@ -323,18 +373,19 @@ export function BlueprintEditorTree({
   }
 
   const uncheckReason = disabledReason(
-    [!canEdit, 'Lock the blueprint for editing first'],
+    [!canEdit, 'Not in editing mode'],
     [!hasChecked, 'No items are checked']
   );
   const selectChildrenReason = disabledReason(
-    [!canEdit, 'Lock the blueprint for editing first']
+    [!canEdit, 'Not in editing mode'],
+    [!hasActionable, 'Click a row or check items first']
   );
   const moveReason = disabledReason(
-    [!canEdit, 'Lock the blueprint for editing first'],
+    [!canEdit, 'Not in editing mode'],
     [!hasActionable, 'Click a row or check items to move']
   );
   const moveIntoReason = disabledReason(
-    [!canEdit, 'Lock the blueprint for editing first'],
+    [!canEdit, 'Not in editing mode'],
     [!hasActionable, 'Click a row or check items to move']
   );
 
@@ -470,6 +521,8 @@ function BlueprintArboristNode({
   const showToggle = isSection;
   const isMoveTarget = ctx?.moveTarget === '__pending__';
   const isActive = ctx?.selectedNodeId === node.id;
+  const mode = ctx?.mode;
+  const isHidden = !!d.deleted;
 
   return (
     <div
@@ -478,7 +531,8 @@ function BlueprintArboristNode({
         'flex min-h-[38px] w-full select-none items-center gap-1 border-b border-border/40 px-1 text-sm',
         node.state.isSelected && 'bg-accent/60',
         isActive && !node.state.isSelected && 'bg-primary/[0.06] ring-2 ring-inset ring-primary/50',
-        isMoveTarget && !node.state.isSelected && 'cursor-pointer hover:bg-primary/10'
+        isMoveTarget && !node.state.isSelected && 'cursor-pointer hover:bg-primary/10',
+        isHidden && 'opacity-50'
       )}
       onClick={() => {
         if (isMoveTarget && ctx) {
@@ -564,12 +618,18 @@ function BlueprintArboristNode({
           {node.data.name}
         </span>
       )}
+      {isHidden && (
+        <span className="ml-1 text-xs italic text-muted-foreground">(hidden)</span>
+      )}
       <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
-        {d.is_download_unit && (
-          <span title="Downloadable section">
-            <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          </span>
-        )}
+        {isSection &&
+          d.children?.some(
+            (c) => c.linkable_type === 'asset' || c.linkable_type === 'both'
+          ) && (
+            <span title="Downloadable section — this quest has asset children">
+              <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            </span>
+          )}
         {d.allows_spanning && (
           <span title="Range recordings allowed">
             <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -598,38 +658,68 @@ function BlueprintArboristNode({
           <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
             {isSection ? (
               <DropdownMenuItem
-                onSelect={() => {
-                  ctx.onAddChild(node.id, d.name);
-                }}
+                onSelect={() => ctx.onAddChild(node.id, d.name)}
               >
                 <FolderPlus className="mr-2 h-4 w-4" />
                 Add inside
               </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem
-              onSelect={() => {
-                ctx.onAddSibling(node);
-              }}
+              onSelect={() => ctx.onAddSibling(node)}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add below
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => {
-                if (
-                  window.confirm(
-                    'Remove this row from the outline? Sub-items under it are removed too.'
-                  )
-                ) {
-                  void node.tree.delete(node.id);
-                }
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Remove
-            </DropdownMenuItem>
+            {mode === 'update' ? (
+              <>
+                {d.deleted ? (
+                  <DropdownMenuItem
+                    onSelect={() => ctx.onUnhide(node.id)}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Unhide
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onSelect={async () => {
+                      const ok = await ctx.dialogs.confirm({
+                        title: 'Hide this node?',
+                        description: 'It will be invisible in linked projects but existing data will be preserved. You can unhide it later.',
+                        confirmLabel: 'Hide',
+                        variant: 'destructive'
+                      });
+                      if (ok) ctx.onHide(node.id);
+                    }}
+                  >
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Hide
+                  </DropdownMenuItem>
+                )}
+                <span title="To permanently remove nodes, switch to starting-point mode. Hidden nodes protect linked project data.">
+                  <DropdownMenuItem disabled>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Remove
+                  </DropdownMenuItem>
+                </span>
+              </>
+            ) : (
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={async () => {
+                  const ok = await ctx.dialogs.confirm({
+                    title: 'Remove this row?',
+                    description: 'This row and any sub-items under it will be permanently removed from the outline.',
+                    confirmLabel: 'Remove',
+                    variant: 'destructive'
+                  });
+                  if (ok) void node.tree.delete(node.id);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}

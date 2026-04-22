@@ -32,10 +32,10 @@ export function useProjectBlueprint(projectId: string | undefined) {
           blueprint_id,
           role,
           template_blueprint (
-            id, slug, name, icon, structure, structure_version,
+            id, slug, name, icon, structure,
             source_language_id, copied_from_blueprint_id,
             auto_sync, shared, active, locked_for_backward_compat,
-            creator_id, project_count, locked_by, locked_at,
+            creator_id, project_count,
             created_at, last_updated
           )
         `
