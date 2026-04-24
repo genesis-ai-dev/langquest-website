@@ -13,7 +13,7 @@ import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProjectHeaderV1 } from '@/components/project-header-v1';
 import { PortalHeader } from '@/components/portal-header';
-import { useProjectBlueprint } from '@/app/db/useProjectBlueprint';
+import { useProjectTemplate } from '@/app/db/useProjectTemplate';
 
 export default function ProjectPage() {
   return (
@@ -156,7 +156,7 @@ function ProjectPageContent() {
   const assetsCount = assetsCounts.assets;
   const translationsCount = assetsCounts.translations;
 
-  const { data: blueprintData } = useProjectBlueprint(projectId);
+  const { data: templateData } = useProjectTemplate(projectId);
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -291,8 +291,8 @@ function ProjectPageContent() {
           projectId={projectId}
           userPermission={userPermission}
           template={project?.template || 'unstructured'}
-          blueprintStructure={blueprintData?.structure}
-          blueprintLinkId={blueprintData?.linkId}
+          templateStructure={templateData?.structure}
+          templateLinkId={templateData?.linkId}
         />
       </div>
     </div>

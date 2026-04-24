@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function NewBlueprintPage() {
+export default function NewTemplatePage() {
   const router = useRouter();
 
   useEffect(() => {

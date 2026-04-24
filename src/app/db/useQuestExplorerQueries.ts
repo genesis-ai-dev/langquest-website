@@ -4,13 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/auth-provider';
 import {
   createBibleChapterQuest,
-  createBlueprintQuest,
+  createTemplateQuest,
   createFiaPericopeQuest,
   fetchAssetDetails,
   fetchProjectQuestTree,
   fetchQuestAssets
 } from './questExplorer';
-import type { CreateBlueprintQuestParams } from './questExplorer';
+import type { CreateTemplateQuestParams } from './questExplorer';
 import { lookupFiaLanguageCode } from './languoid';
 
 export interface FiaPericope {
@@ -270,15 +270,15 @@ export function useCreateFiaPericope() {
   });
 }
 
-type CreateBlueprintQuestPayload = Omit<CreateBlueprintQuestParams, 'userId'>;
+type CreateTemplateQuestPayload = Omit<CreateTemplateQuestParams, 'userId'>;
 
-export function useCreateBlueprintQuest() {
+export function useCreateTemplateQuest() {
   const queryClient = useQueryClient();
   const { user, supabase } = useAuth();
 
   return useMutation({
-    mutationFn: (payload: CreateBlueprintQuestPayload) =>
-      createBlueprintQuest(supabase, {
+    mutationFn: (payload: CreateTemplateQuestPayload) =>
+      createTemplateQuest(supabase, {
         ...payload,
         userId: user?.id ?? ''
       }),

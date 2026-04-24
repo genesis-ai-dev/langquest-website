@@ -1,24 +1,24 @@
 /**
- * Bridge layer: resolves blueprint JSONB nodes into DisplayNode objects
+ * Bridge layer: resolves template JSONB nodes into DisplayNode objects
  * that the existing QuestExplorer UI components can render.
  */
 
-import type { BlueprintNode, BlueprintStructure } from './types';
+import type { TemplateNode, TemplateStructure } from './types';
 import type { QuestRecord, QuestTreeResult } from '@/app/db/questExplorer';
 import type { DisplayNode } from '@/components/QuestExplorer/template-strategies/types';
 
-export interface BlueprintResolverContext {
-  structure: BlueprintStructure;
+export interface TemplateResolverContext {
+  structure: TemplateStructure;
   questTree: QuestTreeResult;
-  blueprintLinkId: string;
+  templateLinkId: string;
 }
 
 function questsForNode(nodeId: string, questTree: QuestTreeResult): QuestRecord[] {
-  return questTree.flat.filter((q) => q.blueprint_node_id === nodeId);
+  return questTree.flat.filter((q) => q.template_node_id === nodeId);
 }
 
-function blueprintNodeToDisplayNode(
-  node: BlueprintNode,
+function templateNodeToDisplayNode(
+  node: TemplateNode,
   questTree: QuestTreeResult
 ): DisplayNode {
   const matchingQuests = questsForNode(node.id, questTree);
@@ -59,25 +59,25 @@ function mapNodeTypeToKind(
 }
 
 /**
- * Get root-level display nodes from a blueprint structure.
+ * Get root-level display nodes from a template structure.
  * These are the direct children of the root node (e.g., books for Bible).
  */
-export function getRootNodesFromBlueprint(
-  ctx: BlueprintResolverContext
+export function getRootNodesFromTemplate(
+  ctx: TemplateResolverContext
 ): DisplayNode[] {
   const rootChildren = ctx.structure.root.children ?? [];
   return rootChildren
     .filter((node) => !node.deleted)
-    .map((node) => blueprintNodeToDisplayNode(node, ctx.questTree));
+    .map((node) => templateNodeToDisplayNode(node, ctx.questTree));
 }
 
 /**
  * Get child display nodes for a selected parent node.
  * Used for column 2 (e.g., chapters when a book is selected).
  */
-export function getChildNodesFromBlueprint(
+export function getChildNodesFromTemplate(
   parentNodeId: string,
-  ctx: BlueprintResolverContext
+  ctx: TemplateResolverContext
 ): DisplayNode[] {
   const parentNode = findNodeById(ctx.structure.root, parentNodeId);
   if (!parentNode) return [];
@@ -85,37 +85,37 @@ export function getChildNodesFromBlueprint(
   const children = parentNode.children ?? [];
   return children
     .filter((node) => !node.deleted)
-    .map((node) => blueprintNodeToDisplayNode(node, ctx.questTree));
+    .map((node) => templateNodeToDisplayNode(node, ctx.questTree));
 }
 
 /**
- * Get the blueprint node definition for a given node ID.
+ * Get the template node definition for a given node ID.
  */
-export function getBlueprintNode(
-  structure: BlueprintStructure,
+export function getTemplateNode(
+  structure: TemplateStructure,
   nodeId: string
-): BlueprintNode | null {
+): TemplateNode | null {
   return findNodeById(structure.root, nodeId);
 }
 
 /**
- * Get the depth of the blueprint tree (excluding root).
+ * Get the depth of the template tree (excluding root).
  * Used to determine how many columns the explorer should show.
  */
-export function getBlueprintDepth(structure: BlueprintStructure): number {
+export function getTemplateDepth(structure: TemplateStructure): number {
   return getMaxDepth(structure.root, 0) - 1;
 }
 
-function getMaxDepth(node: BlueprintNode, current: number): number {
+function getMaxDepth(node: TemplateNode, current: number): number {
   const children = (node.children ?? []).filter((n) => !n.deleted);
   if (children.length === 0) return current;
   return Math.max(...children.map((c) => getMaxDepth(c, current + 1)));
 }
 
 function findNodeById(
-  node: BlueprintNode,
+  node: TemplateNode,
   targetId: string
-): BlueprintNode | null {
+): TemplateNode | null {
   if (node.id === targetId) return node;
   for (const child of node.children ?? []) {
     const found = findNodeById(child, targetId);

@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
-import type { BlueprintNode, DraftMode } from '@/lib/blueprint/types';
+import type { TemplateNode, DraftMode } from '@/lib/template/types';
 import {
   createAddNodeAction,
   createHideNodeAction,
@@ -37,8 +37,8 @@ import {
   createRemoveNodeAction,
   createRenameNodeAction,
   createUnhideNodeAction,
-  type BlueprintAction
-} from '@/lib/blueprint/actions';
+  type TemplateAction
+} from '@/lib/template/actions';
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -66,7 +66,7 @@ interface TreeActionsContextValue {
   mode: DraftMode | null;
   dialogs: DialogFns;
   onAddChild: (parentId: string, parentDisplayName: string) => void;
-  onAddSibling: (node: NodeApi<BlueprintNode>) => void;
+  onAddSibling: (node: NodeApi<TemplateNode>) => void;
   onHide: (nodeId: string) => void;
   onUnhide: (nodeId: string) => void;
   moveTarget: string | null;
@@ -77,7 +77,7 @@ interface TreeActionsContextValue {
 
 const TreeActionsContext = createContext<TreeActionsContextValue | null>(null);
 
-function filterDeletedDeep(nodes: BlueprintNode[]): BlueprintNode[] {
+function filterDeletedDeep(nodes: TemplateNode[]): TemplateNode[] {
   return (nodes ?? [])
     .filter((n) => !n.deleted)
     .map((n) => ({
@@ -88,41 +88,41 @@ function filterDeletedDeep(nodes: BlueprintNode[]): BlueprintNode[] {
     }));
 }
 
-export function toTreeData(root: BlueprintNode, showHidden?: boolean): BlueprintNode[] {
+export function toTreeData(root: TemplateNode, showHidden?: boolean): TemplateNode[] {
   if (showHidden) return root.children ?? [];
   return filterDeletedDeep(root.children ?? []);
 }
 
-function collectDirectChildIds(node: NodeApi<BlueprintNode>): string[] {
+function collectDirectChildIds(node: NodeApi<TemplateNode>): string[] {
   return (node.children ?? []).map((c) => c.id);
 }
 
-export interface BlueprintEditorTreeProps {
-  root: BlueprintNode;
+export interface TemplateEditorTreeProps {
+  root: TemplateNode;
   canEdit: boolean;
   mode?: DraftMode;
   selectedNodeId: string | null;
   onNodeSelect: (nodeId: string | null) => void;
-  onBatchActions: (actions: BlueprintAction[]) => void;
+  onBatchActions: (actions: TemplateAction[]) => void;
 }
 
-export function BlueprintEditorTree({
+export function TemplateEditorTree({
   root,
   canEdit,
   mode,
   selectedNodeId,
   onNodeSelect,
   onBatchActions
-}: BlueprintEditorTreeProps) {
+}: TemplateEditorTreeProps) {
   const dialogs = useConfirm();
-  const treeRef = useRef<TreeApi<BlueprintNode>>(null);
+  const treeRef = useRef<TreeApi<TemplateNode>>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 520 });
   const [moveTarget, setMoveTarget] = useState<string | null>(null);
   const [selectionCount, setSelectionCount] = useState(0);
 
   const handleSelectionChange = useCallback(
-    (nodes: NodeApi<BlueprintNode>[]) => {
+    (nodes: NodeApi<TemplateNode>[]) => {
       setSelectionCount(nodes.length);
     },
     []
@@ -134,7 +134,7 @@ export function BlueprintEditorTree({
   const onAddChild = useCallback(
     async (parentId: string, parentDisplayName: string) => {
       const name = await dialogs.prompt({
-        title: `Add inside “${parentDisplayName}”`,
+        title: `Add inside "${parentDisplayName}"`,
         description: 'Enter a name for the new row.',
         placeholder: 'Row name',
         confirmLabel: 'Add'
@@ -142,38 +142,38 @@ export function BlueprintEditorTree({
       if (!name) return;
       onBatchActions([createAddNodeAction(parentId, name)]);
       toast.success(
-        `“${name}” was added inside “${parentDisplayName}”. If you don’t see it, expand “${parentDisplayName}” using the arrow on the left.`
+        `"${name}" was added inside "${parentDisplayName}". If you don't see it, expand "${parentDisplayName}" using the arrow on the left.`
       );
     },
     [onBatchActions, dialogs]
   );
 
   const onAddSibling = useCallback(
-    async (node: NodeApi<BlueprintNode>) => {
+    async (node: NodeApi<TemplateNode>) => {
       const d = node.data;
       const name = await dialogs.prompt({
-        title: `Add below “${d.name}”`,
+        title: `Add below "${d.name}"`,
         description: 'Enter a name for the new row.',
         placeholder: 'Row name',
         confirmLabel: 'Add'
       });
       if (!name) return;
       const parent = node.parent;
-      const blueprintParentId = parent?.isRoot ? root.id : parent?.id;
-      if (!blueprintParentId || node.childIndex < 0) {
+      const templateParentId = parent?.isRoot ? root.id : parent?.id;
+      if (!templateParentId || node.childIndex < 0) {
         toast.error('Could not determine where to insert the new row');
         return;
       }
       const insertIndex = node.childIndex + 1;
       onBatchActions([
-        createAddNodeAction(blueprintParentId, name, {
+        createAddNodeAction(templateParentId, name, {
           insertIndex,
           ...(d.linkable_type !== undefined
             ? { linkableType: d.linkable_type }
             : {})
         })
       ]);
-      toast.success(`“${name}” was added below “${d.name}”.`);
+      toast.success(`"${name}" was added below "${d.name}".`);
     },
     [onBatchActions, root.id, dialogs]
   );
@@ -193,7 +193,7 @@ export function BlueprintEditorTree({
     return () => ro.disconnect();
   }, []);
 
-  const handleRename = useCallback<RenameHandler<BlueprintNode>>(
+  const handleRename = useCallback<RenameHandler<TemplateNode>>(
     ({ id, name }) => {
       if (!name.trim()) return;
       onBatchActions([createRenameNodeAction(id, name.trim())]);
@@ -201,7 +201,7 @@ export function BlueprintEditorTree({
     [onBatchActions]
   );
 
-  const handleDelete = useCallback<DeleteHandler<BlueprintNode>>(
+  const handleDelete = useCallback<DeleteHandler<TemplateNode>>(
     ({ ids }) => {
       if (mode === 'update') {
         onBatchActions(ids.map((id) => createHideNodeAction(id)));
@@ -231,7 +231,7 @@ export function BlueprintEditorTree({
     []
   );
 
-  const getActionableNodes = useCallback((): NodeApi<BlueprintNode>[] => {
+  const getActionableNodes = useCallback((): NodeApi<TemplateNode>[] => {
     const checked = selectedNodes();
     if (checked.length > 0) return checked;
     if (selectedNodeId) {
@@ -244,7 +244,7 @@ export function BlueprintEditorTree({
   const handleMoveUp = useCallback(() => {
     const nodes = getActionableNodes();
     if (nodes.length === 0) return;
-    const actions: BlueprintAction[] = [];
+    const actions: TemplateAction[] = [];
     for (const node of nodes) {
       const parent = node.parent;
       if (!parent) continue;
@@ -261,7 +261,7 @@ export function BlueprintEditorTree({
   const handleMoveDown = useCallback(() => {
     const nodes = getActionableNodes();
     if (nodes.length === 0) return;
-    const actions: BlueprintAction[] = [];
+    const actions: TemplateAction[] = [];
     for (const node of [...nodes].reverse()) {
       const parent = node.parent;
       if (!parent) continue;
@@ -473,7 +473,7 @@ export function BlueprintEditorTree({
           ref={containerRef}
           className="h-[min(70vh,560px)] w-full min-h-[280px] rounded-md border"
         >
-          <Tree<BlueprintNode>
+          <Tree<TemplateNode>
             ref={treeRef}
             data={data}
             width={size.width}
@@ -489,9 +489,9 @@ export function BlueprintEditorTree({
             onRename={handleRename}
             onDelete={canEdit ? handleDelete : undefined}
             onSelect={handleSelectionChange}
-            renderRow={BlueprintRow}
+            renderRow={TemplateTreeRow}
           >
-            {BlueprintArboristNode}
+            {TemplateArboristNode}
           </Tree>
         </div>
       </div>
@@ -499,11 +499,11 @@ export function BlueprintEditorTree({
   );
 }
 
-function BlueprintRow({
+function TemplateTreeRow({
   innerRef,
   attrs,
   children
-}: RowRendererProps<BlueprintNode>) {
+}: RowRendererProps<TemplateNode>) {
   return (
     <div {...attrs} ref={innerRef} onFocus={(e) => e.stopPropagation()}>
       {children}
@@ -511,10 +511,10 @@ function BlueprintRow({
   );
 }
 
-function BlueprintArboristNode({
+function TemplateArboristNode({
   node,
   style
-}: NodeRendererProps<BlueprintNode>) {
+}: NodeRendererProps<TemplateNode>) {
   const ctx = useContext(TreeActionsContext);
   const d = node.data;
   const isSection = d.linkable_type !== 'asset';

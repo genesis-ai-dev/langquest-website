@@ -37,31 +37,31 @@ import {
 import { useAuth } from '@/components/auth-provider';
 import { createBrowserClient } from '@/lib/supabase/client';
 import {
-  publishBlueprint,
-  fetchProjectsForBlueprint,
-  fetchBlueprintById
-} from '@/lib/blueprint/rpc';
+  publishTemplate,
+  fetchProjectsForTemplate,
+  fetchTemplateById
+} from '@/lib/template/rpc';
 import {
   applyAction,
   findNodeById,
   generateNodeId,
-  type BlueprintAction
-} from '@/lib/blueprint/actions';
+  type TemplateAction
+} from '@/lib/template/actions';
 import {
   loadDraft,
   saveDraft,
   deleteDraft,
-  type BlueprintDraft
-} from '@/lib/blueprint/draft-store';
-import type { BlueprintStructure, DraftMode } from '@/lib/blueprint/types';
+  type TemplateDraft
+} from '@/lib/template/draft-store';
+import type { TemplateStructure, DraftMode } from '@/lib/template/types';
 import {
   hasHiddenNodes,
   countHiddenNodes,
   stripHiddenNodes
-} from '@/lib/blueprint/hidden-nodes';
+} from '@/lib/template/hidden-nodes';
 import { toast } from 'sonner';
-import { BlueprintEditorTree } from '@/components/blueprint-editor-tree';
-import { BlueprintNodePanel } from '@/components/blueprint-node-panel';
+import { TemplateEditorTree } from '@/components/template-editor-tree';
+import { TemplateNodePanel } from '@/components/template-node-panel';
 
 type LinkedProject = {
   linkId: string;
@@ -135,11 +135,11 @@ function DraftEditorContent() {
   const router = useRouter();
   const supabase = createBrowserClient();
 
-  const [draft, setDraft] = useState<BlueprintDraft | null>(null);
-  const [structure, setStructure] = useState<BlueprintStructure | null>(null);
+  const [draft, setDraft] = useState<TemplateDraft | null>(null);
+  const [structure, setStructure] = useState<TemplateStructure | null>(null);
   const [initialStructure, setInitialStructure] =
-    useState<BlueprintStructure | null>(null);
-  const [actions, setActions] = useState<BlueprintAction[]>([]);
+    useState<TemplateStructure | null>(null);
+  const [actions, setActions] = useState<TemplateAction[]>([]);
   const [actionIndex, setActionIndex] = useState(-1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [mode, setMode] = useState<DraftMode>('starting_point');
@@ -155,7 +155,7 @@ function DraftEditorContent() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  const [sourceBlueprintName, setSourceBlueprintName] = useState<string | null>(
+  const [sourceTemplateName, setSourceTemplateName] = useState<string | null>(
     null
   );
   const [linkedProjects, setLinkedProjects] = useState<LinkedProject[]>([]);
@@ -206,30 +206,30 @@ function DraftEditorContent() {
     })();
   }, [draftId]);
 
-  // Fetch source blueprint name
+  // Fetch source template name
   useEffect(() => {
-    if (!draft?.sourceBlueprintId) return;
+    if (!draft?.sourceTemplateId) return;
 
     (async () => {
       try {
-        const bp = await fetchBlueprintById(supabase, draft.sourceBlueprintId!);
-        if (bp) setSourceBlueprintName(bp.name);
+        const bp = await fetchTemplateById(supabase, draft.sourceTemplateId!);
+        if (bp) setSourceTemplateName(bp.name);
       } catch {
         // Non-critical
       }
     })();
-  }, [draft?.sourceBlueprintId, supabase]);
+  }, [draft?.sourceTemplateId, supabase]);
 
   // Fetch linked projects for update mode
   useEffect(() => {
-    if (mode !== 'update' || !draft?.sourceBlueprintId) return;
+    if (mode !== 'update' || !draft?.sourceTemplateId) return;
 
     setLoadingProjects(true);
     (async () => {
       try {
-        const projects = await fetchProjectsForBlueprint(
+        const projects = await fetchProjectsForTemplate(
           supabase,
-          draft.sourceBlueprintId!
+          draft.sourceTemplateId!
         );
         setLinkedProjects(projects);
       } catch {
@@ -238,7 +238,7 @@ function DraftEditorContent() {
         setLoadingProjects(false);
       }
     })();
-  }, [mode, draft?.sourceBlueprintId, supabase]);
+  }, [mode, draft?.sourceTemplateId, supabase]);
 
   // Auto-save draft (debounced 1s)
   useEffect(() => {
@@ -247,7 +247,7 @@ function DraftEditorContent() {
     const timer = setTimeout(() => {
       saveDraft({
         draftId,
-        sourceBlueprintId: draft.sourceBlueprintId,
+        sourceTemplateId: draft.sourceTemplateId,
         mode,
         structure: initialStructure!,
         actionLog: actions,
@@ -271,7 +271,7 @@ function DraftEditorContent() {
   ]);
 
   const dispatchBatchActions = useCallback(
-    (batch: BlueprintAction[]) => {
+    (batch: TemplateAction[]) => {
       if (!structure || batch.length === 0) return;
       const stamped =
         batch.length > 1
@@ -333,7 +333,7 @@ function DraftEditorContent() {
   const handleSwitchToStartingPoint = useCallback(() => {
     if (!structure) return;
     const stripped = stripHiddenNodes(structure.root);
-    const newStructure: BlueprintStructure = {
+    const newStructure: TemplateStructure = {
       ...structure,
       root: stripped
     };
@@ -359,8 +359,8 @@ function DraftEditorContent() {
 
     setPublishing(true);
     try {
-      const result = await publishBlueprint(supabase, {
-        sourceBlueprintId: draft.sourceBlueprintId,
+      const result = await publishTemplate(supabase, {
+        sourceTemplateId: draft.sourceTemplateId,
         structure,
         name: metadata.name,
         icon: metadata.icon ?? undefined,
@@ -372,7 +372,7 @@ function DraftEditorContent() {
       if (result.ok) {
         await deleteDraft(draftId);
         toast.success('Published successfully');
-        router.push(`/portal/templates/${result.blueprint_id}`);
+        router.push(`/portal/templates/${result.template_id}`);
       } else {
         toast.error(result.reason);
       }
@@ -458,8 +458,8 @@ function DraftEditorContent() {
           <div>
             <h1 className="text-xl font-bold">{metadata.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {draft.sourceBlueprintId
-                ? `Based on: ${sourceBlueprintName ?? 'Loading...'}`
+              {draft.sourceTemplateId
+                ? `Based on: ${sourceTemplateName ?? 'Loading...'}`
                 : 'New template'}
             </p>
           </div>
@@ -526,7 +526,7 @@ function DraftEditorContent() {
       )}
 
       {/* Project link panel (update mode only) */}
-      {mode === 'update' && draft.sourceBlueprintId && (
+      {mode === 'update' && draft.sourceTemplateId && (
         <div className="rounded-lg border p-4">
           <h3 className="mb-3 text-sm font-medium">
             Projects to update on publish
@@ -563,7 +563,7 @@ function DraftEditorContent() {
       {structure && (
         <div className="flex gap-4">
           <div className="min-w-0 flex-1 rounded-lg border p-4">
-            <BlueprintEditorTree
+            <TemplateEditorTree
               root={structure.root}
               canEdit
               mode={mode}
@@ -574,7 +574,7 @@ function DraftEditorContent() {
           </div>
           {selectedNode && (
             <div className="w-80 shrink-0 rounded-lg border">
-              <BlueprintNodePanel
+              <TemplateNodePanel
                 key={selectedNode.id}
                 node={selectedNode}
                 canEdit

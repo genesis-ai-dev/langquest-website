@@ -59,8 +59,8 @@ import { AlertCircle } from 'lucide-react';
 import { createProjectOwnership } from '@/lib/project-permissions';
 import { projectTemplates } from '@/templates';
 import { fetchFiaLanguoids } from '@/app/db/languoid';
-import { BlueprintPicker } from '@/components/blueprint-picker';
-import type { TemplateBlueprintRow } from '@/lib/blueprint/types';
+import { TemplatePicker } from '@/components/template-picker';
+import type { TemplateRow } from '@/lib/template/types';
 
 // Step 1: Choose project creation method
 const projectMethodSchema = z.object({
@@ -77,7 +77,7 @@ const projectDetailsSchema = z.object({
   template: z.string().min(1, {
     message: 'Template is required.'
   }),
-  blueprint_id: z.string().optional(),
+  template_id: z.string().optional(),
   fia_source_languoid_id: z.string().optional(),
   target_languoid_id: z.string().min(1, {
     message: 'Target language is required.'
@@ -162,7 +162,7 @@ export function ProjectWizard({
       name: '',
       description: '',
       template: 'unstructured',
-      blueprint_id: '',
+      template_id: '',
       fia_source_languoid_id: '',
       target_languoid_id: '',
       private: false,
@@ -386,19 +386,19 @@ export function ProjectWizard({
         toast.error('Failed to set project ownership');
       }
 
-      // Create project_blueprint_link (requires ownership to exist first)
-      if (step2Values.blueprint_id) {
-        const { error: bpLinkError } = await supabase
-          .from('project_blueprint_link')
+      // Create project_template_link (requires ownership to exist first)
+      if (step2Values.template_id) {
+        const { error: tplLinkError } = await supabase
+          .from('project_template_link')
           .insert({
             project_id: data.id,
-            blueprint_id: step2Values.blueprint_id,
+            template_id: step2Values.template_id,
             role: 'primary',
             active: true
           });
 
-        if (bpLinkError) {
-          console.error('Blueprint link error:', bpLinkError);
+        if (tplLinkError) {
+          console.error('Template link error:', tplLinkError);
           toast.error('Failed to link template to project');
         }
       }
@@ -694,7 +694,7 @@ export function ProjectWizard({
           {step1Form.watch('creationMethod') !== 'clone' && (
             <FormField
               control={step2Form.control}
-              name="blueprint_id"
+              name="template_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -713,7 +713,7 @@ export function ProjectWizard({
                     </TooltipProvider>
                   </FormLabel>
                   <FormControl>
-                    <BlueprintPicker
+                    <TemplatePicker
                       value={field.value || null}
                       onChange={(id, bp) => {
                         field.onChange(id ?? '');

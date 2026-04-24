@@ -3,37 +3,37 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/components/auth-provider';
 import type {
-  BlueprintNode,
-  BlueprintStructure,
-  TemplateBlueprintRow
-} from '@/lib/blueprint/types';
-import { blueprintStructureSchema } from '@/lib/blueprint/types';
+  TemplateNode,
+  TemplateStructure,
+  TemplateRow
+} from '@/lib/template/types';
+import { templateStructureSchema } from '@/lib/template/types';
 
-export interface ProjectBlueprintData {
+export interface ProjectTemplateData {
   linkId: string;
-  blueprint: TemplateBlueprintRow;
-  structure: BlueprintStructure;
+  template: TemplateRow;
+  structure: TemplateStructure;
 }
 
-export function useProjectBlueprint(projectId: string | undefined) {
+export function useProjectTemplate(projectId: string | undefined) {
   const { supabase } = useAuth();
 
   return useQuery({
-    queryKey: ['project-blueprint', projectId],
+    queryKey: ['project-template', projectId],
     enabled: !!projectId && !!supabase,
-    queryFn: async (): Promise<ProjectBlueprintData | null> => {
+    queryFn: async (): Promise<ProjectTemplateData | null> => {
       if (!supabase || !projectId) return null;
 
       const { data, error } = await supabase
-        .from('project_blueprint_link')
+        .from('project_template_link')
         .select(
           `
           id,
-          blueprint_id,
+          template_id,
           role,
-          template_blueprint (
+          template (
             id, slug, name, icon, structure,
-            source_language_id, copied_from_blueprint_id,
+            source_language_id, copied_from_template_id,
             auto_sync, shared, active, locked_for_backward_compat,
             creator_id, project_count,
             created_at, last_updated
@@ -48,19 +48,19 @@ export function useProjectBlueprint(projectId: string | undefined) {
 
       if (error || !data) return null;
 
-      const blueprintRow = data.template_blueprint as unknown as TemplateBlueprintRow;
-      if (!blueprintRow) return null;
+      const templateRow = data.template as unknown as TemplateRow;
+      if (!templateRow) return null;
 
-      const parsed = blueprintStructureSchema.safeParse(blueprintRow.structure);
+      const parsed = templateStructureSchema.safeParse(templateRow.structure);
       if (!parsed.success) return null;
 
       return {
         linkId: data.id,
-        blueprint: blueprintRow,
+        template: templateRow,
         structure: parsed.data
       };
     }
   });
 }
 
-export type { BlueprintNode, BlueprintStructure };
+export type { TemplateNode, TemplateStructure };

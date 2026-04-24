@@ -1,17 +1,17 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { BlueprintAction } from './actions';
-import type { BlueprintStructure, DraftMode } from './types';
+import type { TemplateAction } from './actions';
+import type { TemplateStructure, DraftMode } from './types';
 
-const DB_NAME = 'langquest-blueprints';
+const DB_NAME = 'langquest-templates';
 const DB_VERSION = 2;
 const STORE_NAME = 'drafts';
 
-export interface BlueprintDraft {
+export interface TemplateDraft {
   draftId: string;
-  sourceBlueprintId: string | null;
+  sourceTemplateId: string | null;
   mode: DraftMode;
-  structure: BlueprintStructure;
-  actionLog: BlueprintAction[];
+  structure: TemplateStructure;
+  actionLog: TemplateAction[];
   actionIndex: number;
   metadata: { name: string; icon: string | null; shared: boolean };
   targetLinkIds: string[];
@@ -38,14 +38,14 @@ function getDb(): Promise<IDBPDatabase> {
   return dbPromise;
 }
 
-export async function saveDraft(draft: BlueprintDraft): Promise<void> {
+export async function saveDraft(draft: TemplateDraft): Promise<void> {
   const db = await getDb();
   await db.put(STORE_NAME, { ...draft, savedAt: Date.now() });
 }
 
 export async function loadDraft(
   draftId: string
-): Promise<BlueprintDraft | undefined> {
+): Promise<TemplateDraft | undefined> {
   const db = await getDb();
   return db.get(STORE_NAME, draftId);
 }
@@ -55,7 +55,7 @@ export async function deleteDraft(draftId: string): Promise<void> {
   await db.delete(STORE_NAME, draftId);
 }
 
-export async function listDrafts(): Promise<BlueprintDraft[]> {
+export async function listDrafts(): Promise<TemplateDraft[]> {
   const db = await getDb();
   return db.getAll(STORE_NAME);
 }

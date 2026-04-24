@@ -1,6 +1,6 @@
-import type { BlueprintNode } from './types';
+import type { TemplateNode } from './types';
 
-export function countHiddenNodes(root: BlueprintNode): number {
+export function countHiddenNodes(root: TemplateNode): number {
   let count = root.deleted ? 1 : 0;
   for (const child of root.children ?? []) {
     count += countHiddenNodes(child);
@@ -8,7 +8,7 @@ export function countHiddenNodes(root: BlueprintNode): number {
   return count;
 }
 
-export function hasHiddenNodes(root: BlueprintNode): boolean {
+export function hasHiddenNodes(root: TemplateNode): boolean {
   if (root.deleted) return true;
   for (const child of root.children ?? []) {
     if (hasHiddenNodes(child)) return true;
@@ -16,7 +16,7 @@ export function hasHiddenNodes(root: BlueprintNode): boolean {
   return false;
 }
 
-export function stripHiddenNodes(root: BlueprintNode): BlueprintNode {
+export function stripHiddenNodes(root: TemplateNode): TemplateNode {
   if (root.deleted) {
     return { ...root, deleted: undefined, children: [] };
   }

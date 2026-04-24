@@ -1,10 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateNodeId } from './actions';
-import { saveDraft, type BlueprintDraft } from './draft-store';
+import { saveDraft, type TemplateDraft } from './draft-store';
 import { hasHiddenNodes, stripHiddenNodes, countHiddenNodes } from './hidden-nodes';
-import { fetchProjectsForBlueprint } from './rpc';
-import type { BlueprintStructure, DraftMode, TemplateBlueprintRow } from './types';
-import { BLUEPRINT_FORMAT_VERSION } from './types';
+import { fetchProjectsForTemplate } from './rpc';
+import type { TemplateStructure, DraftMode, TemplateRow } from './types';
+import { TEMPLATE_FORMAT_VERSION } from './types';
 
 type ConfirmFn = {
   confirm: (opts: { title: string; description?: string; body?: React.ReactNode; confirmLabel?: string; cancelLabel?: string; variant?: 'default' | 'destructive' }) => Promise<boolean>;
@@ -15,10 +15,10 @@ export async function createBlankDraft(): Promise<string> {
   const draftId = generateNodeId();
   await saveDraft({
     draftId,
-    sourceBlueprintId: null,
+    sourceTemplateId: null,
     mode: 'starting_point',
     structure: {
-      format_version: BLUEPRINT_FORMAT_VERSION,
+      format_version: TEMPLATE_FORMAT_VERSION,
       root: { id: 'root', name: 'New template', node_type: 'root', children: [] }
     },
     actionLog: [],
@@ -31,17 +31,17 @@ export async function createBlankDraft(): Promise<string> {
 }
 
 /**
- * Creates a draft from an existing published blueprint.
+ * Creates a draft from an existing published template.
  * Handles hidden-node prompts via the confirm API.
  * Returns the draftId, or null if the user cancelled.
  */
-export async function createDraftFromBlueprint(
-  blueprint: TemplateBlueprintRow,
+export async function createDraftFromTemplate(
+  template: TemplateRow,
   mode: DraftMode,
   dialogs: ConfirmFn,
   supabase: SupabaseClient
 ): Promise<string | null> {
-  let structure: BlueprintStructure = blueprint.structure;
+  let structure: TemplateStructure = template.structure;
 
   if (mode === 'starting_point' && hasHiddenNodes(structure.root)) {
     const count = countHiddenNodes(structure.root);
@@ -61,22 +61,22 @@ export async function createDraftFromBlueprint(
 
   let targetLinkIds: string[] = [];
   if (mode === 'update') {
-    const projects = await fetchProjectsForBlueprint(supabase, blueprint.id);
+    const projects = await fetchProjectsForTemplate(supabase, template.id);
     targetLinkIds = projects.map((p) => p.linkId);
   }
 
   const draftId = generateNodeId();
   await saveDraft({
     draftId,
-    sourceBlueprintId: blueprint.id,
+    sourceTemplateId: template.id,
     mode,
     structure,
     actionLog: [],
     actionIndex: -1,
     metadata: {
-      name: blueprint.name,
-      icon: blueprint.icon,
-      shared: mode === 'update' ? blueprint.shared : false
+      name: template.name,
+      icon: template.icon,
+      shared: mode === 'update' ? template.shared : false
     },
     targetLinkIds,
     savedAt: Date.now()

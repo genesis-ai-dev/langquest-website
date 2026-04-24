@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/components/auth-provider';
-import { fetchBlueprints } from '@/lib/blueprint/rpc';
-import type { TemplateBlueprintRow } from '@/lib/blueprint/types';
+import { fetchTemplates } from '@/lib/template/rpc';
+import type { TemplateRow } from '@/lib/template/types';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Book, ScrollText, Folder, Search, Users, Lock } from 'lucide-react';
 
-interface BlueprintPickerProps {
+interface TemplatePickerProps {
   value: string | null;
-  onChange: (blueprintId: string | null, blueprint: TemplateBlueprintRow | null) => void;
+  onChange: (templateId: string | null, template: TemplateRow | null) => void;
 }
 
 const ICON_MAP: Record<string, typeof Book> = {
@@ -20,20 +20,20 @@ const ICON_MAP: Record<string, typeof Book> = {
   folder: Folder
 };
 
-export function BlueprintPicker({ value, onChange }: BlueprintPickerProps) {
+export function TemplatePicker({ value, onChange }: TemplatePickerProps) {
   const { supabase } = useAuth();
   const [search, setSearch] = useState('');
 
-  const { data: blueprints, isLoading } = useQuery({
-    queryKey: ['blueprints-shared'],
+  const { data: templates, isLoading } = useQuery({
+    queryKey: ['templates-shared'],
     enabled: !!supabase,
     queryFn: async () => {
       if (!supabase) return [];
-      return fetchBlueprints(supabase, { shared: true });
+      return fetchTemplates(supabase, { shared: true });
     }
   });
 
-  const filtered = (blueprints ?? []).filter((bp) =>
+  const filtered = (templates ?? []).filter((bp) =>
     bp.name.toLowerCase().includes(search.toLowerCase())
   );
 

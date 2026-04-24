@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-export const BLUEPRINT_NODE_ID_LENGTH = 10;
-export const BLUEPRINT_MAX_DEPTH = 5;
-export const BLUEPRINT_FORMAT_VERSION = 1;
+export const TEMPLATE_NODE_ID_LENGTH = 10;
+export const TEMPLATE_MAX_DEPTH = 5;
+export const TEMPLATE_FORMAT_VERSION = 1;
 
-export const blueprintNodeSchema: z.ZodType<BlueprintNode> = z.lazy(() =>
+export const templateNodeSchema: z.ZodType<TemplateNode> = z.lazy(() =>
   z.object({
     id: z.string().min(1),
     name: z.string().min(1),
@@ -17,16 +17,16 @@ export const blueprintNodeSchema: z.ZodType<BlueprintNode> = z.lazy(() =>
     allows_spanning: z.boolean().optional(),
     deleted: z.boolean().optional(),
     metadata: z.record(z.unknown()).optional(),
-    children: z.array(blueprintNodeSchema).optional()
+    children: z.array(templateNodeSchema).optional()
   })
 );
 
-export const blueprintStructureSchema = z.object({
+export const templateStructureSchema = z.object({
   format_version: z.number().int().positive(),
-  root: blueprintNodeSchema
+  root: templateNodeSchema
 });
 
-export type BlueprintNode = {
+export type TemplateNode = {
   id: string;
   name: string;
   short_label?: string;
@@ -38,24 +38,24 @@ export type BlueprintNode = {
   allows_spanning?: boolean;
   deleted?: boolean;
   metadata?: Record<string, unknown>;
-  children?: BlueprintNode[];
+  children?: TemplateNode[];
 };
 
-export type BlueprintStructure = {
+export type TemplateStructure = {
   format_version: number;
-  root: BlueprintNode;
+  root: TemplateNode;
 };
 
 export type DraftMode = 'starting_point' | 'update';
 
-export type TemplateBlueprintRow = {
+export type TemplateRow = {
   id: string;
   slug: string | null;
   name: string;
   icon: string | null;
-  structure: BlueprintStructure;
+  structure: TemplateStructure;
   source_language_id: string | null;
-  copied_from_blueprint_id: string | null;
+  copied_from_template_id: string | null;
   auto_sync: boolean;
   shared: boolean;
   active: boolean;

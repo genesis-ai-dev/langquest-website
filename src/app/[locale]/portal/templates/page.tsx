@@ -27,22 +27,22 @@ import { Spinner } from '@/components/spinner';
 import { useAuth } from '@/components/auth-provider';
 import { useConfirm } from '@/components/ui/confirm';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { fetchBlueprints } from '@/lib/blueprint/rpc';
-import type { TemplateBlueprintRow } from '@/lib/blueprint/types';
+import { fetchTemplates } from '@/lib/template/rpc';
+import type { TemplateRow } from '@/lib/template/types';
 import {
   listDrafts,
   deleteDraft,
-  type BlueprintDraft
-} from '@/lib/blueprint/draft-store';
+  type TemplateDraft
+} from '@/lib/template/draft-store';
 import {
   createBlankDraft,
-  createDraftFromBlueprint
-} from '@/lib/blueprint/create-draft';
+  createDraftFromTemplate
+} from '@/lib/template/create-draft';
 import { PortalHeader } from '@/components/portal-header';
 import { toast } from 'sonner';
 
 function countNodes(
-  node: TemplateBlueprintRow['structure']['root'] | undefined
+  node: TemplateRow['structure']['root'] | undefined
 ): number {
   if (!node) return 0;
   let count = 1;
@@ -75,7 +75,7 @@ function DraftCard({
   onResume,
   onDelete
 }: {
-  draft: BlueprintDraft;
+  draft: TemplateDraft;
   sourceName: string | null;
   onResume: () => void;
   onDelete: () => void;
@@ -125,33 +125,33 @@ function DraftCard({
 }
 
 // ---------------------------------------------------------------------------
-// Published blueprint card
+// Published template card
 // ---------------------------------------------------------------------------
 
-function BlueprintCard({
-  blueprint,
+function TemplateCard({
+  template,
   onStartingPoint,
   onUpdate
 }: {
-  blueprint: TemplateBlueprintRow;
+  template: TemplateRow;
   onStartingPoint: () => void;
   onUpdate: () => void;
 }) {
-  const nodeCount = countNodes(blueprint.structure?.root);
+  const nodeCount = countNodes(template.structure?.root);
 
   return (
     <Card className="transition-colors hover:bg-accent/50">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{blueprint.name}</CardTitle>
+          <CardTitle className="text-base">{template.name}</CardTitle>
           <div className="flex gap-1">
-            {blueprint.locked_for_backward_compat && (
+            {template.locked_for_backward_compat && (
               <Badge variant="outline" className="text-xs">
                 <Lock className="mr-1 h-3 w-3" />
                 Frozen
               </Badge>
             )}
-            {blueprint.shared && (
+            {template.shared && (
               <Badge variant="secondary" className="text-xs">
                 <Globe className="mr-1 h-3 w-3" />
                 Shared
@@ -166,14 +166,14 @@ function BlueprintCard({
             <TreePine className="h-3.5 w-3.5" />
             {nodeCount} nodes
           </span>
-          <span>{blueprint.project_count} projects</span>
+          <span>{template.project_count} projects</span>
         </div>
         <div className="mt-3 flex gap-2">
           <Button size="sm" variant="outline" onClick={onStartingPoint}>
             <Copy className="mr-1.5 h-3.5 w-3.5" />
             Use as starting point
           </Button>
-          {!blueprint.locked_for_backward_compat && (
+          {!template.locked_for_backward_compat && (
             <Button size="sm" variant="outline" onClick={onUpdate}>
               <Pencil className="mr-1.5 h-3.5 w-3.5" />
               Update for my projects
@@ -195,12 +195,12 @@ function TemplatesContent() {
   const supabase = createBrowserClient();
   const dialogs = useConfirm();
   const [search, setSearch] = useState('');
-  const [drafts, setDrafts] = useState<BlueprintDraft[]>([]);
+  const [drafts, setDrafts] = useState<TemplateDraft[]>([]);
   const [draftsLoaded, setDraftsLoaded] = useState(false);
 
-  const { data: blueprints, isLoading } = useQuery({
-    queryKey: ['blueprints', user?.id],
-    queryFn: () => fetchBlueprints(supabase),
+  const { data: templates, isLoading } = useQuery({
+    queryKey: ['templates', user?.id],
+    queryFn: () => fetchTemplates(supabase),
     enabled: !!user
   });
 
@@ -221,19 +221,19 @@ function TemplatesContent() {
     return null;
   }
 
-  const blueprintNameById = new Map(
-    blueprints?.map((bp) => [bp.id, bp.name]) ?? []
+  const templateNameById = new Map(
+    templates?.map((bp) => [bp.id, bp.name]) ?? []
   );
 
-  const filtered = blueprints?.filter(
+  const filtered = templates?.filter(
     (bp) =>
       !search ||
       bp.name.toLowerCase().includes(search.toLowerCase()) ||
       bp.slug?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const myBlueprints = filtered?.filter((bp) => bp.creator_id === user.id);
-  const sharedBlueprints = filtered?.filter(
+  const myTemplates = filtered?.filter((bp) => bp.creator_id === user.id);
+  const sharedTemplates = filtered?.filter(
     (bp) => bp.shared && bp.creator_id !== user.id
   );
 
@@ -247,8 +247,8 @@ function TemplatesContent() {
     router.push(`/portal/templates/draft/${draftId}`);
   }
 
-  async function handleStartingPoint(bp: TemplateBlueprintRow) {
-    const draftId = await createDraftFromBlueprint(
+  async function handleStartingPoint(bp: TemplateRow) {
+    const draftId = await createDraftFromTemplate(
       bp,
       'starting_point',
       dialogs,
@@ -257,9 +257,9 @@ function TemplatesContent() {
     if (draftId) router.push(`/portal/templates/draft/${draftId}`);
   }
 
-  async function handleUpdate(bp: TemplateBlueprintRow) {
+  async function handleUpdate(bp: TemplateRow) {
     try {
-      const draftId = await createDraftFromBlueprint(
+      const draftId = await createDraftFromTemplate(
         bp,
         'update',
         dialogs,
@@ -267,7 +267,7 @@ function TemplatesContent() {
       );
       if (draftId) router.push(`/portal/templates/draft/${draftId}`);
     } catch {
-      toast.error('Failed to fetch projects for this blueprint.');
+      toast.error('Failed to fetch projects for this template.');
     }
   }
 
@@ -282,7 +282,7 @@ function TemplatesContent() {
       <PortalHeader user={user} onSignOut={() => void signOut()} />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Template Blueprints</h1>
+        <h1 className="text-2xl font-bold">Templates</h1>
         <Button onClick={() => void handleNewFromScratch()}>
           <Plus className="mr-2 h-4 w-4" />
           New from scratch
@@ -292,7 +292,7 @@ function TemplatesContent() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search blueprints..."
+          placeholder="Search templates..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10"
@@ -308,8 +308,8 @@ function TemplatesContent() {
                 key={draft.draftId}
                 draft={draft}
                 sourceName={
-                  draft.sourceBlueprintId
-                    ? (blueprintNameById.get(draft.sourceBlueprintId) ?? null)
+                  draft.sourceTemplateId
+                    ? (templateNameById.get(draft.sourceTemplateId) ?? null)
                     : null
                 }
                 onResume={() =>
@@ -328,14 +328,14 @@ function TemplatesContent() {
         </div>
       )}
 
-      {myBlueprints && myBlueprints.length > 0 && (
+      {myTemplates && myTemplates.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">My Blueprints</h2>
+          <h2 className="text-lg font-semibold">My Templates</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {myBlueprints.map((bp) => (
-              <BlueprintCard
+            {myTemplates.map((bp) => (
+              <TemplateCard
                 key={bp.id}
-                blueprint={bp}
+                template={bp}
                 onStartingPoint={() => void handleStartingPoint(bp)}
                 onUpdate={() => void handleUpdate(bp)}
               />
@@ -344,14 +344,14 @@ function TemplatesContent() {
         </div>
       )}
 
-      {sharedBlueprints && sharedBlueprints.length > 0 && (
+      {sharedTemplates && sharedTemplates.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Shared Blueprints</h2>
+          <h2 className="text-lg font-semibold">Shared Templates</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sharedBlueprints.map((bp) => (
-              <BlueprintCard
+            {sharedTemplates.map((bp) => (
+              <TemplateCard
                 key={bp.id}
-                blueprint={bp}
+                template={bp}
                 onStartingPoint={() => void handleStartingPoint(bp)}
                 onUpdate={() => void handleUpdate(bp)}
               />
@@ -362,7 +362,7 @@ function TemplatesContent() {
 
       {!isLoading && !filtered?.length && !filteredDrafts.length && (
         <div className="py-12 text-center text-muted-foreground">
-          No blueprints found. Create one to get started.
+          No templates found. Create one to get started.
         </div>
       )}
     </div>

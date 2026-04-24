@@ -27,7 +27,7 @@ import {
 import {
   useAssetDetails,
   useCreateBibleChapter,
-  useCreateBlueprintQuest,
+  useCreateTemplateQuest,
   useCreateFiaPericope,
   useFiaPericopes,
   useQuestAssets,
@@ -40,12 +40,12 @@ import {
   TemplateStrategyContext,
   getTemplateStrategy
 } from './template-strategies';
-import type { BlueprintStructure } from '@/lib/blueprint/types';
+import type { TemplateStructure } from '@/lib/template/types';
 import {
-  getRootNodesFromBlueprint,
-  getChildNodesFromBlueprint,
-  type BlueprintResolverContext
-} from '@/lib/blueprint/node-resolver';
+  getRootNodesFromTemplate,
+  getChildNodesFromTemplate,
+  type TemplateResolverContext
+} from '@/lib/template/node-resolver';
 import {
   getQuestDisabledFlag,
   getQuestVersionLabel,
@@ -63,8 +63,8 @@ interface QuestExplorerMenuProps {
   projectId: string;
   userPermission: any;
   template: string;
-  blueprintStructure?: BlueprintStructure;
-  blueprintLinkId?: string;
+  templateStructure?: TemplateStructure;
+  templateLinkId?: string;
   showActionMenus?: {
     left?: boolean;
     right?: boolean;
@@ -91,9 +91,9 @@ interface PendingFiaPericope {
   existingBookQuestId?: string | null;
 }
 
-interface PendingBlueprintQuest {
+interface PendingTemplateQuest {
   node: DisplayNode;
-  blueprintNodeId: string;
+  templateNodeId: string;
   name: string;
   parentQuestId: string | null;
 }
@@ -102,8 +102,8 @@ export function QuestExplorerMenu({
   projectId,
   userPermission,
   template,
-  blueprintStructure,
-  blueprintLinkId,
+  templateStructure,
+  templateLinkId,
   showActionMenus,
   allowDisabledQuests
 }: QuestExplorerMenuProps) {
@@ -124,7 +124,7 @@ export function QuestExplorerMenu({
   const { data, isLoading } = useQuestTree(projectId);
   const createBibleChapterMutation = useCreateBibleChapter();
   const createFiaPericopeMutation = useCreateFiaPericope();
-  const createBlueprintQuestMutation = useCreateBlueprintQuest();
+  const createTemplateQuestMutation = useCreateTemplateQuest();
   const { data: fiaPericopes } = useFiaPericopes(projectId, template === 'fia');
 
   const [activeRootNode, setActiveRootNode] = useState<DisplayNode | null>(
@@ -140,9 +140,9 @@ export function QuestExplorerMenu({
   const [pendingBibleChapter, setPendingBibleChapter] =
     useState<PendingBibleChapter | null>(null);
   const [showChapterConfirmModal, setShowChapterConfirmModal] = useState(false);
-  const [pendingBlueprintQuest, setPendingBlueprintQuest] =
-    useState<PendingBlueprintQuest | null>(null);
-  const [showBlueprintQuestConfirmModal, setShowBlueprintQuestConfirmModal] =
+  const [pendingTemplateQuest, setPendingTemplateQuest] =
+    useState<PendingTemplateQuest | null>(null);
+  const [showTemplateQuestConfirmModal, setShowTemplateQuestConfirmModal] =
     useState(false);
   const [pendingFiaPericope, setPendingFiaPericope] =
     useState<PendingFiaPericope | null>(null);
@@ -195,17 +195,17 @@ export function QuestExplorerMenu({
 
   const roots = data?.roots || [];
 
-  const blueprintCtx = useMemo<BlueprintResolverContext | null>(() => {
-    if (!blueprintStructure || !blueprintLinkId || !data) return null;
-    return { structure: blueprintStructure, questTree: data, blueprintLinkId };
-  }, [blueprintStructure, blueprintLinkId, data]);
+  const templateCtx = useMemo<TemplateResolverContext | null>(() => {
+    if (!templateStructure || !templateLinkId || !data) return null;
+    return { structure: templateStructure, questTree: data, templateLinkId };
+  }, [templateStructure, templateLinkId, data]);
 
   const rawRootNodes = useMemo(
     () =>
-      blueprintCtx
-        ? getRootNodesFromBlueprint(blueprintCtx)
+      templateCtx
+        ? getRootNodesFromTemplate(templateCtx)
         : getRootNodes(template, roots, strategyContext),
-    [blueprintCtx, template, roots, strategyContext]
+    [templateCtx, template, roots, strategyContext]
   );
   const rootNodes = useMemo(
     () =>
@@ -229,10 +229,10 @@ export function QuestExplorerMenu({
 
   const rawMiddleNodes = useMemo(
     () =>
-      blueprintCtx && contextNode
-        ? getChildNodesFromBlueprint(contextNode.key, blueprintCtx)
+      templateCtx && contextNode
+        ? getChildNodesFromTemplate(contextNode.key, templateCtx)
         : getChildrenNodes(template, contextNode, strategyContext),
-    [blueprintCtx, template, contextNode, strategyContext]
+    [templateCtx, template, contextNode, strategyContext]
   );
   const middleNodes = useMemo(
     () =>
@@ -322,21 +322,21 @@ export function QuestExplorerMenu({
       return;
     }
 
-    // Blueprint-aware path: if we have a blueprint and node has no quest yet, prompt creation
-    if (blueprintCtx && !node.questId && blueprintLinkId) {
-      setPendingBlueprintQuest({
+    // Template-aware path: if we have a template and node has no quest yet, prompt creation
+    if (templateCtx && !node.questId && templateLinkId) {
+      setPendingTemplateQuest({
         node,
-        blueprintNodeId: node.key,
+        templateNodeId: node.key,
         name: node.title,
         parentQuestId: contextNode?.questId ?? null
       });
-      setShowBlueprintQuestConfirmModal(true);
+      setShowTemplateQuestConfirmModal(true);
       return;
     }
 
     // Legacy Bible strategy path
     if (
-      !blueprintCtx &&
+      !templateCtx &&
       templateStrategy.id === 'bible' &&
       node.kind === 'chapter' &&
       !node.questId
@@ -360,7 +360,7 @@ export function QuestExplorerMenu({
 
     // Legacy FIA strategy path
     if (
-      !blueprintCtx &&
+      !templateCtx &&
       templateStrategy.id === 'fia' &&
       node.kind === 'pericope' &&
       !node.questId
@@ -506,8 +506,8 @@ export function QuestExplorerMenu({
             }
           },
           parent_id: result.bookQuestId,
-          blueprint_node_id: null,
-          blueprint_link_id: null,
+          template_node_id: null,
+          template_link_id: null,
           created_at: new Date().toISOString(),
           children: []
         },
@@ -523,8 +523,8 @@ export function QuestExplorerMenu({
               }
             },
             parent_id: result.bookQuestId,
-            blueprint_node_id: null,
-            blueprint_link_id: null,
+            template_node_id: null,
+            template_link_id: null,
             created_at: new Date().toISOString(),
             children: []
           }
@@ -541,42 +541,42 @@ export function QuestExplorerMenu({
     }
   };
 
-  const handleConfirmBlueprintQuest = async () => {
-    if (!pendingBlueprintQuest || !blueprintLinkId) return;
+  const handleConfirmTemplateQuest = async () => {
+    if (!pendingTemplateQuest || !templateLinkId) return;
 
     try {
-      const result = await createBlueprintQuestMutation.mutateAsync({
+      const result = await createTemplateQuestMutation.mutateAsync({
         projectId,
-        blueprintLinkId,
-        blueprintNodeId: pendingBlueprintQuest.blueprintNodeId,
-        name: pendingBlueprintQuest.name,
-        parentQuestId: pendingBlueprintQuest.parentQuestId
+        templateLinkId,
+        templateNodeId: pendingTemplateQuest.templateNodeId,
+        name: pendingTemplateQuest.name,
+        parentQuestId: pendingTemplateQuest.parentQuestId
       });
 
-      if (pendingBlueprintQuest.parentQuestId) {
+      if (pendingTemplateQuest.parentQuestId) {
         setContextNode((prev) =>
-          prev ? { ...prev, questId: prev.questId ?? pendingBlueprintQuest.parentQuestId } : prev
+          prev ? { ...prev, questId: prev.questId ?? pendingTemplateQuest.parentQuestId } : prev
         );
       }
 
       setSelectedMiddleNode({
-        ...pendingBlueprintQuest.node,
+        ...pendingTemplateQuest.node,
         questId: result.questId,
         quest: {
           id: result.questId,
-          name: pendingBlueprintQuest.name,
+          name: pendingTemplateQuest.name,
           description: null,
           metadata: null,
-          parent_id: pendingBlueprintQuest.parentQuestId,
-          blueprint_node_id: pendingBlueprintQuest.blueprintNodeId,
-          blueprint_link_id: blueprintLinkId,
+          parent_id: pendingTemplateQuest.parentQuestId,
+          template_node_id: pendingTemplateQuest.templateNodeId,
+          template_link_id: templateLinkId,
           created_at: new Date().toISOString(),
           children: []
         }
       });
-      toast.success(`Created ${pendingBlueprintQuest.name}`);
-      setShowBlueprintQuestConfirmModal(false);
-      setPendingBlueprintQuest(null);
+      toast.success(`Created ${pendingTemplateQuest.name}`);
+      setShowTemplateQuestConfirmModal(false);
+      setPendingTemplateQuest(null);
     } catch {
       toast.error('Failed to create quest');
     }
@@ -620,8 +620,8 @@ export function QuestExplorerMenu({
           }
         },
         parent_id: result.bookQuestId,
-        blueprint_node_id: null,
-        blueprint_link_id: null,
+        template_node_id: null,
+        template_link_id: null,
         created_at: createdAt,
         children: []
       };
@@ -1140,30 +1140,30 @@ export function QuestExplorerMenu({
       </Dialog>
 
       <Dialog
-        open={showBlueprintQuestConfirmModal}
-        onOpenChange={setShowBlueprintQuestConfirmModal}
+        open={showTemplateQuestConfirmModal}
+        onOpenChange={setShowTemplateQuestConfirmModal}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create Quest</DialogTitle>
             <DialogDescription>
               Do you want to create{' '}
-              <b>{pendingBlueprintQuest?.name}</b>?
+              <b>{pendingTemplateQuest?.name}</b>?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">
             <Button
               variant="outline"
               onClick={() => {
-                setShowBlueprintQuestConfirmModal(false);
-                setPendingBlueprintQuest(null);
+                setShowTemplateQuestConfirmModal(false);
+                setPendingTemplateQuest(null);
               }}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleConfirmBlueprintQuest}
-              disabled={createBlueprintQuestMutation.isPending}
+              onClick={handleConfirmTemplateQuest}
+              disabled={createTemplateQuestMutation.isPending}
             >
               Create
             </Button>

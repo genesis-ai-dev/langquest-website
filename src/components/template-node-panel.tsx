@@ -33,13 +33,13 @@ import {
   Plus,
   X
 } from 'lucide-react';
-import type { BlueprintNode } from '@/lib/blueprint/types';
+import type { TemplateNode } from '@/lib/template/types';
 import {
   collectNonDeletedDescendantNodeIds,
   createRemoveNodeAction,
   createUpdatePropsAction,
-  type BlueprintAction
-} from '@/lib/blueprint/actions';
+  type TemplateAction
+} from '@/lib/template/actions';
 import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
 
@@ -56,7 +56,7 @@ const NODE_TYPE_PRESETS = [
   'category'
 ] as const;
 
-const CUSTOM_NODE_TYPES_STORAGE_KEY = 'blueprint-editor-custom-node-types';
+const CUSTOM_NODE_TYPES_STORAGE_KEY = 'template-editor-custom-node-types';
 
 function loadCustomNodeTypes(): string[] {
   if (typeof window === 'undefined') return [];
@@ -83,26 +83,26 @@ function saveCustomNodeTypes(types: string[]) {
 
 /** Normalize stored linkable_type for UI (handles null / odd JSON). */
 function effectiveLinkableType(
-  node: BlueprintNode
+  node: TemplateNode
 ): 'quest' | 'asset' | 'both' | undefined {
   const t = node.linkable_type;
   if (t === 'quest' || t === 'asset' || t === 'both') return t;
   return undefined;
 }
 
-interface BlueprintNodePanelProps {
-  node: BlueprintNode;
+interface TemplateNodePanelProps {
+  node: TemplateNode;
   canEdit: boolean;
-  onBatchActions: (actions: BlueprintAction[]) => void;
+  onBatchActions: (actions: TemplateAction[]) => void;
   onClose: () => void;
 }
 
-export function BlueprintNodePanel({
+export function TemplateNodePanel({
   node,
   canEdit,
   onBatchActions,
   onClose
-}: BlueprintNodePanelProps) {
+}: TemplateNodePanelProps) {
   const dialogs = useConfirm();
   const [customNodeTypes, setCustomNodeTypes] = useState<string[]>([]);
 
@@ -123,7 +123,7 @@ export function BlueprintNodePanel({
     : '__none__';
 
   const update = useCallback(
-    (props: Partial<BlueprintNode>) => {
+    (props: Partial<TemplateNode>) => {
       onBatchActions([createUpdatePropsAction(node.id, props)]);
     },
     [node.id, onBatchActions]
@@ -149,20 +149,16 @@ export function BlueprintNodePanel({
         is_version_anchor: undefined
       };
 
-      // Sections (quest) can keep nested rows — never strip the subtree when
-      // switching *to* sections.
       if (next === 'quest') {
         onBatchActions([createUpdatePropsAction(node.id, propsForQuest)]);
         return;
       }
 
-      // Recordings (asset) are single-row leaves in this editor: nested rows
-      // cannot stay. Soft-delete descendants, then set type (only when needed).
       if (descendantIds.length > 0) {
         const n = descendantIds.length;
         const ok = await dialogs.confirm({
           title: 'Switch to Recordings?',
-          description: `Recordings are single rows — they can’t keep nested items. This row has ${n} nested item${n === 1 ? '' : 's'} that will be dropped from the tree. They’re soft-deleted so existing links stay valid. Use Undo if you change your mind.`,
+          description: `Recordings are single rows — they can't keep nested items. This row has ${n} nested item${n === 1 ? '' : 's'} that will be dropped from the tree. They're soft-deleted so existing links stay valid. Use Undo if you change your mind.`,
           confirmLabel: 'Switch to Recordings',
           variant: 'destructive'
         });

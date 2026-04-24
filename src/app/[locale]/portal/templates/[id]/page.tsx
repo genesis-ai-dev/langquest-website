@@ -28,28 +28,28 @@ import { useAuth } from '@/components/auth-provider';
 import { useConfirm } from '@/components/ui/confirm';
 import { createBrowserClient } from '@/lib/supabase/client';
 import {
-  fetchBlueprintById,
-  fetchProjectsForBlueprint,
-  saveBlueprintMetadata
-} from '@/lib/blueprint/rpc';
-import type { DraftMode } from '@/lib/blueprint/types';
-import { createDraftFromBlueprint } from '@/lib/blueprint/create-draft';
+  fetchTemplateById,
+  fetchProjectsForTemplate,
+  saveTemplateMetadata
+} from '@/lib/template/rpc';
+import type { DraftMode } from '@/lib/template/types';
+import { createDraftFromTemplate } from '@/lib/template/create-draft';
 import { toast } from 'sonner';
-import { BlueprintEditorTree } from '@/components/blueprint-editor-tree';
+import { TemplateEditorTree } from '@/components/template-editor-tree';
 import { cn } from '@/lib/utils';
 
 function MetadataSheet({
-  blueprint,
+  template,
   supabase,
   onSave
 }: {
-  blueprint: { id: string; name: string; icon: string | null; shared: boolean };
+  template: { id: string; name: string; icon: string | null; shared: boolean };
   supabase: ReturnType<typeof createBrowserClient>;
   onSave: () => void;
 }) {
-  const [name, setName] = useState(blueprint.name);
-  const [icon, setIcon] = useState(blueprint.icon ?? '');
-  const [shared, setShared] = useState(blueprint.shared);
+  const [name, setName] = useState(template.name);
+  const [icon, setIcon] = useState(template.icon ?? '');
+  const [shared, setShared] = useState(template.shared);
   const [saving, setSaving] = useState(false);
 
   return (
@@ -61,7 +61,7 @@ function MetadataSheet({
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Blueprint Settings</SheetTitle>
+          <SheetTitle>Template Settings</SheetTitle>
         </SheetHeader>
         <div className="mt-6 space-y-4">
           <div className="space-y-2">
@@ -82,7 +82,7 @@ function MetadataSheet({
             onClick={async () => {
               setSaving(true);
               try {
-                await saveBlueprintMetadata(supabase, blueprint.id, {
+                await saveTemplateMetadata(supabase, template.id, {
                   name,
                   icon: icon || undefined,
                   shared
@@ -112,18 +112,18 @@ function EditorContent() {
   const dialogs = useConfirm();
 
   const {
-    data: blueprint,
+    data: tpl,
     isLoading,
     refetch
   } = useQuery({
-    queryKey: ['blueprint', id],
-    queryFn: () => fetchBlueprintById(supabase, id),
+    queryKey: ['template', id],
+    queryFn: () => fetchTemplateById(supabase, id),
     enabled: !!id
   });
 
   const { data: linkedProjects } = useQuery({
-    queryKey: ['blueprint-projects', id],
-    queryFn: () => fetchProjectsForBlueprint(supabase, id),
+    queryKey: ['template-projects', id],
+    queryFn: () => fetchProjectsForTemplate(supabase, id),
     enabled: !!id && !!user
   });
 
@@ -135,24 +135,24 @@ function EditorContent() {
     );
   }
 
-  if (!blueprint) {
+  if (!tpl) {
     return (
       <div className="py-12 text-center text-muted-foreground">
-        Blueprint not found.
+        Template not found.
       </div>
     );
   }
 
-  const isFrozen = blueprint.locked_for_backward_compat;
-  const isCreator = blueprint.creator_id === user?.id;
+  const isFrozen = tpl.locked_for_backward_compat;
+  const isCreator = tpl.creator_id === user?.id;
   const hasLinkedProjects =
     !isFrozen && linkedProjects && linkedProjects.length > 0;
 
   async function handleCreateDraft(mode: DraftMode) {
-    if (!blueprint) return;
+    if (!tpl) return;
     try {
-      const draftId = await createDraftFromBlueprint(
-        blueprint,
+      const draftId = await createDraftFromTemplate(
+        tpl,
         mode,
         dialogs,
         supabase
@@ -176,10 +176,10 @@ function EditorContent() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">{blueprint.name}</h1>
+            <h1 className="text-xl font-bold">{tpl.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {blueprint.project_count}{' '}
-              {blueprint.project_count === 1 ? 'project' : 'projects'}
+              {tpl.project_count}{' '}
+              {tpl.project_count === 1 ? 'project' : 'projects'}
             </p>
           </div>
           <Badge
@@ -212,7 +212,7 @@ function EditorContent() {
           )}
           {isCreator && (
             <MetadataSheet
-              blueprint={blueprint}
+              template={tpl}
               supabase={supabase}
               onSave={() => refetch()}
             />
@@ -231,11 +231,11 @@ function EditorContent() {
         >
           <div>
             <p className="font-medium text-amber-800 dark:text-amber-200">
-              This blueprint is frozen for backward compatibility
+              This template is frozen for backward compatibility
             </p>
             <p className="text-sm text-amber-600 dark:text-amber-400">
               It cannot be updated in place. Use &ldquo;Use as starting
-              point&rdquo; to create a new draft from this blueprint.
+              point&rdquo; to create a new draft from this template.
             </p>
           </div>
         </div>
@@ -243,8 +243,8 @@ function EditorContent() {
 
       {/* Tree viewer (read-only) */}
       <div className="min-w-0 rounded-lg border p-4">
-        <BlueprintEditorTree
-          root={blueprint.structure.root}
+        <TemplateEditorTree
+          root={tpl.structure.root}
           canEdit={false}
           selectedNodeId={null}
           onNodeSelect={() => {}}
@@ -255,7 +255,7 @@ function EditorContent() {
   );
 }
 
-export default function BlueprintViewPage() {
+export default function TemplateViewPage() {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <Suspense

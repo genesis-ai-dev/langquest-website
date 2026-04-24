@@ -1,9 +1,9 @@
 import { produce } from 'immer';
 import { nanoid } from 'nanoid';
-import type { BlueprintNode, BlueprintStructure } from './types';
-import { BLUEPRINT_NODE_ID_LENGTH } from './types';
+import type { TemplateNode, TemplateStructure } from './types';
+import { TEMPLATE_NODE_ID_LENGTH } from './types';
 
-export type BlueprintActionType =
+export type TemplateActionType =
   | 'add_node'
   | 'remove_node'
   | 'rename_node'
@@ -11,8 +11,8 @@ export type BlueprintActionType =
   | 'update_node_props'
   | 'set_structure';
 
-export interface BlueprintAction {
-  type: BlueprintActionType;
+export interface TemplateAction {
+  type: TemplateActionType;
   payload: Record<string, unknown>;
   timestamp: number;
   /** Actions sharing a groupId are undone/redone as a single step. */
@@ -20,18 +20,18 @@ export interface BlueprintAction {
 }
 
 export function generateNodeId(): string {
-  return nanoid(BLUEPRINT_NODE_ID_LENGTH);
+  return nanoid(TEMPLATE_NODE_ID_LENGTH);
 }
 
 function findNodeAndParent(
-  root: BlueprintNode,
+  root: TemplateNode,
   nodeId: string
-): { node: BlueprintNode; parent: BlueprintNode | null; index: number } | null {
+): { node: TemplateNode; parent: TemplateNode | null; index: number } | null {
   if (root.id === nodeId) return { node: root, parent: null, index: -1 };
 
   function search(
-    parent: BlueprintNode
-  ): { node: BlueprintNode; parent: BlueprintNode; index: number } | null {
+    parent: TemplateNode
+  ): { node: TemplateNode; parent: TemplateNode; index: number } | null {
     if (!parent.children) return null;
     for (let i = 0; i < parent.children.length; i++) {
       if (parent.children[i].id === nodeId) {
@@ -47,30 +47,30 @@ function findNodeAndParent(
 }
 
 function findNode(
-  root: BlueprintNode,
+  root: TemplateNode,
   nodeId: string
-): BlueprintNode | null {
+): TemplateNode | null {
   const result = findNodeAndParent(root, nodeId);
   return result?.node ?? null;
 }
 
 export function findNodeById(
-  root: BlueprintNode,
+  root: TemplateNode,
   nodeId: string
-): BlueprintNode | null {
+): TemplateNode | null {
   return findNode(root, nodeId);
 }
 
 export function applyAction(
-  structure: BlueprintStructure,
-  action: BlueprintAction
-): BlueprintStructure {
+  structure: TemplateStructure,
+  action: TemplateAction
+): TemplateStructure {
   return produce(structure, (draft) => {
     switch (action.type) {
       case 'add_node': {
         const { parentId, node, insertIndex } = action.payload as {
           parentId: string;
-          node: BlueprintNode;
+          node: TemplateNode;
           insertIndex?: number;
         };
         const parent = findNode(draft.root, parentId);
@@ -122,7 +122,7 @@ export function applyAction(
       case 'update_node_props': {
         const { nodeId, props } = action.payload as {
           nodeId: string;
-          props: Partial<BlueprintNode>;
+          props: Partial<TemplateNode>;
         };
         const node = findNode(draft.root, nodeId);
         if (node) {
@@ -132,7 +132,7 @@ export function applyAction(
       }
       case 'set_structure': {
         const { structure: newStructure } = action.payload as {
-          structure: BlueprintStructure;
+          structure: TemplateStructure;
         };
         draft.root = newStructure.root;
         draft.format_version = newStructure.format_version;
@@ -143,9 +143,9 @@ export function applyAction(
 }
 
 export function applyActions(
-  baseStructure: BlueprintStructure,
-  actions: BlueprintAction[]
-): BlueprintStructure {
+  baseStructure: TemplateStructure,
+  actions: TemplateAction[]
+): TemplateStructure {
   return actions.reduce(
     (structure, action) => applyAction(structure, action),
     baseStructure
@@ -158,10 +158,10 @@ export function createAddNodeAction(
   options?: {
     nodeType?: string;
     insertIndex?: number;
-    linkableType?: BlueprintNode['linkable_type'];
+    linkableType?: TemplateNode['linkable_type'];
   }
-): BlueprintAction {
-  const node: BlueprintNode = {
+): TemplateAction {
+  const node: TemplateNode = {
     id: generateNodeId(),
     name,
     node_type: options?.nodeType,
@@ -181,7 +181,7 @@ export function createAddNodeAction(
   };
 }
 
-export function createRemoveNodeAction(nodeId: string): BlueprintAction {
+export function createRemoveNodeAction(nodeId: string): TemplateAction {
   return {
     type: 'remove_node',
     payload: { nodeId },
@@ -192,7 +192,7 @@ export function createRemoveNodeAction(nodeId: string): BlueprintAction {
 export function createRenameNodeAction(
   nodeId: string,
   name: string
-): BlueprintAction {
+): TemplateAction {
   return {
     type: 'rename_node',
     payload: { nodeId, name },
@@ -204,7 +204,7 @@ export function createMoveNodeAction(
   nodeId: string,
   newParentId: string,
   newIndex: number
-): BlueprintAction {
+): TemplateAction {
   return {
     type: 'move_node',
     payload: { nodeId, newParentId, newIndex },
@@ -214,8 +214,8 @@ export function createMoveNodeAction(
 
 export function createUpdatePropsAction(
   nodeId: string,
-  props: Partial<BlueprintNode>
-): BlueprintAction {
+  props: Partial<TemplateNode>
+): TemplateAction {
   return {
     type: 'update_node_props',
     payload: { nodeId, props },
@@ -223,7 +223,7 @@ export function createUpdatePropsAction(
   };
 }
 
-export function createHideNodeAction(nodeId: string): BlueprintAction {
+export function createHideNodeAction(nodeId: string): TemplateAction {
   return {
     type: 'update_node_props',
     payload: { nodeId, props: { deleted: true } },
@@ -231,7 +231,7 @@ export function createHideNodeAction(nodeId: string): BlueprintAction {
   };
 }
 
-export function createUnhideNodeAction(nodeId: string): BlueprintAction {
+export function createUnhideNodeAction(nodeId: string): TemplateAction {
   return {
     type: 'update_node_props',
     payload: { nodeId, props: { deleted: false } },
@@ -241,10 +241,10 @@ export function createUnhideNodeAction(nodeId: string): BlueprintAction {
 
 /** All descendant node ids under `node` (not including `node`), depth-first, non-deleted only. */
 export function collectNonDeletedDescendantNodeIds(
-  node: BlueprintNode
+  node: TemplateNode
 ): string[] {
   const ids: string[] = [];
-  const walk = (children: BlueprintNode[] | undefined) => {
+  const walk = (children: TemplateNode[] | undefined) => {
     if (!children) return;
     for (const child of children) {
       if (child.deleted) continue;
