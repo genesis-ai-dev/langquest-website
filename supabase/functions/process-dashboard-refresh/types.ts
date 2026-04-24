@@ -11,6 +11,8 @@ export interface DashboardSubquestItem {
   name: string | null;
   creator_id: string | null;
   languoids: string[];
+  ItemsExpected: number;
+  ItemsCompleted: number;
   TotalAssets: number;
   TotalImages: number;
   TotalText: number;
@@ -36,6 +38,7 @@ export interface DashboardJsonPayload {
 export interface DashboardMetrics {
   total_quests: number;
   total_subquests: number;
+  expected_quests: number;
   total_assets: number;
   total_quests_versions: number;
   completed_quests: number;

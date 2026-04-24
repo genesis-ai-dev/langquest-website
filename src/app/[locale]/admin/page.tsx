@@ -57,7 +57,7 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <div className="container p-8 max-w-screen-xl mx-auto flex justify-center">
+        <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center">
           <Spinner />
         </div>
       }
@@ -492,7 +492,7 @@ function AdminContent() {
   // Show loading state while authentication is being checked
   if (isLoading) {
     return (
-      <div className="container p-8 max-w-screen-xl mx-auto flex justify-center items-center min-h-screen">
+      <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
     );
@@ -504,7 +504,7 @@ function AdminContent() {
   }
 
   return (
-    <div className="container p-8 max-w-screen-xl mx-auto">
+    <div className="container p-8 max-w-(--breakpoint-xl) mx-auto">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
           {/* Header with contextual navigation and user info */}

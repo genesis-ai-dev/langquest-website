@@ -286,7 +286,7 @@ export function AssetView({ asset }: AssetViewProps) {
         (asset.images && asset.images.length > 0)) && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 pb-2 border-b border-purple-200 dark:border-purple-800">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-linear-to-br from-purple-500 to-purple-600 text-white">
               <BookOpenIcon className="size-4" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">
@@ -379,7 +379,7 @@ export function AssetView({ asset }: AssetViewProps) {
       {asset.translations && asset.translations.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 pb-2 border-b border-orange-200 dark:border-orange-800">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-linear-to-br from-orange-500 to-orange-600 text-white">
               <VolumeIcon className="size-4" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">
@@ -429,7 +429,7 @@ export function AssetView({ asset }: AssetViewProps) {
                         </div>
                       ))}
                     {/* Voting - Right side (flex-shrink-0 to maintain size) */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <>
                         <div className="flex items-center gap-1 px-2 py-0.5 bg-green-50 dark:bg-green-950 rounded-full">
                           <ThumbsUpIcon className="size-3 text-green-600" />

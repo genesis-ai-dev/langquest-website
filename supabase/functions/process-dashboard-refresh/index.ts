@@ -1,14 +1,15 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import pg from 'npm:pg@8.11.3';
-import { buildBibleDashboard } from './bible.ts';
-import { buildFiaDashboard } from './fia.ts';
+import {
+  processQueue,
+  resolveLimit,
+  type QueueRow
+} from './core.ts';
 import type {
   JsonRecord,
   ProjectDashboardContext,
-  ProjectDashboardPayload,
-  ProjectTemplate
+  ProjectDashboardPayload
 } from './types.ts';
-import { buildUnstructuredDashboard } from './unstructured.ts';
 
 const dbUrl =
   Deno.env.get('SUPABASE_DB_URL') ||
@@ -20,34 +21,10 @@ const { Pool } = pg as unknown as {
 };
 const pool = new Pool({ connectionString: dbUrl, max: 1 });
 
-type QueueRow = {
-  id: string;
-  project_id: string;
-  status: 'pending' | 'processing' | 'failed';
-  retry_count: number;
-};
-
 function asString(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function asBoolean(value: unknown, fallback = false): boolean {
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    const normalized = value.toLowerCase();
-    if (normalized === 'true') return true;
-    if (normalized === 'false') return false;
-  }
-  return fallback;
-}
-
-function resolveTemplate(value: unknown): ProjectTemplate {
-  if (value === 'bible' || value === 'fia' || value === 'unstructured') {
-    return value;
-  }
-  return 'unstructured';
 }
 
 async function withClient<T>(fn: (client: any) => Promise<T>): Promise<T> {
@@ -184,32 +161,6 @@ async function fetchProjectContext(
   };
 }
 
-function buildPayload(context: ProjectDashboardContext): ProjectDashboardPayload {
-  const projectId = asString(context.project.id);
-  if (!projectId) {
-    throw new Error('project id is missing');
-  }
-
-  const template = resolveTemplate(context.project.template);
-  const projectStatus = asBoolean(context.project.active, false)
-    ? 'active'
-    : 'inactive';
-
-  const metrics =
-    template === 'bible'
-      ? buildBibleDashboard(context)
-      : template === 'fia'
-        ? buildFiaDashboard(context)
-        : buildUnstructuredDashboard(context);
-
-  return {
-    project_id: projectId,
-    project_status: projectStatus,
-    template,
-    ...metrics
-  };
-}
-
 async function upsertDashboard(
   client: any,
   payload: ProjectDashboardPayload
@@ -220,6 +171,7 @@ async function upsertDashboard(
       project_status,
       total_quests,
       total_subquests,
+      expected_quests,
       total_assets,
       total_quests_versions,
       completed_quests,
@@ -238,13 +190,14 @@ async function upsertDashboard(
       dashboard_json
     ) values (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-      $11, $12, $13, $14, $15, $16, $17, $18, $19, $20::jsonb
+      $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb
     )
     on conflict (project_id)
     do update set
       project_status = excluded.project_status,
       total_quests = excluded.total_quests,
       total_subquests = excluded.total_subquests,
+      expected_quests = excluded.expected_quests,
       total_assets = excluded.total_assets,
       total_quests_versions = excluded.total_quests_versions,
       completed_quests = excluded.completed_quests,
@@ -269,6 +222,7 @@ async function upsertDashboard(
     payload.project_status,
     payload.total_quests,
     payload.total_subquests,
+    payload.expected_quests,
     payload.total_assets,
     payload.total_quests_versions,
     payload.completed_quests,
@@ -314,88 +268,6 @@ async function markQueueFailure(
   await client.query(sql, [queueId, nextRetryCount, errorMessage]);
 }
 
-async function processQueue(limit: number): Promise<{
-  claimed: number;
-  succeeded: number;
-  failed: number;
-  details: Array<{
-    queue_id: string;
-    project_id: string;
-    template?: ProjectTemplate;
-    status: 'success' | 'failed' | 'skipped';
-    message?: string;
-  }>;
-}> {
-  return withClient(async (client) => {
-    const queueRows = await claimQueueRows(client, limit);
-    const details: Array<{
-      queue_id: string;
-      project_id: string;
-      template?: ProjectTemplate;
-      status: 'success' | 'failed' | 'skipped';
-      message?: string;
-    }> = [];
-
-    let succeeded = 0;
-    let failed = 0;
-
-    for (const queueRow of queueRows) {
-      try {
-        const context = await fetchProjectContext(client, queueRow.project_id);
-
-        if (!context) {
-          await markQueueSuccess(client, queueRow.id);
-          details.push({
-            queue_id: queueRow.id,
-            project_id: queueRow.project_id,
-            status: 'skipped',
-            message: 'project not found; queue row removed'
-          });
-          continue;
-        }
-
-        const payload = buildPayload(context);
-        await upsertDashboard(client, payload);
-        await markQueueSuccess(client, queueRow.id);
-
-        succeeded += 1;
-        details.push({
-          queue_id: queueRow.id,
-          project_id: queueRow.project_id,
-          template: payload.template,
-          status: 'success'
-        });
-      } catch (error) {
-        failed += 1;
-        const message = error instanceof Error ? error.message : String(error);
-        await markQueueFailure(client, queueRow.id, queueRow.retry_count, message);
-        details.push({
-          queue_id: queueRow.id,
-          project_id: queueRow.project_id,
-          status: 'failed',
-          message
-        });
-      }
-    }
-
-    return {
-      claimed: queueRows.length,
-      succeeded,
-      failed,
-      details
-    };
-  });
-}
-
-function resolveLimit(value: string | null): number {
-  if (!value) return 20;
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 20;
-  const intValue = Math.floor(parsed);
-  if (intValue <= 0) return 20;
-  return Math.min(intValue, 100);
-}
-
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -418,7 +290,23 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const limit = resolveLimit(url.searchParams.get('limit'));
-    const result = await processQueue(limit);
+    const result = await withClient((client) =>
+      processQueue({
+        limit,
+        claimQueueRows: (batchLimit: number) => claimQueueRows(client, batchLimit),
+        fetchProjectContext: (projectId: string) =>
+          fetchProjectContext(client, projectId),
+        upsertDashboard: (payload: ProjectDashboardPayload) =>
+          upsertDashboard(client, payload),
+        markQueueSuccess: (queueId: string) => markQueueSuccess(client, queueId),
+        markQueueFailure: (
+          queueId: string,
+          currentRetryCount: number,
+          errorMessage: string
+        ) =>
+          markQueueFailure(client, queueId, currentRetryCount, errorMessage)
+      })
+    );
 
     return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,

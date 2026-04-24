@@ -8,7 +8,7 @@ const PeerToPeerVisualization = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-64 flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 rounded-lg">
+      <div className="h-64 flex items-center justify-center bg-linear-to-b from-slate-900 to-slate-800 rounded-lg">
         <Spinner />
       </div>
     )

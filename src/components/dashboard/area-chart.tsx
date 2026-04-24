@@ -4,7 +4,8 @@
 'use client';
 
 import React from 'react';
-import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react';
+import { RiArrowLeftSLine, RiArrowRightSLine } from 'react-icons/ri';
+import type { IconType } from 'react-icons';
 import {
   Area,
   CartesianGrid,
@@ -87,7 +88,7 @@ const LegendItem = ({
 };
 
 interface ScrollButtonProps {
-  icon: React.ElementType;
+  icon: IconType;
   onClick?: () => void;
   disabled?: boolean;
 }
@@ -365,6 +366,7 @@ const ChartLegend = (
 //#region Tooltip
 
 type TooltipProps = Pick<ChartTooltipProps, 'active' | 'payload' | 'label'>;
+type TooltipLabel = string | number | undefined;
 
 type PayloadItem = {
   category: string;
@@ -378,7 +380,7 @@ type PayloadItem = {
 interface ChartTooltipProps {
   active: boolean | undefined;
   payload: PayloadItem[];
-  label: string;
+  label: TooltipLabel;
   valueFormatter: (value: number) => string;
 }
 
@@ -554,7 +556,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
     const areaId = React.useId();
 
     const prevActiveRef = React.useRef<boolean | undefined>(undefined);
-    const prevLabelRef = React.useRef<string | undefined>(undefined);
+    const prevLabelRef = React.useRef<TooltipLabel>(undefined);
 
     const getFillContent = ({
       fillType,
@@ -813,7 +815,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 }
               />
             ) : null}
-            {categories.map((category) => {
+            {categories.map((category, index) => {
               const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, '')}`;
               return (
                 <React.Fragment key={category}>
@@ -843,6 +845,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                     </linearGradient>
                   </defs>
                   <Area
+                    key={`${category}-${index}-area`}
                     className={cx(
                       getColorClassName(
                         categoryColors.get(
@@ -937,7 +940,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                       }
                       return <React.Fragment key={index}></React.Fragment>;
                     }}
-                    key={category}
+                    // key={`${index}`}
                     name={category}
                     type="linear"
                     dataKey={category}
@@ -959,10 +962,10 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                   <Line
                     className={cx('cursor-pointer')}
                     strokeOpacity={0}
-                    key={category}
+                    key={`${category}-hidden-line`}
                     name={category}
                     type="linear"
-                    dataKey={category}
+                    dataKey={`__hidden_${category}`}
                     stroke="transparent"
                     fill="transparent"
                     legendType="none"
@@ -971,8 +974,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                     connectNulls={connectNulls}
                     onClick={(props: any, event) => {
                       event.stopPropagation();
-                      const { name } = props;
-                      onCategoryClick(name);
+                      onCategoryClick(category);
                     }}
                   />
                 ))

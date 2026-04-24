@@ -10,7 +10,7 @@ export default function AclReorderPage() {
   return (
     <Suspense
       fallback={
-        <div className="container p-8 max-w-screen-xl mx-auto flex justify-center">
+        <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center">
           <Spinner />
         </div>
       }
@@ -31,7 +31,7 @@ function AclReorderPageContent() {
 
   if (isLoading) {
     return (
-      <div className="container p-8 max-w-screen-xl mx-auto flex justify-center items-center min-h-screen">
+      <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
     );
@@ -44,7 +44,7 @@ function AclReorderPageContent() {
   return (
     <div className="min-h-screen bg-background">
       <PortalHeader user={user} onSignOut={signOut} />
-      <div className="container p-4 sm:p-6 max-w-screen-xl mx-auto">
+      <div className="container p-4 sm:p-6 max-w-(--breakpoint-xl) mx-auto">
         <h1 className="text-xl sm:text-2xl font-bold mb-2">
           ACL Order Reorder
         </h1>

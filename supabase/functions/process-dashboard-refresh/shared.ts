@@ -299,11 +299,14 @@ export function buildGenericDashboardMetrics(
             asString(asset.languoid_id) ?? asString(asset.source_language_id)
         )
       );
+      const directItemsCount = directAssets.length;
 
       return {
         name: asString(quest.name),
         creator_id: asString(quest.creator_id),
         languoids: directLanguoids,
+        ItemsExpected: directItemsCount,
+        ItemsCompleted: directItemsCount,
         TotalAssets: directAssets.length,
         TotalImages: countWhere(directAssets, (asset) => hasImage(asset)),
         TotalText: countWhere(
@@ -358,6 +361,7 @@ export function buildGenericDashboardMetrics(
   return {
     total_quests: rootQuests.length,
     total_subquests: subquests.length,
+    expected_quests: 0,
     total_assets: activeAssets.length,
     total_quests_versions: quests.length,
     completed_quests: completedQuests,

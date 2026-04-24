@@ -626,7 +626,7 @@ export function BulkAssetModal({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContentWide
-        className="!w-[80vw] !max-w-[80vw] max-h-[90vh] overflow-auto"
+        className="w-[80vw]! max-w-[80vw]! max-h-[90vh] overflow-auto"
         style={{
           width: '80vw !important',
           maxWidth: '80vw !important'
@@ -933,7 +933,7 @@ export function BulkAssetModal({
                                         type="button"
                                         variant="secondary"
                                         size="sm"
-                                        className="text-xs px-2 py-1 h-6 min-w-6 flex-shrink-0"
+                                        className="text-xs px-2 py-1 h-6 min-w-6 shrink-0"
                                         onClick={() => {
                                           // Check if it's a local file first
                                           const localFile =
@@ -959,7 +959,7 @@ export function BulkAssetModal({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="flex-shrink-0 h-6 w-6 p-0"
+                                className="shrink-0 h-6 w-6 p-0"
                                 onClick={() => {
                                   const input = document.createElement('input');
                                   input.type = 'file';

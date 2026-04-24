@@ -9,7 +9,7 @@ export default function AuthTestPage() {
   const { user, isLoading, signOut } = useAuth();
 
   return (
-    <div className="container p-8 max-w-screen-xl mx-auto">
+    <div className="container p-8 max-w-(--breakpoint-xl) mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Authentication Test Page</CardTitle>
