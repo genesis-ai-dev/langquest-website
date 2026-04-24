@@ -11,10 +11,7 @@ export const blueprintNodeSchema: z.ZodType<BlueprintNode> = z.lazy(() =>
     short_label: z.string().optional(),
     label_template: z.string().optional(),
     node_type: z.string().optional(),
-    linkable_type: z
-      .enum(['quest', 'asset', 'both'])
-      .nullable()
-      .optional(),
+    linkable_type: z.enum(['quest', 'asset', 'both']).nullable().optional(),
     is_download_unit: z.boolean().optional(),
     is_version_anchor: z.boolean().optional(),
     allows_spanning: z.boolean().optional(),
