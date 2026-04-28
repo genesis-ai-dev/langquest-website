@@ -5,15 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { PortalHeader } from '@/components/portal-header';
 import { Spinner } from '@/components/spinner';
-import { DashboardQuestCard } from '@/components/dashboard/dashboard-quest-card';
-import { DashboardSubquestCard } from '@/components/dashboard/dashhboard-subquest-card';
+import QuestsBoard, {
+  type DashboardMainQuest
+} from '@/components/dashboard/quests-board';
 import { Button } from '@/components/ui/button';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from '@/components/ui/accordion';
 import {
   Card,
   CardContent,
@@ -32,30 +27,6 @@ import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 
 type Template = 'bible' | 'fia' | 'unstructured';
-
-type DashboardSubquest = {
-  name: string | null;
-  creator_id: string[];
-  languoids: string[];
-  ItemsExpected: number;
-  ItemsCompleted: number;
-  TotalAssets: number;
-  TotalImages: number;
-  TotalText: number;
-  TotalAudio: number;
-};
-
-type DashboardMainQuest = {
-  name: string | null;
-  QuestCompleted: boolean;
-  TotalSubquestsCreated: number;
-  TotalSubquestsExpected: number;
-  TotalSubquestsCompleted: number;
-  TotalAssets: number;
-  languoids: string[];
-  Creators: string[];
-  subquests: DashboardSubquest[];
-};
 
 type DashboardProjectResponse = {
   project_id: string;
@@ -236,11 +207,6 @@ export default function ProjectDashboardPage() {
     ];
   }, [projectData]);
 
-  const mainQuests = useMemo(() => {
-    if (!projectData) return [];
-    return Object.entries(projectData.dashboard_json.quests || {});
-  }, [projectData]);
-
   if (isLoading) {
     return (
       <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center items-center min-h-screen">
@@ -340,62 +306,10 @@ export default function ProjectDashboardPage() {
         </section>
 
         <section>
-          <Card className="border-primary/20 shadow-sm">
-            <CardHeader>
-              <CardTitle className="uppercase tracking-wide">
-                Quest Structure
-              </CardTitle>
-              <CardDescription>
-                Main quests and subquests with progress and asset details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {mainQuests.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No quests available for this project yet.
-                </p>
-              ) : (
-                <Accordion type="multiple" className="w-full">
-                  {mainQuests.map(([questId, quest]) => {
-                    return (
-                      <AccordionItem key={questId} value={questId}>
-                        <AccordionTrigger>
-                          <DashboardQuestCard
-                            quest={quest}
-                            subquestLabel={
-                              metricTitlesByTemplate[projectData.template]
-                                .subquests
-                            }
-                          />
-                        </AccordionTrigger>
-                        <AccordionContent className="px-4 pb-4 pt-0">
-                          <div className="space-y-2">
-                            {quest.subquests.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">
-                                No subquests for this quest.
-                              </p>
-                            ) : (
-                              quest.subquests.map((subquest, index) => (
-                                <div
-                                  key={`${questId}-${subquest.name ?? 'subquest'}-${index}`}
-                                  className="border-b first:border-t last:border-b-0 ml-12 mr-8 px-2"
-                                >
-                                  <DashboardSubquestCard
-                                    key={`${questId}-${subquest.name ?? 'subquest'}-${index}`}
-                                    subquest={subquest}
-                                  />
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    );
-                  })}
-                </Accordion>
-              )}
-            </CardContent>
-          </Card>
+          <QuestsBoard
+            quests={projectData.dashboard_json.quests || {}}
+            subquestLabel={metricTitlesByTemplate[projectData.template].subquests}
+          />
         </section>
       </main>
     </>
