@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { PortalHeader } from '@/components/portal-header';
-import AreaChartWithTabs from '@/components/dashboard/area-chart-with-tabs';
+import OverviewChartContainer from '@/components/dashboard/overview-chart-container';
 import { ProjectList } from '@/components/dashboard/project-list';
+import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { Spinner } from '@/components/spinner';
 import {
   Card,
@@ -13,7 +14,6 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Activity,
   FolderKanban,
@@ -36,45 +36,6 @@ type DashboardOverview = {
   total_text_assets: number;
   total_image_assets: number;
   total_audio_assets: number;
-};
-
-const recentActivityExample = [
-  {
-    id: 'act-1',
-    title: 'Quest "Genesis 01" marked as completed',
-    description: 'Project: Bible Core',
-    status: 'done',
-    when: '1 hour ago'
-  },
-  {
-    id: 'act-2',
-    title: 'New audio asset uploaded',
-    description: 'Project: Audio Drafts',
-    status: 'in-progress',
-    when: '3 hours ago'
-  },
-  {
-    id: 'act-3',
-    title: 'New member added to project',
-    description: 'Project: Translation Team A',
-    status: 'done',
-    when: 'yesterday'
-  },
-  {
-    id: 'act-4',
-    title: 'Target language updated',
-    description: 'Project: Community Launch',
-    status: 'review',
-    when: '2 days ago'
-  }
-];
-
-const activityBadgeStyles: Record<string, string> = {
-  done: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  'in-progress':
-    'border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-300',
-  review:
-    'border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300'
 };
 
 export default function DashboardPage() {
@@ -290,19 +251,10 @@ export default function DashboardPage() {
         </section>
 
         <section>
-          <Card className="border-primary/20 shadow-sm flex flex-col">
-            <CardHeader>
-              <CardTitle className="uppercase tracking-wide">
-                Asset And Quest Trend
-              </CardTitle>
-              <CardDescription>
-                Daily evolution of created assets and completed quests.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-[360px]">
-              <AreaChartWithTabs />
-            </CardContent>
-          </Card>
+          <OverviewChartContainer
+            accessToken={session?.access_token}
+            pieItemLimit={7}
+          />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-3">
@@ -312,42 +264,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-primary/20 shadow-sm">
-            <CardHeader>
-              <CardTitle className="uppercase tracking-wide">
-                Recent Activity (example)
-              </CardTitle>
-              <CardDescription>Mocked list for now.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentActivityExample.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start justify-between gap-3 border-b border-border/60 py-2 last:border-b-0"
-                >
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-tight">
-                      {item.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{item.when}</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'capitalize',
-                      activityBadgeStyles[item.status] ??
-                        'border-muted-foreground/20 bg-muted text-foreground'
-                    )}
-                  >
-                    {item.status.replace('-', ' ')}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <RecentActivity accessToken={session?.access_token} />
         </section>
       </main>
     </>

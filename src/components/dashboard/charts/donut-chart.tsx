@@ -256,7 +256,10 @@ const DonutChart = React.forwardRef<HTMLDivElement, DonutChartProps>(
               strokeLinejoin="round"
               dataKey={value}
               nameKey={category}
-              isAnimationActive={false}
+              isAnimationActive={true}
+              animationBegin={0}
+              animationDuration={450}
+              animationEasing="ease-out"
               onClick={handleShapeClick}
               style={{ outline: 'none' }}
             >
@@ -273,7 +276,8 @@ const DonutChart = React.forwardRef<HTMLDivElement, DonutChartProps>(
             {showTooltip && (
               <Tooltip
                 wrapperStyle={{ outline: 'none' }}
-                isAnimationActive={false}
+                isAnimationActive={true}
+                animationDuration={180}
                 content={({ active, payload }) => {
                   const cleanPayload = payload
                     ? payload.map((item: any) => ({

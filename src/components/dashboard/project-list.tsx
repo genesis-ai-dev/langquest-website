@@ -2,8 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/auth-provider';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/spinner';
 import {
   ProjectListCard,
@@ -127,11 +133,13 @@ export function ProjectList() {
           </CardHeader>
         </Card>
       ) : (
-        <div className="w-full space-y-2">
-          {filteredProjects.map((project) => (
-            <ProjectListCard key={project.id} project={project} />
-          ))}
-        </div>
+        <ScrollArea className="w-full h-[450px] pr-3">
+          <div className="space-y-2">
+            {filteredProjects.map((project) => (
+              <ProjectListCard key={project.id} project={project} />
+            ))}
+          </div>
+        </ScrollArea>
       )}
     </section>
   );

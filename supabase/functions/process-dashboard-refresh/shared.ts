@@ -303,7 +303,7 @@ export function buildGenericDashboardMetrics(
 
       return {
         name: asString(quest.name),
-        creator_id: asString(quest.creator_id),
+        creator_id: distinct([asString(quest.creator_id)]),
         languoids: directLanguoids,
         ItemsExpected: directItemsCount,
         ItemsCompleted: directItemsCount,

@@ -9,7 +9,7 @@ export interface MemberStats {
 
 export interface DashboardSubquestItem {
   name: string | null;
-  creator_id: string | null;
+  creator_id: string[];
   languoids: string[];
   ItemsExpected: number;
   ItemsCompleted: number;

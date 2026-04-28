@@ -1,6 +1,7 @@
 'use client';
 
 import { Globe } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import {
   Card,
   CardContent,
@@ -49,62 +50,67 @@ export function ProjectListCard({ project }: ProjectListCardProps) {
   );
 
   return (
-    <Card className="w-full px-4 py-5">
-      <CardContent className="px-0 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-sm leading-tight">
-            {project.project_name}
-          </CardTitle>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Globe className="h-3.5 w-3.5 text-primary" />
-              <span className="max-w-[220px] truncate">
-                {project.target_languages.length > 0
-                  ? project.target_languages.join(', ')
-                  : 'No target language'}
-              </span>
+    <Link
+      href={`/dashboard/project?project_id=${encodeURIComponent(project.id)}`}
+      className="block"
+    >
+      <Card className="w-full px-4 py-5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <CardContent className="px-0 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <CardTitle className="text-sm leading-tight">
+              {project.project_name}
+            </CardTitle>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-primary" />
+                <span className="max-w-[220px] truncate">
+                  {project.target_languages.length > 0
+                    ? project.target_languages.join(', ')
+                    : 'No target language'}
+                </span>
+              </div>
+              <span aria-hidden="true">•</span>
+              <span>{formatLastUpdated(project.last_updated_at)}</span>
             </div>
-            <span aria-hidden="true">•</span>
-            <span>{formatLastUpdated(project.last_updated_at)}</span>
           </div>
-        </div>
 
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-          <CardDescription className="line-clamp-1 text-xs">
-            {project.description || 'No description provided'}
-          </CardDescription>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-            <p className="whitespace-nowrap">
-              <span className="text-muted-foreground">Members: </span>
-              <span className="font-semibold">{project.total_members}</span>
-            </p>
-            <p className="whitespace-nowrap">
-              <span className="text-muted-foreground">Quests: </span>
-              <span className="font-semibold">
-                {project.total_quests_created}
-              </span>
-            </p>
-            {/* <p className="whitespace-nowrap">
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <CardDescription className="line-clamp-1 text-xs">
+              {project.description || 'No description provided'}
+            </CardDescription>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <p className="whitespace-nowrap">
+                <span className="text-muted-foreground">Members: </span>
+                <span className="font-semibold">{project.total_members}</span>
+              </p>
+              <p className="whitespace-nowrap">
+                <span className="text-muted-foreground">Quests: </span>
+                <span className="font-semibold">
+                  {project.total_quests_created}
+                </span>
+              </p>
+              {/* <p className="whitespace-nowrap">
               <span className="text-muted-foreground">Completed: </span>
               <span className="font-semibold">{project.total_quests_completed}</span>
             </p> */}
-            <p className="whitespace-nowrap">
-              <span className="text-muted-foreground">Assets: </span>
-              <span className="font-semibold">{project.total_assets}</span>
-            </p>
+              <p className="whitespace-nowrap">
+                <span className="text-muted-foreground">Assets: </span>
+                <span className="font-semibold">{project.total_assets}</span>
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Quest progress</span>
-            <span>
-              {project.total_quests_completed}/{project.total_quests_created}
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Quest progress</span>
+              <span>
+                {project.total_quests_completed}/{project.total_quests_created}
+              </span>
+            </div>
+            <Progress value={progressValue} />
           </div>
-          <Progress value={progressValue} />
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

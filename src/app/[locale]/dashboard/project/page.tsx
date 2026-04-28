@@ -21,7 +21,13 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Activity, ArrowLeft, Languages, ListChecks, Users } from 'lucide-react';
+import {
+  Activity,
+  ArrowLeft,
+  Languages,
+  ListChecks,
+  Users
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 
@@ -29,8 +35,10 @@ type Template = 'bible' | 'fia' | 'unstructured';
 
 type DashboardSubquest = {
   name: string | null;
-  creator_id: string | null;
+  creator_id: string[];
   languoids: string[];
+  ItemsExpected: number;
+  ItemsCompleted: number;
   TotalAssets: number;
   TotalImages: number;
   TotalText: number;
@@ -202,7 +210,9 @@ export default function ProjectDashboardPage() {
       {
         title: titles.languages,
         icon: Languages,
-        value: projectData.total_source_languages + projectData.total_target_languages,
+        value:
+          projectData.total_source_languages +
+          projectData.total_target_languages,
         description: 'Total languages'
       },
       {
@@ -352,7 +362,10 @@ export default function ProjectDashboardPage() {
                         <AccordionTrigger>
                           <DashboardQuestCard
                             quest={quest}
-                            subquestLabel={metricTitlesByTemplate[projectData.template].subquests}
+                            subquestLabel={
+                              metricTitlesByTemplate[projectData.template]
+                                .subquests
+                            }
                           />
                         </AccordionTrigger>
                         <AccordionContent className="px-4 pb-4 pt-0">
@@ -363,10 +376,15 @@ export default function ProjectDashboardPage() {
                               </p>
                             ) : (
                               quest.subquests.map((subquest, index) => (
-                                <DashboardSubquestCard
+                                <div
                                   key={`${questId}-${subquest.name ?? 'subquest'}-${index}`}
-                                  subquest={subquest}
-                                />
+                                  className="border-b first:border-t last:border-b-0 ml-12 mr-8 px-2"
+                                >
+                                  <DashboardSubquestCard
+                                    key={`${questId}-${subquest.name ?? 'subquest'}-${index}`}
+                                    subquest={subquest}
+                                  />
+                                </div>
                               ))
                             )}
                           </div>

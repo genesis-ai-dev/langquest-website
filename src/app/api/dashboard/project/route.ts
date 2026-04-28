@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
             name: 'Genesis',
             QuestCompleted: true,
             TotalSubquestsCreated: 12,
-            TotalSubquestsExpected: 12,
+            TotalSubquestsExpected: 16,
             TotalSubquestsCompleted: 9,
             TotalAssets: 71,
             languoids: ['por', 'spa'],
@@ -126,37 +126,43 @@ export async function GET(request: NextRequest) {
             subquests: [
               {
                 name: 'Genesis 01',
-                creator_id: 'profile-001',
+                creator_id: ['profile-001'],
                 languoids: ['por'],
                 TotalAssets: 12,
                 TotalImages: 4,
                 TotalText: 8,
-                TotalAudio: 6
+                TotalAudio: 6,
+                ItemsExpected: 10,
+                ItemsCompleted: 8
               },
               {
                 name: 'Genesis 02',
-                creator_id: 'profile-002',
+                creator_id: ['profile-002'],
                 languoids: ['por', 'spa'],
                 TotalAssets: 11,
                 TotalImages: 3,
                 TotalText: 7,
-                TotalAudio: 5
+                TotalAudio: 5,
+                ItemsExpected: 9,
+                ItemsCompleted: 7
               },
               {
                 name: 'Genesis 03',
-                creator_id: 'profile-003',
+                creator_id: ['profile-003'],
                 languoids: ['spa'],
                 TotalAssets: 9,
                 TotalImages: 2,
                 TotalText: 6,
-                TotalAudio: 4
+                TotalAudio: 4,
+                ItemsExpected: 8,
+                ItemsCompleted: 6
               }
             ]
           },
           'quest-root-002': {
             name: 'Exodus',
             QuestCompleted: false,
-            TotalSubquestsCreated: 10,
+            TotalSubquestsCreated: 7,
             TotalSubquestsExpected: 10,
             TotalSubquestsCompleted: 5,
             TotalAssets: 59,
@@ -165,30 +171,36 @@ export async function GET(request: NextRequest) {
             subquests: [
               {
                 name: 'Exodus 01',
-                creator_id: 'profile-004',
+                creator_id: ['profile-004'],
                 languoids: ['fra'],
                 TotalAssets: 8,
                 TotalImages: 2,
                 TotalText: 5,
-                TotalAudio: 3
+                TotalAudio: 3,
+                ItemsExpected: 7,
+                ItemsCompleted: 5
               },
               {
                 name: 'Exodus 02',
-                creator_id: 'profile-001',
+                creator_id: ['profile-001'],
                 languoids: ['por'],
                 TotalAssets: 10,
                 TotalImages: 3,
                 TotalText: 7,
-                TotalAudio: 4
+                TotalAudio: 4,
+                ItemsExpected: 9,
+                ItemsCompleted: 7
               },
               {
                 name: 'Exodus 03',
-                creator_id: 'profile-002',
+                creator_id: ['profile-002'],
                 languoids: ['por', 'fra'],
                 TotalAssets: 7,
                 TotalImages: 1,
                 TotalText: 4,
-                TotalAudio: 2
+                TotalAudio: 2,
+                ItemsExpected: 6,
+                ItemsCompleted: 4
               }
             ]
           },
@@ -196,7 +208,7 @@ export async function GET(request: NextRequest) {
             name: 'Acts',
             QuestCompleted: false,
             TotalSubquestsCreated: 8,
-            TotalSubquestsExpected: 8,
+            TotalSubquestsExpected: 10,
             TotalSubquestsCompleted: 4,
             TotalAssets: 44,
             languoids: ['deu', 'eng'],
@@ -204,30 +216,36 @@ export async function GET(request: NextRequest) {
             subquests: [
               {
                 name: 'Acts 01',
-                creator_id: 'profile-003',
+                creator_id: ['profile-003'],
                 languoids: ['deu'],
                 TotalAssets: 6,
                 TotalImages: 2,
                 TotalText: 4,
-                TotalAudio: 2
+                TotalAudio: 2,
+                ItemsExpected: 6,
+                ItemsCompleted: 4
               },
               {
                 name: 'Acts 02',
-                creator_id: 'profile-004',
+                creator_id: ['profile-004'],
                 languoids: ['eng'],
                 TotalAssets: 5,
                 TotalImages: 1,
                 TotalText: 3,
-                TotalAudio: 2
+                TotalAudio: 2,
+                ItemsExpected: 5,
+                ItemsCompleted: 3
               },
               {
                 name: 'Acts 03',
-                creator_id: 'profile-001',
+                creator_id: ['profile-001'],
                 languoids: ['deu', 'eng'],
                 TotalAssets: 7,
                 TotalImages: 2,
                 TotalText: 4,
-                TotalAudio: 3
+                TotalAudio: 3,
+                ItemsExpected: 6,
+                ItemsCompleted: 4
               }
             ]
           }

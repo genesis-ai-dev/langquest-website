@@ -1,6 +1,6 @@
 'use client';
 
-import { AreaChart } from '@/components/dashboard/area-chart';
+import { AreaChart } from '@/components/dashboard/charts/area-chart';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
