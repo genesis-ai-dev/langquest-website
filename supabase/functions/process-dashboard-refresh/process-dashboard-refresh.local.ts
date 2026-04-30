@@ -192,6 +192,19 @@ async function fetchProjectContext(
     assetContentLinks = (data ?? []) as JsonRecord[];
   }
 
+  const projectTemplate = asString(project.template);
+  let templateStructureRows: JsonRecord[] = [];
+  if (projectTemplate) {
+    const { data: templateStructureData, error: templateStructureError } = await supabase
+      .from('template_structure')
+      .select('*')
+      .eq('template', projectTemplate)
+      .eq('language', 'any')
+      .not('item_id', 'is', null);
+    throwIfError(templateStructureError, 'failed querying template_structure');
+    templateStructureRows = (templateStructureData ?? []) as JsonRecord[];
+  }
+
   return {
     project,
     quests,
@@ -199,7 +212,8 @@ async function fetchProjectContext(
     assetContentLinks,
     questAssetLinks,
     profileProjectLinks,
-    projectLanguageLinks
+    projectLanguageLinks,
+    templateStructureRows
   };
 }
 

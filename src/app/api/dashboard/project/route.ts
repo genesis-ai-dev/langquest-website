@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
 
+type DashboardSubquest = {
+  name: string | null;
+  creator_id: string[];
+  languoids: string[];
+  ItemsExpected: number;
+  ItemsCompleted: number;
+  TotalVersions: number;
+  TotalAssets: number;
+  TotalTranscriptions: number;
+  TotalTranslations: number;
+  TotalAssetsWithTranscription: number;
+  TotalAssetsWithTranslation: number;
+  TotalImages: number;
+  TotalText: number;
+  TotalAudio: number;
+};
+
+type DashboardQuest = {
+  name: string | null;
+  QuestCompleted: boolean;
+  TotalSubquestsCreated: number;
+  TotalSubquestsExpected: number;
+  TotalSubquestsCompleted: number;
+  TotalAssets: number;
+  languoids: string[];
+  Creators: string[];
+  subquests: DashboardSubquest[];
+};
+
 type DashboardJson = {
   members: Record<
     string,
@@ -10,7 +39,7 @@ type DashboardJson = {
       AssetsCreated: number;
     }
   >;
-  quests: Record<string, unknown>;
+  quests: Record<string, DashboardQuest>;
 };
 
 type DashboardProjectResponse = {
@@ -41,9 +70,57 @@ type DashboardProjectResponse = {
   updated_at: string;
 };
 
+type ProjectRow = {
+  id: string;
+  name: string | null;
+  description: string | null;
+  template: 'bible' | 'fia' | 'unstructured' | null;
+  active: boolean | null;
+};
+
+type ProjectDashboardCurrentRow = {
+  project_id: string;
+  project_status: 'active' | 'inactive' | null;
+  total_quests: number | null;
+  expected_quests: number | null;
+  total_subquests: number | null;
+  total_assets: number | null;
+  total_quests_versions: number | null;
+  completed_quests: number | null;
+  completed_subquests: number | null;
+  inactive_quests: number | null;
+  inactive_assets: number | null;
+  assets_with_text: number | null;
+  assets_with_audio: number | null;
+  assets_with_image: number | null;
+  assets_with_transcription: number | null;
+  assets_with_translation: number | null;
+  total_source_languages: number | null;
+  total_target_languages: number | null;
+  total_members: number | null;
+  total_owners: number | null;
+  dashboard_json: DashboardJson | null;
+  updated_at: string | null;
+};
+
+const asNumber = (value: number | null | undefined) => value ?? 0;
+const resolveTemplate = (
+  value: ProjectRow['template']
+): 'bible' | 'fia' | 'unstructured' =>
+  value === 'bible' || value === 'fia' || value === 'unstructured'
+    ? value
+    : 'unstructured';
+
+function normalizeDashboardJson(value: DashboardJson | null | undefined): DashboardJson {
+  return {
+    members: value?.members ?? {},
+    quests: value?.quests ?? {}
+  };
+}
+
 /**
  * GET /api/dashboard/project?project_id=<uuid>
- * Returns mocked project dashboard payload following process-dashboard-refresh format.
+ * Returns dashboard payload from project_dashboard_current for authenticated users.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -81,180 +158,102 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: replace with real project_dashboard_current query.
-    const mockedPayload: DashboardProjectResponse = {
-      project_id: projectId,
-      project_status: 'active',
-      template: 'bible',
-      project_name: 'Bible Core',
-      project_description: 'Main translation pipeline for core books.',
-      total_quests: 24,
-      expected_quests: 66,
-      total_subquests: 68,
-      total_assets: 312,
-      total_quests_versions: 32,
-      completed_quests: 18,
-      completed_subquests: 43,
-      inactive_quests: 2,
-      inactive_assets: 11,
-      assets_with_text: 210,
-      assets_with_audio: 83,
-      assets_with_image: 144,
-      assets_with_transcription: 0,
-      assets_with_translation: 0,
-      total_source_languages: 3,
-      total_target_languages: 2,
-      total_members: 8,
-      total_owners: 2,
-      dashboard_json: {
-        members: {
-          'profile-001': { QuestsCreated: 9, AssetsCreated: 120 },
-          'profile-002': { QuestsCreated: 7, AssetsCreated: 96 },
-          'profile-003': { QuestsCreated: 6, AssetsCreated: 84 },
-          'profile-004': { QuestsCreated: 5, AssetsCreated: 67 }
-        },
-        quests: {
-          'quest-root-001': {
-            name: 'Genesis',
-            QuestCompleted: true,
-            TotalSubquestsCreated: 12,
-            TotalSubquestsExpected: 16,
-            TotalSubquestsCompleted: 9,
-            TotalAssets: 71,
-            languoids: ['por', 'spa'],
-            Creators: ['profile-001', 'profile-002'],
-            subquests: [
-              {
-                name: 'Genesis 01',
-                creator_id: ['profile-001'],
-                languoids: ['por'],
-                TotalAssets: 12,
-                TotalImages: 4,
-                TotalText: 8,
-                TotalAudio: 6,
-                ItemsExpected: 10,
-                ItemsCompleted: 8
-              },
-              {
-                name: 'Genesis 02',
-                creator_id: ['profile-002'],
-                languoids: ['por', 'spa'],
-                TotalAssets: 11,
-                TotalImages: 3,
-                TotalText: 7,
-                TotalAudio: 5,
-                ItemsExpected: 9,
-                ItemsCompleted: 7
-              },
-              {
-                name: 'Genesis 03',
-                creator_id: ['profile-003'],
-                languoids: ['spa'],
-                TotalAssets: 9,
-                TotalImages: 2,
-                TotalText: 6,
-                TotalAudio: 4,
-                ItemsExpected: 8,
-                ItemsCompleted: 6
-              }
-            ]
-          },
-          'quest-root-002': {
-            name: 'Exodus',
-            QuestCompleted: false,
-            TotalSubquestsCreated: 7,
-            TotalSubquestsExpected: 10,
-            TotalSubquestsCompleted: 5,
-            TotalAssets: 59,
-            languoids: ['por', 'fra'],
-            Creators: ['profile-001', 'profile-004'],
-            subquests: [
-              {
-                name: 'Exodus 01',
-                creator_id: ['profile-004'],
-                languoids: ['fra'],
-                TotalAssets: 8,
-                TotalImages: 2,
-                TotalText: 5,
-                TotalAudio: 3,
-                ItemsExpected: 7,
-                ItemsCompleted: 5
-              },
-              {
-                name: 'Exodus 02',
-                creator_id: ['profile-001'],
-                languoids: ['por'],
-                TotalAssets: 10,
-                TotalImages: 3,
-                TotalText: 7,
-                TotalAudio: 4,
-                ItemsExpected: 9,
-                ItemsCompleted: 7
-              },
-              {
-                name: 'Exodus 03',
-                creator_id: ['profile-002'],
-                languoids: ['por', 'fra'],
-                TotalAssets: 7,
-                TotalImages: 1,
-                TotalText: 4,
-                TotalAudio: 2,
-                ItemsExpected: 6,
-                ItemsCompleted: 4
-              }
-            ]
-          },
-          'quest-root-003': {
-            name: 'Acts',
-            QuestCompleted: false,
-            TotalSubquestsCreated: 8,
-            TotalSubquestsExpected: 10,
-            TotalSubquestsCompleted: 4,
-            TotalAssets: 44,
-            languoids: ['deu', 'eng'],
-            Creators: ['profile-003', 'profile-004'],
-            subquests: [
-              {
-                name: 'Acts 01',
-                creator_id: ['profile-003'],
-                languoids: ['deu'],
-                TotalAssets: 6,
-                TotalImages: 2,
-                TotalText: 4,
-                TotalAudio: 2,
-                ItemsExpected: 6,
-                ItemsCompleted: 4
-              },
-              {
-                name: 'Acts 02',
-                creator_id: ['profile-004'],
-                languoids: ['eng'],
-                TotalAssets: 5,
-                TotalImages: 1,
-                TotalText: 3,
-                TotalAudio: 2,
-                ItemsExpected: 5,
-                ItemsCompleted: 3
-              },
-              {
-                name: 'Acts 03',
-                creator_id: ['profile-001'],
-                languoids: ['deu', 'eng'],
-                TotalAssets: 7,
-                TotalImages: 2,
-                TotalText: 4,
-                TotalAudio: 3,
-                ItemsExpected: 6,
-                ItemsCompleted: 4
-              }
-            ]
+    const supabase = createClient(
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
           }
         }
-      },
-      updated_at: new Date().toISOString()
+      }
+    );
+
+    const { data: membershipRow, error: membershipError } = await supabase
+      .from('profile_project_link')
+      .select('project_id')
+      .eq('profile_id', user.id)
+      .eq('project_id', projectId)
+      .eq('active', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (membershipError) {
+      console.error('dashboard project route membership error:', membershipError);
+      return NextResponse.json(
+        { error: 'Failed to load project permissions' },
+        { status: 500 }
+      );
+    }
+
+    if (!membershipRow) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const [{ data: project, error: projectError }, { data: dashboard, error: dashboardError }] =
+      await Promise.all([
+        supabase
+          .from('project')
+          .select('id,name,description,template,active')
+          .eq('id', projectId)
+          .limit(1)
+          .maybeSingle<ProjectRow>(),
+        supabase
+          .from('project_dashboard_current')
+          .select(
+            'project_id,project_status,total_quests,expected_quests,total_subquests,total_assets,total_quests_versions,completed_quests,completed_subquests,inactive_quests,inactive_assets,assets_with_text,assets_with_audio,assets_with_image,assets_with_transcription,assets_with_translation,total_source_languages,total_target_languages,total_members,total_owners,dashboard_json,updated_at'
+          )
+          .eq('project_id', projectId)
+          .limit(1)
+          .maybeSingle<ProjectDashboardCurrentRow>()
+      ]);
+
+    if (projectError || dashboardError) {
+      console.error('dashboard project route base-query error:', {
+        projectError,
+        dashboardError
+      });
+      return NextResponse.json(
+        { error: 'Failed to load project dashboard' },
+        { status: 500 }
+      );
+    }
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    const response: DashboardProjectResponse = {
+      project_id: project.id,
+      project_status:
+        dashboard?.project_status ?? (project.active === true ? 'active' : 'inactive'),
+      template: resolveTemplate(project.template),
+      project_name: project.name ?? 'Untitled project',
+      project_description: project.description ?? null,
+      total_quests: asNumber(dashboard?.total_quests),
+      expected_quests: asNumber(dashboard?.expected_quests),
+      total_subquests: asNumber(dashboard?.total_subquests),
+      total_assets: asNumber(dashboard?.total_assets),
+      total_quests_versions: asNumber(dashboard?.total_quests_versions),
+      completed_quests: asNumber(dashboard?.completed_quests),
+      completed_subquests: asNumber(dashboard?.completed_subquests),
+      inactive_quests: asNumber(dashboard?.inactive_quests),
+      inactive_assets: asNumber(dashboard?.inactive_assets),
+      assets_with_text: asNumber(dashboard?.assets_with_text),
+      assets_with_audio: asNumber(dashboard?.assets_with_audio),
+      assets_with_image: asNumber(dashboard?.assets_with_image),
+      assets_with_transcription: asNumber(dashboard?.assets_with_transcription),
+      assets_with_translation: asNumber(dashboard?.assets_with_translation),
+      total_source_languages: asNumber(dashboard?.total_source_languages),
+      total_target_languages: asNumber(dashboard?.total_target_languages),
+      total_members: asNumber(dashboard?.total_members),
+      total_owners: asNumber(dashboard?.total_owners),
+      dashboard_json: normalizeDashboardJson(dashboard?.dashboard_json),
+      updated_at: dashboard?.updated_at ?? new Date(0).toISOString()
     };
 
-    return NextResponse.json(mockedPayload, { status: 200 });
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('dashboard project route error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

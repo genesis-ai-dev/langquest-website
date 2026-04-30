@@ -150,6 +150,25 @@ async function fetchProjectContext(
     assetContentLinks = aclResult.rows.map((row: { row: JsonRecord }) => row.row);
   }
 
+  const projectTemplate = asString(project.template);
+  let templateStructureRows: JsonRecord[] = [];
+  if (projectTemplate) {
+    const templateStructureResult = await client.query(
+      `
+        select to_jsonb(ts) as row
+        from public.template_structure ts
+        where
+          ts.template = $1
+          and ts.language = 'any'
+          and ts.item_id is not null
+      `,
+      [projectTemplate]
+    );
+    templateStructureRows = templateStructureResult.rows.map(
+      (row: { row: JsonRecord }) => row.row
+    );
+  }
+
   return {
     project,
     quests,
@@ -157,7 +176,8 @@ async function fetchProjectContext(
     assetContentLinks,
     questAssetLinks,
     profileProjectLinks,
-    projectLanguageLinks
+    projectLanguageLinks,
+    templateStructureRows
   };
 }
 

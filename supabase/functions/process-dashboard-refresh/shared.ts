@@ -22,6 +22,18 @@ function asBoolean(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
+function getContentType(value: unknown): 'source' | 'translation' | 'transcription' | null {
+  const normalized = asString(value)?.toLowerCase();
+  if (
+    normalized === 'source' ||
+    normalized === 'translation' ||
+    normalized === 'transcription'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
@@ -104,23 +116,54 @@ export function buildGenericDashboardMetrics(
   );
 
   const activeAssets = assets.filter((a) => asBoolean(a.active, true));
-  const inactiveAssets = assets.filter((a) => !asBoolean(a.active, true));
-  const activeAssetIds = new Set(
-    activeAssets
+  const sourceAssets = assets.filter((a) => getContentType(a.content_type) === 'source');
+  const activeSourceAssets = sourceAssets.filter((a) => asBoolean(a.active, true));
+  const inactiveSourceAssets = sourceAssets.filter((a) => !asBoolean(a.active, true));
+  const activeSourceAssetIds = new Set(
+    activeSourceAssets
       .map((a) => asString(a.id))
       .filter((id): id is string => id !== null)
   );
-  const activeAssetById = new Map<string, JsonRecord>();
-  for (const asset of activeAssets) {
+  const activeSourceAssetById = new Map<string, JsonRecord>();
+  for (const asset of activeSourceAssets) {
     const id = asString(asset.id);
-    if (id) activeAssetById.set(id, asset);
+    if (id) activeSourceAssetById.set(id, asset);
+  }
+
+  const sourceHasTranslation = new Map<string, boolean>();
+  const sourceHasTranscription = new Map<string, boolean>();
+  const sourceTranslationCount = new Map<string, number>();
+  const sourceTranscriptionCount = new Map<string, number>();
+  for (const asset of activeAssets) {
+    const contentType = getContentType(asset.content_type);
+    if (contentType !== 'translation' && contentType !== 'transcription') {
+      continue;
+    }
+
+    const sourceAssetId = asString(asset.source_asset_id);
+    if (!sourceAssetId || !activeSourceAssetIds.has(sourceAssetId)) continue;
+
+    if (contentType === 'translation') {
+      sourceHasTranslation.set(sourceAssetId, true);
+      sourceTranslationCount.set(
+        sourceAssetId,
+        (sourceTranslationCount.get(sourceAssetId) ?? 0) + 1
+      );
+    }
+    if (contentType === 'transcription') {
+      sourceHasTranscription.set(sourceAssetId, true);
+      sourceTranscriptionCount.set(
+        sourceAssetId,
+        (sourceTranscriptionCount.get(sourceAssetId) ?? 0) + 1
+      );
+    }
   }
 
   const activeQuestAssetLinks = questAssetLinks.filter(
     (qal) =>
       asBoolean(qal.active, true) &&
       activeQuestIds.has(asString(qal.quest_id) ?? '') &&
-      activeAssetIds.has(asString(qal.asset_id) ?? '')
+      activeSourceAssetIds.has(asString(qal.asset_id) ?? '')
   );
 
   const questToAssetIds = new Map<string, Set<string>>();
@@ -138,7 +181,7 @@ export function buildGenericDashboardMetrics(
   const activeAssetContentLinks = assetContentLinks.filter(
     (acl) =>
       asBoolean(acl.active, true) &&
-      activeAssetIds.has(asString(acl.asset_id) ?? '')
+      activeSourceAssetIds.has(asString(acl.asset_id) ?? '')
   );
 
   const aclByAssetId = new Map<string, JsonRecord[]>();
@@ -170,7 +213,7 @@ export function buildGenericDashboardMetrics(
     let hasAnyContent = false;
 
     for (const assetId of linkedAssetIds) {
-      const asset = activeAssetById.get(assetId);
+      const asset = activeSourceAssetById.get(assetId);
       if (!asset) continue;
 
       if (
@@ -239,7 +282,7 @@ export function buildGenericDashboardMetrics(
   for (const quest of activeQuests) {
     addMemberQuest(asString(quest.creator_id));
   }
-  for (const asset of activeAssets) {
+  for (const asset of activeSourceAssets) {
     addMemberAsset(asString(asset.creator_id));
   }
 
@@ -265,7 +308,7 @@ export function buildGenericDashboardMetrics(
     }
 
     const hierarchyAssets = [...hierarchyAssetIds]
-      .map((assetId) => activeAssetById.get(assetId))
+      .map((assetId) => activeSourceAssetById.get(assetId))
       .filter((asset): asset is JsonRecord => asset !== undefined);
 
     const hierarchyCreators = distinct([
@@ -291,7 +334,7 @@ export function buildGenericDashboardMetrics(
         ? [...(questToAssetIds.get(questId) ?? new Set<string>())]
         : [];
       const directAssets = directAssetIds
-        .map((assetId) => activeAssetById.get(assetId))
+        .map((assetId) => activeSourceAssetById.get(assetId))
         .filter((asset): asset is JsonRecord => asset !== undefined);
       const directLanguoids = distinct(
         directAssets.map(
@@ -307,7 +350,24 @@ export function buildGenericDashboardMetrics(
         languoids: directLanguoids,
         ItemsExpected: directItemsCount,
         ItemsCompleted: directItemsCount,
+        TotalVersions: 1,
         TotalAssets: directAssets.length,
+        TotalTranscriptions: directAssetIds.reduce(
+          (sum, assetId) => sum + (sourceTranscriptionCount.get(assetId) ?? 0),
+          0
+        ),
+        TotalTranslations: directAssetIds.reduce(
+          (sum, assetId) => sum + (sourceTranslationCount.get(assetId) ?? 0),
+          0
+        ),
+        TotalAssetsWithTranscription: countWhere(
+          directAssetIds,
+          (assetId) => sourceHasTranscription.get(assetId) === true
+        ),
+        TotalAssetsWithTranslation: countWhere(
+          directAssetIds,
+          (assetId) => sourceHasTranslation.get(assetId) === true
+        ),
         TotalImages: countWhere(directAssets, (asset) => hasImage(asset)),
         TotalText: countWhere(
           directAssetIds,
@@ -324,6 +384,7 @@ export function buildGenericDashboardMetrics(
       name: asString(rootQuest.name),
       QuestCompleted: false,
       TotalSubquestsCreated: descendants.length,
+      TotalSubquestsExpected: descendants.length,
       TotalSubquestsCompleted: descendantCompleted,
       TotalAssets: hierarchyAssets.length,
       languoids: hierarchyLanguoids,
@@ -362,25 +423,31 @@ export function buildGenericDashboardMetrics(
     total_quests: rootQuests.length,
     total_subquests: subquests.length,
     expected_quests: 0,
-    total_assets: activeAssets.length,
+    total_assets: activeSourceAssets.length,
     total_quests_versions: quests.length,
     completed_quests: completedQuests,
     completed_subquests: completedSubquests,
     inactive_quests: inactiveQuests.length,
-    inactive_assets: inactiveAssets.length,
+    inactive_assets: inactiveSourceAssets.length,
     assets_with_text: countWhere(
-      activeAssets,
+      activeSourceAssets,
       (asset) => assetHasText.get(asString(asset.id) ?? '') === true
     ),
     assets_with_audio: countWhere(
-      activeAssets,
+      activeSourceAssets,
       (asset) => assetHasAudio.get(asString(asset.id) ?? '') === true
     ),
-    assets_with_image: countWhere(activeAssets, (asset) => hasImage(asset)),
-    assets_with_transcription: 0,
-    assets_with_translation: 0,
+    assets_with_image: countWhere(activeSourceAssets, (asset) => hasImage(asset)),
+    assets_with_transcription: countWhere(
+      activeSourceAssets,
+      (asset) => sourceHasTranscription.get(asString(asset.id) ?? '') === true
+    ),
+    assets_with_translation: countWhere(
+      activeSourceAssets,
+      (asset) => sourceHasTranslation.get(asString(asset.id) ?? '') === true
+    ),
     total_source_languages: distinct(
-      activeAssets.map(
+      activeSourceAssets.map(
         (asset) => asString(asset.languoid_id) ?? asString(asset.source_language_id)
       )
     ).length,

@@ -13,7 +13,12 @@ export interface DashboardSubquestItem {
   languoids: string[];
   ItemsExpected: number;
   ItemsCompleted: number;
+  TotalVersions: number;
   TotalAssets: number;
+  TotalTranscriptions: number;
+  TotalTranslations: number;
+  TotalAssetsWithTranscription: number;
+  TotalAssetsWithTranslation: number;
   TotalImages: number;
   TotalText: number;
   TotalAudio: number;
@@ -23,6 +28,7 @@ export interface DashboardQuestItem {
   name: string | null;
   QuestCompleted: boolean;
   TotalSubquestsCreated: number;
+  TotalSubquestsExpected: number;
   TotalSubquestsCompleted: number;
   TotalAssets: number;
   languoids: string[];
@@ -73,4 +79,5 @@ export interface ProjectDashboardContext {
   questAssetLinks: JsonRecord[];
   profileProjectLinks: JsonRecord[];
   projectLanguageLinks: JsonRecord[];
+  templateStructureRows: JsonRecord[];
 }
