@@ -165,11 +165,9 @@ export function createAddNodeAction(
     id: generateNodeId(),
     name,
     node_type: options?.nodeType,
+    linkable_type: options?.linkableType ?? 'quest',
     children: []
   };
-  if (options?.linkableType !== undefined) {
-    node.linkable_type = options.linkableType;
-  }
   return {
     type: 'add_node',
     payload: {

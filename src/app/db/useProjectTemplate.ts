@@ -32,9 +32,9 @@ export function useProjectTemplate(projectId: string | undefined) {
           template_id,
           role,
           template (
-            id, slug, name, icon, structure,
-            source_language_id, copied_from_template_id,
-            auto_sync, shared, active, locked_for_backward_compat,
+            id, slug, name, description, icon, structure,
+            source_languoid_id, copied_from_template_id,
+            auto_sync, shared, active,
             creator_id, project_count,
             created_at, last_updated
           )

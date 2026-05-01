@@ -81,12 +81,12 @@ function saveCustomNodeTypes(types: string[]) {
   );
 }
 
-/** Normalize stored linkable_type for UI (handles null / odd JSON). */
+/** Normalize stored linkable_type for UI. */
 function effectiveLinkableType(
   node: TemplateNode
-): 'quest' | 'asset' | 'both' | undefined {
+): 'quest' | 'asset' | undefined {
   const t = node.linkable_type;
-  if (t === 'quest' || t === 'asset' || t === 'both') return t;
+  if (t === 'quest' || t === 'asset') return t;
   return undefined;
 }
 

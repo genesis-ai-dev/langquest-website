@@ -1,19 +1,21 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { Spinner } from '@/components/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { QuestExplorerMenu } from '@/components/QuestExplorer/main';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, GitFork, Link2, TreePine } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProjectHeaderV1 } from '@/components/project-header-v1';
 import { PortalHeader } from '@/components/portal-header';
 import { useProjectTemplate } from '@/app/db/useProjectTemplate';
+import { TemplateAdoptDialog } from '@/components/template-adopt-dialog';
+import { TemplateLinkDialog } from '@/components/template-link-dialog';
 
 export default function ProjectPage() {
   return (
@@ -156,7 +158,14 @@ function ProjectPageContent() {
   const assetsCount = assetsCounts.assets;
   const translationsCount = assetsCounts.translations;
 
-  const { data: templateData } = useProjectTemplate(projectId);
+  const { data: templateData, refetch: refetchTemplate } = useProjectTemplate(projectId);
+
+  const [adoptDialogOpen, setAdoptDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+
+  const handleTemplateChanged = useCallback(() => {
+    refetchTemplate();
+  }, [refetchTemplate]);
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -286,7 +295,46 @@ function ProjectPageContent() {
         />
       </div>
 
-      <div className="container p-6 max-w-screen-xl mx-auto ">
+      {isOwner && (
+        <div className="container px-6 pb-2 max-w-screen-xl mx-auto">
+          <div className="flex items-center gap-3 rounded-lg border bg-card p-4">
+            <TreePine className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              {templateData ? (
+                <p className="text-sm font-medium truncate">
+                  Template: {templateData.template.name}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No template linked
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {templateData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAdoptDialogOpen(true)}
+                >
+                  <GitFork className="h-4 w-4 mr-1.5" />
+                  Adopt a fork
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLinkDialogOpen(true)}
+              >
+                <Link2 className="h-4 w-4 mr-1.5" />
+                {templateData ? 'Change template' : 'Link template'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="container p-6 max-w-screen-xl mx-auto">
         <QuestExplorerMenu
           projectId={projectId}
           userPermission={userPermission}
@@ -295,6 +343,24 @@ function ProjectPageContent() {
           templateLinkId={templateData?.linkId}
         />
       </div>
+
+      {templateData && (
+        <TemplateAdoptDialog
+          open={adoptDialogOpen}
+          onOpenChange={setAdoptDialogOpen}
+          currentTemplateId={templateData.template.id}
+          linkId={templateData.linkId}
+          onAdopted={handleTemplateChanged}
+        />
+      )}
+
+      <TemplateLinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        projectId={projectId}
+        currentTemplateId={templateData?.template.id}
+        onLinked={handleTemplateChanged}
+      />
     </div>
   );
 }

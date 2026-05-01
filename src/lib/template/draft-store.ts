@@ -1,6 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { TemplateAction } from './actions';
-import type { TemplateStructure, DraftMode } from './types';
+import type { TemplateStructure, PublishIntent } from './types';
 
 const DB_NAME = 'langquest-templates';
 const DB_VERSION = 2;
@@ -9,12 +9,12 @@ const STORE_NAME = 'drafts';
 export interface TemplateDraft {
   draftId: string;
   sourceTemplateId: string | null;
-  mode: DraftMode;
+  /** Default selection for the publish dialog — NOT an editing mode. */
+  publishIntent: PublishIntent;
   structure: TemplateStructure;
   actionLog: TemplateAction[];
   actionIndex: number;
-  metadata: { name: string; icon: string | null; shared: boolean };
-  targetLinkIds: string[];
+  metadata: { name: string; description: string | null; icon: string | null; shared: boolean };
   savedAt: number;
 }
 

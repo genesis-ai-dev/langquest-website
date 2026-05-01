@@ -29,12 +29,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
-import type { TemplateNode, DraftMode } from '@/lib/template/types';
+import type { TemplateNode } from '@/lib/template/types';
 import {
   createAddNodeAction,
   createHideNodeAction,
   createMoveNodeAction,
-  createRemoveNodeAction,
   createRenameNodeAction,
   createUnhideNodeAction,
   type TemplateAction
@@ -48,7 +47,6 @@ import {
   Download,
   EllipsisVertical,
   Eye,
-  EyeOff,
   FileAudio,
   Folder,
   FolderInput,
@@ -63,7 +61,6 @@ type DialogFns = ReturnType<typeof useConfirm>;
 
 interface TreeActionsContextValue {
   canEdit: boolean;
-  mode: DraftMode | null;
   dialogs: DialogFns;
   onAddChild: (parentId: string, parentDisplayName: string) => void;
   onAddSibling: (node: NodeApi<TemplateNode>) => void;
@@ -77,20 +74,8 @@ interface TreeActionsContextValue {
 
 const TreeActionsContext = createContext<TreeActionsContextValue | null>(null);
 
-function filterDeletedDeep(nodes: TemplateNode[]): TemplateNode[] {
-  return (nodes ?? [])
-    .filter((n) => !n.deleted)
-    .map((n) => ({
-      ...n,
-      children: n.children?.length
-        ? filterDeletedDeep(n.children)
-        : n.children
-    }));
-}
-
-export function toTreeData(root: TemplateNode, showHidden?: boolean): TemplateNode[] {
-  if (showHidden) return root.children ?? [];
-  return filterDeletedDeep(root.children ?? []);
+export function toTreeData(root: TemplateNode): TemplateNode[] {
+  return root.children ?? [];
 }
 
 function collectDirectChildIds(node: NodeApi<TemplateNode>): string[] {
@@ -100,7 +85,6 @@ function collectDirectChildIds(node: NodeApi<TemplateNode>): string[] {
 export interface TemplateEditorTreeProps {
   root: TemplateNode;
   canEdit: boolean;
-  mode?: DraftMode;
   selectedNodeId: string | null;
   onNodeSelect: (nodeId: string | null) => void;
   onBatchActions: (actions: TemplateAction[]) => void;
@@ -109,7 +93,6 @@ export interface TemplateEditorTreeProps {
 export function TemplateEditorTree({
   root,
   canEdit,
-  mode,
   selectedNodeId,
   onNodeSelect,
   onBatchActions
@@ -128,8 +111,7 @@ export function TemplateEditorTree({
     []
   );
 
-  const showHidden = mode === 'update';
-  const data = useMemo(() => toTreeData(root, showHidden), [root, showHidden]);
+  const data = useMemo(() => toTreeData(root), [root]);
 
   const onAddChild = useCallback(
     async (parentId: string, parentDisplayName: string) => {
@@ -203,13 +185,9 @@ export function TemplateEditorTree({
 
   const handleDelete = useCallback<DeleteHandler<TemplateNode>>(
     ({ ids }) => {
-      if (mode === 'update') {
-        onBatchActions(ids.map((id) => createHideNodeAction(id)));
-      } else {
-        onBatchActions(ids.map((id) => createRemoveNodeAction(id)));
-      }
+      onBatchActions(ids.map((id) => createHideNodeAction(id)));
     },
-    [onBatchActions, mode]
+    [onBatchActions]
   );
 
   const onHide = useCallback(
@@ -334,7 +312,6 @@ export function TemplateEditorTree({
   const ctxValue = useMemo<TreeActionsContextValue>(
     () => ({
       canEdit,
-      mode: mode ?? null,
       dialogs,
       onAddChild,
       onAddSibling,
@@ -347,7 +324,6 @@ export function TemplateEditorTree({
     }),
     [
       canEdit,
-      mode,
       dialogs,
       onAddChild,
       onAddSibling,
@@ -521,7 +497,6 @@ function TemplateArboristNode({
   const showToggle = isSection;
   const isMoveTarget = ctx?.moveTarget === '__pending__';
   const isActive = ctx?.selectedNodeId === node.id;
-  const mode = ctx?.mode;
   const isHidden = !!d.deleted;
 
   return (
@@ -583,7 +558,7 @@ function TemplateArboristNode({
             <Folder className="h-3.5 w-3.5" aria-hidden />
           </span>
         )}
-        {(d.linkable_type === 'asset' || d.linkable_type === 'both') && (
+        {d.linkable_type === 'asset' && (
           <span title="Recording">
             <FileAudio className="h-3.5 w-3.5" aria-hidden />
           </span>
@@ -623,9 +598,7 @@ function TemplateArboristNode({
       )}
       <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
         {isSection &&
-          d.children?.some(
-            (c) => c.linkable_type === 'asset' || c.linkable_type === 'both'
-          ) && (
+          d.children?.some((c) => c.linkable_type === 'asset') && (
             <span title="Downloadable section — this quest has asset children">
               <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
             </span>
@@ -671,53 +644,28 @@ function TemplateArboristNode({
               Add below
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {mode === 'update' ? (
-              <>
-                {d.deleted ? (
-                  <DropdownMenuItem
-                    onSelect={() => ctx.onUnhide(node.id)}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    Unhide
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onSelect={async () => {
-                      const ok = await ctx.dialogs.confirm({
-                        title: 'Hide this node?',
-                        description: 'It will be invisible in linked projects but existing data will be preserved. You can unhide it later.',
-                        confirmLabel: 'Hide',
-                        variant: 'destructive'
-                      });
-                      if (ok) ctx.onHide(node.id);
-                    }}
-                  >
-                    <EyeOff className="mr-2 h-4 w-4" />
-                    Hide
-                  </DropdownMenuItem>
-                )}
-                <span title="To permanently remove nodes, switch to starting-point mode. Hidden nodes protect linked project data.">
-                  <DropdownMenuItem disabled>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Remove
-                  </DropdownMenuItem>
-                </span>
-              </>
+            {d.deleted ? (
+              <DropdownMenuItem
+                onSelect={() => ctx.onUnhide(node.id)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Restore
+              </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={async () => {
                   const ok = await ctx.dialogs.confirm({
-                    title: 'Remove this row?',
-                    description: 'This row and any sub-items under it will be permanently removed from the outline.',
-                    confirmLabel: 'Remove',
+                    title: 'Delete this item?',
+                    description: 'This item will be marked for deletion. You can restore it later if needed.',
+                    confirmLabel: 'Delete',
                     variant: 'destructive'
                   });
                   if (ok) void node.tree.delete(node.id);
                 }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Remove
+                Delete
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

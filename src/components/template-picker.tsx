@@ -85,9 +85,6 @@ export function TemplatePicker({ value, onChange }: TemplatePickerProps) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{bp.name}</span>
-                  {bp.locked_for_backward_compat && (
-                    <Lock className="h-3 w-3 text-muted-foreground" />
-                  )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {bp.project_count > 0 && (

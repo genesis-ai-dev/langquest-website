@@ -1,30 +1,21 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateNodeId } from './actions';
-import { saveDraft, type TemplateDraft } from './draft-store';
-import { hasHiddenNodes, stripHiddenNodes, countHiddenNodes } from './hidden-nodes';
-import { fetchProjectsForTemplate } from './rpc';
-import type { TemplateStructure, DraftMode, TemplateRow } from './types';
+import { saveDraft } from './draft-store';
+import type { TemplateRow, PublishIntent } from './types';
 import { TEMPLATE_FORMAT_VERSION } from './types';
-
-type ConfirmFn = {
-  confirm: (opts: { title: string; description?: string; body?: React.ReactNode; confirmLabel?: string; cancelLabel?: string; variant?: 'default' | 'destructive' }) => Promise<boolean>;
-  choice: <T extends string>(opts: { title: string; description?: string; body?: React.ReactNode; choices: { value: T; label: string; description?: string; variant?: 'default' | 'destructive' }[]; cancelLabel?: string }) => Promise<T | null>;
-};
 
 export async function createBlankDraft(): Promise<string> {
   const draftId = generateNodeId();
   await saveDraft({
     draftId,
     sourceTemplateId: null,
-    mode: 'starting_point',
+    publishIntent: 'starting_point',
     structure: {
       format_version: TEMPLATE_FORMAT_VERSION,
-      root: { id: 'root', name: 'New template', node_type: 'root', children: [] }
+      root: { id: 'root', name: 'New template', node_type: 'root', linkable_type: 'quest', children: [] }
     },
     actionLog: [],
     actionIndex: -1,
-    metadata: { name: 'New template', icon: null, shared: false },
-    targetLinkIds: [],
+    metadata: { name: 'New template', description: null, icon: null, shared: false },
     savedAt: Date.now()
   });
   return draftId;
@@ -32,53 +23,27 @@ export async function createBlankDraft(): Promise<string> {
 
 /**
  * Creates a draft from an existing published template.
- * Handles hidden-node prompts via the confirm API.
- * Returns the draftId, or null if the user cancelled.
+ * The publishIntent is just the default for the publish dialog — it does NOT
+ * affect the editing experience. Both entry points produce the same editor.
  */
 export async function createDraftFromTemplate(
   template: TemplateRow,
-  mode: DraftMode,
-  dialogs: ConfirmFn,
-  supabase: SupabaseClient
-): Promise<string | null> {
-  let structure: TemplateStructure = template.structure;
-
-  if (mode === 'starting_point' && hasHiddenNodes(structure.root)) {
-    const count = countHiddenNodes(structure.root);
-    const strip = await dialogs.confirm({
-      title: 'Hidden items found',
-      description:
-        `This template has ${count} hidden item${count === 1 ? '' : 's'}. ` +
-        `Since you're creating a new starting point, these items serve no purpose. ` +
-        `Would you like to remove them?`,
-      confirmLabel: 'Remove hidden items',
-      cancelLabel: 'Keep them',
-    });
-    if (strip) {
-      structure = { ...structure, root: stripHiddenNodes(structure.root) };
-    }
-  }
-
-  let targetLinkIds: string[] = [];
-  if (mode === 'update') {
-    const projects = await fetchProjectsForTemplate(supabase, template.id);
-    targetLinkIds = projects.map((p) => p.linkId);
-  }
-
+  publishIntent: PublishIntent
+): Promise<string> {
   const draftId = generateNodeId();
   await saveDraft({
     draftId,
     sourceTemplateId: template.id,
-    mode,
-    structure,
+    publishIntent,
+    structure: template.structure,
     actionLog: [],
     actionIndex: -1,
     metadata: {
       name: template.name,
+      description: template.description,
       icon: template.icon,
-      shared: mode === 'update' ? template.shared : false
+      shared: template.shared
     },
-    targetLinkIds,
     savedAt: Date.now()
   });
   return draftId;

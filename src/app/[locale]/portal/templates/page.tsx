@@ -4,9 +4,9 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ArrowLeft,
   Copy,
   Globe,
-  Lock,
   Pencil,
   Plus,
   Search,
@@ -25,7 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/spinner';
 import { useAuth } from '@/components/auth-provider';
-import { useConfirm } from '@/components/ui/confirm';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { fetchTemplates } from '@/lib/template/rpc';
 import type { TemplateRow } from '@/lib/template/types';
@@ -39,6 +38,8 @@ import {
   createDraftFromTemplate
 } from '@/lib/template/create-draft';
 import { PortalHeader } from '@/components/portal-header';
+import { LanguoidCombobox } from '@/components/languoid-combobox';
+import { TemplateProvenancePanel } from '@/components/template-provenance-panel';
 import { toast } from 'sonner';
 
 function countNodes(
@@ -89,10 +90,10 @@ function DraftCard({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{draft.metadata.name}</CardTitle>
           <Badge
-            variant={draft.mode === 'update' ? 'default' : 'secondary'}
+            variant={draft.publishIntent === 'update' ? 'default' : 'secondary'}
             className="text-xs"
           >
-            {draft.mode === 'update' ? 'updating' : 'starting point'}
+            {draft.publishIntent === 'update' ? 'updating' : 'starting point'}
           </Badge>
         </div>
         {sourceName && (
@@ -131,26 +132,22 @@ function DraftCard({
 function TemplateCard({
   template,
   onStartingPoint,
-  onUpdate
+  onUpdate,
+  onClick
 }: {
   template: TemplateRow;
   onStartingPoint: () => void;
   onUpdate: () => void;
+  onClick: () => void;
 }) {
   const nodeCount = countNodes(template.structure?.root);
 
   return (
-    <Card className="transition-colors hover:bg-accent/50">
+    <Card className="cursor-pointer transition-colors hover:bg-accent/50" onClick={onClick}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{template.name}</CardTitle>
           <div className="flex gap-1">
-            {template.locked_for_backward_compat && (
-              <Badge variant="outline" className="text-xs">
-                <Lock className="mr-1 h-3 w-3" />
-                Frozen
-              </Badge>
-            )}
             {template.shared && (
               <Badge variant="secondary" className="text-xs">
                 <Globe className="mr-1 h-3 w-3" />
@@ -159,6 +156,11 @@ function TemplateCard({
             )}
           </div>
         </div>
+        {template.description && (
+          <CardDescription className="line-clamp-2 text-xs">
+            {template.description}
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -168,17 +170,25 @@ function TemplateCard({
           </span>
           <span>{template.project_count} projects</span>
         </div>
-        <div className="mt-3 flex gap-2">
-          <Button size="sm" variant="outline" onClick={onStartingPoint}>
+        <div className="mt-3 flex flex-col gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full justify-start"
+            onClick={(e) => { e.stopPropagation(); onStartingPoint(); }}
+          >
             <Copy className="mr-1.5 h-3.5 w-3.5" />
             Use as starting point
           </Button>
-          {!template.locked_for_backward_compat && (
-            <Button size="sm" variant="outline" onClick={onUpdate}>
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              Update for my projects
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full justify-start"
+            onClick={(e) => { e.stopPropagation(); onUpdate(); }}
+          >
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            Update for my projects
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -193,14 +203,16 @@ function TemplatesContent() {
   const { user, signOut, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const supabase = createBrowserClient();
-  const dialogs = useConfirm();
   const [search, setSearch] = useState('');
+  const [languoidId, setLanguoidId] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateRow | null>(null);
   const [drafts, setDrafts] = useState<TemplateDraft[]>([]);
   const [draftsLoaded, setDraftsLoaded] = useState(false);
 
   const { data: templates, isLoading } = useQuery({
-    queryKey: ['templates', user?.id],
-    queryFn: () => fetchTemplates(supabase),
+    queryKey: ['templates', user?.id, languoidId],
+    queryFn: () =>
+      fetchTemplates(supabase, languoidId ? { sourceLanguoidId: languoidId } : undefined),
     enabled: !!user
   });
 
@@ -225,11 +237,13 @@ function TemplatesContent() {
     templates?.map((bp) => [bp.id, bp.name]) ?? []
   );
 
+  const searchLower = search.toLowerCase();
   const filtered = templates?.filter(
     (bp) =>
       !search ||
-      bp.name.toLowerCase().includes(search.toLowerCase()) ||
-      bp.slug?.toLowerCase().includes(search.toLowerCase())
+      bp.name.toLowerCase().includes(searchLower) ||
+      bp.slug?.toLowerCase().includes(searchLower) ||
+      bp.description?.toLowerCase().includes(searchLower)
   );
 
   const myTemplates = filtered?.filter((bp) => bp.creator_id === user.id);
@@ -248,27 +262,13 @@ function TemplatesContent() {
   }
 
   async function handleStartingPoint(bp: TemplateRow) {
-    const draftId = await createDraftFromTemplate(
-      bp,
-      'starting_point',
-      dialogs,
-      supabase
-    );
-    if (draftId) router.push(`/portal/templates/draft/${draftId}`);
+    const draftId = await createDraftFromTemplate(bp, 'starting_point');
+    router.push(`/portal/templates/draft/${draftId}`);
   }
 
   async function handleUpdate(bp: TemplateRow) {
-    try {
-      const draftId = await createDraftFromTemplate(
-        bp,
-        'update',
-        dialogs,
-        supabase
-      );
-      if (draftId) router.push(`/portal/templates/draft/${draftId}`);
-    } catch {
-      toast.error('Failed to fetch projects for this template.');
-    }
+    const draftId = await createDraftFromTemplate(bp, 'update');
+    router.push(`/portal/templates/draft/${draftId}`);
   }
 
   async function handleDeleteDraft(draftId: string) {
@@ -281,6 +281,16 @@ function TemplatesContent() {
     <div className="space-y-6">
       <PortalHeader user={user} onSignOut={() => void signOut()} />
 
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.push('/portal')}
+        className="mb-2"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Projects
+      </Button>
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Templates</h1>
         <Button onClick={() => void handleNewFromScratch()}>
@@ -289,14 +299,23 @@ function TemplatesContent() {
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search templates..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search templates..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="w-56">
+          <LanguoidCombobox
+            value={languoidId}
+            onChange={setLanguoidId}
+            placeholder="All languages"
+          />
+        </div>
       </div>
 
       {draftsLoaded && filteredDrafts.length > 0 && (
@@ -336,6 +355,7 @@ function TemplatesContent() {
               <TemplateCard
                 key={bp.id}
                 template={bp}
+                onClick={() => setSelectedTemplate(bp)}
                 onStartingPoint={() => void handleStartingPoint(bp)}
                 onUpdate={() => void handleUpdate(bp)}
               />
@@ -352,6 +372,7 @@ function TemplatesContent() {
               <TemplateCard
                 key={bp.id}
                 template={bp}
+                onClick={() => setSelectedTemplate(bp)}
                 onStartingPoint={() => void handleStartingPoint(bp)}
                 onUpdate={() => void handleUpdate(bp)}
               />
@@ -365,6 +386,14 @@ function TemplatesContent() {
           No templates found. Create one to get started.
         </div>
       )}
+
+      <TemplateProvenancePanel
+        template={selectedTemplate}
+        open={!!selectedTemplate}
+        onOpenChange={(open) => { if (!open) setSelectedTemplate(null); }}
+        onStartingPoint={(tpl) => void handleStartingPoint(tpl)}
+        onUpdate={(tpl) => void handleUpdate(tpl)}
+      />
     </div>
   );
 }

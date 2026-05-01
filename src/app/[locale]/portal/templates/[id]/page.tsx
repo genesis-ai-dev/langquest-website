@@ -25,14 +25,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/components/auth-provider';
-import { useConfirm } from '@/components/ui/confirm';
 import { createBrowserClient } from '@/lib/supabase/client';
 import {
   fetchTemplateById,
   fetchProjectsForTemplate,
   saveTemplateMetadata
 } from '@/lib/template/rpc';
-import type { DraftMode } from '@/lib/template/types';
+import type { PublishIntent } from '@/lib/template/types';
 import { createDraftFromTemplate } from '@/lib/template/create-draft';
 import { toast } from 'sonner';
 import { TemplateEditorTree } from '@/components/template-editor-tree';
@@ -109,7 +108,6 @@ function EditorContent() {
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createBrowserClient();
-  const dialogs = useConfirm();
 
   const {
     data: tpl,
@@ -143,24 +141,16 @@ function EditorContent() {
     );
   }
 
-  const isFrozen = tpl.locked_for_backward_compat;
   const isCreator = tpl.creator_id === user?.id;
-  const hasLinkedProjects =
-    !isFrozen && linkedProjects && linkedProjects.length > 0;
+  const unfrozenLinks = linkedProjects?.filter((p) => !p.frozen) ?? [];
+  const hasLinkedProjects = unfrozenLinks.length > 0;
+  const allLinksFrozen =
+    linkedProjects && linkedProjects.length > 0 && unfrozenLinks.length === 0;
 
-  async function handleCreateDraft(mode: DraftMode) {
+  async function handleCreateDraft(intent: PublishIntent) {
     if (!tpl) return;
-    try {
-      const draftId = await createDraftFromTemplate(
-        tpl,
-        mode,
-        dialogs,
-        supabase
-      );
-      if (draftId) router.push(`/portal/templates/draft/${draftId}`);
-    } catch {
-      toast.error('Failed to create draft.');
-    }
+    const draftId = await createDraftFromTemplate(tpl, intent);
+    router.push(`/portal/templates/draft/${draftId}`);
   }
 
   return (
@@ -189,10 +179,10 @@ function EditorContent() {
             <TreePine className="mr-1 h-3 w-3" />
             Published
           </Badge>
-          {isFrozen && (
+          {allLinksFrozen && (
             <Badge variant="outline">
               <Lock className="mr-1 h-3 w-3" />
-              Frozen
+              All projects frozen
             </Badge>
           )}
         </div>
@@ -220,8 +210,8 @@ function EditorContent() {
         </div>
       </div>
 
-      {/* Frozen banner */}
-      {isFrozen && (
+      {/* Frozen links banner */}
+      {allLinksFrozen && (
         <div
           className={cn(
             'flex items-center justify-between rounded-lg border p-4',
@@ -231,11 +221,11 @@ function EditorContent() {
         >
           <div>
             <p className="font-medium text-amber-800 dark:text-amber-200">
-              This template is frozen for backward compatibility
+              All linked projects are frozen
             </p>
             <p className="text-sm text-amber-600 dark:text-amber-400">
-              It cannot be updated in place. Use &ldquo;Use as starting
-              point&rdquo; to create a new draft from this template.
+              Projects using this template cannot be re-pointed to a new version.
+              You can still use this as a starting point for new work.
             </p>
           </div>
         </div>

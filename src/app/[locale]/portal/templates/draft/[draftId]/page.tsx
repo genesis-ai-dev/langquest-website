@@ -4,12 +4,12 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  Download,
   Save,
   Undo2,
   Redo2,
   Trash2,
   Settings2,
-  ArrowRightLeft,
   AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,8 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import {
   publishTemplate,
   fetchProjectsForTemplate,
-  fetchTemplateById
+  fetchTemplateById,
+  checkTemplateCompatibility
 } from '@/lib/template/rpc';
 import {
   applyAction,
@@ -53,38 +54,47 @@ import {
   deleteDraft,
   type TemplateDraft
 } from '@/lib/template/draft-store';
-import type { TemplateStructure, DraftMode } from '@/lib/template/types';
+import type { TemplateStructure, TemplateNode, PublishIntent } from '@/lib/template/types';
 import {
   hasHiddenNodes,
   countHiddenNodes,
   stripHiddenNodes
 } from '@/lib/template/hidden-nodes';
+import { computeTreeDiff, collectNodeIds } from '@/lib/template/tree-diff';
 import { toast } from 'sonner';
 import { TemplateEditorTree } from '@/components/template-editor-tree';
 import { TemplateNodePanel } from '@/components/template-node-panel';
+import { TemplateImportDialog } from '@/components/template-import-dialog';
 
 type LinkedProject = {
   linkId: string;
   projectId: string;
   projectName: string;
+  frozen: boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Metadata sheet
+// ---------------------------------------------------------------------------
 
 function DraftMetadataSheet({
   metadata,
   onUpdate
 }: {
-  metadata: { name: string; icon: string | null; shared: boolean };
-  onUpdate: (m: { name: string; icon: string | null; shared: boolean }) => void;
+  metadata: { name: string; description: string | null; icon: string | null; shared: boolean };
+  onUpdate: (m: { name: string; description: string | null; icon: string | null; shared: boolean }) => void;
 }) {
   const [name, setName] = useState(metadata.name);
+  const [description, setDescription] = useState(metadata.description ?? '');
   const [icon, setIcon] = useState(metadata.icon ?? '');
   const [shared, setShared] = useState(metadata.shared);
 
   useEffect(() => {
     setName(metadata.name);
+    setDescription(metadata.description ?? '');
     setIcon(metadata.icon ?? '');
     setShared(metadata.shared);
-  }, [metadata.name, metadata.icon, metadata.shared]);
+  }, [metadata.name, metadata.description, metadata.icon, metadata.shared]);
 
   return (
     <Sheet>
@@ -103,6 +113,14 @@ function DraftMetadataSheet({
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-2">
+            <Label>Description</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of this template"
+            />
+          </div>
+          <div className="space-y-2">
             <Label>Icon (lucide name)</Label>
             <Input value={icon} onChange={(e) => setIcon(e.target.value)} />
           </div>
@@ -115,6 +133,7 @@ function DraftMetadataSheet({
             onClick={() => {
               onUpdate({
                 name: name.trim() || metadata.name,
+                description: description.trim() || null,
                 icon: icon.trim() || null,
                 shared
               });
@@ -129,6 +148,10 @@ function DraftMetadataSheet({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Editor
+// ---------------------------------------------------------------------------
+
 function DraftEditorContent() {
   const { draftId } = useParams<{ draftId: string }>();
   useAuth();
@@ -142,26 +165,29 @@ function DraftEditorContent() {
   const [actions, setActions] = useState<TemplateAction[]>([]);
   const [actionIndex, setActionIndex] = useState(-1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [mode, setMode] = useState<DraftMode>('starting_point');
-  const [targetLinkIds, setTargetLinkIds] = useState<string[]>([]);
   const [metadata, setMetadata] = useState({
     name: '',
+    description: '' as string | null,
     icon: null as string | null,
     shared: false
   });
+
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
-  const [switchModeDialogOpen, setSwitchModeDialogOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  const [sourceTemplateName, setSourceTemplateName] = useState<string | null>(
-    null
-  );
+  const [sourceTemplateName, setSourceTemplateName] = useState<string | null>(null);
+
+  // Publish dialog state — all project logic lives here, not in the editor
+  const [publishTarget, setPublishTarget] = useState<
+    'starting_point' | 'update' | 'both'
+  >('starting_point');
   const [linkedProjects, setLinkedProjects] = useState<LinkedProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
-
-  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [selectedLinkIds, setSelectedLinkIds] = useState<string[]>([]);
 
   // Load draft from IndexedDB
   useEffect(() => {
@@ -181,11 +207,8 @@ function DraftEditorContent() {
         setInitialStructure(loaded.structure);
         setActions(loaded.actionLog);
         setActionIndex(loaded.actionIndex);
-        setMode(loaded.mode);
-        setTargetLinkIds(loaded.targetLinkIds);
         setMetadata(loaded.metadata);
 
-        // Rebuild current structure from initial + replayed actions
         if (loaded.actionLog.length > 0 && loaded.actionIndex >= 0) {
           const replayed = loaded.actionLog
             .slice(0, loaded.actionIndex + 1)
@@ -194,7 +217,6 @@ function DraftEditorContent() {
               loaded.structure
             );
           setStructure(replayed);
-          // initialStructure stays as the base before any actions
           setInitialStructure(loaded.structure);
         }
       } catch (err) {
@@ -220,26 +242,6 @@ function DraftEditorContent() {
     })();
   }, [draft?.sourceTemplateId, supabase]);
 
-  // Fetch linked projects for update mode
-  useEffect(() => {
-    if (mode !== 'update' || !draft?.sourceTemplateId) return;
-
-    setLoadingProjects(true);
-    (async () => {
-      try {
-        const projects = await fetchProjectsForTemplate(
-          supabase,
-          draft.sourceTemplateId!
-        );
-        setLinkedProjects(projects);
-      } catch {
-        toast.error('Failed to load linked projects');
-      } finally {
-        setLoadingProjects(false);
-      }
-    })();
-  }, [mode, draft?.sourceTemplateId, supabase]);
-
   // Auto-save draft (debounced 1s)
   useEffect(() => {
     if (!draftId || !structure || !draft) return;
@@ -248,12 +250,11 @@ function DraftEditorContent() {
       saveDraft({
         draftId,
         sourceTemplateId: draft.sourceTemplateId,
-        mode,
+        publishIntent: draft.publishIntent,
         structure: initialStructure!,
         actionLog: actions,
         actionIndex,
         metadata,
-        targetLinkIds,
         savedAt: Date.now()
       });
     }, 1000);
@@ -263,10 +264,8 @@ function DraftEditorContent() {
     actions,
     actionIndex,
     metadata,
-    targetLinkIds,
     draftId,
     draft,
-    mode,
     initialStructure
   ]);
 
@@ -330,51 +329,181 @@ function DraftEditorContent() {
     setActionIndex(target);
   }, [actionIndex, actions, structure]);
 
-  const handleSwitchToStartingPoint = useCallback(() => {
-    if (!structure) return;
-    const stripped = stripHiddenNodes(structure.root);
-    const newStructure: TemplateStructure = {
-      ...structure,
-      root: stripped
-    };
-    setStructure(newStructure);
-    setInitialStructure(newStructure);
-    setActions([]);
-    setActionIndex(-1);
-    setMode('starting_point');
-    setTargetLinkIds([]);
-    setSwitchModeDialogOpen(false);
-    toast.success('Switched to starting-point mode');
-  }, [structure]);
+  const handleImportNodes = useCallback(
+    (nodes: TemplateNode[]) => {
+      if (!structure || nodes.length === 0) return;
+      const batch: TemplateAction[] = nodes.map((node, i) => ({
+        type: 'add_node' as const,
+        payload: {
+          parentId: structure.root.id,
+          node,
+          insertIndex: (structure.root.children?.length ?? 0) + i
+        },
+        timestamp: Date.now()
+      }));
+      dispatchBatchActions(batch);
+      toast.success(`Imported ${nodes.length} section${nodes.length > 1 ? 's' : ''}`);
+    },
+    [structure, dispatchBatchActions]
+  );
+
+  // Open publish dialog — fetch linked projects at this point
+  const openPublishDialog = useCallback(async () => {
+    if (!draft) return;
+
+    // Set default from publishIntent
+    setPublishTarget(draft.publishIntent);
+    setSelectedLinkIds([]);
+
+    if (draft.sourceTemplateId) {
+      setLoadingProjects(true);
+      try {
+        const projects = await fetchProjectsForTemplate(
+          supabase,
+          draft.sourceTemplateId
+        );
+        setLinkedProjects(projects);
+        // Pre-select non-frozen links
+        setSelectedLinkIds(
+          projects.filter((p) => !p.frozen).map((p) => p.linkId)
+        );
+      } catch {
+        toast.error('Failed to load linked projects');
+        setLinkedProjects([]);
+      } finally {
+        setLoadingProjects(false);
+      }
+    } else {
+      setLinkedProjects([]);
+    }
+
+    setPublishDialogOpen(true);
+  }, [draft, supabase]);
 
   async function handlePublish() {
-    if (!structure || !draft) return;
+    if (!structure || !draft || !initialStructure) return;
 
-    if (mode === 'starting_point' && hasHiddenNodes(structure.root)) {
-      toast.error(
-        'Cannot publish: structure contains hidden nodes in starting-point mode. This is a bug — please report it.'
-      );
+    if (!metadata.name.trim()) {
+      toast.error('A template name is required before publishing. Set it in Draft Settings.');
       return;
     }
 
     setPublishing(true);
     try {
-      const result = await publishTemplate(supabase, {
-        sourceTemplateId: draft.sourceTemplateId,
-        structure,
-        name: metadata.name,
-        icon: metadata.icon ?? undefined,
-        shared: metadata.shared,
-        targetLinkIds: mode === 'update' ? targetLinkIds : undefined,
-        actions: actions.slice(0, actionIndex + 1)
-      });
+      const nonFrozenLinkIds = selectedLinkIds;
+      const wantsUpdate =
+        publishTarget === 'update' || publishTarget === 'both';
+      const wantsClean =
+        publishTarget === 'starting_point' || publishTarget === 'both';
 
-      if (result.ok) {
-        await deleteDraft(draftId);
-        toast.success('Published successfully');
-        router.push(`/portal/templates/${result.template_id}`);
+      // Compatibility check when updating existing projects
+      if (wantsUpdate && draft.sourceTemplateId && nonFrozenLinkIds.length > 0) {
+        const nodeIds = [...collectNodeIds(structure.root)];
+        const compat = await checkTemplateCompatibility(
+          supabase,
+          draft.sourceTemplateId,
+          nonFrozenLinkIds,
+          nodeIds
+        );
+        if (!compat.compatible) {
+          toast.error(
+            `Cannot update: ${compat.missing_node_ids.length} node(s) referenced by existing contributions would be orphaned. Restore them and try again.`
+          );
+          setPublishing(false);
+          return;
+        }
+      }
+
+      const diff = computeTreeDiff(initialStructure, structure);
+
+      if (publishTarget === 'both' && draft.sourceTemplateId) {
+        // Fork 1: with tombstones, re-pointing existing projects
+        const updateResult = await publishTemplate(supabase, {
+          sourceTemplateId: draft.sourceTemplateId,
+          structure,
+          name: metadata.name,
+          description: metadata.description,
+          icon: metadata.icon ?? undefined,
+          shared: metadata.shared,
+          targetLinkIds: nonFrozenLinkIds,
+          actions: diff
+        });
+
+        if (!updateResult.ok) {
+          toast.error(updateResult.reason);
+          setPublishing(false);
+          return;
+        }
+
+        // Fork 2: clean, for general availability
+        const cleanStructure: TemplateStructure = {
+          ...structure,
+          root: stripHiddenNodes(structure.root)
+        };
+        const cleanDiff = computeTreeDiff(initialStructure, cleanStructure);
+
+        const cleanResult = await publishTemplate(supabase, {
+          sourceTemplateId: draft.sourceTemplateId,
+          structure: cleanStructure,
+          name: metadata.name,
+          description: metadata.description,
+          icon: metadata.icon ?? undefined,
+          shared: metadata.shared,
+          actions: cleanDiff
+        });
+
+        if (cleanResult.ok) {
+          await deleteDraft(draftId);
+          toast.success('Published both versions successfully');
+          router.push(`/portal/templates/${updateResult.template_id}`);
+        } else {
+          toast.error(`Update published, but clean version failed: ${cleanResult.reason}`);
+        }
+      } else if (wantsUpdate && draft.sourceTemplateId) {
+        const result = await publishTemplate(supabase, {
+          sourceTemplateId: draft.sourceTemplateId,
+          structure,
+          name: metadata.name,
+          description: metadata.description,
+          icon: metadata.icon ?? undefined,
+          shared: metadata.shared,
+          targetLinkIds: nonFrozenLinkIds,
+          actions: diff
+        });
+
+        if (result.ok) {
+          await deleteDraft(draftId);
+          toast.success('Published successfully');
+          router.push(`/portal/templates/${result.template_id}`);
+        } else {
+          toast.error(result.reason);
+        }
       } else {
-        toast.error(result.reason);
+        // Starting point — publish clean
+        const finalStructure = hasHiddenNodes(structure.root)
+          ? { ...structure, root: stripHiddenNodes(structure.root) }
+          : structure;
+        const finalDiff = hasHiddenNodes(structure.root)
+          ? computeTreeDiff(initialStructure, finalStructure)
+          : diff;
+
+        const result = await publishTemplate(supabase, {
+          sourceTemplateId: draft.sourceTemplateId,
+          structure: finalStructure,
+          name: metadata.name,
+          description: metadata.description,
+          icon: metadata.icon ?? undefined,
+          shared: metadata.shared,
+          actions: finalDiff
+        });
+
+        if (result.ok) {
+          await deleteDraft(draftId);
+          toast.success('Published successfully');
+          router.push(`/portal/templates/${result.template_id}`);
+        } else {
+          toast.error(result.reason);
+        }
       }
     } catch (err) {
       console.error('Publish failed:', err);
@@ -396,7 +525,7 @@ function DraftEditorContent() {
 
   const toggleProjectLink = useCallback(
     (linkId: string) => {
-      setTargetLinkIds((prev) =>
+      setSelectedLinkIds((prev) =>
         prev.includes(linkId)
           ? prev.filter((id) => id !== linkId)
           : [...prev, linkId]
@@ -435,13 +564,11 @@ function DraftEditorContent() {
       ? findNodeById(structure.root, selectedNodeId)
       : null;
 
-  const modeLabel =
-    mode === 'starting_point' ? 'starting point' : 'updating projects';
+  const hiddenCount = structure ? countHiddenNodes(structure.root) : 0;
+  const hasSource = !!draft.sourceTemplateId;
 
   const affectedProjectCount =
-    mode === 'update'
-      ? linkedProjects.filter((p) => targetLinkIds.includes(p.linkId)).length
-      : 0;
+    linkedProjects.filter((p) => selectedLinkIds.includes(p.linkId)).length;
 
   return (
     <div className="space-y-4">
@@ -458,7 +585,7 @@ function DraftEditorContent() {
           <div>
             <h1 className="text-xl font-bold">{metadata.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {draft.sourceTemplateId
+              {hasSource
                 ? `Based on: ${sourceTemplateName ?? 'Loading...'}`
                 : 'New template'}
             </p>
@@ -467,8 +594,13 @@ function DraftEditorContent() {
             variant="outline"
             className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
           >
-            Draft — {modeLabel}
+            Draft
           </Badge>
+          {hiddenCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {hiddenCount} deleted item{hiddenCount !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -487,8 +619,16 @@ function DraftEditorContent() {
           >
             <Redo2 className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setImportDialogOpen(true)}
+            title="Import sections from another template"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
           <DraftMetadataSheet metadata={metadata} onUpdate={setMetadata} />
-          <Button onClick={() => setPublishDialogOpen(true)}>
+          <Button onClick={() => void openPublishDialog()}>
             <Save className="mr-2 h-4 w-4" />
             Publish
           </Button>
@@ -502,63 +642,6 @@ function DraftEditorContent() {
         </div>
       </div>
 
-      {/* Mode switch banner (update mode only) */}
-      {mode === 'update' && (
-        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
-          <div>
-            <p className="font-medium text-blue-800 dark:text-blue-200">
-              Update mode
-            </p>
-            <p className="text-sm text-blue-600 dark:text-blue-400">
-              Hidden nodes will be preserved. Publishing will update selected
-              linked projects.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSwitchModeDialogOpen(true)}
-          >
-            <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Switch to starting-point mode
-          </Button>
-        </div>
-      )}
-
-      {/* Project link panel (update mode only) */}
-      {mode === 'update' && draft.sourceTemplateId && (
-        <div className="rounded-lg border p-4">
-          <h3 className="mb-3 text-sm font-medium">
-            Projects to update on publish
-          </h3>
-          {loadingProjects ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Spinner className="h-4 w-4" />
-              Loading linked projects...
-            </div>
-          ) : linkedProjects.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No projects are linked to this template.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {linkedProjects.map((project) => (
-                <label
-                  key={project.linkId}
-                  className="flex cursor-pointer items-center gap-2"
-                >
-                  <Checkbox
-                    checked={targetLinkIds.includes(project.linkId)}
-                    onCheckedChange={() => toggleProjectLink(project.linkId)}
-                  />
-                  <span className="text-sm">{project.projectName}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Tree Editor + Property Panel */}
       {structure && (
         <div className="flex gap-4">
@@ -566,7 +649,6 @@ function DraftEditorContent() {
             <TemplateEditorTree
               root={structure.root}
               canEdit
-              mode={mode}
               selectedNodeId={selectedNodeId}
               onNodeSelect={setSelectedNodeId}
               onBatchActions={dispatchBatchActions}
@@ -586,41 +668,127 @@ function DraftEditorContent() {
         </div>
       )}
 
-      {/* Publish dialog */}
+      {/* Publish dialog — all project/target logic lives here */}
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Publish template</DialogTitle>
             <DialogDescription>
-              {mode === 'starting_point'
-                ? 'This will create a new published template available for use in projects.'
-                : `This will create a new version and update ${affectedProjectCount} project${affectedProjectCount === 1 ? '' : 's'}.`}
+              Choose how to publish your changes.
             </DialogDescription>
           </DialogHeader>
-          {mode === 'update' && affectedProjectCount > 0 && (
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">Affected projects:</p>
-              <ul className="list-inside list-disc text-muted-foreground">
-                {linkedProjects
-                  .filter((p) => targetLinkIds.includes(p.linkId))
-                  .map((p) => (
-                    <li key={p.linkId}>{p.projectName}</li>
-                  ))}
-              </ul>
+
+          {/* Publish target selector */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Publish target</p>
+            <div className="space-y-1.5">
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <input
+                  type="radio"
+                  name="publishTarget"
+                  value="starting_point"
+                  checked={publishTarget === 'starting_point'}
+                  onChange={() => setPublishTarget('starting_point')}
+                  className="accent-primary"
+                />
+                <div>
+                  <p className="text-sm font-medium">Make available for new projects</p>
+                  <p className="text-xs text-muted-foreground">
+                    {hiddenCount > 0
+                      ? `Deleted items (${hiddenCount}) will be stripped from the published version`
+                      : 'A clean template ready for anyone to use'}
+                  </p>
+                </div>
+              </label>
+              {hasSource && (
+                <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                  <input
+                    type="radio"
+                    name="publishTarget"
+                    value="update"
+                    checked={publishTarget === 'update'}
+                    onChange={() => setPublishTarget('update')}
+                    className="accent-primary"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Update existing projects</p>
+                    <p className="text-xs text-muted-foreground">
+                      {hiddenCount > 0
+                        ? `Deleted items preserved as hidden for data integrity`
+                        : 'Re-point selected project links to this version'}
+                    </p>
+                  </div>
+                </label>
+              )}
+              {hasSource && hiddenCount > 0 && (
+                <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                  <input
+                    type="radio"
+                    name="publishTarget"
+                    value="both"
+                    checked={publishTarget === 'both'}
+                    onChange={() => setPublishTarget('both')}
+                    className="accent-primary"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Both</p>
+                    <p className="text-xs text-muted-foreground">
+                      Update existing projects and publish a clean version for general use
+                    </p>
+                  </div>
+                </label>
+              )}
             </div>
-          )}
-          {mode === 'starting_point' &&
-            structure &&
-            hasHiddenNodes(structure.root) && (
-              <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
-                <p className="text-sm text-red-700 dark:text-red-300">
-                  This structure contains {countHiddenNodes(structure.root)}{' '}
-                  hidden node(s). Starting-point templates cannot have hidden
-                  nodes. This is likely a bug.
-                </p>
+          </div>
+
+          {/* Project selection (only when updating) */}
+          {(publishTarget === 'update' || publishTarget === 'both') &&
+            hasSource && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Projects to update</p>
+                {loadingProjects ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Spinner className="h-4 w-4" />
+                    Loading linked projects...
+                  </div>
+                ) : linkedProjects.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No projects are linked to this template.
+                  </p>
+                ) : (
+                  <div className="max-h-40 space-y-1.5 overflow-y-auto">
+                    {linkedProjects.map((project) => (
+                      <label
+                        key={project.linkId}
+                        className="flex cursor-pointer items-center gap-2"
+                      >
+                        <Checkbox
+                          checked={selectedLinkIds.includes(project.linkId)}
+                          onCheckedChange={() => toggleProjectLink(project.linkId)}
+                          disabled={project.frozen}
+                        />
+                        <span className="text-sm">
+                          {project.projectName}
+                          {project.frozen && (
+                            <span className="ml-1 text-xs text-muted-foreground">(frozen)</span>
+                          )}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
+
+          {/* Summary */}
+          {publishTarget !== 'starting_point' && affectedProjectCount > 0 && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-800 dark:bg-blue-950/30">
+              <p className="text-blue-800 dark:text-blue-200">
+                {affectedProjectCount} project{affectedProjectCount !== 1 ? 's' : ''} will be updated.
+              </p>
+            </div>
+          )}
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -630,47 +798,9 @@ function DraftEditorContent() {
             </Button>
             <Button
               onClick={handlePublish}
-              disabled={
-                publishing ||
-                (mode === 'starting_point' &&
-                  !!structure &&
-                  hasHiddenNodes(structure.root))
-              }
+              disabled={publishing}
             >
               {publishing ? 'Publishing...' : 'Publish'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Switch mode dialog */}
-      <Dialog
-        open={switchModeDialogOpen}
-        onOpenChange={setSwitchModeDialogOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Switch to starting-point mode?</DialogTitle>
-            <DialogDescription>
-              Switching to starting-point mode will permanently remove all hidden
-              nodes and disconnect this draft from your projects. This cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          {structure && hasHiddenNodes(structure.root) && (
-            <p className="text-sm text-muted-foreground">
-              {countHiddenNodes(structure.root)} hidden node(s) will be removed.
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSwitchModeDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleSwitchToStartingPoint}>
-              Switch mode
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -699,6 +829,14 @@ function DraftEditorContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import dialog */}
+      <TemplateImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={handleImportNodes}
+        excludeTemplateId={draft.sourceTemplateId}
+      />
     </div>
   );
 }
