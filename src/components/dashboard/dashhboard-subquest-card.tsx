@@ -3,13 +3,13 @@ import { cn } from '@/lib/utils';
 
 type DashboardSubquestCardData = {
   name: string | null;
-  creator_id: string[];
-  ItemsExpected: number;
-  ItemsCompleted: number;
-  TotalAssets: number;
-  TotalImages: number;
-  TotalText: number;
-  TotalAudio: number;
+  creators: Array<{ id: string; name: string }>;
+  itemsExpected: number;
+  itemsCompleted: number;
+  totalAssets: number;
+  totalImages: number;
+  totalText: number;
+  totalAudio: number;
 };
 
 type DashboardSubquestCardProps = {
@@ -23,12 +23,12 @@ function toPercent(completed: number, expected: number) {
 
 export function DashboardSubquestCard({ subquest }: DashboardSubquestCardProps) {
   const creatorsLabel =
-    subquest.creator_id.length > 0
-      ? subquest.creator_id.join(', ')
+    subquest.creators.length > 0
+      ? subquest.creators.map((creator) => creator.name).join(', ')
       : 'No creators';
   const progressPercent = toPercent(
-    subquest.ItemsCompleted,
-    subquest.ItemsExpected
+    subquest.itemsCompleted,
+    subquest.itemsExpected
   );
 
   return (
@@ -50,27 +50,27 @@ export function DashboardSubquestCard({ subquest }: DashboardSubquestCardProps) 
               Assets
             </p>
             <p className="text-base font-semibold tabular-nums text-foreground">
-              {subquest.TotalAssets}
+              {subquest.totalAssets}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2 text-[11px] text-muted-foreground tabular-nums">
             <span className="inline-flex items-center gap-1">
               <FileText className="h-3 w-3" />
-              {subquest.TotalText}
+              {subquest.totalText}
             </span>
             <span className="inline-flex items-center gap-1">
               <AudioLines className="h-3 w-3" />
-              {subquest.TotalAudio}
+              {subquest.totalAudio}
             </span>
             <span className="inline-flex items-center gap-1">
               <Image className="h-3 w-3" />
-              {subquest.TotalImages}
+              {subquest.totalImages}
             </span>
           </div>
         </div>
       </div>
 
-      {subquest.ItemsExpected > 0 ? (
+      {subquest.itemsExpected > 0 ? (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
             <span>Progress</span>
@@ -83,9 +83,9 @@ export function DashboardSubquestCard({ subquest }: DashboardSubquestCardProps) 
                     : 'text-foreground'
                 )}
               >
-                {subquest.ItemsCompleted}
+                {subquest.itemsCompleted}
               </span>
-              <span>/ {subquest.ItemsExpected}</span>
+              <span>/ {subquest.itemsExpected}</span>
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

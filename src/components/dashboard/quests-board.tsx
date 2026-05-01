@@ -18,25 +18,25 @@ import {
 
 export type DashboardSubquest = {
   name: string | null;
-  creator_id: string[];
+  creators: Array<{ id: string; name: string }>;
   languoids: string[];
-  ItemsExpected: number;
-  ItemsCompleted: number;
-  TotalAssets: number;
-  TotalImages: number;
-  TotalText: number;
-  TotalAudio: number;
+  itemsExpected: number;
+  itemsCompleted: number;
+  totalAssets: number;
+  totalImages: number;
+  totalText: number;
+  totalAudio: number;
 };
 
 export type DashboardMainQuest = {
   name: string | null;
-  QuestCompleted: boolean;
-  TotalSubquestsCreated: number;
-  TotalSubquestsExpected: number;
-  TotalSubquestsCompleted: number;
-  TotalAssets: number;
+  questCompleted: boolean;
+  totalSubquestsCreated: number;
+  totalSubquestsExpected: number;
+  totalSubquestsCompleted: number;
+  totalAssets: number;
   languoids: string[];
-  Creators: string[];
+  creators: Array<{ id: string; name: string }>;
   subquests: DashboardSubquest[];
 };
 

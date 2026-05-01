@@ -3,36 +3,36 @@ export type ProjectTemplate = 'unstructured' | 'bible' | 'fia';
 export type JsonRecord = Record<string, unknown>;
 
 export interface MemberStats {
-  QuestsCreated: number;
-  AssetsCreated: number;
+  questsCreated: number;
+  assetsCreated: number;
 }
 
 export interface DashboardSubquestItem {
   name: string | null;
-  creator_id: string[];
+  creatorsId: string[];
   languoids: string[];
-  ItemsExpected: number;
-  ItemsCompleted: number;
-  TotalVersions: number;
-  TotalAssets: number;
-  TotalTranscriptions: number;
-  TotalTranslations: number;
-  TotalAssetsWithTranscription: number;
-  TotalAssetsWithTranslation: number;
-  TotalImages: number;
-  TotalText: number;
-  TotalAudio: number;
+  itemsExpected: number;
+  itemsCompleted: number;
+  totalVersions: number;
+  totalAssets: number;
+  totalTranscriptions: number;
+  totalTranslations: number;
+  totalAssetsWithTranscription: number;
+  totalAssetsWithTranslation: number;
+  totalImages: number;
+  totalText: number;
+  totalAudio: number;
 }
 
 export interface DashboardQuestItem {
   name: string | null;
-  QuestCompleted: boolean;
-  TotalSubquestsCreated: number;
-  TotalSubquestsExpected: number;
-  TotalSubquestsCompleted: number;
-  TotalAssets: number;
+  questCompleted: boolean;
+  totalSubquestsCreated: number;
+  totalSubquestsExpected: number;
+  totalSubquestsCompleted: number;
+  totalAssets: number;
   languoids: string[];
-  Creators: string[];
+  creatorsId: string[];
   subquests: DashboardSubquestItem[];
 }
 

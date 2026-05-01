@@ -2,43 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
 
+type DashboardCreator = {
+  id: string;
+  name: string;
+};
+
 type DashboardSubquest = {
   name: string | null;
-  creator_id: string[];
+  creatorsId?: string[];
+  creators: DashboardCreator[];
   languoids: string[];
-  ItemsExpected: number;
-  ItemsCompleted: number;
-  TotalVersions: number;
-  TotalAssets: number;
-  TotalTranscriptions: number;
-  TotalTranslations: number;
-  TotalAssetsWithTranscription: number;
-  TotalAssetsWithTranslation: number;
-  TotalImages: number;
-  TotalText: number;
-  TotalAudio: number;
+  itemsExpected: number;
+  itemsCompleted: number;
+  totalVersions: number;
+  totalAssets: number;
+  totalTranscriptions: number;
+  totalTranslations: number;
+  totalAssetsWithTranscription: number;
+  totalAssetsWithTranslation: number;
+  totalImages: number;
+  totalText: number;
+  totalAudio: number;
 };
 
 type DashboardQuest = {
   name: string | null;
-  QuestCompleted: boolean;
-  TotalSubquestsCreated: number;
-  TotalSubquestsExpected: number;
-  TotalSubquestsCompleted: number;
-  TotalAssets: number;
+  creatorsId?: string[];
+  creators: DashboardCreator[];
+  questCompleted: boolean;
+  totalSubquestsCreated: number;
+  totalSubquestsExpected: number;
+  totalSubquestsCompleted: number;
+  totalAssets: number;
   languoids: string[];
-  Creators: string[];
   subquests: DashboardSubquest[];
 };
 
+type DashboardMemberStats = {
+  questsCreated: number;
+  assetsCreated: number;
+  name?: string;
+};
+
 type DashboardJson = {
-  members: Record<
-    string,
-    {
-      QuestsCreated: number;
-      AssetsCreated: number;
-    }
-  >;
+  members: Record<string, DashboardMemberStats>;
   quests: Record<string, DashboardQuest>;
 };
 
@@ -115,6 +122,86 @@ function normalizeDashboardJson(value: DashboardJson | null | undefined): Dashbo
   return {
     members: value?.members ?? {},
     quests: value?.quests ?? {}
+  };
+}
+
+async function enrichDashboardMemberNames(
+  supabase: any,
+  dashboardJson: DashboardJson
+): Promise<DashboardJson> {
+  const memberIds = Object.keys(dashboardJson.members);
+  if (memberIds.length === 0) return dashboardJson;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profile')
+    .select('id,username')
+    .in('id', memberIds);
+
+  if (profilesError) {
+    console.error('dashboard project route profile lookup error:', profilesError);
+    return dashboardJson;
+  }
+
+  const profileNameById = new Map(
+    ((profiles ?? []) as Array<{ id: string; username: string | null }>).map(
+      (profile) => [profile.id, profile.username || `Member ${profile.id.slice(0, 8)}`]
+    )
+  );
+
+  const enrichedMembers: DashboardJson['members'] = {};
+  for (const [memberId, memberStats] of Object.entries(dashboardJson.members)) {
+    enrichedMembers[memberId] = {
+      ...memberStats,
+      name: profileNameById.get(memberId) ?? `Member ${memberId.slice(0, 8)}`
+    };
+  }
+
+  return {
+    ...dashboardJson,
+    members: enrichedMembers
+  };
+}
+
+function toDashboardCreator(
+  creatorId: string,
+  members: DashboardJson['members']
+): DashboardCreator {
+  return {
+    id: creatorId,
+    name: members[creatorId]?.name ?? `Member ${creatorId.slice(0, 8)}`
+  };
+}
+
+function enrichDashboardQuestCreators(dashboardJson: DashboardJson): DashboardJson {
+  const enrichedQuests: DashboardJson['quests'] = {};
+
+  for (const [questId, quest] of Object.entries(dashboardJson.quests)) {
+    const questCreatorIds = quest.creatorsId ?? [];
+    const subquests = quest.subquests ?? [];
+
+    enrichedQuests[questId] = {
+      ...quest,
+      creatorsId: questCreatorIds,
+      creators: questCreatorIds.map((creatorId) =>
+        toDashboardCreator(creatorId, dashboardJson.members)
+      ),
+      subquests: subquests.map((subquest) => {
+        const subquestCreatorIds = subquest.creatorsId ?? [];
+
+        return {
+          ...subquest,
+          creatorsId: subquestCreatorIds,
+          creators: subquestCreatorIds.map((creatorId) =>
+            toDashboardCreator(creatorId, dashboardJson.members)
+          )
+        };
+      })
+    };
+  }
+
+  return {
+    ...dashboardJson,
+    quests: enrichedQuests
   };
 }
 
@@ -224,6 +311,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
+    const normalizedDashboardJson = normalizeDashboardJson(dashboard?.dashboard_json);
+    const enrichedDashboardJson = await enrichDashboardMemberNames(
+      supabase,
+      normalizedDashboardJson
+    );
+    const enrichedDashboardWithCreators = enrichDashboardQuestCreators(
+      enrichedDashboardJson
+    );
+
     const response: DashboardProjectResponse = {
       project_id: project.id,
       project_status:
@@ -249,7 +345,7 @@ export async function GET(request: NextRequest) {
       total_target_languages: asNumber(dashboard?.total_target_languages),
       total_members: asNumber(dashboard?.total_members),
       total_owners: asNumber(dashboard?.total_owners),
-      dashboard_json: normalizeDashboardJson(dashboard?.dashboard_json),
+      dashboard_json: enrichedDashboardWithCreators,
       updated_at: dashboard?.updated_at ?? new Date(0).toISOString()
     };
 

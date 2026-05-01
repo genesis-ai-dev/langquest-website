@@ -267,16 +267,16 @@ export function buildGenericDashboardMetrics(
   const addMemberQuest = (profileId: string | null) => {
     if (!profileId) return;
     if (!members[profileId]) {
-      members[profileId] = { QuestsCreated: 0, AssetsCreated: 0 };
+      members[profileId] = { questsCreated: 0, assetsCreated: 0 };
     }
-    members[profileId].QuestsCreated += 1;
+    members[profileId].questsCreated += 1;
   };
   const addMemberAsset = (profileId: string | null) => {
     if (!profileId) return;
     if (!members[profileId]) {
-      members[profileId] = { QuestsCreated: 0, AssetsCreated: 0 };
+      members[profileId] = { questsCreated: 0, assetsCreated: 0 };
     }
-    members[profileId].AssetsCreated += 1;
+    members[profileId].assetsCreated += 1;
   };
 
   for (const quest of activeQuests) {
@@ -346,34 +346,34 @@ export function buildGenericDashboardMetrics(
 
       return {
         name: asString(quest.name),
-        creator_id: distinct([asString(quest.creator_id)]),
+        creatorsId: distinct([asString(quest.creator_id)]),
         languoids: directLanguoids,
-        ItemsExpected: directItemsCount,
-        ItemsCompleted: directItemsCount,
-        TotalVersions: 1,
-        TotalAssets: directAssets.length,
-        TotalTranscriptions: directAssetIds.reduce(
+        itemsExpected: directItemsCount,
+        itemsCompleted: directItemsCount,
+        totalVersions: 1,
+        totalAssets: directAssets.length,
+        totalTranscriptions: directAssetIds.reduce(
           (sum, assetId) => sum + (sourceTranscriptionCount.get(assetId) ?? 0),
           0
         ),
-        TotalTranslations: directAssetIds.reduce(
+        totalTranslations: directAssetIds.reduce(
           (sum, assetId) => sum + (sourceTranslationCount.get(assetId) ?? 0),
           0
         ),
-        TotalAssetsWithTranscription: countWhere(
+        totalAssetsWithTranscription: countWhere(
           directAssetIds,
           (assetId) => sourceHasTranscription.get(assetId) === true
         ),
-        TotalAssetsWithTranslation: countWhere(
+        totalAssetsWithTranslation: countWhere(
           directAssetIds,
           (assetId) => sourceHasTranslation.get(assetId) === true
         ),
-        TotalImages: countWhere(directAssets, (asset) => hasImage(asset)),
-        TotalText: countWhere(
+        totalImages: countWhere(directAssets, (asset) => hasImage(asset)),
+        totalText: countWhere(
           directAssetIds,
           (assetId) => assetHasText.get(assetId) === true
         ),
-        TotalAudio: countWhere(
+        totalAudio: countWhere(
           directAssetIds,
           (assetId) => assetHasAudio.get(assetId) === true
         )
@@ -382,13 +382,13 @@ export function buildGenericDashboardMetrics(
 
     questsJson[rootQuestId] = {
       name: asString(rootQuest.name),
-      QuestCompleted: false,
-      TotalSubquestsCreated: descendants.length,
-      TotalSubquestsExpected: descendants.length,
-      TotalSubquestsCompleted: descendantCompleted,
-      TotalAssets: hierarchyAssets.length,
+      questCompleted: false,
+      totalSubquestsCreated: descendants.length,
+      totalSubquestsExpected: descendants.length,
+      totalSubquestsCompleted: descendantCompleted,
+      totalAssets: hierarchyAssets.length,
       languoids: hierarchyLanguoids,
-      Creators: hierarchyCreators,
+      creatorsId: hierarchyCreators,
       subquests: subquestsJson
     };
   }

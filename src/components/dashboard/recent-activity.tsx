@@ -130,7 +130,11 @@ export function RecentActivity({
         <CardTitle className="uppercase tracking-wide">
           Recent Activity
         </CardTitle>
-        <CardDescription>Latest updates across your projects.</CardDescription>
+        <CardDescription>
+          {projectId
+            ? 'Latest updates in this project.'
+            : 'Latest updates across your projects.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>{content}</CardContent>
     </Card>

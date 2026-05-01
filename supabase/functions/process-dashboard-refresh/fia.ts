@@ -305,16 +305,16 @@ export function buildFiaDashboard(
   const addMemberQuest = (profileId: string | null) => {
     if (!profileId) return;
     if (!members[profileId]) {
-      members[profileId] = { QuestsCreated: 0, AssetsCreated: 0 };
+      members[profileId] = { questsCreated: 0, assetsCreated: 0 };
     }
-    members[profileId].QuestsCreated += 1;
+    members[profileId].questsCreated += 1;
   };
   const addMemberAsset = (profileId: string | null) => {
     if (!profileId) return;
     if (!members[profileId]) {
-      members[profileId] = { QuestsCreated: 0, AssetsCreated: 0 };
+      members[profileId] = { questsCreated: 0, assetsCreated: 0 };
     }
-    members[profileId].AssetsCreated += 1;
+    members[profileId].assetsCreated += 1;
   };
 
   for (const quest of activeQuests) addMemberQuest(asString(quest.creator_id));
@@ -431,34 +431,34 @@ export function buildFiaDashboard(
 
       return {
         name: asString(latestSubquest?.name ?? null),
-        creator_id: creatorIds,
+        creatorsId: creatorIds,
         languoids,
-        ItemsExpected: expectedItems,
-        ItemsCompleted: completedItems,
-        TotalVersions: group.rows.length,
-        TotalAssets: subquestAssets.length,
-        TotalTranscriptions: [...subquestAssetIds].reduce(
+        itemsExpected: expectedItems,
+        itemsCompleted: completedItems,
+        totalVersions: group.rows.length,
+        totalAssets: subquestAssets.length,
+        totalTranscriptions: [...subquestAssetIds].reduce(
           (sum, assetId) => sum + (sourceTranscriptionCount.get(assetId) ?? 0),
           0
         ),
-        TotalTranslations: [...subquestAssetIds].reduce(
+        totalTranslations: [...subquestAssetIds].reduce(
           (sum, assetId) => sum + (sourceTranslationCount.get(assetId) ?? 0),
           0
         ),
-        TotalAssetsWithTranscription: countWhere(
+        totalAssetsWithTranscription: countWhere(
           [...subquestAssetIds],
           (assetId) => sourceHasTranscription.get(assetId) === true
         ),
-        TotalAssetsWithTranslation: countWhere(
+        totalAssetsWithTranslation: countWhere(
           [...subquestAssetIds],
           (assetId) => sourceHasTranslation.get(assetId) === true
         ),
-        TotalImages: countWhere(subquestAssets, (asset) => hasImage(asset)),
-        TotalText: countWhere(
+        totalImages: countWhere(subquestAssets, (asset) => hasImage(asset)),
+        totalText: countWhere(
           [...subquestAssetIds],
           (assetId) => assetHasText.get(assetId) === true
         ),
-        TotalAudio: countWhere(
+        totalAudio: countWhere(
           [...subquestAssetIds],
           (assetId) => assetHasAudio.get(assetId) === true
         )
@@ -488,12 +488,15 @@ export function buildFiaDashboard(
     const totalSubquestsCompleted = countWhere(
       subquests,
       (subquest) =>
-        subquest.ItemsExpected > 0 &&
-        subquest.ItemsCompleted === subquest.ItemsExpected
+        subquest.itemsExpected > 0 &&
+        subquest.itemsCompleted === subquest.itemsExpected
     );
+    console.log('fia total subquests expected:', context.templateStructureRows.length)
     const totalSubquestsExpected = countWhere(
-      [...fiaPericopeExpectedMap.keys()],
-      (pericopeId) => pericopeBelongsToBook(pericopeId, bookId)
+      context.templateStructureRows,
+      (row) =>
+        (row.parent_id === null || row.parent_id === undefined) &&
+        asPositiveInteger(row.item_count) !== null
     );
     const questCompleted =
       totalSubquestsExpected > 0 &&
@@ -503,7 +506,7 @@ export function buildFiaDashboard(
     const questName = asString(latestRoot?.name ?? null) ?? bookId;
     const creators = distinct([
       ...rootVersions.map((root) => asString(root.creator_id)),
-      ...subquests.flatMap((subquest) => subquest.creator_id),
+      ...subquests.flatMap((subquest) => subquest.creatorsId),
       ...hierarchyAssets.map((asset) => asString(asset.creator_id))
     ]);
     const questLanguoids = distinct(
@@ -514,13 +517,13 @@ export function buildFiaDashboard(
 
     questsJson[questKey] = {
       name: questName,
-      QuestCompleted: questCompleted,
-      TotalSubquestsCreated: subquests.length,
-      TotalSubquestsExpected: totalSubquestsExpected,
-      TotalSubquestsCompleted: totalSubquestsCompleted,
-      TotalAssets: hierarchyAssets.length,
+      questCompleted: questCompleted,
+      totalSubquestsCreated: subquests.length,
+      totalSubquestsExpected: totalSubquestsExpected,
+      totalSubquestsCompleted: totalSubquestsCompleted,
+      totalAssets: hierarchyAssets.length,
       languoids: questLanguoids,
-      Creators: creators,
+      creatorsId: creators,
       subquests
     };
   }
@@ -543,18 +546,15 @@ export function buildFiaDashboard(
   return {
     total_quests: questEntries.length,
     total_subquests: questEntries.reduce(
-      (sum, quest) => sum + quest.TotalSubquestsCreated,
+      (sum, quest) => sum + quest.totalSubquestsCreated,
       0
     ),
-    expected_quests: questEntries.reduce(
-      (sum, quest) => sum + quest.TotalSubquestsExpected,
-      0
-    ),
+    expected_quests: context.templateStructureRows.filter((row) => row.parent_id === null || row.parent_id === undefined && asPositiveInteger(row.item_count) !== null).length,
     total_assets: activeSourceAssets.length,
     total_quests_versions: quests.length,
-    completed_quests: countWhere(questEntries, (quest) => quest.QuestCompleted),
+    completed_quests: countWhere(questEntries, (quest) => quest.questCompleted),
     completed_subquests: questEntries.reduce(
-      (sum, quest) => sum + quest.TotalSubquestsCompleted,
+      (sum, quest) => sum + quest.totalSubquestsCompleted,
       0
     ),
     inactive_quests: inactiveQuests.length,

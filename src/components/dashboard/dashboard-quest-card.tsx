@@ -3,11 +3,11 @@ import { cn } from '@/lib/utils';
 
 type DashboardQuestCardData = {
   name: string | null;
-  TotalSubquestsCreated: number;
-  TotalSubquestsCompleted: number;
-  TotalSubquestsExpected: number;
-  TotalAssets: number;
-  Creators: string[];
+  totalSubquestsCreated: number;
+  totalSubquestsCompleted: number;
+  totalSubquestsExpected: number;
+  totalAssets: number;
+  creators: Array<{ id: string; name: string }>;
 };
 
 type DashboardQuestCardProps = {
@@ -25,15 +25,17 @@ export function DashboardQuestCard({
   subquestLabel
 }: DashboardQuestCardProps) {
   const createdPercent = toPercent(
-    quest.TotalSubquestsCreated,
-    quest.TotalSubquestsExpected
+    quest.totalSubquestsCreated,
+    quest.totalSubquestsExpected
   );
   const completedPercent = toPercent(
-    quest.TotalSubquestsCompleted,
-    quest.TotalSubquestsExpected
+    quest.totalSubquestsCompleted,
+    quest.totalSubquestsExpected
   );
   const creatorsLabel =
-    quest.Creators.length > 0 ? quest.Creators.join(', ') : 'No creators';
+    quest.creators.length > 0
+      ? quest.creators.map((creator) => creator.name).join(', ')
+      : 'No creators';
 
   return (
     <div className="w-full pr-2 space-y-4 rounded-md bg-card p-3">
@@ -52,7 +54,7 @@ export function DashboardQuestCard({
             Assets
           </p>
           <p className="text-base font-semibold tabular-nums text-foreground">
-            {quest.TotalAssets}
+            {quest.totalAssets}
           </p>
         </div>
       </div>
@@ -78,10 +80,10 @@ export function DashboardQuestCard({
           <p className="tabular-nums text-muted-foreground">
             Started:{' '}
             <span className="font-semibold ">
-              {quest.TotalSubquestsCreated}
+              {quest.totalSubquestsCreated}
             </span>
             <span className="text-muted-foreground">
-              /{quest.TotalSubquestsExpected}
+              /{quest.totalSubquestsExpected}
             </span>
           </p>
           <p
@@ -94,10 +96,10 @@ export function DashboardQuestCard({
           >
             Completed:{' '}
             <span className="font-semibold">
-              {quest.TotalSubquestsCompleted}
+              {quest.totalSubquestsCompleted}
             </span>
             <span className="text-muted-foreground">
-              /{quest.TotalSubquestsExpected}
+              /{quest.totalSubquestsExpected}
             </span>
           </p>
         </div>

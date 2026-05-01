@@ -8,6 +8,8 @@ import { Spinner } from '@/components/spinner';
 import QuestsBoard, {
   type DashboardMainQuest
 } from '@/components/dashboard/quests-board';
+import ProjectChartContainer from '@/components/dashboard/project-chart-container';
+import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -49,8 +51,9 @@ type DashboardProjectResponse = {
     members: Record<
       string,
       {
-        QuestsCreated: number;
-        AssetsCreated: number;
+        questsCreated: number;
+        assetsCreated: number;
+        name?: string;
       }
     >;
     quests: Record<string, DashboardMainQuest>;
@@ -305,10 +308,19 @@ export default function ProjectDashboardPage() {
           })}
         </section>
 
-        <section>
+        <ProjectChartContainer
+          accessToken={session?.access_token}
+          projectId={projectData.project_id}
+        />
+
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
           <QuestsBoard
             quests={projectData.dashboard_json.quests || {}}
             subquestLabel={metricTitlesByTemplate[projectData.template].subquests}
+          />
+          <RecentActivity
+            accessToken={session?.access_token}
+            projectId={projectId ?? undefined}
           />
         </section>
       </main>
