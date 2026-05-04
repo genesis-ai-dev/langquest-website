@@ -194,6 +194,18 @@ export default function CombinedChart({
     ]
   );
 
+  const selectedDateLabel = useMemo(() => {
+    const activeAreaTab = areaTabs.find((item) => item.name === activeAreaTabName);
+    const indexKey = activeAreaTab?.index ?? 'date';
+    const rawValue = selectedPoint?.[indexKey];
+
+    if (typeof rawValue === 'string' || typeof rawValue === 'number') {
+      return String(rawValue);
+    }
+
+    return undefined;
+  }, [activeAreaTabName, areaTabs, selectedPoint]);
+
   const handleAreaValueSelect = (payload: ChartValueSelectPayload) => {
     setActiveAreaTabName(payload.tab);
     onAreaValueSelect?.(payload);
@@ -230,6 +242,7 @@ export default function CombinedChart({
         <AreaChartWithTabs
           tabs={resolvedAreaTabs}
           defaultTab={defaultAreaTab}
+          showLegend={true}
           onTabChange={setActiveAreaTabName}
           onValueSelect={handleAreaValueSelect}
         />
@@ -238,6 +251,7 @@ export default function CombinedChart({
         <DonutChartWithTabs
           tabs={resolvedDonutTabs}
           defaultTab={defaultDonutTab}
+          selectedDateLabel={selectedDateLabel}
           onValueSelect={onDonutValueSelect}
         />
       </div>

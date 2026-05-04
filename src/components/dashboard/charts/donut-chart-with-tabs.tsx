@@ -45,6 +45,7 @@ type DonutChartWithTabsProps = {
   tabs: DonutChartTab[];
   defaultTab?: string;
   className?: string;
+  selectedDateLabel?: string;
   onValueSelect?: (payload: DonutValueSelectPayload) => void;
 };
 
@@ -52,6 +53,7 @@ export default function DonutChartWithTabs({
   tabs,
   defaultTab,
   className,
+  selectedDateLabel,
   onValueSelect
 }: DonutChartWithTabsProps) {
   const renderedTabs = tabs.slice(0, 5);
@@ -83,8 +85,13 @@ export default function DonutChartWithTabs({
 
         {renderedTabs.map((tab) => (
           <TabsContent key={tab.name} value={tab.name} className="mt-0 p-6">
+            {selectedDateLabel ? (
+              <p className="mb-2 text-xs text-muted-foreground text-left">
+                Date: {selectedDateLabel}
+              </p>
+            ) : null}
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div className="mx-auto h-56 w-40 md:mx-0">
+              <div className="mx-auto h-56 w-40">
                 <DonutChart
                   data={tab.data}
                   category={tab.category}

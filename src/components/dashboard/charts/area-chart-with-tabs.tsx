@@ -7,7 +7,10 @@ import {
   type TooltipProps as AreaTooltipProps
 } from '@/components/dashboard/charts/area-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getColorClassName, type AvailableChartColorsKeys } from '@/lib/chartUtils';
+import {
+  getColorClassName,
+  type AvailableChartColorsKeys
+} from '@/lib/chartUtils';
 import { cn } from '@/lib/utils';
 
 export type ChartColors = AvailableChartColorsKeys;
@@ -48,6 +51,7 @@ type AreaChartWithTabsProps = {
   tabs: ChartTab[];
   defaultTab?: string;
   className?: string;
+  showLegend?: boolean;
   onTabChange?: (tabName: string) => void;
   onValueSelect?: (payload: ChartValueSelectPayload) => void;
 };
@@ -56,6 +60,7 @@ export default function AreaChartWithTabs({
   tabs,
   defaultTab,
   className,
+  showLegend = false,
   onTabChange,
   onValueSelect
 }: AreaChartWithTabsProps) {
@@ -89,7 +94,7 @@ export default function AreaChartWithTabs({
 
         {renderedTabs.map((tab) => (
           <TabsContent key={tab.name} value={tab.name} className="mt-0 p-6">
-            {tab.summary?.length ? (
+            {/* {tab.summary?.length ? (
               <div className="md:flex md:items-start md:justify-between">
                 <ul
                   role="list"
@@ -114,20 +119,21 @@ export default function AreaChartWithTabs({
                   ))}
                 </ul>
               </div>
-            ) : null}
+            ) : null} */}
 
             <div
               className={cn(
-                tab.summary?.length ? 'mt-10' : 'mt-2',
-                'h-60 w-full'
+                // tab.summary?.length ? 'mt-10' : 'mt-2',
+                'mt-0 h-60 w-full'
               )}
             >
               <AreaChart
                 data={tab.data}
                 index={tab.index}
                 categories={tab.categories}
+                categoryLabels={tab.categoryLabels}
                 colors={tab.colors}
-                showLegend={false}
+                showLegend={showLegend}
                 yAxisWidth={45}
                 showYAxis={!isMobile}
                 startEndOnly={isMobile}
@@ -189,7 +195,9 @@ function AreaTooltipRenderer({
                     getColorClassName(item.color, 'bg')
                   )}
                 />
-                <p className="text-gray-700 dark:text-gray-300">{displayName}</p>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {displayName}
+                </p>
               </div>
               <p className="font-medium tabular-nums text-gray-900 dark:text-gray-50">
                 {formatValue(item.value)}

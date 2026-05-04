@@ -88,14 +88,7 @@ export function DashboardQuestCard({
           <span className="font-semibold">{quest.totalSubquestsCreated}</span>
           <span>/{quest.totalSubquestsExpected}</span>
         </p>
-        <p
-          className={cn(
-            'tabular-nums',
-            completedPercent === 100
-              ? 'text-green-600 dark:text-green-400'
-              : 'text-muted-foreground'
-          )}
-        >
+        <p className={cn('tabular-nums', 'text-muted-foreground')}>
           Completed:{' '}
           <span className="font-semibold">{quest.totalSubquestsCompleted}</span>
           <span className="text-muted-foreground">

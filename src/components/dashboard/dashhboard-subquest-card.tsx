@@ -68,14 +68,7 @@ export function DashboardSubquestCard({
             <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
               <span>Progress</span>
               <span>
-                <span
-                  className={cn(
-                    'font-semibold',
-                    progressPercent === 100
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-foreground'
-                  )}
-                >
+                <span className={cn('font-semibold', 'text-foreground')}>
                   {subquest.itemsCompleted}
                 </span>
                 <span>/{subquest.itemsExpected}</span>
@@ -85,9 +78,7 @@ export function DashboardSubquestCard({
               <div
                 className={cn(
                   'h-full rounded-full transition-all duration-500',
-                  progressPercent === 100
-                    ? 'bg-green-500 dark:bg-green-400'
-                    : 'bg-primary'
+                  'bg-primary'
                 )}
                 style={{ width: `${progressPercent}%` }}
               />

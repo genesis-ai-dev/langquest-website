@@ -36,6 +36,7 @@ import { cx } from '@/lib/utils';
 
 interface LegendItemProps {
   name: string;
+  displayName?: string;
   color: AvailableChartColorsKeys;
   onClick?: (name: string, color: AvailableChartColorsKeys) => void;
   activeLegend?: string;
@@ -43,6 +44,7 @@ interface LegendItemProps {
 
 const LegendItem = ({
   name,
+  displayName,
   color,
   onClick,
   activeLegend
@@ -81,7 +83,7 @@ const LegendItem = ({
           activeLegend && activeLegend !== name ? 'opacity-40' : 'opacity-100'
         )}
       >
-        {name}
+        {displayName ?? name}
       </p>
     </li>
   );
@@ -147,6 +149,7 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
 
 interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
   categories: string[];
+  categoryLabels?: Record<string, string>;
   colors?: AvailableChartColorsKeys[];
   onClickLegendItem?: (category: string, color: string) => void;
   activeLegend?: string;
@@ -161,6 +164,7 @@ type HasScrollProps = {
 const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
   const {
     categories,
+    categoryLabels,
     colors = AvailableChartColors,
     className,
     onClickLegendItem,
@@ -275,6 +279,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
           <LegendItem
             key={`item-${index}`}
             name={category}
+            displayName={categoryLabels?.[category] ?? category}
             color={colors[index] as AvailableChartColorsKeys}
             onClick={onClickLegendItem}
             activeLegend={activeLegend}
@@ -324,7 +329,8 @@ const ChartLegend = (
   onClick?: (category: string, color: string) => void,
   enableLegendSlider?: boolean,
   legendPosition?: 'left' | 'center' | 'right',
-  yAxisWidth?: number
+  yAxisWidth?: number,
+  categoryLabels?: Record<string, string>
 ) => {
   const legendRef = React.useRef<HTMLDivElement>(null);
 
@@ -352,6 +358,7 @@ const ChartLegend = (
     >
       <Legend
         categories={legendPayload.map((entry: any) => entry.value)}
+        categoryLabels={categoryLabels}
         colors={legendPayload.map((entry: any) =>
           categoryColors.get(entry.value)
         )}
@@ -477,6 +484,7 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   data: Record<string, any>[];
   index: string;
   categories: string[];
+  categoryLabels?: Record<string, string>;
   colors?: AvailableChartColorsKeys[];
   valueFormatter?: (value: number) => string;
   startEndOnly?: boolean;
@@ -509,6 +517,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
     const {
       data = [],
       categories = [],
+      categoryLabels,
       index,
       colors = AvailableChartColors,
       valueFormatter = (value: number) => value.toString(),
@@ -815,7 +824,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                       : undefined,
                     enableLegendSlider,
                     legendPosition,
-                    yAxisWidth
+                    yAxisWidth,
+                    categoryLabels
                   )
                 }
               />
