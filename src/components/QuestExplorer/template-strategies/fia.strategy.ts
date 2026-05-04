@@ -360,7 +360,7 @@ export const fiaStrategy: TemplateStrategy = {
           return {
             key: `${contextNode.book?.id}:${pericope.id}`,
             title: `Pericope ${displayNumber} (${pericopeName})`,
-            subtitle: pericope.verseRange,
+            subtitle: `${bookPericopes?.title} ${pericope.verseRange}`,
             questId: pericopeQuest?.id || null,
             quest: pericopeQuest,
             variants: pericopeVariants,

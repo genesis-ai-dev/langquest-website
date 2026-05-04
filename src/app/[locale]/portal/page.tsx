@@ -307,7 +307,7 @@ function AdminContent() {
         <div className="flex flex-col gap-6">
           {/* Page Title */}
           <div>
-            <h1 className="text-3xl font-bold">Project Management Dashboard</h1>
+            <h1 className="text-3xl font-bold">Projects List</h1>
             <p className="text-muted-foreground mt-2">
               Manage your translation projects, quests and assets
             </p>

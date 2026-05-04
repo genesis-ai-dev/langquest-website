@@ -32,77 +32,76 @@ export function DashboardQuestCard({
     quest.totalSubquestsCompleted,
     quest.totalSubquestsExpected
   );
-  const creatorsLabel =
+  const allCreatorNames =
     quest.creators.length > 0
-      ? quest.creators.map((creator) => creator.name).join(', ')
+      ? quest.creators.map((c) => c.name).join(', ')
       : 'No creators';
+  const visibleCreators =
+    quest.creators.length > 2
+      ? quest.creators
+          .slice(0, 2)
+          .map((c) => c.name)
+          .join(', ') + '…'
+      : allCreatorNames;
 
   return (
-    <div className="w-full pr-2 space-y-4 rounded-md bg-card p-3">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 space-y-1">
-          <p className="text-lg font-semibold leading-snug md:text-xl">
-            {quest.name || 'Untitled quest'}
-          </p>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <UserRound className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="truncate">{creatorsLabel}</span>
-          </div>
+    <div className="w-full rounded-md bg-card px-3 py-2 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">
+          {quest.name || 'Untitled quest'}
+        </p>
+        <div
+          className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground"
+          title={allCreatorNames}
+        >
+          <UserRound className="h-3 w-3 shrink-0 text-primary" />
+          <span>{visibleCreators}</span>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Assets
-          </p>
-          <p className="text-base font-semibold tabular-nums text-foreground">
+        <p className="shrink-0 text-xs tabular-nums text-muted-foreground ml-2">
+          Assets:{' '}
+          <span className="font-semibold text-foreground">
             {quest.totalAssets}
-          </p>
-        </div>
+          </span>
+        </p>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-medium">{subquestLabel} progress</span>
-          <span className="tabular-nums">
-            <span className="font-semibold">{completedPercent}%</span>
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span className="font-medium">{subquestLabel} progress</span>
+        <span className="tabular-nums font-semibold">{completedPercent}%</span>
+      </div>
+
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary/40 transition-all duration-500"
+          style={{ width: `${createdPercent}%` }}
+        />
+        <div
+          className="absolute left-0 top-0 h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${completedPercent}%` }}
+        />
+      </div>
+
+      {/* Linha 4: started · completed */}
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <p className="tabular-nums">
+          Started:{' '}
+          <span className="font-semibold">{quest.totalSubquestsCreated}</span>
+          <span>/{quest.totalSubquestsExpected}</span>
+        </p>
+        <p
+          className={cn(
+            'tabular-nums',
+            completedPercent === 100
+              ? 'text-green-600 dark:text-green-400'
+              : 'text-muted-foreground'
+          )}
+        >
+          Completed:{' '}
+          <span className="font-semibold">{quest.totalSubquestsCompleted}</span>
+          <span className="text-muted-foreground">
+            /{quest.totalSubquestsExpected}
           </span>
-        </div>
-        <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted relative">
-          <div
-            className="h-full rounded-full bg-primary/40 transition-all duration-500"
-            style={{ width: `${createdPercent}%` }}
-          />
-          <div
-            className="absolute left-0 top-0 h-full rounded-full bg-primary transition-all duration-500"
-            style={{ width: `${completedPercent}%` }}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <p className="tabular-nums text-muted-foreground">
-            Started:{' '}
-            <span className="font-semibold ">
-              {quest.totalSubquestsCreated}
-            </span>
-            <span className="text-muted-foreground">
-              /{quest.totalSubquestsExpected}
-            </span>
-          </p>
-          <p
-            className={cn(
-              'tabular-nums text-right',
-              completedPercent === 100
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-muted-foreground'
-            )}
-          >
-            Completed:{' '}
-            <span className="font-semibold">
-              {quest.totalSubquestsCompleted}
-            </span>
-            <span className="text-muted-foreground">
-              /{quest.totalSubquestsExpected}
-            </span>
-          </p>
-        </div>
+        </p>
       </div>
     </div>
   );

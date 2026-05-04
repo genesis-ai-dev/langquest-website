@@ -21,6 +21,7 @@ import {
 import {
   Activity,
   ArrowLeft,
+  FolderOpen,
   Languages,
   ListChecks,
   Users
@@ -81,8 +82,8 @@ const metricTitlesByTemplate: Record<
   fia: {
     members: 'Contributors',
     languages: 'Languages',
-    quests: 'Modules',
-    subquests: 'Steps',
+    quests: 'Books',
+    subquests: 'Pericopes',
     assets: 'Assets'
   },
   unstructured: {
@@ -255,26 +256,35 @@ export default function ProjectDashboardPage() {
     <>
       <PortalHeader user={user} onSignOut={signOut} />
       <main className="container p-6 md:p-8 max-w-(--breakpoint-xl) mx-auto space-y-8">
-        <section className="space-y-2">
+        <section className="space-y-4">
           <Button asChild variant="ghost" size="sm" className="mb-4 w-fit">
             <Link href="/dashboard">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Link>
           </Button>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            Project Overview
-          </h1>
-          <h2 className="text-xl font-medium tracking-tight md:text-2xl">
-            {projectData.project_name}
-          </h2>
-          <p className="text-muted-foreground">
-            {projectData.project_description ||
-              'No project description available.'}
-          </p>
-          {/* <p className="text-xs text-muted-foreground uppercase tracking-wide">
-            Template: {projectData.template}
-          </p> */}
+          <Card className="border-primary/20">
+            <CardHeader className="gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-2">
+                <CardDescription className="uppercase tracking-wide text-xs">
+                  Project Overview
+                </CardDescription>
+                <CardTitle className="text-2xl md:text-3xl tracking-tight">
+                  {projectData.project_name}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {projectData.project_description ||
+                    'No project description available.'}
+                </p>
+              </div>
+              <Button asChild variant="outline" className="w-full md:w-auto">
+                <Link href={`/project/${projectData.project_id}`}>
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Open Project
+                </Link>
+              </Button>
+            </CardHeader>
+          </Card>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -316,7 +326,9 @@ export default function ProjectDashboardPage() {
         <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
           <QuestsBoard
             quests={projectData.dashboard_json.quests || {}}
-            subquestLabel={metricTitlesByTemplate[projectData.template].subquests}
+            subquestLabel={
+              metricTitlesByTemplate[projectData.template].subquests
+            }
           />
           <RecentActivity
             accessToken={session?.access_token}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe } from 'lucide-react';
+import { FileTextIcon, Globe, Image, ListChecks, Users } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import {
   Card,
@@ -39,6 +39,14 @@ function formatLastUpdated(value?: string) {
   })}`;
 }
 
+function getProjectInitials(projectName: string) {
+  const words = projectName.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) return 'PR';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 type ProjectListCardProps = {
   project: ProjectListItem;
 };
@@ -48,66 +56,96 @@ export function ProjectListCard({ project }: ProjectListCardProps) {
     project.total_quests_created,
     project.total_quests_completed
   );
+  const initials = getProjectInitials(project.project_name);
 
   return (
     <Link
       href={`/dashboard/project?project_id=${encodeURIComponent(project.id)}`}
       className="block"
     >
-      <Card className="w-full px-4 py-5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-        <CardContent className="px-0 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <CardTitle className="text-sm leading-tight">
-              {project.project_name}
-            </CardTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Globe className="h-3.5 w-3.5 text-primary" />
-                <span className="max-w-[220px] truncate">
-                  {project.target_languages.length > 0
-                    ? project.target_languages.join(', ')
-                    : 'No target language'}
-                </span>
+      <Card className="w-full cursor-pointer overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md py-0">
+        <CardContent className="px-2 py-0">
+          <div className="flex ">
+            <div className="flex w-16 shrink-0 items-center justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-sm font-semibold text-primary">
+                {initials}
               </div>
-              <span aria-hidden="true">•</span>
-              <span>{formatLastUpdated(project.last_updated_at)}</span>
             </div>
-          </div>
 
-          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-            <CardDescription className="line-clamp-1 text-xs">
-              {project.description || 'No description provided'}
-            </CardDescription>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-              <p className="whitespace-nowrap">
-                <span className="text-muted-foreground">Members: </span>
-                <span className="font-semibold">{project.total_members}</span>
-              </p>
-              <p className="whitespace-nowrap">
-                <span className="text-muted-foreground">Quests: </span>
-                <span className="font-semibold">
-                  {project.total_quests_created}
-                </span>
-              </p>
-              {/* <p className="whitespace-nowrap">
-              <span className="text-muted-foreground">Completed: </span>
-              <span className="font-semibold">{project.total_quests_completed}</span>
-            </p> */}
-              <p className="whitespace-nowrap">
-                <span className="text-muted-foreground">Assets: </span>
-                <span className="font-semibold">{project.total_assets}</span>
-              </p>
-            </div>
-          </div>
+            <div className="ml-2 flex min-w-0 flex-1 flex-col justify-between gap-2 py-3 pr-3">
+              <div className="flex items-start justify-between gap-3">
+                <CardTitle className="line-clamp-1 text-sm leading-tight p-0 m-0">
+                  {project.project_name}
+                </CardTitle>
+                <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-primary" />
+                    <span className="max-w-[180px] truncate">
+                      {project.target_languages.length > 0 ? (
+                        project.target_languages.join(', ')
+                      ) : (
+                        <i className="italic text-muted-foreground">
+                          No target language
+                        </i>
+                      )}
+                    </span>
+                  </div>
+                  <span aria-hidden="true">•</span>
+                  <span>{formatLastUpdated(project.last_updated_at)}</span>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Quest progress</span>
-              <span>
-                {project.total_quests_completed}/{project.total_quests_created}
-              </span>
+              <CardDescription className="line-clamp-1 text-xs ellipsis">
+                {project.description || (
+                  <i className="italic text-muted-foreground">
+                    No description provided
+                  </i>
+                )}
+              </CardDescription>
+
+              <div className="flex items-end gap-3 p-0">
+                <div className="min-w-0 basis-[70%] max-w-[70%] space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Quest progress</span>
+                    <span>
+                      {project.total_quests_completed}/
+                      {project.total_quests_created}
+                    </span>
+                  </div>
+                  <Progress value={progressValue} />
+                </div>
+
+                <div className="flex basis-[30%] max-w-[30%] items-center justify-end gap-2 text-xs text-muted-foreground">
+                  <div
+                    className="flex items-center gap-1"
+                    title={`Members: ${project.total_members}`}
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="font-semibold text-foreground">
+                      {project.total_members}
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-center gap-1"
+                    title={`Quests: ${project.total_quests_created}`}
+                  >
+                    <ListChecks className="h-3.5 w-3.5" />
+                    <span className="font-semibold text-foreground">
+                      {project.total_quests_created}
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-center gap-1"
+                    title={`Assets: ${project.total_assets}`}
+                  >
+                    <FileTextIcon className="h-3.5 w-3.5" />
+                    <span className="font-semibold text-foreground">
+                      {project.total_assets}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <Progress value={progressValue} />
           </div>
         </CardContent>
       </Card>
