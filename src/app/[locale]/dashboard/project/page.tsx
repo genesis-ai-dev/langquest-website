@@ -211,6 +211,20 @@ export default function ProjectDashboardPage() {
     ];
   }, [projectData]);
 
+  const lastUpdatedLabel = useMemo(() => {
+    if (!projectData?.updated_at) return 'Last updated: -';
+
+    const updatedDate = new Date(projectData.updated_at);
+    if (Number.isNaN(updatedDate.getTime())) return 'Last updated: -';
+
+    const formatted = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(updatedDate);
+
+    return `Last updated: ${formatted}`;
+  }, [projectData?.updated_at]);
+
   if (isLoading) {
     return (
       <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center items-center min-h-screen">
@@ -273,16 +287,22 @@ export default function ProjectDashboardPage() {
                   {projectData.project_name}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {projectData.project_description ||
-                    'No project description available.'}
+                  {projectData.project_description || (
+                    <i>No project description available.</i>
+                  )}
                 </p>
               </div>
-              <Button asChild variant="outline" className="w-full md:w-auto">
-                <Link href={`/project/${projectData.project_id}`}>
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Open Project
-                </Link>
-              </Button>
+              <div className="flex flex-col gap-2 w-full md:w-auto md:items-end md:self-stretch">
+                <Button asChild variant="outline" className="w-full md:w-auto">
+                  <Link href={`/project/${projectData.project_id}`}>
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Open Project
+                  </Link>
+                </Button>
+                <p className="mt-auto text-xs text-muted-foreground">
+                  {lastUpdatedLabel}
+                </p>
+              </div>
             </CardHeader>
           </Card>
         </section>
