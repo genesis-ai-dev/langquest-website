@@ -119,7 +119,7 @@ export function QuestsUnstructured({
     <SidebarProvider>
       <div className="w-full flex min-h-[600px] gap-4">
         {/* Sidebar */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-80 shrink-0">
           <QuestsSideBar
             project={project}
             projectId={projectId}
@@ -340,7 +340,7 @@ function QuestsSideBar({
   };
 
   return (
-    <Card className="flex flex-col max-w-full overflow-ellipsis">
+    <Card className="flex flex-col max-w-full text-ellipsis">
       <CardHeader className="h-8 ">
         <div className="flex items-center justify-between ">
           <CardTitle className="text-lg">Quests</CardTitle>

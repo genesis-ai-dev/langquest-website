@@ -418,7 +418,7 @@ export function DataView({
 
   return (
     <div className="whitespace-pre-wrap px-8 py-4 max-w-200 mx-auto flex flex-col scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b py-4">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b py-4">
         <div className="flex gap-2 items-top flex-col">
           <div className="flex gap-2 items-center">
             <h1 className="font-semibold">Assets</h1>
@@ -565,7 +565,7 @@ export function DataView({
           <div className="flex flex-col gap-2">
             {!questId && Object.keys(filters).length > 0 && (
               <div className="flex gap-4 flex-1 items-center">
-                <FilterIcon className="size-4 text-muted-foreground flex-shrink-0" />
+                <FilterIcon className="size-4 text-muted-foreground shrink-0" />
                 <div className="overflow-x-auto flex gap-2 scrollbar-none">
                   {Object.entries(filters).map(([filterType, values]) => {
                     if (typeof values === 'string') {
@@ -635,7 +635,7 @@ export function DataView({
 
             {sort.length > 0 && (
               <div className="flex gap-4 flex-1 items-center">
-                <ListIcon className="size-4 text-muted-foreground flex-shrink-0" />
+                <ListIcon className="size-4 text-muted-foreground shrink-0" />
                 <div className="overflow-x-auto flex gap-2 scrollbar-none">
                   {sort.map((s) => (
                     <Badge

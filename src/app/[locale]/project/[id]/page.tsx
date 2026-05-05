@@ -18,7 +18,7 @@ export default function ProjectPage() {
   return (
     <Suspense
       fallback={
-        <div className="container p-8 max-w-screen-xl mx-auto flex justify-center">
+        <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center">
           <Spinner />
         </div>
       }
@@ -183,7 +183,7 @@ function ProjectPageContent() {
   // Show loading state while authentication is being checked
   if (isLoading || projectLoading) {
     return (
-      <div className="container p-8 max-w-screen-xl mx-auto flex justify-center items-center min-h-screen">
+      <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center items-center min-h-screen">
         <Spinner />
       </div>
     );
@@ -204,7 +204,7 @@ function ProjectPageContent() {
     });
 
     return (
-      <div className="container p-8 max-w-screen-xl mx-auto">
+      <div className="container p-8 max-w-(--breakpoint-xl) mx-auto">
         <Alert className="max-w-md mx-auto">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Project Not Found</AlertTitle>
@@ -226,7 +226,7 @@ function ProjectPageContent() {
   // Show loading if we don't have project data yet
   if (!project) {
     return (
-      <div className="container p-8 max-w-screen-xl mx-auto flex justify-center">
+      <div className="container p-8 max-w-(--breakpoint-xl) mx-auto flex justify-center">
         <Spinner />
       </div>
     );
@@ -237,7 +237,7 @@ function ProjectPageContent() {
 
   // if (!hasAccess && project.private === true) {
   //   return (
-  //     <div className="container p-8 max-w-screen-xl mx-auto">
+  //     <div className="container p-8 max-w-(--breakpoint-xl) mx-auto">
   //       <Alert className="max-w-md mx-auto">
   //         <AlertCircle className="h-4 w-4" />
   //         <AlertTitle>Access Denied</AlertTitle>
@@ -257,7 +257,7 @@ function ProjectPageContent() {
       <PortalHeader user={user} onSignOut={handleSignOut} />
 
       {/* Project Header - Original Model with Stats */}
-      <div className="container p-6 max-w-screen-xl mx-auto">
+      <div className="container p-6 max-w-(--breakpoint-xl) mx-auto">
         <Button
           variant="ghost"
           size="sm"
@@ -283,7 +283,7 @@ function ProjectPageContent() {
         />
       </div>
 
-      <div className="container p-6 max-w-screen-xl mx-auto ">
+      <div className="container p-6 max-w-(--breakpoint-xl) mx-auto ">
         {/* Quest Explorer - Template-based quest organization */}
         <QuestExplorerMenu
           projectId={projectId}
