@@ -697,7 +697,10 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               hide={!showXAxis}
               dataKey={index}
               interval={startEndOnly ? 'preserveStartEnd' : intervalType}
-              tick={{ transform: 'translate(0, 6)' }}
+              tick={{
+                transform: 'translate(0, 6)',
+                fill: 'rgb(var(--chart-axis))'
+              }}
               ticks={
                 startEndOnly
                   ? [data[0][index], data[data.length - 1][index]]
@@ -709,7 +712,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 // base
                 'text-xs',
                 // text fill
-                'fill-gray-500 dark:fill-gray-500'
+                'fill-muted-foreground'
               )}
               tickLine={false}
               axisLine={false}
@@ -719,7 +722,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 <Label
                   position="insideBottom"
                   offset={-20}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-foreground text-sm font-medium"
                 >
                   {xAxisLabel}
                 </Label>
@@ -732,14 +735,17 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               tickLine={false}
               type="number"
               domain={yAxisDomain as AxisDomain}
-              tick={{ transform: 'translate(-3, 0)' }}
+              tick={{
+                transform: 'translate(-3, 0)',
+                fill: 'rgb(var(--chart-axis))'
+              }}
               fill=""
               stroke=""
               className={cx(
                 // base
                 'text-xs',
                 // text fill
-                'fill-gray-500 dark:fill-gray-500'
+                'fill-muted-foreground'
               )}
               tickFormatter={
                 type === 'percent' ? valueToPercent : valueFormatter
@@ -752,7 +758,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                   style={{ textAnchor: 'middle' }}
                   angle={-90}
                   offset={-15}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-foreground text-sm font-medium"
                 >
                   {yAxisLabel}
                 </Label>
@@ -762,7 +768,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               wrapperStyle={{ outline: 'none' }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: '#d1d5db', strokeWidth: 1 }}
+              cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
               offset={20}
               position={{ y: 0 }}
               content={({ active, payload, label }) => {
@@ -887,7 +893,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                       return (
                         <Dot
                           className={cx(
-                            'stroke-white dark:stroke-gray-950',
+                            'stroke-background',
                             onValueChange ? 'cursor-pointer' : '',
                             getColorClassName(
                               categoryColors.get(
@@ -941,7 +947,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                             strokeLinejoin={strokeLinejoin}
                             strokeWidth={strokeWidth}
                             className={cx(
-                              'stroke-white dark:stroke-gray-950',
+                              'stroke-background',
                               onValueChange ? 'cursor-pointer' : '',
                               getColorClassName(
                                 categoryColors.get(

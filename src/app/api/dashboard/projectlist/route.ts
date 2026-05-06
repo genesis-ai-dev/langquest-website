@@ -10,6 +10,7 @@ type ProjectListItem = {
   last_updated_at: string;
   total_members: number;
   // total_owners: number;
+  expected_quests: number;
   total_quests_created: number;
   total_quests_completed: number;
   total_assets: number;
@@ -40,6 +41,7 @@ type ProjectDashboardCurrentRow = {
   project_id: string;
   total_members: number | null;
   total_owners: number | null;
+  expected_quests: number | null;
   total_quests: number | null;
   completed_quests: number | null;
   total_assets: number | null;
@@ -163,7 +165,7 @@ export async function GET(request: NextRequest) {
         supabase
           .from('project_dashboard_current')
           .select(
-            'project_id,total_members,total_owners,total_quests,completed_quests,total_assets,updated_at'
+            'project_id,total_members,total_owners,expected_quests,total_quests,completed_quests,total_assets,updated_at'
           )
           .in('project_id', ownerProjectIds),
         supabase
@@ -220,6 +222,7 @@ export async function GET(request: NextRequest) {
         target_languages: targetLanguagesByProjectId.get(projectId) ?? [],
         last_updated_at: dashboard?.updated_at ?? new Date(0).toISOString(),
         total_members: toNumber(dashboard?.total_members) + toNumber(dashboard?.total_owners),
+        expected_quests: toNumber(dashboard?.expected_quests),
         total_quests_created: toNumber(dashboard?.total_quests),
         total_quests_completed: toNumber(dashboard?.completed_quests),
         total_assets: toNumber(dashboard?.total_assets)
