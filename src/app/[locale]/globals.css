@@ -194,6 +194,7 @@
     --sidebar-ring: hsl(251.9 55.76% 57.45%);
     --background-gradient-start: hsl(262.5 60% 98.04%);
     --background-gradient-end: hsl(262.5 57% 30%);
+    --chart-axis: 107 114 128;
   }
   .dark {
     --background: hsl(240 25.49% 10%);
@@ -229,6 +230,7 @@
     --sidebar-ring: hsl(251.25 100% 78.04%);
     --background-gradient-start: hsl(262.5 0% 0%);
     --background-gradient-end: hsl(262.5 67% 15%);
+    --chart-axis: 156 163 175;
   }
 }
 

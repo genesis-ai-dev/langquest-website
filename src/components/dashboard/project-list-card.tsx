@@ -1,6 +1,14 @@
 'use client';
 
-import { FileTextIcon, Globe, Image, ListChecks, Users } from 'lucide-react';
+import {
+  Check,
+  FileTextIcon,
+  Globe,
+  ListChecks,
+  Loader,
+  Target,
+  Users
+} from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import {
   Card,
@@ -8,7 +16,6 @@ import {
   CardDescription,
   CardTitle
 } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 
 export type ProjectListItem = {
   id: string;
@@ -17,14 +24,15 @@ export type ProjectListItem = {
   target_languages: string[];
   last_updated_at?: string;
   total_members: number;
+  expected_quests: number;
   total_quests_created: number;
   total_quests_completed: number;
   total_assets: number;
 };
 
-function getProgressValue(created: number, completed: number) {
-  if (created <= 0) return 0;
-  return Math.min(100, Math.round((completed / created) * 100));
+function getProgressValue(total: number, current: number) {
+  if (total <= 0) return 0;
+  return Math.min(100, Math.round((current / total) * 100));
 }
 
 function formatLastUpdated(value?: string) {
@@ -52,8 +60,13 @@ type ProjectListCardProps = {
 };
 
 export function ProjectListCard({ project }: ProjectListCardProps) {
-  const progressValue = getProgressValue(
-    project.total_quests_created,
+  const showProgress = project.expected_quests > 0;
+  const startedProgressValue = getProgressValue(
+    project.expected_quests,
+    project.total_quests_created
+  );
+  const completedProgressValue = getProgressValue(
+    project.expected_quests,
     project.total_quests_completed
   );
   const initials = getProjectInitials(project.project_name);
@@ -103,19 +116,54 @@ export function ProjectListCard({ project }: ProjectListCardProps) {
                 )}
               </CardDescription>
 
-              <div className="flex items-end gap-3 p-0">
-                <div className="min-w-0 basis-[70%] max-w-[70%] space-y-1">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>Quest progress</span>
-                    <span>
-                      {project.total_quests_completed}/
-                      {project.total_quests_created}
-                    </span>
+              <div className="flex items-end gap-3 p-0 min-h-[28px]">
+                {showProgress ? (
+                  <div className="min-w-0 basis-[70%] max-w-[70%] space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Quest progress</span>
+                      <span
+                        className="flex items-center gap-2 truncate"
+                        title={`Started: ${project.total_quests_created}, Done: ${project.total_quests_completed}, Expected: ${project.expected_quests}`}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <Loader className="h-3 w-3" />
+                          {project.total_quests_created}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          {project.total_quests_completed}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Target className="h-3 w-3" />
+                          {project.expected_quests}
+                        </span>
+                      </span>
+                    </div>
+                    <div
+                      className="relative h-2 w-full overflow-hidden rounded-full bg-muted"
+                      role="progressbar"
+                      aria-label="Quest progress"
+                      aria-valuemin={0}
+                      aria-valuemax={project.expected_quests}
+                      aria-valuenow={project.total_quests_completed}
+                    >
+                      <div
+                        className="absolute left-0 top-0 h-full bg-primary/40"
+                        style={{ width: `${startedProgressValue}%` }}
+                      />
+                      <div
+                        className="absolute left-0 top-0 h-full bg-primary"
+                        style={{ width: `${completedProgressValue}%` }}
+                      />
+                    </div>
                   </div>
-                  <Progress value={progressValue} />
-                </div>
+                ) : null}
 
-                <div className="flex basis-[30%] max-w-[30%] items-center justify-end gap-2 text-xs text-muted-foreground">
+                <div
+                  className={`flex items-center justify-end gap-2 text-xs text-muted-foreground ${
+                    showProgress ? 'basis-[30%] max-w-[30%]' : 'basis-full max-w-full'
+                  }`}
+                >
                   <div
                     className="flex items-center gap-1"
                     title={`Members: ${project.total_members}`}
