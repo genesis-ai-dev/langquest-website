@@ -165,6 +165,7 @@ export async function GET(request: NextRequest) {
         .select('project_id,creator_id,last_updated')
         .in('project_id', projectIds)
         .eq('active', true)
+        .eq('content_type', 'source')
     ]);
 
   if (projectsError || questsError || assetsError) {

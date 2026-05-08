@@ -510,6 +510,8 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   fill?: 'gradient' | 'solid' | 'none';
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void;
   customTooltip?: React.ComponentType<TooltipProps>;
+  xAxisTickFormatter?: ((value: string | number) => string) | null;
+  yAxisTickFormatter?: ((value: number) => string) | null;
 }
 
 const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
@@ -545,6 +547,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
       fill = 'gradient',
       tooltipCallback,
       customTooltip,
+      xAxisTickFormatter,
+      yAxisTickFormatter,
       ...other
     } = props;
     const CustomTooltip = customTooltip;
@@ -566,6 +570,12 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
 
     const prevActiveRef = React.useRef<boolean | undefined>(undefined);
     const prevLabelRef = React.useRef<TooltipLabel>(undefined);
+    const maxXAxisLabels = 8;
+    const xAxisInterval = startEndOnly
+      ? 'preserveStartEnd'
+      : data.length > maxXAxisLabels
+        ? Math.max(Math.ceil(data.length / maxXAxisLabels) - 1, 0)
+        : intervalType;
 
     const getFillContent = ({
       fillType,
@@ -696,11 +706,13 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               padding={{ left: paddingValue, right: paddingValue }}
               hide={!showXAxis}
               dataKey={index}
-              interval={startEndOnly ? 'preserveStartEnd' : intervalType}
+              interval={xAxisInterval}
               tick={{
                 transform: 'translate(0, 6)',
-                fill: 'rgb(var(--chart-axis))'
+                fill: 'rgb(var(--chart-axis))',
+                fontSize: 12
               }}
+              tickFormatter={xAxisTickFormatter ?? undefined}
               ticks={
                 startEndOnly
                   ? [data[0][index], data[data.length - 1][index]]
@@ -737,7 +749,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               domain={yAxisDomain as AxisDomain}
               tick={{
                 transform: 'translate(-3, 0)',
-                fill: 'rgb(var(--chart-axis))'
+                fill: 'rgb(var(--chart-axis))',
+                fontSize: 12
               }}
               fill=""
               stroke=""
@@ -748,7 +761,9 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 'fill-muted-foreground'
               )}
               tickFormatter={
-                type === 'percent' ? valueToPercent : valueFormatter
+                type === 'percent'
+                  ? valueToPercent
+                  : (yAxisTickFormatter ?? valueFormatter)
               }
               allowDecimals={allowDecimals}
             >
@@ -765,7 +780,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               )}
             </YAxis>
             <Tooltip
-              wrapperStyle={{ outline: 'none' }}
+              wrapperStyle={{ outline: 'none', opacity: 1, zIndex: 100 }}
               isAnimationActive={true}
               animationDuration={100}
               cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
@@ -816,6 +831,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
 
             {showLegend ? (
               <RechartsLegend
+                wrapperStyle={{ zIndex: 50 }}
                 verticalAlign="top"
                 height={legendHeight}
                 content={({ payload }) =>

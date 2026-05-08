@@ -253,7 +253,7 @@ export default function DashboardPage() {
         <section>
           <OverviewChartContainer
             accessToken={session?.access_token}
-            pieItemLimit={7}
+            pieItemLimit={6}
           />
         </section>
 

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import CombinedChart, {
   type AreaChartTab,
   type CombinedChartDataPoint,
-  type DonutChartTab
+  type DonutChartTab,
+  shortDateXAxisTickFormatter
 } from '@/components/dashboard/charts/combined-chart';
 import { Spinner } from '@/components/spinner';
 import {
@@ -92,12 +93,15 @@ export default function ProjectChartContainer({
           days: '45',
           project_id: projectId
         });
-        const response = await fetch(`/api/dashboard/chart?${query.toString()}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${accessToken}`
+        const response = await fetch(
+          `/api/dashboard/chart?${query.toString()}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
           }
-        });
+        );
 
         if (!response.ok) {
           const errorPayload = (await response.json().catch(() => null)) as {
@@ -280,15 +284,15 @@ export default function ProjectChartContainer({
         name: 'By Member',
         detailGroup: 'member',
         colors: [
-          'violet',
+          'blue',
           'cyan',
           'amber',
-          'emerald',
-          'blue',
+          'pink',
           'gray',
           'fuchsia',
           'lime',
-          'pink'
+          'emerald',
+          'violet'
         ],
         detailKeyLabel: {
           assets: 'Assets by member',
@@ -325,6 +329,7 @@ export default function ProjectChartContainer({
               areaTabs={areaTabs}
               donutTabs={donutTabs}
               pieItemLimit={pieItemLimit}
+              xAxisTickFormatter={shortDateXAxisTickFormatter}
             />
           )}
         </CardContent>

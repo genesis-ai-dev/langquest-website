@@ -39,6 +39,8 @@ export type ChartTab = {
   categoryLabels?: Record<string, string>;
   colors: ChartColors[];
   valueFormatter?: (value: number) => string;
+  xAxisTickFormatter?: ((value: string | number) => string) | null;
+  yAxisTickFormatter?: ((value: number) => string) | null;
   summary?: ChartSummaryItem[];
 };
 
@@ -138,6 +140,8 @@ export default function AreaChartWithTabs({
                 showYAxis={!isMobile}
                 startEndOnly={isMobile}
                 valueFormatter={tab.valueFormatter}
+                xAxisTickFormatter={tab.xAxisTickFormatter}
+                yAxisTickFormatter={tab.yAxisTickFormatter}
                 className="h-full w-full"
                 customTooltip={(props) => (
                   <AreaTooltipRenderer
@@ -173,9 +177,9 @@ function AreaTooltipRenderer({
   const formatValue = valueFormatter ?? numberFormatter;
 
   return (
-    <div className="rounded-md border border-gray-200 bg-white text-sm shadow-md dark:border-gray-800 dark:bg-gray-950">
+    <div className="rounded-md border border-gray-200 bg-white text-sm shadow-md dark:border-gray-800 dark:bg-gray-950 ">
       {label ? (
-        <div className="border-b border-inherit px-4 py-2">
+        <div className="border-b border-inherit px-4 py-2 z-100 bg-white">
           <p className="font-medium text-gray-900 dark:text-gray-50">{label}</p>
         </div>
       ) : null}

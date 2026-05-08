@@ -341,6 +341,7 @@ export default function ProjectDashboardPage() {
         <ProjectChartContainer
           accessToken={session?.access_token}
           projectId={projectData.project_id}
+          pieItemLimit={6}
         />
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
