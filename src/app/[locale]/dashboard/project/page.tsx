@@ -217,10 +217,12 @@ export default function ProjectDashboardPage() {
     const updatedDate = new Date(projectData.updated_at);
     if (Number.isNaN(updatedDate.getTime())) return 'Last updated: -';
 
-    const formatted = new Intl.DateTimeFormat('en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(updatedDate);
+    const month = String(updatedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(updatedDate.getDate()).padStart(2, '0');
+    const year = String(updatedDate.getFullYear());
+    const hour = String(updatedDate.getHours()).padStart(2, '0');
+    const minute = String(updatedDate.getMinutes()).padStart(2, '0');
+    const formatted = `${month}/${day}/${year} ${hour}:${minute}`;
 
     return `Last updated: ${formatted}`;
   }, [projectData?.updated_at]);
@@ -307,35 +309,40 @@ export default function ProjectDashboardPage() {
           </Card>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Card
-                key={stat.title}
-                className={cn(
-                  'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg border-primary/20'
-                )}
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <div className="rounded-full border p-2 backdrop-blur-sm text-primary bg-primary/10 border-primary/20">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold tracking-tight">
-                    {stat.value}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {stat.description}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <section className="space-y-1">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <Card
+                  key={stat.title}
+                  className={cn(
+                    'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg border-primary/20'
+                  )}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                      {stat.title}
+                    </CardTitle>
+                    <div className="rounded-full border p-2 backdrop-blur-sm text-primary bg-primary/10 border-primary/20">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold tracking-tight">
+                      {stat.value}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          <p className="pr-1 text-right text-[11px] text-muted-foreground/80">
+            Some metrics may be slightly delayed while data is processing.
+          </p>
         </section>
 
         <ProjectChartContainer

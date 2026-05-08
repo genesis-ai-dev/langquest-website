@@ -213,41 +213,46 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Card
-                key={stat.title}
-                className={cn(
-                  'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
-                  stat.cardClass
-                )}
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <div
-                    className={cn(
-                      'rounded-full border p-2 backdrop-blur-sm',
-                      stat.iconClass
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold tracking-tight">
-                    {stat.value}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {stat.description}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <section className="space-y-1">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <Card
+                  key={stat.title}
+                  className={cn(
+                    'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
+                    stat.cardClass
+                  )}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                      {stat.title}
+                    </CardTitle>
+                    <div
+                      className={cn(
+                        'rounded-full border p-2 backdrop-blur-sm',
+                        stat.iconClass
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold tracking-tight">
+                      {stat.value}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          <p className="pr-1 text-right text-[11px] text-muted-foreground/80">
+            Some metrics may be slightly delayed while data is processing.
+          </p>
         </section>
 
         <section>

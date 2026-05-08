@@ -41,6 +41,7 @@ type DashboardChartRecord = {
 type DashboardChartResponse = {
   mocked: boolean;
   range_days: number;
+  last_updated_at?: string;
   data: DashboardChartRecord[];
 };
 
@@ -76,6 +77,7 @@ export default function ProjectChartContainer({
   const [dashboardChartData, setDashboardChartData] = useState<
     DashboardChartRecord[]
   >([]);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [isChartFetching, setIsChartFetching] = useState(true);
   const [chartError, setChartError] = useState<string | null>(null);
 
@@ -113,6 +115,7 @@ export default function ProjectChartContainer({
         const payload = (await response.json()) as DashboardChartResponse;
         if (!cancelled) {
           setDashboardChartData(payload.data ?? []);
+          setLastUpdatedAt(payload.last_updated_at ?? null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -120,6 +123,7 @@ export default function ProjectChartContainer({
             err instanceof Error ? err.message : 'Failed to load chart data'
           );
           setDashboardChartData([]);
+          setLastUpdatedAt(null);
         }
       } finally {
         if (!cancelled) {
@@ -305,16 +309,39 @@ export default function ProjectChartContainer({
     []
   );
 
+  const lastUpdatedLabel = useMemo(() => {
+    const rawDate = lastUpdatedAt;
+    if (!rawDate) return null;
+
+    const date = new Date(rawDate);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear());
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+
+    return `${month}/${day}/${year} ${hour}:${minute}`;
+  }, [lastUpdatedAt]);
+
   return (
     <section>
       <Card className="border-primary/20 shadow-sm flex flex-col">
-        <CardHeader>
-          <CardTitle className="uppercase tracking-wide">
-            Asset And Quest Trend
-          </CardTitle>
-          <CardDescription>
-            Daily evolution of created assets and completed quests.
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="uppercase tracking-wide">
+              Asset And Quest Trend
+            </CardTitle>
+            <CardDescription>
+              Daily evolution of created assets and completed quests.
+            </CardDescription>
+          </div>
+          {lastUpdatedLabel ? (
+            <p className="text-xs text-muted-foreground sm:text-right">
+              Last updated {lastUpdatedLabel}
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent className="flex-1 min-h-[360px]">
           {isChartFetching ? (
