@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import CombinedChart, {
   type AreaChartTab,
   type CombinedChartDataPoint,
-  type DonutChartTab
+  type DonutChartTab,
+  shortDateXAxisTickFormatter
 } from '@/components/dashboard/charts/combined-chart';
 import { Spinner } from '@/components/spinner';
 import {
@@ -86,7 +87,7 @@ export default function OverviewChartContainer({
         setIsChartFetching(true);
         setChartError(null);
 
-        const response = await fetch('/api/dashboard/chart?days=45', {
+        const response = await fetch('/api/dashboard/chart', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${accessToken}`
@@ -275,15 +276,15 @@ export default function OverviewChartContainer({
         name: 'By Project',
         detailGroup: 'project',
         colors: [
-          'violet',
+          'blue',
           'cyan',
           'amber',
-          'emerald',
-          'blue',
+          'pink',
           'gray',
           'fuchsia',
           'lime',
-          'pink'
+          'emerald',
+          'violet'
         ],
         detailKeyLabel: {
           assets: 'Assets by project',
@@ -296,15 +297,15 @@ export default function OverviewChartContainer({
         name: 'By Member',
         detailGroup: 'member',
         colors: [
-          'violet',
+          'blue',
           'cyan',
           'amber',
-          'emerald',
-          'blue',
+          'pink',
           'gray',
           'fuchsia',
           'lime',
-          'pink'
+          'emerald',
+          'violet'
         ],
         detailKeyLabel: {
           assets: 'Assets by member',
@@ -341,6 +342,7 @@ export default function OverviewChartContainer({
               areaTabs={areaTabs}
               donutTabs={donutTabs}
               pieItemLimit={pieItemLimit}
+              xAxisTickFormatter={shortDateXAxisTickFormatter}
             />
           )}
         </CardContent>

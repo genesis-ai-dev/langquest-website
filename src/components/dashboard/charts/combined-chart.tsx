@@ -48,6 +48,19 @@ export type DonutChartTab = Omit<
   labelFormatter?: (total: number) => string;
 };
 
+export const shortDateXAxisTickFormatter = (value: string | number) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit'
+  }).format(date);
+};
+
+export const thousandYAxisTickFormatter = (value: number) =>
+  Intl.NumberFormat('en-US').format(value);
+
 type CombinedChartProps = {
   data: CombinedChartDataPoint[];
   areaTabs: AreaChartTab[];
@@ -58,6 +71,8 @@ type CombinedChartProps = {
   defaultDonutTab?: string;
   onAreaValueSelect?: (payload: ChartValueSelectPayload) => void;
   onDonutValueSelect?: (payload: DonutValueSelectPayload) => void;
+  xAxisTickFormatter?: ((value: string | number) => string) | null;
+  yAxisTickFormatter?: ((value: number) => string) | null;
 };
 
 const getColorForIndex = (colors: DonutChartColors[] | undefined, index: number) =>
@@ -102,7 +117,9 @@ export default function CombinedChart({
   defaultAreaTab,
   defaultDonutTab,
   onAreaValueSelect,
-  onDonutValueSelect
+  onDonutValueSelect,
+  xAxisTickFormatter,
+  yAxisTickFormatter
 }: CombinedChartProps) {
   const defaultAreaTabName = defaultAreaTab ?? areaTabs[0]?.name;
   const [activeAreaTabName, setActiveAreaTabName] = useState<string | undefined>(
@@ -135,8 +152,20 @@ export default function CombinedChart({
   );
 
   const resolvedAreaTabs = useMemo<ChartTab[]>(
-    () => areaTabs.map((tab) => ({ ...tab, data: areaChartData })),
-    [areaTabs, areaChartData]
+    () =>
+      areaTabs.map((tab) => ({
+        ...tab,
+        data: areaChartData,
+        xAxisTickFormatter:
+          tab.xAxisTickFormatter !== undefined
+            ? tab.xAxisTickFormatter
+            : xAxisTickFormatter,
+        yAxisTickFormatter:
+          tab.yAxisTickFormatter !== undefined
+            ? tab.yAxisTickFormatter
+            : yAxisTickFormatter
+      })),
+    [areaTabs, areaChartData, xAxisTickFormatter, yAxisTickFormatter]
   );
 
   const resolvedDonutTabs = useMemo<BaseDonutChartTab[]>(
