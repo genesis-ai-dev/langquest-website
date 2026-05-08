@@ -94,6 +94,7 @@ const chartJsonResponse = <T>(payload: T, status = 200) =>
   });
 
 export async function GET(request: NextRequest) {
+  const nowIso = new Date().toISOString();
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -148,6 +149,7 @@ export async function GET(request: NextRequest) {
     return chartJsonResponse({
       mocked: false,
       range_days: 0,
+      last_updated_at: nowIso,
       data: [] as DailyChartRecord[]
     });
   }
@@ -273,5 +275,10 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return chartJsonResponse({ mocked: false, range_days: data.length, data });
+  return chartJsonResponse({
+    mocked: false,
+    range_days: data.length,
+    last_updated_at: nowIso,
+    data
+  });
 }
