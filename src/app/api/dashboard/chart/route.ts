@@ -43,8 +43,14 @@ type DailyAccumulator = {
   quests: number;
   assets: number;
   details: {
-    quests: { project: Map<string, BreakdownItem>; member: Map<string, BreakdownItem> };
-    assets: { project: Map<string, BreakdownItem>; member: Map<string, BreakdownItem> };
+    quests: {
+      project: Map<string, BreakdownItem>;
+      member: Map<string, BreakdownItem>;
+    };
+    assets: {
+      project: Map<string, BreakdownItem>;
+      member: Map<string, BreakdownItem>;
+    };
   };
 };
 
@@ -97,7 +103,10 @@ export async function GET(request: NextRequest) {
   const nowIso = new Date().toISOString();
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
   }
 
   const accessToken = authHeader.slice(7);
@@ -112,7 +121,10 @@ export async function GET(request: NextRequest) {
   } = await supabaseAuth.auth.getUser(accessToken);
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Invalid authentication token' },
+      { status: 401 }
+    );
   }
 
   const supabase = createClient(
@@ -140,9 +152,14 @@ export async function GET(request: NextRequest) {
 
     if (linksError) {
       console.error('dashboard chart route owner-links error:', linksError);
-      return NextResponse.json({ error: 'Failed to load owner projects' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to load owner projects' },
+        { status: 500 }
+      );
     }
-    projectIds = [...new Set((ownerLinks ?? []).map((link) => link.project_id))];
+    projectIds = [
+      ...new Set((ownerLinks ?? []).map((link) => link.project_id))
+    ];
   }
 
   if (!projectIds.length) {
@@ -154,21 +171,24 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const [{ data: projects, error: projectsError }, { data: quests, error: questsError }, { data: assets, error: assetsError }] =
-    await Promise.all([
-      supabase.from('project').select('id,name').in('id', projectIds),
-      supabase
-        .from('quest')
-        .select('project_id,creator_id,last_updated')
-        .in('project_id', projectIds)
-        .eq('active', true),
-      supabase
-        .from('asset')
-        .select('project_id,creator_id,last_updated')
-        .in('project_id', projectIds)
-        .eq('active', true)
-        .eq('content_type', 'source')
-    ]);
+  const [
+    { data: projects, error: projectsError },
+    { data: quests, error: questsError },
+    { data: assets, error: assetsError }
+  ] = await Promise.all([
+    supabase.from('project').select('id,name').in('id', projectIds),
+    supabase
+      .from('quest')
+      .select('project_id,creator_id,last_updated')
+      .in('project_id', projectIds)
+      .eq('active', true),
+    supabase
+      .from('asset')
+      .select('project_id,creator_id,last_updated')
+      .in('project_id', projectIds)
+      .eq('active', true)
+      .eq('content_type', 'source')
+  ]);
 
   if (projectsError || questsError || assetsError) {
     console.error('dashboard chart route base-query error:', {
@@ -176,7 +196,10 @@ export async function GET(request: NextRequest) {
       questsError,
       assetsError
     });
-    return NextResponse.json({ error: 'Failed to load chart source data' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to load chart source data' },
+      { status: 500 }
+    );
   }
 
   const projectNameById = new Map(
@@ -187,8 +210,12 @@ export async function GET(request: NextRequest) {
   );
 
   const creatorIds = new Set<string>();
-  ((quests ?? []) as QuestRow[]).forEach((row) => row.creator_id && creatorIds.add(row.creator_id));
-  ((assets ?? []) as AssetRow[]).forEach((row) => row.creator_id && creatorIds.add(row.creator_id));
+  ((quests ?? []) as QuestRow[]).forEach(
+    (row) => row.creator_id && creatorIds.add(row.creator_id)
+  );
+  ((assets ?? []) as AssetRow[]).forEach(
+    (row) => row.creator_id && creatorIds.add(row.creator_id)
+  );
 
   let profileNameById = new Map<string, string>();
   if (creatorIds.size) {
@@ -198,8 +225,14 @@ export async function GET(request: NextRequest) {
       .in('id', [...creatorIds]);
 
     if (profilesError) {
-      console.error('dashboard chart route profile-query error:', profilesError);
-      return NextResponse.json({ error: 'Failed to load profile names' }, { status: 500 });
+      console.error(
+        'dashboard chart route profile-query error:',
+        profilesError
+      );
+      return NextResponse.json(
+        { error: 'Failed to load profile names' },
+        { status: 500 }
+      );
     }
 
     profileNameById = new Map(
@@ -226,7 +259,8 @@ export async function GET(request: NextRequest) {
 
     const memberId = quest.creator_id ?? UNKNOWN_MEMBER_ID;
     const memberName = quest.creator_id
-      ? profileNameById.get(quest.creator_id) ?? `Member ${quest.creator_id.slice(0, 8)}`
+      ? (profileNameById.get(quest.creator_id) ??
+        `Member ${quest.creator_id.slice(0, 8)}`)
       : UNKNOWN_MEMBER_NAME;
     upsertBreakdownItem(current.details.quests.member, memberId, memberName);
     byDate.set(dateLabel, current);
@@ -246,7 +280,8 @@ export async function GET(request: NextRequest) {
 
     const memberId = asset.creator_id ?? UNKNOWN_MEMBER_ID;
     const memberName = asset.creator_id
-      ? profileNameById.get(asset.creator_id) ?? `Member ${asset.creator_id.slice(0, 8)}`
+      ? (profileNameById.get(asset.creator_id) ??
+        `Member ${asset.creator_id.slice(0, 8)}`)
       : UNKNOWN_MEMBER_NAME;
     upsertBreakdownItem(current.details.assets.member, memberId, memberName);
     byDate.set(dateLabel, current);
@@ -254,7 +289,9 @@ export async function GET(request: NextRequest) {
 
   const orderedDates = [...byDate.keys()].sort((a, b) => a.localeCompare(b));
   const limitedDates =
-    orderedDates.length > days ? orderedDates.slice(orderedDates.length - days) : orderedDates;
+    orderedDates.length > days
+      ? orderedDates.slice(orderedDates.length - days)
+      : orderedDates;
 
   const data: DailyChartRecord[] = limitedDates.map((date) => {
     const day = byDate.get(date) ?? createEmptyAccumulator();

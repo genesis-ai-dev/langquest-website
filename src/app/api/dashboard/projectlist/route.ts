@@ -106,8 +106,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const limit = parsePositiveInt(request.nextUrl.searchParams.get('limit'), 30);
-    const offset = parsePositiveInt(request.nextUrl.searchParams.get('offset'), 0);
+    const limit = parsePositiveInt(
+      request.nextUrl.searchParams.get('limit'),
+      30
+    );
+    const offset = parsePositiveInt(
+      request.nextUrl.searchParams.get('offset'),
+      0
+    );
 
     const supabase = createClient(
       env.NEXT_PUBLIC_SUPABASE_URL,
@@ -129,7 +135,10 @@ export async function GET(request: NextRequest) {
       .eq('membership', 'owner');
 
     if (ownerLinksError) {
-      console.error('dashboard projectlist route owner-links error:', ownerLinksError);
+      console.error(
+        'dashboard projectlist route owner-links error:',
+        ownerLinksError
+      );
       return NextResponse.json(
         { error: 'Failed to load owner projects' },
         { status: 500 }
@@ -138,7 +147,9 @@ export async function GET(request: NextRequest) {
 
     const ownerProjectIds = [
       ...new Set(
-        ((ownerLinks ?? []) as OwnerProjectLinkRow[]).map((link) => link.project_id)
+        ((ownerLinks ?? []) as OwnerProjectLinkRow[]).map(
+          (link) => link.project_id
+        )
       )
     ];
 
@@ -156,24 +167,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(emptyResponse, { status: 200 });
     }
 
-    const [{ data: projects, error: projectsError }, { data: dashboardRows, error: dashboardRowsError }, { data: languageRows, error: languageRowsError }] =
-      await Promise.all([
-        supabase
-          .from('project')
-          .select('id,name,description')
-          .in('id', ownerProjectIds),
-        supabase
-          .from('project_dashboard_current')
-          .select(
-            'project_id,total_members,total_owners,expected_quests,total_quests,completed_quests,total_assets,updated_at'
-          )
-          .in('project_id', ownerProjectIds),
-        supabase
-          .from('project_language_link')
-          .select('project_id,language_type,languoid:languoid_id(name)')
-          .in('project_id', ownerProjectIds)
-          .eq('active', true)
-      ]);
+    const [
+      { data: projects, error: projectsError },
+      { data: dashboardRows, error: dashboardRowsError },
+      { data: languageRows, error: languageRowsError }
+    ] = await Promise.all([
+      supabase
+        .from('project')
+        .select('id,name,description')
+        .in('id', ownerProjectIds),
+      supabase
+        .from('project_dashboard_current')
+        .select(
+          'project_id,total_members,total_owners,expected_quests,total_quests,completed_quests,total_assets,updated_at'
+        )
+        .in('project_id', ownerProjectIds),
+      supabase
+        .from('project_language_link')
+        .select('project_id,language_type,languoid:languoid_id(name)')
+        .in('project_id', ownerProjectIds)
+        .eq('active', true)
+    ]);
 
     if (projectsError || dashboardRowsError || languageRowsError) {
       console.error('dashboard projectlist route base-query error:', {
@@ -221,7 +235,9 @@ export async function GET(request: NextRequest) {
         description: project?.description ?? null,
         target_languages: targetLanguagesByProjectId.get(projectId) ?? [],
         last_updated_at: dashboard?.updated_at ?? new Date(0).toISOString(),
-        total_members: toNumber(dashboard?.total_members) + toNumber(dashboard?.total_owners),
+        total_members:
+          toNumber(dashboard?.total_members) +
+          toNumber(dashboard?.total_owners),
         expected_quests: toNumber(dashboard?.expected_quests),
         total_quests_created: toNumber(dashboard?.total_quests),
         total_quests_completed: toNumber(dashboard?.completed_quests),

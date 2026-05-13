@@ -40,7 +40,9 @@ export async function canCreateContentInProject(
   authUserId: string
 ): Promise<boolean> {
   const membership = await getProjectMembership(projectId, authUserId);
-  return membership === 'owner' || membership === 'admin' || membership === 'member';
+  return (
+    membership === 'owner' || membership === 'admin' || membership === 'member'
+  );
 }
 
 export async function canEditProject(

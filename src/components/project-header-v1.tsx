@@ -91,8 +91,16 @@ export function ProjectHeaderV1({
                 <Users className="h-4 w-4 mr-2" />
                 Members
               </Button>
-              <Button asChild size="sm" variant="outline" className="flex items-center gap-2">
-                <Link href={projectDashboardHref} className="flex items-center gap-2">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Link
+                  href={projectDashboardHref}
+                  className="flex items-center gap-2"
+                >
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>

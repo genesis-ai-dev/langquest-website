@@ -75,8 +75,13 @@ type CombinedChartProps = {
   yAxisTickFormatter?: ((value: number) => string) | null;
 };
 
-const getColorForIndex = (colors: DonutChartColors[] | undefined, index: number) =>
-  (colors && colors.length ? colors[index % colors.length] : AvailableChartColors[index % AvailableChartColors.length]);
+const getColorForIndex = (
+  colors: DonutChartColors[] | undefined,
+  index: number
+) =>
+  colors && colors.length
+    ? colors[index % colors.length]
+    : AvailableChartColors[index % AvailableChartColors.length];
 
 const OTHERS_ITEM_ID = '__others__';
 const OTHERS_ITEM_NAME = 'Others';
@@ -122,17 +127,14 @@ export default function CombinedChart({
   yAxisTickFormatter
 }: CombinedChartProps) {
   const defaultAreaTabName = defaultAreaTab ?? areaTabs[0]?.name;
-  const [activeAreaTabName, setActiveAreaTabName] = useState<string | undefined>(
-    defaultAreaTabName
-  );
+  const [activeAreaTabName, setActiveAreaTabName] = useState<
+    string | undefined
+  >(defaultAreaTabName);
   const [activeDonutDetailKey, setActiveDonutDetailKey] = useState<
     'assets' | 'quests'
-  >(
-    donutTabs[0]?.detailKey === 'quests' ? 'quests' : 'assets'
-  );
-  const [selectedPoint, setSelectedPoint] = useState<CombinedChartDataPoint | null>(
-    data.at(-1) ?? null
-  );
+  >(donutTabs[0]?.detailKey === 'quests' ? 'quests' : 'assets');
+  const [selectedPoint, setSelectedPoint] =
+    useState<CombinedChartDataPoint | null>(data.at(-1) ?? null);
 
   useEffect(() => {
     setSelectedPoint(data.at(-1) ?? null);
@@ -171,7 +173,9 @@ export default function CombinedChart({
   const resolvedDonutTabs = useMemo<BaseDonutChartTab[]>(
     () =>
       donutTabs.map((tab) => {
-        const activeAreaTab = areaTabs.find((item) => item.name === activeAreaTabName);
+        const activeAreaTab = areaTabs.find(
+          (item) => item.name === activeAreaTabName
+        );
         const detailSource = activeAreaTab?.detailSource ?? 'default';
         const rows =
           selectedPoint?.details?.[detailSource]?.[activeDonutDetailKey]?.[
@@ -188,16 +192,17 @@ export default function CombinedChart({
         const summary = limitedRows.map((row, index) => ({
           name: row.name,
           total: (tab.summaryFormatter ?? donutNumberFormatter)(row.qty),
-          colorClassName: getColorClassName(getColorForIndex(tab.colors, index), 'bg')
+          colorClassName: getColorClassName(
+            getColorForIndex(tab.colors, index),
+            'bg'
+          )
         }));
 
         const defaultName = `${activeDonutDetailKey === 'assets' ? 'Assets' : 'Quests'} by ${
           tab.detailGroup === 'project' ? 'project' : 'member'
         }`;
         const tabName =
-          tab.detailKeyLabel?.[activeDonutDetailKey] ??
-          tab.name ??
-          defaultName;
+          tab.detailKeyLabel?.[activeDonutDetailKey] ?? tab.name ?? defaultName;
 
         return {
           name: tabName,
@@ -224,7 +229,9 @@ export default function CombinedChart({
   );
 
   const selectedDateLabel = useMemo(() => {
-    const activeAreaTab = areaTabs.find((item) => item.name === activeAreaTabName);
+    const activeAreaTab = areaTabs.find(
+      (item) => item.name === activeAreaTabName
+    );
     const indexKey = activeAreaTab?.index ?? 'date';
     const rawValue = selectedPoint?.[indexKey];
 
@@ -259,7 +266,9 @@ export default function CombinedChart({
     if (!selectedByIndex) return;
 
     const targetValue = value[selectedByIndex.index];
-    const next = data.find((item) => item[selectedByIndex.index] === targetValue);
+    const next = data.find(
+      (item) => item[selectedByIndex.index] === targetValue
+    );
     if (next) {
       setSelectedPoint(next);
     }

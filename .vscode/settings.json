@@ -5,9 +5,7 @@
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
+  "deno.enablePaths": ["supabase/functions"],
   "deno.lint": true,
   "deno.unstable": [
     "bare-node-builtins",
@@ -37,11 +35,7 @@
   ],
   "eslint.runtime": "node",
   "prettier.ignorePath": ".gitignore",
-  "tailwindCSS.classAttributes": [
-    "class",
-    "className",
-    "headerClassName"
-  ],
+  "tailwindCSS.classAttributes": ["class", "className", "headerClassName"],
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "workbench.editor.customLabels.patterns": {
