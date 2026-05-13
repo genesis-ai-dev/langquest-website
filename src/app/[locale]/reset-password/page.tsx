@@ -93,11 +93,18 @@ function ResetPasswordForm() {
       const deepLink = `${env.NEXT_PUBLIC_APP_SCHEME}://reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
+      const appStoreUrl =
+        'https://apps.apple.com/app/langquest-translation/id6752446665';
+
+      // Detect iOS vs Android for appropriate store
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !(window as unknown as { MSStream: boolean }).MSStream;
 
       window.location.href = deepLink;
 
       const timeout = setTimeout(() => {
-        window.location.href = playStoreUrl;
+        window.location.href = isIOS ? appStoreUrl : playStoreUrl;
       }, 5000);
 
       return () => clearTimeout(timeout);

@@ -176,6 +176,14 @@
     "rowsSelected": "已选择 {count} 行",
     "showHiddenTables": "显示隐藏表格"
   },
+  "notifications": {
+    "title": "LangQuest 通知",
+    "opening_app": "正在打开 LangQuest 应用...",
+    "desktop_message": "请在您的移动设备上打开 LangQuest 应用以查看通知。",
+    "download_prompt": "下载 LangQuest 应用以查看通知并接受邀请：",
+    "download_android": "从 Google Play 下载",
+    "download_ios": "从 App Store 下载"
+  },
   "ui": {
     "close": "关闭",
     "previousSlide": "上一张",

@@ -176,6 +176,14 @@
     "rowsSelected": "ro i makim",
     "showHiddenTables": "Soim ol hait tebol"
   },
+  "notifications": {
+    "title": "Notifikesen Bilong LangQuest",
+    "opening_app": "Wok long opim LangQuest app...",
+    "desktop_message": "Plis opim LangQuest app long mobil devaes bilong yu long lukim ol notifikesen.",
+    "download_prompt": "Daunlodim LangQuest app long lukim ol notifikesen na akseptim ol invaitesen:",
+    "download_android": "Daunlod long Google Play",
+    "download_ios": "Daunlod long App Store"
+  },
   "ui": {
     "close": "Klos",
     "previousSlide": "Slait Bipo",
