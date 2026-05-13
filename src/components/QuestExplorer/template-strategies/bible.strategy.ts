@@ -196,34 +196,36 @@ export const bibleStrategy: TemplateStrategy = {
 
     const usedRanges = assets
       .map((asset) => {
-      const assetMetadata = asset.metadata as
-        | {
-            verse?: {
-              from?: number;
-              to?: number;
-            };
-          }
-        | null
-        | undefined;
+        const assetMetadata = asset.metadata as
+          | {
+              verse?: {
+                from?: number;
+                to?: number;
+              };
+            }
+          | null
+          | undefined;
 
-      const fromRaw = assetMetadata?.verse?.from;
-      const toRaw = assetMetadata?.verse?.to;
+        const fromRaw = assetMetadata?.verse?.from;
+        const toRaw = assetMetadata?.verse?.to;
 
-      if (typeof fromRaw !== 'number') {
-        return null;
-      }
+        if (typeof fromRaw !== 'number') {
+          return null;
+        }
 
-      const from = Math.max(1, Math.min(totalVerses, Math.floor(fromRaw)));
-      const to =
-        typeof toRaw === 'number'
-          ? Math.max(1, Math.min(totalVerses, Math.floor(toRaw)))
-          : from;
+        const from = Math.max(1, Math.min(totalVerses, Math.floor(fromRaw)));
+        const to =
+          typeof toRaw === 'number'
+            ? Math.max(1, Math.min(totalVerses, Math.floor(toRaw)))
+            : from;
 
-      const start = Math.min(from, to);
-      const end = Math.max(from, to);
-      return { start, end };
-    })
-      .filter((range): range is { start: number; end: number } => range !== null)
+        const start = Math.min(from, to);
+        const end = Math.max(from, to);
+        return { start, end };
+      })
+      .filter(
+        (range): range is { start: number; end: number } => range !== null
+      )
       .sort((a, b) => {
         if (a.start !== b.start) {
           return a.start - b.start;
@@ -262,7 +264,10 @@ export const bibleStrategy: TemplateStrategy = {
       }
 
       labels.push({
-        name: range.start === range.end ? `${range.start}` : `${range.start}-${range.end}`,
+        name:
+          range.start === range.end
+            ? `${range.start}`
+            : `${range.start}-${range.end}`,
         inUse: true,
         metadata: {
           verse: { from: range.start, to: range.end }

@@ -446,7 +446,10 @@ export function BulkAssetModal({
       return;
     }
 
-    const canCreateContent = await canCreateContentInProject(projectId, user.id);
+    const canCreateContent = await canCreateContentInProject(
+      projectId,
+      user.id
+    );
     if (!canCreateContent) {
       toast.error(
         'You must be an active project member to create assets in this project.'

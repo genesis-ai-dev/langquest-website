@@ -210,7 +210,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (type === 'quest' && projectId) {
-      const allowed = await canCreateContentInProject(supabase, projectId, user.id);
+      const allowed = await canCreateContentInProject(
+        supabase,
+        projectId,
+        user.id
+      );
       if (!allowed) {
         return NextResponse.json(
           { error: 'You must be an active project member to upload quests.' },

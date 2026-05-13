@@ -85,7 +85,10 @@ const toIsoOrNull = (value: string | null | undefined) => {
   return parsed ? parsed.toISOString() : null;
 };
 
-const toActivityUser = (id: string | null | undefined, profileNameById: Map<string, string>) => {
+const toActivityUser = (
+  id: string | null | undefined,
+  profileNameById: Map<string, string>
+) => {
   if (!id) return { id: UNKNOWN_USER_ID, name: UNKNOWN_USER_NAME };
   return {
     id,
@@ -100,7 +103,10 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const accessToken = authHeader.slice(7);
@@ -115,7 +121,10 @@ export async function GET(request: NextRequest) {
     } = await supabaseAuth.auth.getUser(accessToken);
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid authentication token' },
+        { status: 401 }
+      );
     }
 
     const supabase = createClient(
@@ -141,7 +150,10 @@ export async function GET(request: NextRequest) {
 
     if (linksError) {
       console.error('dashboard activity route owner-links error:', linksError);
-      return NextResponse.json({ error: 'Failed to load owner projects' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to load owner projects' },
+        { status: 500 }
+      );
     }
 
     const ownerProjectIds = new Set(
@@ -155,9 +167,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const projectIds = projectIdParam
-      ? [projectIdParam]
-      : [...ownerProjectIds];
+    const projectIds = projectIdParam ? [projectIdParam] : [...ownerProjectIds];
 
     if (!projectIds.length) {
       return NextResponse.json({
@@ -172,37 +182,41 @@ export async function GET(request: NextRequest) {
     since.setUTCDate(since.getUTCDate() - WINDOW_DAYS);
     const sinceIso = since.toISOString();
 
-    const [{ data: projects, error: projectsError }, { data: assets, error: assetsError }, { data: quests, error: questsError }, { data: members, error: membersError }] =
-      await Promise.all([
-        supabase
-          .from('project')
-          .select('id,name,creator_id,last_updated')
-          .in('id', projectIds),
-        supabase
-          .from('asset')
-          .select('id,project_id,creator_id,last_updated')
-          .in('project_id', projectIds)
-          .eq('active', true)
-          .gte('last_updated', sinceIso)
-          .order('last_updated', { ascending: false })
-          .limit(MAX_PER_TABLE),
-        supabase
-          .from('quest')
-          .select('id,name,project_id,creator_id,last_updated')
-          .in('project_id', projectIds)
-          .eq('active', true)
-          .gte('last_updated', sinceIso)
-          .order('last_updated', { ascending: false })
-          .limit(MAX_PER_TABLE),
-        supabase
-          .from('profile_project_link')
-          .select('project_id,profile_id,membership,last_updated')
-          .in('project_id', projectIds)
-          .eq('active', true)
-          .gte('last_updated', sinceIso)
-          .order('last_updated', { ascending: false })
-          .limit(MAX_PER_TABLE)
-      ]);
+    const [
+      { data: projects, error: projectsError },
+      { data: assets, error: assetsError },
+      { data: quests, error: questsError },
+      { data: members, error: membersError }
+    ] = await Promise.all([
+      supabase
+        .from('project')
+        .select('id,name,creator_id,last_updated')
+        .in('id', projectIds),
+      supabase
+        .from('asset')
+        .select('id,project_id,creator_id,last_updated')
+        .in('project_id', projectIds)
+        .eq('active', true)
+        .gte('last_updated', sinceIso)
+        .order('last_updated', { ascending: false })
+        .limit(MAX_PER_TABLE),
+      supabase
+        .from('quest')
+        .select('id,name,project_id,creator_id,last_updated')
+        .in('project_id', projectIds)
+        .eq('active', true)
+        .gte('last_updated', sinceIso)
+        .order('last_updated', { ascending: false })
+        .limit(MAX_PER_TABLE),
+      supabase
+        .from('profile_project_link')
+        .select('project_id,profile_id,membership,last_updated')
+        .in('project_id', projectIds)
+        .eq('active', true)
+        .gte('last_updated', sinceIso)
+        .order('last_updated', { ascending: false })
+        .limit(MAX_PER_TABLE)
+    ]);
 
     if (projectsError || assetsError || questsError || membersError) {
       console.error('dashboard activity route base-query error:', {
@@ -254,10 +268,18 @@ export async function GET(request: NextRequest) {
     const assetById = new Map(typedAssets.map((asset) => [asset.id, asset]));
     const profileIds = new Set<string>();
 
-    typedAssets.forEach((row) => row.creator_id && profileIds.add(row.creator_id));
-    typedQuests.forEach((row) => row.creator_id && profileIds.add(row.creator_id));
-    typedProjects.forEach((row) => row.creator_id && profileIds.add(row.creator_id));
-    typedMembers.forEach((row) => row.profile_id && profileIds.add(row.profile_id));
+    typedAssets.forEach(
+      (row) => row.creator_id && profileIds.add(row.creator_id)
+    );
+    typedQuests.forEach(
+      (row) => row.creator_id && profileIds.add(row.creator_id)
+    );
+    typedProjects.forEach(
+      (row) => row.creator_id && profileIds.add(row.creator_id)
+    );
+    typedMembers.forEach(
+      (row) => row.profile_id && profileIds.add(row.profile_id)
+    );
 
     let profileNameById = new Map<string, string>();
     if (profileIds.size) {
@@ -267,7 +289,10 @@ export async function GET(request: NextRequest) {
         .in('id', [...profileIds]);
 
       if (profilesError) {
-        console.error('dashboard activity route profiles query error:', profilesError);
+        console.error(
+          'dashboard activity route profiles query error:',
+          profilesError
+        );
         return NextResponse.json(
           { error: 'Failed to load profile names' },
           { status: 500 }
@@ -300,7 +325,8 @@ export async function GET(request: NextRequest) {
       const quest = unwrapQuest(link.quest);
 
       const projectId = asset.project_id;
-      const projectName = projectNameById.get(projectId) ?? UNKNOWN_PROJECT_NAME;
+      const projectName =
+        projectNameById.get(projectId) ?? UNKNOWN_PROJECT_NAME;
       const questId = quest?.id ?? 'unknown-quest';
       const questName = quest?.name || UNKNOWN_QUEST_NAME;
       const userInfo = toActivityUser(asset.creator_id, profileNameById);
@@ -327,16 +353,15 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const assetActivities: RecentActivityItem[] = [...assetGroupedMap.values()].map(
-      (row) => ({
+    const assetActivities: RecentActivityItem[] = [...assetGroupedMap.values()]
+      .map((row) => ({
         project_id: row.project_id,
         project_name: row.project_name,
         description: `Added ${row.count} asset${row.count === 1 ? '' : 's'} to quest "${row.quest_name}"`,
         user: row.user,
         date_time: row.date_time,
         source: 'asset' as const
-      })
-    )
+      }))
       .sort(
         (a, b) =>
           new Date(b.date_time).getTime() - new Date(a.date_time).getTime()

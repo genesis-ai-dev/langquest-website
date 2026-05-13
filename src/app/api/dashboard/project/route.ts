@@ -118,7 +118,9 @@ const resolveTemplate = (
     ? value
     : 'unstructured';
 
-function normalizeDashboardJson(value: DashboardJson | null | undefined): DashboardJson {
+function normalizeDashboardJson(
+  value: DashboardJson | null | undefined
+): DashboardJson {
   return {
     members: value?.members ?? {},
     quests: value?.quests ?? {}
@@ -138,13 +140,19 @@ async function enrichDashboardMemberNames(
     .in('id', memberIds);
 
   if (profilesError) {
-    console.error('dashboard project route profile lookup error:', profilesError);
+    console.error(
+      'dashboard project route profile lookup error:',
+      profilesError
+    );
     return dashboardJson;
   }
 
   const profileNameById = new Map(
     ((profiles ?? []) as Array<{ id: string; username: string | null }>).map(
-      (profile) => [profile.id, profile.username || `Member ${profile.id.slice(0, 8)}`]
+      (profile) => [
+        profile.id,
+        profile.username || `Member ${profile.id.slice(0, 8)}`
+      ]
     )
   );
 
@@ -172,7 +180,9 @@ function toDashboardCreator(
   };
 }
 
-function enrichDashboardQuestCreators(dashboardJson: DashboardJson): DashboardJson {
+function enrichDashboardQuestCreators(
+  dashboardJson: DashboardJson
+): DashboardJson {
   const enrichedQuests: DashboardJson['quests'] = {};
 
   for (const [questId, quest] of Object.entries(dashboardJson.quests)) {
@@ -267,7 +277,10 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (membershipError) {
-      console.error('dashboard project route membership error:', membershipError);
+      console.error(
+        'dashboard project route membership error:',
+        membershipError
+      );
       return NextResponse.json(
         { error: 'Failed to load project permissions' },
         { status: 500 }
@@ -278,23 +291,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const [{ data: project, error: projectError }, { data: dashboard, error: dashboardError }] =
-      await Promise.all([
-        supabase
-          .from('project')
-          .select('id,name,description,template,active')
-          .eq('id', projectId)
-          .limit(1)
-          .maybeSingle<ProjectRow>(),
-        supabase
-          .from('project_dashboard_current')
-          .select(
-            'project_id,project_status,total_quests,expected_quests,total_subquests,total_assets,total_quests_versions,completed_quests,completed_subquests,inactive_quests,inactive_assets,assets_with_text,assets_with_audio,assets_with_image,assets_with_transcription,assets_with_translation,total_source_languages,total_target_languages,total_members,total_owners,dashboard_json,updated_at'
-          )
-          .eq('project_id', projectId)
-          .limit(1)
-          .maybeSingle<ProjectDashboardCurrentRow>()
-      ]);
+    const [
+      { data: project, error: projectError },
+      { data: dashboard, error: dashboardError }
+    ] = await Promise.all([
+      supabase
+        .from('project')
+        .select('id,name,description,template,active')
+        .eq('id', projectId)
+        .limit(1)
+        .maybeSingle<ProjectRow>(),
+      supabase
+        .from('project_dashboard_current')
+        .select(
+          'project_id,project_status,total_quests,expected_quests,total_subquests,total_assets,total_quests_versions,completed_quests,completed_subquests,inactive_quests,inactive_assets,assets_with_text,assets_with_audio,assets_with_image,assets_with_transcription,assets_with_translation,total_source_languages,total_target_languages,total_members,total_owners,dashboard_json,updated_at'
+        )
+        .eq('project_id', projectId)
+        .limit(1)
+        .maybeSingle<ProjectDashboardCurrentRow>()
+    ]);
 
     if (projectError || dashboardError) {
       console.error('dashboard project route base-query error:', {
@@ -311,7 +326,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const normalizedDashboardJson = normalizeDashboardJson(dashboard?.dashboard_json);
+    const normalizedDashboardJson = normalizeDashboardJson(
+      dashboard?.dashboard_json
+    );
     const enrichedDashboardJson = await enrichDashboardMemberNames(
       supabase,
       normalizedDashboardJson
@@ -323,7 +340,8 @@ export async function GET(request: NextRequest) {
     const response: DashboardProjectResponse = {
       project_id: project.id,
       project_status:
-        dashboard?.project_status ?? (project.active === true ? 'active' : 'inactive'),
+        dashboard?.project_status ??
+        (project.active === true ? 'active' : 'inactive'),
       template: resolveTemplate(project.template),
       project_name: project.name ?? 'Untitled project',
       project_description: project.description ?? null,

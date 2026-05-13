@@ -81,8 +81,15 @@ function RegistrationConfirmation() {
       const deepLink = `${env.NEXT_PUBLIC_APP_SCHEME}:///#access_token=${access_token}&refresh_token=${refresh_token}`;
       const playStoreUrl =
         'https://play.google.com/store/apps/details?id=com.etengenesis.langquest';
+      const appStoreUrl =
+        'https://apps.apple.com/app/langquest-translation/id6752446665';
 
       console.log('[REGISTRATION CONFIRMATION] Creating deep link:', deepLink);
+
+      // Detect iOS vs Android for appropriate store
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !(window as unknown as { MSStream: boolean }).MSStream;
 
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -90,8 +97,8 @@ function RegistrationConfirmation() {
       document.body.appendChild(iframe);
 
       setTimeout(() => {
-        console.log('[REGISTRATION CONFIRMATION] Redirecting to Play Store');
-        window.location.href = playStoreUrl;
+        console.log('[REGISTRATION CONFIRMATION] Redirecting to store');
+        window.location.href = isIOS ? appStoreUrl : playStoreUrl;
       }, 5000);
 
       window.location.href = deepLink;

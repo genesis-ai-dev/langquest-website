@@ -161,7 +161,9 @@ export function ProjectListCard({ project }: ProjectListCardProps) {
 
                 <div
                   className={`flex items-center justify-end gap-2 text-xs text-muted-foreground ${
-                    showProgress ? 'basis-[30%] max-w-[30%]' : 'basis-full max-w-full'
+                    showProgress
+                      ? 'basis-[30%] max-w-[30%]'
+                      : 'basis-full max-w-full'
                   }`}
                 >
                   <div
