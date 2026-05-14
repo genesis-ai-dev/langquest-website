@@ -90,7 +90,7 @@ function NotificationsHandler() {
             {t('download_android')}
           </a>
           <a
-            href="https://apps.apple.com/app/langquest/idYOUR_APP_ID"
+            href="https://apps.apple.com/app/langquest-translation/id6752446665"
             className="inline-block px-6 py-3 bg-accent1-500 text-white rounded-lg hover:bg-accent1-600"
           >
             {t('download_ios')}
