@@ -788,6 +788,11 @@ async function processProjectUpload(
 
       const normalizedData = normalizeRowData(row, languoidMap);
 
+      // Quest-only row: allow creating/reusing quest without requiring asset payload.
+      if (!row.asset_name || row.asset_name.trim() === '') {
+        continue;
+      }
+
       if (!hasAtLeastOneAssetPayload(normalizedData)) {
         result.stats.errors.push({
           row: i + 1,
@@ -823,11 +828,6 @@ async function processProjectUpload(
             })
             .filter(Boolean)
         : [];
-
-      if (row.asset_name.trim() === '') {
-        /* This means that is only creating a quest without asset */
-        continue;
-      }
 
       const { data: asset, error: assetError } = await supabase
         .from('asset')
@@ -994,6 +994,11 @@ async function processQuestUpload(
 
       const normalizedData = normalizeRowData(row, languoidMap);
 
+      // Quest-only row: allow creating/reusing quest without requiring asset payload.
+      if (!row.asset_name || row.asset_name.trim() === '') {
+        continue;
+      }
+
       if (!hasAtLeastOneAssetPayload(normalizedData)) {
         result.stats.errors.push({
           row: i + 1,
@@ -1015,11 +1020,6 @@ async function processQuestUpload(
 
       // Add questId to involved set
       result.involvedIds!.questIds.add(questId);
-
-      // Skip if no asset name (quest-only row)
-      if (!row.asset_name || row.asset_name.trim() === '') {
-        continue;
-      }
 
       // Prepare images array using normalized data
       const imageFiles = normalizedData.imageFiles
