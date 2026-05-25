@@ -1,17 +1,19 @@
 import { createBrowserClient } from '@/lib/supabase/client';
 
-export async function checkProjectOwnership(
+export type ProjectMembership = 'owner' | 'admin' | 'member' | null;
+
+export async function getProjectMembership(
   projectId: string,
   authUserId: string
-): Promise<boolean> {
-  if (!authUserId || !projectId) return false;
+): Promise<ProjectMembership> {
+  if (!authUserId || !projectId) return null;
 
   const projectRes = await createBrowserClient()
     .from('project')
     .select('creator_id')
     .eq('id', projectId)
     .single();
-  if (projectRes.data?.creator_id === authUserId) return true;
+  if (projectRes.data?.creator_id === authUserId) return 'owner';
 
   const linkRes = await createBrowserClient()
     .from('profile_project_link')
@@ -19,10 +21,28 @@ export async function checkProjectOwnership(
     .eq('project_id', projectId)
     .eq('profile_id', authUserId)
     .eq('active', true)
-    .eq('membership', 'owner')
+    .in('membership', ['owner', 'admin', 'member'])
     .maybeSingle();
 
-  return !!linkRes.data;
+  return (linkRes.data?.membership as ProjectMembership) ?? null;
+}
+
+export async function checkProjectOwnership(
+  projectId: string,
+  authUserId: string
+): Promise<boolean> {
+  const membership = await getProjectMembership(projectId, authUserId);
+  return membership === 'owner';
+}
+
+export async function canCreateContentInProject(
+  projectId: string,
+  authUserId: string
+): Promise<boolean> {
+  const membership = await getProjectMembership(projectId, authUserId);
+  return (
+    membership === 'owner' || membership === 'admin' || membership === 'member'
+  );
 }
 
 export async function canEditProject(

@@ -2002,7 +2002,7 @@ export function DatabaseViewer() {
                                 };
                                 setPendingSorting(newSorting);
                               }}
-                              className="translate-y-[1px]"
+                              className="translate-y-px"
                             />
                           </div>
                           <Button

@@ -176,6 +176,14 @@
     "rowsSelected": "row(s) selected",
     "showHiddenTables": "Show hidden tables"
   },
+  "notifications": {
+    "title": "LangQuest Notifications",
+    "opening_app": "Opening LangQuest app...",
+    "desktop_message": "Please open the LangQuest app on your mobile device to view your notifications.",
+    "download_prompt": "Download the LangQuest app to view your notifications and accept invitations:",
+    "download_android": "Download from Google Play",
+    "download_ios": "Download from App Store"
+  },
   "ui": {
     "close": "Close",
     "previousSlide": "Previous slide",

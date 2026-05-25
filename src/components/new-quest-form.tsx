@@ -28,7 +28,7 @@ import { useState } from 'react';
 import { Spinner } from './spinner';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth-provider';
-import { checkProjectOwnership } from '@/lib/project-permissions';
+import { canCreateContentInProject } from '@/lib/project-permissions';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { TagSelector } from '@/components/new-tag-selector';
 // import { cn } from '@/lib/utils';
@@ -122,10 +122,14 @@ export function QuestForm({
       return;
     }
 
-    // Server-side check to ensure user is still an owner.
-    const isOwner = await checkProjectOwnership(values.project_id, user.id);
-    if (!isOwner) {
-      toast.error('You must be an owner of the project to create quests.');
+    const canCreateContent = await canCreateContentInProject(
+      values.project_id,
+      user.id
+    );
+    if (!canCreateContent) {
+      toast.error(
+        'You must be an active project member to create quests in this project.'
+      );
       return;
     }
 

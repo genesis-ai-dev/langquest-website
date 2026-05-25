@@ -176,6 +176,14 @@
     "rowsSelected": "baris dipilih",
     "showHiddenTables": "Tampilkan tabel tersembunyi"
   },
+  "notifications": {
+    "title": "Notifikasi LangQuest",
+    "opening_app": "Membuka aplikasi LangQuest...",
+    "desktop_message": "Silakan buka aplikasi LangQuest di perangkat seluler Anda untuk melihat notifikasi.",
+    "download_prompt": "Unduh aplikasi LangQuest untuk melihat notifikasi dan menerima undangan:",
+    "download_android": "Unduh dari Google Play",
+    "download_ios": "Unduh dari App Store"
+  },
   "ui": {
     "close": "Tutup",
     "previousSlide": "Slide sebelumnya",

@@ -391,7 +391,7 @@ export function ProjectDownloadButton({
                           </Badge>
                         </div>
                         {selectedQuests.includes(quest.id) && (
-                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                         )}
                       </div>
                     )

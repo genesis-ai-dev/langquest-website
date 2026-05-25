@@ -13,7 +13,8 @@ import {
   Languages,
   Book,
   TableOfContents,
-  ListOrdered
+  ListOrdered,
+  LayoutDashboard
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
@@ -35,6 +36,7 @@ export function ProjectHeaderV1({
 }: ProjectHeaderV1Props) {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const aclReorderHref = `/portal/acl-reorder?projectId=${project.id}`;
+  const projectDashboardHref = `/dashboard/project?project_id=${encodeURIComponent(project.id)}`;
 
   return (
     <div className="space-y-6">
@@ -88,6 +90,20 @@ export function ProjectHeaderV1({
               >
                 <Users className="h-4 w-4 mr-2" />
                 Members
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Link
+                  href={projectDashboardHref}
+                  className="flex items-center gap-2"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Link>
               </Button>
               <ProjectDownloadButton projectId={project.id} />
             </div>

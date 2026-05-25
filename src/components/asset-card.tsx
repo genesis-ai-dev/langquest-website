@@ -286,7 +286,7 @@ export function AssetCard({ asset }: AssetCardProps) {
         (asset.images && asset.images.length > 0)) && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 pb-2 border-b border-purple-200 dark:border-purple-800">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-linear-to-br from-purple-500 to-purple-600 text-white">
               <BookOpenIcon className="size-4" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">
@@ -384,7 +384,7 @@ export function AssetCard({ asset }: AssetCardProps) {
       {asset.translations && asset.translations.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 pb-2 border-b border-orange-200 dark:border-orange-800">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-linear-to-br from-orange-500 to-orange-600 text-white">
               <VolumeIcon className="size-4" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">
@@ -419,7 +419,7 @@ export function AssetCard({ asset }: AssetCardProps) {
                         </div>
 
                         {/* Language Badge */}
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <Badge
                             variant="outline"
                             className="text-xs bg-primary/10"
@@ -443,7 +443,7 @@ export function AssetCard({ asset }: AssetCardProps) {
                         )}
 
                         {/* Voting removed temporarily - need to understand new schema */}
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <div className="text-xs text-muted-foreground">
                             Translation
                           </div>

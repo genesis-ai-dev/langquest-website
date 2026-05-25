@@ -193,7 +193,8 @@ export function QuestExplorerMenu({
 
   const canManage =
     userPermission?.membership === 'owner' ||
-    userPermission?.membership === 'admin';
+    userPermission?.membership === 'admin' ||
+    userPermission?.membership === 'member';
 
   const rawMiddleNodes = useMemo(
     () => getChildrenNodes(template, contextNode, strategyContext),
