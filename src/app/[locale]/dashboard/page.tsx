@@ -128,7 +128,7 @@ export default function DashboardPage() {
         icon: Languages,
         value:
           overview.total_source_languages + overview.total_target_languages,
-        description: 'Unique languages',
+        description: 'Over all projects',
         cardClass: 'border-primary/20',
         iconClass: 'text-primary bg-primary/10 border-primary/20'
       },
