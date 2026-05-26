@@ -92,7 +92,7 @@ export default function ProjectChartContainer({
         setChartError(null);
 
         const query = new URLSearchParams({
-          days: '45',
+          days: '360',
           project_id: projectId
         });
         const response = await fetch(
