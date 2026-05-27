@@ -26,69 +26,18 @@ type DailyChartRecord = {
   details: DailyDetails;
 };
 
-type ProjectRow = { id: string; name: string };
-type ProfileRow = { id: string; username: string | null };
-type QuestRow = {
-  project_id: string;
-  creator_id: string | null;
-  last_updated: string;
-};
-type AssetRow = {
-  project_id: string;
-  creator_id: string | null;
-  last_updated: string;
+type RpcChartRow = {
+  date: string | null;
+  quests: number | null;
+  assets: number | null;
+  quests_project: unknown;
+  quests_member: unknown;
+  assets_project: unknown;
+  assets_member: unknown;
 };
 
-type DailyAccumulator = {
-  quests: number;
-  assets: number;
-  details: {
-    quests: {
-      project: Map<string, BreakdownItem>;
-      member: Map<string, BreakdownItem>;
-    };
-    assets: {
-      project: Map<string, BreakdownItem>;
-      member: Map<string, BreakdownItem>;
-    };
-  };
-};
-
-const UNKNOWN_MEMBER_ID = 'unknown-member';
-const UNKNOWN_MEMBER_NAME = 'Unknown member';
-const UNKNOWN_PROJECT_NAME = 'Unknown project';
 const CHART_CACHE_CONTROL = 'private, max-age=300, stale-while-revalidate=300';
-
-const toDateLabel = (isoDateTime: string) => {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString().slice(0, 10);
-};
-
-const upsertBreakdownItem = (
-  map: Map<string, BreakdownItem>,
-  id: string,
-  name: string
-) => {
-  const existing = map.get(id);
-  if (existing) {
-    existing.qty += 1;
-    return;
-  }
-  map.set(id, { id, name, qty: 1 });
-};
-
-const mapToSortedArray = (map: Map<string, BreakdownItem>) =>
-  [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-
-const createEmptyAccumulator = (): DailyAccumulator => ({
-  quests: 0,
-  assets: 0,
-  details: {
-    quests: { project: new Map(), member: new Map() },
-    assets: { project: new Map(), member: new Map() }
-  }
-});
+const asNumber = (value: number | null | undefined) => value ?? 0;
 
 const chartJsonResponse = <T>(payload: T, status = 200) =>
   NextResponse.json(payload, {
@@ -98,6 +47,27 @@ const chartJsonResponse = <T>(payload: T, status = 200) =>
       Vary: 'Authorization'
     }
   });
+
+function normalizeBreakdown(value: unknown): BreakdownItem[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+
+      const id =
+        'id' in item && typeof item.id === 'string' ? item.id : 'unknown';
+      const name =
+        'name' in item && typeof item.name === 'string' ? item.name : 'Unknown';
+      const qty =
+        'qty' in item && typeof item.qty === 'number' && Number.isFinite(item.qty)
+          ? item.qty
+          : 0;
+
+      return { id, name, qty };
+    })
+    .filter((item): item is BreakdownItem => item !== null);
+}
 
 export async function GET(request: NextRequest) {
   const nowIso = new Date().toISOString();
@@ -134,179 +104,45 @@ export async function GET(request: NextRequest) {
   );
 
   const projectIdParam = request.nextUrl.searchParams.get('project_id');
-  const daysParam = Number(request.nextUrl.searchParams.get('days') ?? 45);
+  const daysParam = Number(request.nextUrl.searchParams.get('days') ?? 360);
   const days = Number.isFinite(daysParam)
-    ? Math.min(180, Math.max(1, Math.trunc(daysParam)))
-    : 45;
+    ? Math.max(1, Math.trunc(daysParam))
+    : 360;
 
-  let projectIds: string[] = [];
-  if (projectIdParam) {
-    projectIds = [projectIdParam];
-  } else {
-    const { data: ownerLinks, error: linksError } = await supabase
-      .from('profile_project_link')
-      .select('project_id')
-      .eq('profile_id', user.id)
-      .eq('active', true)
-      .eq('membership', 'owner');
-
-    if (linksError) {
-      console.error('dashboard chart route owner-links error:', linksError);
-      return NextResponse.json(
-        { error: 'Failed to load owner projects' },
-        { status: 500 }
-      );
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    'dashboard_chart_by_profile',
+    {
+      p_profile_id: user.id,
+      p_days: days,
+      p_project_id: projectIdParam
     }
-    projectIds = [
-      ...new Set((ownerLinks ?? []).map((link) => link.project_id))
-    ];
-  }
+  );
 
-  if (!projectIds.length) {
-    return chartJsonResponse({
-      mocked: false,
-      range_days: 0,
-      last_updated_at: nowIso,
-      data: [] as DailyChartRecord[]
-    });
-  }
-
-  const [
-    { data: projects, error: projectsError },
-    { data: quests, error: questsError },
-    { data: assets, error: assetsError }
-  ] = await Promise.all([
-    supabase.from('project').select('id,name').in('id', projectIds),
-    supabase
-      .from('quest')
-      .select('project_id,creator_id,last_updated')
-      .in('project_id', projectIds)
-      .eq('active', true),
-    supabase
-      .from('asset')
-      .select('project_id,creator_id,last_updated')
-      .in('project_id', projectIds)
-      .eq('active', true)
-      .eq('content_type', 'source')
-  ]);
-
-  if (projectsError || questsError || assetsError) {
-    console.error('dashboard chart route base-query error:', {
-      projectsError,
-      questsError,
-      assetsError
-    });
+  if (rpcError) {
+    console.error('dashboard chart route rpc error:', rpcError);
     return NextResponse.json(
       { error: 'Failed to load chart source data' },
       { status: 500 }
     );
   }
 
-  const projectNameById = new Map(
-    ((projects ?? []) as ProjectRow[]).map((project) => [
-      project.id,
-      project.name || UNKNOWN_PROJECT_NAME
-    ])
-  );
+  const data: DailyChartRecord[] = ((rpcData ?? []) as RpcChartRow[])
+    .filter((row) => typeof row.date === 'string' && row.date.length > 0)
+    .map((row) => {
+      const date = row.date as string;
 
-  const creatorIds = new Set<string>();
-  ((quests ?? []) as QuestRow[]).forEach(
-    (row) => row.creator_id && creatorIds.add(row.creator_id)
-  );
-  ((assets ?? []) as AssetRow[]).forEach(
-    (row) => row.creator_id && creatorIds.add(row.creator_id)
-  );
-
-  let profileNameById = new Map<string, string>();
-  if (creatorIds.size) {
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profile')
-      .select('id,username')
-      .in('id', [...creatorIds]);
-
-    if (profilesError) {
-      console.error(
-        'dashboard chart route profile-query error:',
-        profilesError
-      );
-      return NextResponse.json(
-        { error: 'Failed to load profile names' },
-        { status: 500 }
-      );
-    }
-
-    profileNameById = new Map(
-      ((profiles ?? []) as ProfileRow[]).map((profile) => [
-        profile.id,
-        profile.username || `Member ${profile.id.slice(0, 8)}`
-      ])
-    );
-  }
-
-  const byDate = new Map<string, DailyAccumulator>();
-
-  ((quests ?? []) as QuestRow[]).forEach((quest) => {
-    const dateLabel = toDateLabel(quest.last_updated);
-    if (!dateLabel) return;
-    const current = byDate.get(dateLabel) ?? createEmptyAccumulator();
-    current.quests += 1;
-
-    upsertBreakdownItem(
-      current.details.quests.project,
-      quest.project_id,
-      projectNameById.get(quest.project_id) ?? UNKNOWN_PROJECT_NAME
-    );
-
-    const memberId = quest.creator_id ?? UNKNOWN_MEMBER_ID;
-    const memberName = quest.creator_id
-      ? (profileNameById.get(quest.creator_id) ??
-        `Member ${quest.creator_id.slice(0, 8)}`)
-      : UNKNOWN_MEMBER_NAME;
-    upsertBreakdownItem(current.details.quests.member, memberId, memberName);
-    byDate.set(dateLabel, current);
-  });
-
-  ((assets ?? []) as AssetRow[]).forEach((asset) => {
-    const dateLabel = toDateLabel(asset.last_updated);
-    if (!dateLabel) return;
-    const current = byDate.get(dateLabel) ?? createEmptyAccumulator();
-    current.assets += 1;
-
-    upsertBreakdownItem(
-      current.details.assets.project,
-      asset.project_id,
-      projectNameById.get(asset.project_id) ?? UNKNOWN_PROJECT_NAME
-    );
-
-    const memberId = asset.creator_id ?? UNKNOWN_MEMBER_ID;
-    const memberName = asset.creator_id
-      ? (profileNameById.get(asset.creator_id) ??
-        `Member ${asset.creator_id.slice(0, 8)}`)
-      : UNKNOWN_MEMBER_NAME;
-    upsertBreakdownItem(current.details.assets.member, memberId, memberName);
-    byDate.set(dateLabel, current);
-  });
-
-  const orderedDates = [...byDate.keys()].sort((a, b) => a.localeCompare(b));
-  const limitedDates =
-    orderedDates.length > days
-      ? orderedDates.slice(orderedDates.length - days)
-      : orderedDates;
-
-  const data: DailyChartRecord[] = limitedDates.map((date) => {
-    const day = byDate.get(date) ?? createEmptyAccumulator();
     return {
       date,
-      quests: day.quests,
-      assets: day.assets,
+      quests: asNumber(row.quests),
+      assets: asNumber(row.assets),
       details: {
         quests: {
-          project: mapToSortedArray(day.details.quests.project),
-          member: mapToSortedArray(day.details.quests.member)
+          project: normalizeBreakdown(row.quests_project),
+          member: normalizeBreakdown(row.quests_member)
         },
         assets: {
-          project: mapToSortedArray(day.details.assets.project),
-          member: mapToSortedArray(day.details.assets.member)
+          project: normalizeBreakdown(row.assets_project),
+          member: normalizeBreakdown(row.assets_member)
         }
       }
     };

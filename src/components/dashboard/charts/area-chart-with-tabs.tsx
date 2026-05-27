@@ -177,9 +177,9 @@ function AreaTooltipRenderer({
   const formatValue = valueFormatter ?? numberFormatter;
 
   return (
-    <div className="rounded-md border border-gray-200 bg-white text-sm shadow-md dark:border-gray-800 dark:bg-gray-950 ">
+    <div className="rounded-md border border-gray-200 bg-white text-sm shadow-md dark:border-gray-800 dark:bg-gray-950 overflow-hidden ">
       {label ? (
-        <div className="border-b border-inherit px-4 py-2 z-100 bg-white">
+        <div className="border-b border-inherit px-4 py-2 z-100 bg-white dark:bg-gray-950">
           <p className="font-medium text-gray-900 dark:text-gray-50">{label}</p>
         </div>
       ) : null}
