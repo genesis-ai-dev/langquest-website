@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     : 360;
 
   const { data: rpcData, error: rpcError } = await supabase.rpc(
-    'rpc_dashboard_chart_by_profile',
+    'dashboard_chart_by_profile',
     {
       p_profile_id: user.id,
       p_days: days,
@@ -146,14 +146,6 @@ export async function GET(request: NextRequest) {
         }
       }
     };
-  });
-
-  console.log('dashboard chart route details before send:', {
-    profile_id: user.id,
-    project_id: projectIdParam,
-    requested_days: days,
-    range_days: data.length,
-    details: data.map((day) => ({ date: day.date, details: day.details }))
   });
 
   return chartJsonResponse({
