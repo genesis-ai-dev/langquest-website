@@ -46,3 +46,10 @@ cloud-services/audio-concat-worker/node_modules
 cloud-services/audio-concat-worker/.wrangler
 supabase/functions/enqueue-dashboard-refresh/*.local.js
 supabase/functions/process-dashboard-refresh/*.local.js
+
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars
