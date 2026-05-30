@@ -30,10 +30,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# dotenvx: commit encrypted .env.preview / .env.production; never commit private keys
+.env
+.env.keys
+.env.local
 .env*.local
+.dev.vars*
 !.env.example
+!.env.preview
+!.env.production
 
 # vercel
 .vercel
@@ -50,6 +55,5 @@ supabase/functions/process-dashboard-refresh/*.local.js
 # OpenNext
 .open-next
 
-# wrangler files
+# wrangler local state
 .wrangler
-.dev.vars
