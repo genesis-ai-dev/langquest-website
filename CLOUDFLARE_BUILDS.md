@@ -1,51 +1,65 @@
 # Cloudflare Workers Builds (preview)
 
-## What went wrong
+Preview secrets use [dotenvx `.env.txt` on Cloudflare Workers](https://dotenvx.com/docs/secrets-in-cloudflare-workers), same pattern as `cloud-services/resend-webhook-router` in the langquest repo.
 
-Logs like `DOTENV_PRIVATE_KEY_PRODUCTION=` (empty) and `destination":"encrypted:BMN6..."` mean:
+| File | Committed | Purpose |
+|------|-----------|---------|
+| `.env.preview.txt` | Yes (encrypted) | Preview env bundled / read at build + runtime |
+| `.env.keys` | No | Private keys (local only) |
 
-1. **Build secrets** — `DOTENV_PRIVATE_KEY_PRODUCTION` is set in the dashboard but **empty**. dotenvx tries to decrypt `.env.production` and leaves `encrypted:...` literals in `process.env`, so Next rewrites break.
-2. **Wrong env file for preview** — `pnpm build` used `.env.production` while the preview Worker should use `.env.preview`.
-3. **OpenNext runtime snapshot** — `compileEnvFiles` only reads `.env.production` / `.env.production.local`, not `.env.preview`. Preview deploys run `scripts/sync-preview-env-for-opennext.mjs` to write `.env.production.local` from decrypted preview vars.
+## Why the key can be “set” but the build still fails
 
-## Preview worker — Build variables and secrets (required)
+Cloudflare has **two** env surfaces:
 
-Your build log showed `node scripts/build.mjs` then plain `next build` with `encrypted:...` rewrites. That means **no private key was visible to the build** — the dashboard still had **Variables and secrets: None**.
+| Where | Used for | Example |
+|-------|----------|---------|
+| **Settings → Variables and Secrets** | Worker **runtime** | `DOTENV_PRIVATE_KEY` — decrypts `.env.preview.txt` in the running Worker |
+| **Settings → Builds → Variables and secrets** | **`pnpm run build`** only | Same key value — required for Next.js / OpenNext ([OpenNext env docs](https://opennext.js.org/cloudflare/howtos/env-vars)) |
 
-In **Workers → langquest-website-preview → Settings → Builds → Variables and secrets → Add**:
+If `DOTENV_PRIVATE_KEY_PREVIEW` (or `DOTENV_PRIVATE_KEY`) exists only under **Variables and Secrets**, the build log will show `DOTENV_* in build env: (none)` even though the dashboard lists the secret.
 
-| Type | Name | Value |
-|------|------|--------|
-| Secret (or Variable) | `DOTENV_PRIVATE_KEY_PREVIEW` | Paste the **full hex key** from local `.env.keys` after `DOTENV_PRIVATE_KEY_PREVIEW=` (no quotes) |
+Build variables are also **per trigger** (production branch vs other branches). Add the key on the trigger that matches the branch you build.
 
-Example line in `.env.keys`:
+## Preview worker setup
 
-```bash
-DOTENV_PRIVATE_KEY_PREVIEW=f45341812fc32e3dd852d179a8197874f41a7379eb13932cdfb1a1e18757b448
-```
+**Worker:** `langquest-website-preview`
 
-In Cloudflare you set **Name** = `DOTENV_PRIVATE_KEY_PREVIEW`, **Value** = only the hex part.
+### 1. Runtime (dotenvx Workers pattern)
 
-| Do | Don't |
-|----|--------|
-| Add `DOTENV_PRIVATE_KEY_PREVIEW` | Leave secrets as **None** |
-| Delete unused `DOTENV_PRIVATE_KEY_PRODUCTION` on this worker | Set `DOTENV_PRIVATE_KEY_PRODUCTION` to an **empty** value |
+**Settings → Variables and Secrets → Add secret:**
+
+| Name | Value |
+|------|--------|
+| `DOTENV_PRIVATE_KEY` | Hex from `.env.keys` (`DOTENV_PRIVATE_KEY_PREVIEW=...`) |
+
+`DOTENV_PRIVATE_KEY_PREVIEW` also works; `scripts/dotenv-load-preview.mjs` accepts both.
+
+### 2. Build (required for Next.js)
+
+**Settings → Builds → Variables and secrets → Add secret** (same hex value):
+
+| Name | Value |
+|------|--------|
+| `DOTENV_PRIVATE_KEY` | Same hex as runtime |
+
+### 3. Build settings
 
 | Setting | Value |
 |--------|--------|
 | **Root directory** | `/` |
-| **Build command** | `pnpm run build` *(runs OpenNext + decrypts preview when `WORKERS_CI` + `DOTENV_PRIVATE_KEY_PREVIEW` are set)* |
-| **Non-production branch deploy command** | `pnpm exec wrangler deploy --env preview --dry-run` |
+| **Build command** | `pnpm run build` |
+| **Deploy command** | `pnpm run deploy:preview` or `pnpm exec wrangler versions upload --env preview` |
 
-**Do not** use plain `next build` via a custom command — that skips dotenvx and leaves `encrypted:...` in rewrites.
+Use `opennextjs-cloudflare deploy --env preview -- --keep-vars` (see `deploy:preview` in `package.json`) so dashboard runtime secrets are not wiped on deploy.
 
-Alternative (single step): leave **Build command** empty and set **Non-production branch deploy command** to `pnpm workers:ci`.
+## Local commands
+
+```bash
+pnpm encrypt:preview   # re-encrypt after editing .env.preview.txt
+pnpm dev             # dotenvx + .env.preview.txt
+pnpm deploy:preview  # OpenNext preview deploy
+```
 
 ## Production worker
 
-| Name | Value |
-|------|--------|
-| `DOTENV_PRIVATE_KEY_PRODUCTION` | From `.env.keys` |
-| **Deploy command** | `pnpm deploy` |
-
-Do **not** set `DOTENV_PRIVATE_KEY_PREVIEW` on the production worker unless you also need it.
+Use `.env.production` (or add `.env.production.txt` later) and `DOTENV_PRIVATE_KEY` / `DOTENV_PRIVATE_KEY_PRODUCTION` the same way on `langquest-website-production`.

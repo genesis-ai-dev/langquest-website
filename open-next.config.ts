@@ -4,8 +4,15 @@ import r2IncrementalCache from '@opennextjs/cloudflare/overrides/incremental-cac
 
 const dotenvFile = process.env.LANGQUEST_DOTENV_FILE ?? '.env.production';
 
-/** OpenNext invokes this instead of `pnpm build` (see package.json `build`). */
-const buildCommand = `dotenvx run -f ${dotenvFile} -f .env.local --overload --ignore=MISSING_ENV_FILE -- next build`;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const envAlreadyDecrypted = Boolean(
+	supabaseUrl && !supabaseUrl.startsWith('encrypted:')
+);
+
+/** OpenNext invokes this instead of `pnpm build` when it runs an inner next build. */
+const buildCommand = envAlreadyDecrypted
+	? 'next build'
+	: `dotenvx run -f ${dotenvFile} -f .env.preview.txt -f .env.local --overload --ignore=MISSING_ENV_FILE -- next build`;
 
 export default {
 	...defineCloudflareConfig({

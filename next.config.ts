@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   async rewrites() {
-    return [
+    const rewrites = [
       /** Remove ingest routes after migration to relay endpoints in middleware.ts */
       {
         source: '/ingest/static/:path*',
@@ -17,12 +17,18 @@ const nextConfig: NextConfig = {
       {
         source: '/ingest/:path*',
         destination: 'https://us.i.posthog.com/:path*'
-      },
-      {
-        source: '/supabase/:project/:path*',
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`
       }
     ];
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (supabaseUrl && !supabaseUrl.startsWith('encrypted:')) {
+      rewrites.push({
+        source: '/supabase/:project/:path*',
+        destination: `${supabaseUrl}/:path*`
+      });
+    }
+
+    return rewrites;
   },
   // This is required to support PostHog trailing slash API requests
   skipTrailingSlashRedirect: true

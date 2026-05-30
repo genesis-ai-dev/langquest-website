@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# dotenvx: commit encrypted .env.preview / .env.production; never commit private keys
+# dotenvx: commit encrypted .env*.txt; never commit private keys
 .env
 .env.keys
 .env.local
@@ -39,6 +39,7 @@ yarn-error.log*
 !.env.example
 !.env.preview
 !.env.production
+!.env.preview.txt
 
 # vercel
 .vercel

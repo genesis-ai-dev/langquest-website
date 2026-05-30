@@ -1,16 +1,16 @@
 /**
  * OpenNext compileEnvFiles only merges `.env`, `.env.production`, `.env.local`,
- * `.env.production.local` — not `.env.preview`. For preview Worker builds, write
+ * `.env.production.local` — not `.env.preview.txt`. For preview Worker builds, write
  * decrypted preview vars into `.env.production.local` so runtime `next-env.mjs`
  * matches preview.
  *
- * Run inside: dotenvx run -f .env.preview -- node scripts/sync-preview-env-for-opennext.mjs
+ * Run after `loadPreviewEnvFromTxt()` or `dotenvx run -f .env.preview.txt`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from '@dotenvx/dotenvx';
 
-const previewPath = path.join(process.cwd(), '.env.preview');
+const previewPath = path.join(process.cwd(), '.env.preview.txt');
 const parsed = parse(fs.readFileSync(previewPath, 'utf8'));
 
 const lines = Object.keys(parsed)
