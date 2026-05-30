@@ -20,8 +20,12 @@ In **Workers → langquest-website-preview → Settings → Builds → Build var
 | Setting | Value |
 |--------|--------|
 | **Root directory** | `/` |
-| **Build command** | *(empty)* |
-| **Non-production branch deploy command** | `pnpm workers:ci` |
+| **Build command** | `pnpm run build` *(runs OpenNext + decrypts preview when `WORKERS_CI` + `DOTENV_PRIVATE_KEY_PREVIEW` are set)* |
+| **Non-production branch deploy command** | `pnpm exec wrangler deploy --env preview --dry-run` |
+
+**Do not** use plain `next build` via a custom command — that skips dotenvx and leaves `encrypted:...` in rewrites.
+
+Alternative (single step): leave **Build command** empty and set **Non-production branch deploy command** to `pnpm workers:ci`.
 
 ## Production worker
 

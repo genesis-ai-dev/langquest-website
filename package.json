@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.5.2",
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/build.mjs",
     "translate": "pnpm dlx gtx-cli@latest translate",
     "dev": "dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- next dev --turbopack",
     "start": "dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- next start",
