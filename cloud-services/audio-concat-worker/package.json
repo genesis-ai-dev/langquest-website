@@ -4,8 +4,10 @@
   "description": "Cloudflare Worker for concatenating audio segments",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "build": "pnpm exec tsc --noEmit",
+    "dev": "wrangler --config wrangler.toml dev",
+    "deploy": "wrangler --config wrangler.toml deploy",
+    "versions:upload": "wrangler --config wrangler.toml versions upload"
   },
   "dependencies": {},
   "devDependencies": {

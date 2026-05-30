@@ -29,9 +29,23 @@ This will start the worker on `http://localhost:8787` (default port).
 
 ```bash
 cd cloud-services/audio-concat-worker
-npm install
-npm run deploy
+pnpm install
+pnpm run deploy
 ```
+
+### Cloudflare Workers Builds
+
+Set **Root directory** to `cloud-services/audio-concat-worker`.
+
+The repo root has `wrangler.jsonc` for the Next.js site (`.open-next/worker.js`). If deploy runs bare `npx wrangler versions upload`, Wrangler walks up and uses that file — use the scripts below so it always loads **this** worker’s `wrangler.toml`.
+
+| Setting | Value |
+|--------|--------|
+| **Build command** | `pnpm build` |
+| **Deploy command** | `pnpm run versions:upload` |
+| **Version command** (if separate) | `pnpm run versions:upload` |
+
+Do **not** use `npx wrangler versions upload` without `--config wrangler.toml`.
 
 ## Known Issues
 
