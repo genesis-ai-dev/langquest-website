@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.5.2",
   "scripts": {
-    "build": "dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- next build",
+    "build": "next build",
     "translate": "pnpm dlx gtx-cli@latest translate",
     "dev": "dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- next dev --turbopack",
     "start": "dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- next start",
@@ -13,12 +13,13 @@
     "format": "prettier --check . --cache",
     "format:fix": "prettier --write . --cache",
     "typecheck": "tsc --noEmit",
-    "preview": "dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare preview --env preview'",
-    "preview:prod": "dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare preview --env production'",
-    "deploy": "dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production'",
-    "deploy:preview": "dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare deploy --env preview'",
-    "upload": "dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare upload --env production'",
-    "upload:preview": "dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare upload --env preview'",
+    "preview": "LANGQUEST_DOTENV_FILE=.env.preview dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'node scripts/sync-preview-env-for-opennext.mjs && opennextjs-cloudflare build && opennextjs-cloudflare preview --env preview'",
+    "preview:prod": "LANGQUEST_DOTENV_FILE=.env.production dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare preview --env production'",
+    "deploy": "LANGQUEST_DOTENV_FILE=.env.production dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production'",
+    "deploy:preview": "LANGQUEST_DOTENV_FILE=.env.preview dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'node scripts/sync-preview-env-for-opennext.mjs && opennextjs-cloudflare build && opennextjs-cloudflare deploy --env preview'",
+    "upload": "LANGQUEST_DOTENV_FILE=.env.production dotenvx run -f .env.production -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'opennextjs-cloudflare build && opennextjs-cloudflare upload --env production'",
+    "upload:preview": "LANGQUEST_DOTENV_FILE=.env.preview dotenvx run -f .env.preview -f .env.local --overload --ignore=MISSING_ENV_FILE -- bash -c 'node scripts/sync-preview-env-for-opennext.mjs && opennextjs-cloudflare build && opennextjs-cloudflare upload --env preview'",
+    "workers:ci": "LANGQUEST_DOTENV_FILE=.env.preview dotenvx run -f .env.preview --overload --ignore=MISSING_ENV_FILE -- bash -c 'node scripts/sync-preview-env-for-opennext.mjs && opennextjs-cloudflare build && wrangler deploy --env preview --dry-run'",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
