@@ -31,7 +31,3 @@ In **Workers → langquest-website-preview → Settings → Builds → Build var
 | **Deploy command** | `pnpm deploy` |
 
 Do **not** set `DOTENV_PRIVATE_KEY_PREVIEW` on the production worker unless you also need it.
-
-## GitHub Actions
-
-Add secret `DOTENV_PRIVATE_KEY_PREVIEW` for `.github/workflows/cloudflare-preview.yml`.
