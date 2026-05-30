@@ -8,14 +8,28 @@ Logs like `DOTENV_PRIVATE_KEY_PRODUCTION=` (empty) and `destination":"encrypted:
 2. **Wrong env file for preview** — `pnpm build` used `.env.production` while the preview Worker should use `.env.preview`.
 3. **OpenNext runtime snapshot** — `compileEnvFiles` only reads `.env.production` / `.env.production.local`, not `.env.preview`. Preview deploys run `scripts/sync-preview-env-for-opennext.mjs` to write `.env.production.local` from decrypted preview vars.
 
-## Preview worker — Build variables and secrets
+## Preview worker — Build variables and secrets (required)
 
-In **Workers → langquest-website-preview → Settings → Builds → Build variables and secrets**:
+Your build log showed `node scripts/build.mjs` then plain `next build` with `encrypted:...` rewrites. That means **no private key was visible to the build** — the dashboard still had **Variables and secrets: None**.
 
-| Name | Value |
-|------|--------|
-| `DOTENV_PRIVATE_KEY_PREVIEW` | Full key from local `.env.keys` (required) |
-| `DOTENV_PRIVATE_KEY_PRODUCTION` | Full production key **or delete this variable entirely** on the preview worker — **never** set it to an empty string |
+In **Workers → langquest-website-preview → Settings → Builds → Variables and secrets → Add**:
+
+| Type | Name | Value |
+|------|------|--------|
+| Secret (or Variable) | `DOTENV_PRIVATE_KEY_PREVIEW` | Paste the **full hex key** from local `.env.keys` after `DOTENV_PRIVATE_KEY_PREVIEW=` (no quotes) |
+
+Example line in `.env.keys`:
+
+```bash
+DOTENV_PRIVATE_KEY_PREVIEW=f45341812fc32e3dd852d179a8197874f41a7379eb13932cdfb1a1e18757b448
+```
+
+In Cloudflare you set **Name** = `DOTENV_PRIVATE_KEY_PREVIEW`, **Value** = only the hex part.
+
+| Do | Don't |
+|----|--------|
+| Add `DOTENV_PRIVATE_KEY_PREVIEW` | Leave secrets as **None** |
+| Delete unused `DOTENV_PRIVATE_KEY_PRODUCTION` on this worker | Set `DOTENV_PRIVATE_KEY_PRODUCTION` to an **empty** value |
 
 | Setting | Value |
 |--------|--------|
