@@ -1,0 +1,24 @@
+name: Cloudflare Preview Build
+
+on:
+  pull_request:
+    branches: ['*']
+  merge_group:
+
+concurrency:
+  group: cloudflare-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workers-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/workflows/setup
+
+      - name: Build and validate deploy (preview)
+        env:
+          DOTENV_PRIVATE_KEY_PREVIEW: ${{ secrets.DOTENV_PRIVATE_KEY_PREVIEW }}
+        run: pnpm workers:ci
