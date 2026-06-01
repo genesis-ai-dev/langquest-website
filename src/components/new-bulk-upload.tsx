@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/spinner';
@@ -75,12 +75,39 @@ export function BulkUpload({
   });
   const [isLanguoidModalOpen, setIsLanguoidModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const instructionsScrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const [isCreatingLanguage, setIsCreatingLanguage] = useState(false);
   const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
+  const [isInstructionsScrolledToEnd, setIsInstructionsScrolledToEnd] =
+    useState(false);
 
   const supabaseClient = useMemo(() => {
     return createBrowserClient();
+  }, []);
+
+  useEffect(() => {
+    const viewport = instructionsScrollAreaRef.current?.querySelector(
+      '[data-slot="scroll-area-viewport"]'
+    );
+
+    if (!(viewport instanceof HTMLElement)) {
+      return;
+    }
+
+    const updateInstructionsScrollState = () => {
+      const remainingScroll =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+
+      setIsInstructionsScrolledToEnd(remainingScroll <= 1);
+    };
+
+    updateInstructionsScrollState();
+    viewport.addEventListener('scroll', updateInstructionsScrollState);
+
+    return () => {
+      viewport.removeEventListener('scroll', updateInstructionsScrollState);
+    };
   }, []);
 
   const downloadTemplate = useCallback(() => {
@@ -402,319 +429,377 @@ export function BulkUpload({
   };
 
   return (
-    <ScrollArea className="h-full">
-      <div className="space-y-6 max-w-4xl mx-auto">
-        <div className="text-center">
-          {/* <h2 className="text-xl font-bold mb-2">{getUploadTitle()}</h2> */}
-          <p className="text-left text-sm text-muted-foreground">
-            {getInstructions()}
-          </p>
-        </div>
+    // <ScrollArea className="h-full">
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="text-center">
+        {/* <h2 className="text-xl font-bold mb-2">{getUploadTitle()}</h2> */}
+        <p className="text-left text-sm text-muted-foreground">
+          {getInstructions()}
+        </p>
+      </div>
 
-        <Alert>
-          <AlertTitle className="flex flex-row gap-2 justify-between items-center">
-            <div className="flex items-center gap-2">
-              <FileArchive className="h-4 w-4" /> ZIP File Format
-            </div>
-            <div className="flex justify-center text-sm">
-              <Button
-                onClick={downloadTemplate}
-                variant="outline"
-                className="text-xs"
-              >
-                <Download className="h-4 w-4" />
-                Download CSV Template
-              </Button>
-            </div>
-          </AlertTitle>
-          <AlertDescription>
-            Your ZIP file should contain:
-            <ul className="list-disc list-inside mt-2 space-y-0.5">
-              <li>
-                One <b>CSV</b> file with your data (download template below)
-              </li>
-              <li>
-                Image files (.jpg, .jpeg, .png, .webp) referenced in the CSV
-              </li>
-              <li>
-                Audio files (.mp3, .m4a, .wav, .ogg) referenced in the CSV
-              </li>
-              <li>
-                The tags, source content, and source audio must be separated by
-                semicolons (‘;’) if there is more than one.
-              </li>
-              <li>
-                All files must be inside the <b>assets</b> folder in the ZIP
-                archive
-              </li>
-              <li>Avoid using special characters in file names</li>
-              <li>
-                Ensure that the CSV file references the media files correctly by
-                their filenames.
-              </li>
-              <li>
-                Quests without a parent name, or with a non-existent parent
-                name, will be placed at the root of the project
-              </li>
-              <li>
-                The maximum allowed ZIP file size is <b>50MB</b>
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
+      <Alert className="mt-2 p-2 h-64 gap-2 overflow-hidden">
+        <AlertTitle className="flex flex-row gap-2 justify-between items-center">
+          <div className="flex items-center gap-2">
+            <FileArchive className="h-4 w-4" /> ZIP File Format
+          </div>
+          <div className="flex justify-center text-sm">
+            <Button
+              onClick={downloadTemplate}
+              variant="outline"
+              className="text-xs"
+            >
+              <Download className="h-4 w-4" />
+              Download CSV Template
+            </Button>
+          </div>
+        </AlertTitle>
+        <AlertDescription className="py-4 ">
+          {/* <div className="pointer-events-none absolute top-12 left-0 right-0 h-12 bg-linear-to-t from-background/10 to-background" /> */}
+          <div ref={instructionsScrollAreaRef}>
+            <ScrollArea className="h-48">
+              Instructions:
+              <ul className="list-disc list-inside mt-2 space-y-0.5 flex flex-col gap-1">
+                <li>
+                  Download the appropriate CSV template using the{' '}
+                  <strong>Download CSV Template</strong> button before preparing
+                  your import package.
+                </li>
+                <li>
+                  Select the template that matches your import type:
+                  <ul className="list-item list-inside ml-4 space-y-0.5">
+                    <li>
+                      <strong>Project Import:</strong> Creates projects, quests,
+                      and assets.
+                    </li>
+                    <li>
+                      <strong>Quest Import:</strong> Creates quests and assets
+                      within an existing project.
+                    </li>
+                    <li>
+                      <strong>Asset Import:</strong> Creates assets within an
+                      existing quest.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Package the CSV file and all media files into a single ZIP
+                  file.
+                </li>
+                <li>Place the CSV file in the root directory of the ZIP file.</li>
+                <li>
+                  Place all audio and image files inside an{' '}
+                  <strong>assets</strong> folder located in the root directory
+                  of the ZIP file.
+                </li>
+                <li>
+                  Ensure that file names in the CSV exactly match the file names
+                  included in the ZIP file.
+                </li>
+                <li>
+                  Ensure that every file referenced in the CSV is included in
+                  the ZIP file.
+                </li>
+                <li>
+                  The ZIP file size must not exceed <strong>50 MB</strong>.
+                </li>
+                <li>
+                  Supported audio formats are: <strong>mp3</strong>,{' '}
+                  <strong>m4a</strong>, <strong>wav</strong>, and{' '}
+                  <strong>ogg</strong>.
+                </li>
+                <li>
+                  Supported image formats are: <strong>jpg</strong>,{' '}
+                  <strong>jpeg</strong>, <strong>png</strong>, and{' '}
+                  <strong>webp</strong>.
+                </li>
+                <li>
+                  Avoid using special characters in file names, as they may
+                  cause import errors.
+                </li>
+                <li>
+                  When specifying multiple tags, separate them using a semicolon
+                  (<strong>;</strong>).
+                </li>
+                <li>
+                  When specifying multiple audio or image files for the same
+                  asset, separate file names using a semicolon (
+                  <strong>;</strong>).
+                </li>
+                <li>
+                  To create a quest level without any assets, including parent
+                  quests and sub-level quests, leave all asset-related fields
+                  empty in the corresponding row.
+                </li>
+                <li>
+                  If a quest's <strong>Parent Name</strong> cannot be matched to
+                  an existing quest, the quest will be created at the root level
+                  of the project.
+                </li>
+                <li>
+                  Verify your CSV and ZIP structure before uploading to avoid
+                  import errors.
+                </li>
+              </ul>
+            </ScrollArea>
+          </div>
+          <div
+            className={`pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-linear-to-t from-background to-background/10 transition-opacity ${
+              isInstructionsScrolledToEnd ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
+        </AlertDescription>
+      </Alert>
 
-        <Card className="text-sm">
-          <CardHeader className="px-4">
+      <Card className="text-sm">
+        <CardHeader className="px-4">
+          <CardTitle className="flex items-center gap-2">
+            Select ZIP File
+          </CardTitle>
+          <CardDescription>
+            Choose your ZIP file containing the CSV and media files
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 space-y-4">
+          <div className="grid w-full max-w-md items-center gap-1.5">
+            {/* <Label htmlFor="file">ZIP File</Label> */}
+            <Input
+              id="file"
+              type="file"
+              accept=".zip"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              disabled={isUploading}
+            />
+          </div>
+
+          {file && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FileArchive className="h-4 w-4" />
+              {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {isValidating && (
+        <Card>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              Select ZIP File
+              <Spinner className="h-4 w-4" />
+              Validating...
             </CardTitle>
-            <CardDescription>
-              Choose your ZIP file containing the CSV and media files
-            </CardDescription>
           </CardHeader>
-          <CardContent className="px-4 space-y-4">
-            <div className="grid w-full max-w-md items-center gap-1.5">
-              {/* <Label htmlFor="file">ZIP File</Label> */}
-              <Input
-                id="file"
-                type="file"
-                accept=".zip"
-                onChange={handleFileChange}
-                ref={fileInputRef}
-                disabled={isUploading}
-              />
-            </div>
-
-            {file && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <FileArchive className="h-4 w-4" />
-                {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+          <CardContent>
+            <div className="flex items-center justify-center p-4">
+              <div className="text-center">
+                <Spinner className="h-8 w-8 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Validating CSV files and checking references in assets
+                  folder...
+                </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {progress.uploading && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Spinner className="h-4 w-4" />
+              Uploading...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center p-4">
+              <div className="text-center">
+                <Spinner className="h-8 w-8 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Processing your ZIP file and uploading content...
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {progress.result && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {progress.result.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              )}
+              {progress.result?.message === 'ZIP file validation failed'
+                ? 'Validation Results'
+                : 'Upload Results'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {progress.result?.message !== 'ZIP file validation failed' && (
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {progress.result.stats.projects.created}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Projects Created
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {progress.result.stats.quests.created}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Quests Created
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {progress.result.stats.assets.created}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Assets Created
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {progress.result?.message === 'ZIP file validation failed' && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                <h4 className="font-medium text-red-800 mb-2">
+                  Issues found in ZIP file:
+                </h4>
+                <p className="text-sm text-red-600">
+                  Please fix the issues below before uploading.
+                </p>
+              </div>
+            )}
+
+            {(progress.result.stats.errors.length > 0 ||
+              progress.result.stats.warnings.length > 0) && (
+              <Tabs defaultValue="errors" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger
+                    value="errors"
+                    className="flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {progress.result?.message === 'ZIP file validation failed'
+                      ? 'Validation Issues'
+                      : 'Errors'}{' '}
+                    ({progress.result.stats.errors.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="warnings"
+                    className="flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Warnings ({progress.result.stats.warnings.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="errors">
+                  <ScrollArea className="h-32">
+                    <ul className="list-disc pl-5">
+                      {progress.result.stats.errors.map((error, index) => (
+                        <li
+                          key={index}
+                          className="text-sm text-destructive mb-1"
+                        >
+                          {progress.result?.message ===
+                          'ZIP file validation failed'
+                            ? error.message
+                            : `Row ${error.row}: ${error.message}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="warnings">
+                  <ScrollArea className="h-32">
+                    {progress.result.stats.warnings.map((warning, index) => (
+                      <div key={index} className="text-sm text-yellow-600 mb-1">
+                        Row {warning.row}: {warning.message}
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            )}
+            {showAddLanguageAlert && (
+              <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+                <Info className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-800">
+                  Languages Not Found
+                </AlertTitle>
+                <AlertDescription className="text-yellow-700 mb-3">
+                  Some of the languages in your CSV file couldn’t be found in
+                  our database. Please review the error messages above for
+                  details, correct the CSV file accordingly and try again. If
+                  needed, you can add the missing languages using the button
+                  below.
+                </AlertDescription>
+                <div></div>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsLanguoidModalOpen(true)}
+                  className="border-yellow-300 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:text-yellow-800 w-full transition-all"
+                  size="sm"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Language
+                </Button>
+              </Alert>
             )}
           </CardContent>
         </Card>
+      )}
 
-        {isValidating && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Spinner className="h-4 w-4" />
-                Validating...
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center p-4">
-                <div className="text-center">
-                  <Spinner className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Validating CSV files and checking references in assets
-                    folder...
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      <LanguoidModal
+        isOpen={isLanguoidModalOpen}
+        onClose={() => setIsLanguoidModalOpen(false)}
+        initialName=""
+        onLanguoidSelect={(languoid) => {
+          handleCreateLanguoid(languoid);
+          setIsLanguoidModalOpen(false);
+        }}
+      />
 
-        {progress.uploading && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Spinner className="h-4 w-4" />
-                Uploading...
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center p-4">
-                <div className="text-center">
-                  <Spinner className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Processing your ZIP file and uploading content...
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {progress.result && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {progress.result.success ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                )}
-                {progress.result?.message === 'ZIP file validation failed'
-                  ? 'Validation Results'
-                  : 'Upload Results'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {progress.result?.message !== 'ZIP file validation failed' && (
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {progress.result.stats.projects.created}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Projects Created
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {progress.result.stats.quests.created}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Quests Created
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">
-                      {progress.result.stats.assets.created}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Assets Created
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {progress.result?.message === 'ZIP file validation failed' && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                  <h4 className="font-medium text-red-800 mb-2">
-                    Issues found in ZIP file:
-                  </h4>
-                  <p className="text-sm text-red-600">
-                    Please fix the issues below before uploading.
-                  </p>
-                </div>
-              )}
-
-              {(progress.result.stats.errors.length > 0 ||
-                progress.result.stats.warnings.length > 0) && (
-                <Tabs defaultValue="errors" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger
-                      value="errors"
-                      className="flex items-center gap-2"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                      {progress.result?.message === 'ZIP file validation failed'
-                        ? 'Validation Issues'
-                        : 'Errors'}{' '}
-                      ({progress.result.stats.errors.length})
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="warnings"
-                      className="flex items-center gap-2"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                      Warnings ({progress.result.stats.warnings.length})
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="errors">
-                    <ScrollArea className="h-32">
-                      <ul className="list-disc pl-5">
-                        {progress.result.stats.errors.map((error, index) => (
-                          <li
-                            key={index}
-                            className="text-sm text-destructive mb-1"
-                          >
-                            {progress.result?.message ===
-                            'ZIP file validation failed'
-                              ? error.message
-                              : `Row ${error.row}: ${error.message}`}
-                          </li>
-                        ))}
-                      </ul>
-                    </ScrollArea>
-                  </TabsContent>
-                  <TabsContent value="warnings">
-                    <ScrollArea className="h-32">
-                      {progress.result.stats.warnings.map((warning, index) => (
-                        <div
-                          key={index}
-                          className="text-sm text-yellow-600 mb-1"
-                        >
-                          Row {warning.row}: {warning.message}
-                        </div>
-                      ))}
-                    </ScrollArea>
-                  </TabsContent>
-                </Tabs>
-              )}
-              {showAddLanguageAlert && (
-                <Alert className="mt-4 border-yellow-200 bg-yellow-50">
-                  <Info className="h-4 w-4 text-yellow-600" />
-                  <AlertTitle className="text-yellow-800">
-                    Languages Not Found
-                  </AlertTitle>
-                  <AlertDescription className="text-yellow-700 mb-3">
-                    Some of the languages in your CSV file couldn’t be found in
-                    our database. Please review the error messages above for
-                    details, correct the CSV file accordingly and try again. If
-                    needed, you can add the missing languages using the button
-                    below.
-                  </AlertDescription>
-                  <div></div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsLanguoidModalOpen(true)}
-                    className="border-yellow-300 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:text-yellow-800 w-full transition-all"
-                    size="sm"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New Language
-                  </Button>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        <LanguoidModal
-          isOpen={isLanguoidModalOpen}
-          onClose={() => setIsLanguoidModalOpen(false)}
-          initialName=""
-          onLanguoidSelect={(languoid) => {
-            handleCreateLanguoid(languoid);
-            setIsLanguoidModalOpen(false);
-          }}
-        />
-
-        <div className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={resetUpload}
-            disabled={isUploading || isValidating}
-          >
-            <X className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-          <Button
-            onClick={handleUpload}
-            disabled={!file || isUploading || isValidating || !user}
-          >
-            {isValidating ? (
-              <>
-                <Spinner className="mr-2 h-4 w-4" />
-                Validating...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                {isUploading
-                  ? 'Uploading...'
-                  : !user
-                    ? 'Login Required'
-                    : `Upload ZIP File`}
-              </>
-            )}
-          </Button>
-        </div>
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={resetUpload}
+          disabled={isUploading || isValidating}
+        >
+          <X className="mr-2 h-4 w-4" />
+          Reset
+        </Button>
+        <Button
+          onClick={handleUpload}
+          disabled={!file || isUploading || isValidating || !user}
+        >
+          {isValidating ? (
+            <>
+              <Spinner className="mr-2 h-4 w-4" />
+              Validating...
+            </>
+          ) : (
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              {isUploading
+                ? 'Uploading...'
+                : !user
+                  ? 'Login Required'
+                  : `Upload ZIP File`}
+            </>
+          )}
+        </Button>
       </div>
-    </ScrollArea>
+    </div>
+    // </ScrollArea>
   );
 }
