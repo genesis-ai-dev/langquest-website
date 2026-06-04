@@ -131,9 +131,24 @@ function PrivacyPolicy() {
                       loading times
                     </li>
                     <li>
-                      Unique identifiers: randomly generated device identifiers
-                      that don&apos;t personally identify you but help us
-                      analyze usage patterns
+                      Account linkage: if you are signed in and have not opted
+                      out of analytics, we associate usage events with your
+                      account user ID to improve the App and diagnose issues. We
+                      do not send your email address to our analytics provider
+                      for this purpose.
+                    </li>
+                    <li>
+                      Device and session identifiers: when analytics are
+                      enabled, we may also use device or session identifiers to
+                      understand usage. If you opt out of analytics or are not
+                      signed in, we do not link analytics to your account user
+                      ID.
+                    </li>
+                    <li>
+                      Session replay: on supported devices, we may record
+                      limited replays of how you use the App (such as screens
+                      viewed and interactions). Text you type into forms is
+                      masked; we use this to find bugs and improve usability.
                     </li>
                   </ul>
                 </li>
@@ -312,8 +327,9 @@ function PrivacyPolicy() {
               <p>
                 You can opt out of analytics collection directly in the
                 App&apos;s profile settings. Simply navigate to your profile and
-                disable analytics tracking. This will prevent the collection of
-                usage data while you continue to use the App.
+                disable analytics tracking. This stops linking usage events to
+                your account user ID and prevents further analytics and session
+                replay collection while you continue to use the App.
               </p>
             </div>
           </div>
