@@ -14,11 +14,13 @@ import {
   Book,
   TableOfContents,
   ListOrdered,
-  LayoutDashboard
+  LayoutDashboard,
+  Download
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
 import { ProjectDownloadButton } from './new-project-download-button';
+import { ProjectDownloadModal } from './project-download-modal';
 import { ProjectMembersModal } from './new-project-members';
 
 interface ProjectHeaderV1Props {
@@ -106,6 +108,19 @@ export function ProjectHeaderV1({
                 </Link>
               </Button>
               <ProjectDownloadButton projectId={project.id} />
+              <ProjectDownloadModal
+                projectId={project.id}
+                trigger={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    New Download
+                  </Button>
+                }
+              />
             </div>
           </div>
         </CardHeader>
