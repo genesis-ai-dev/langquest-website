@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 type TreeViewElement = {
   id: string;
   name: string;
+  label?: string;
   created_at?: string;
   type?: 'file' | 'folder';
   isSelectable?: boolean;
@@ -31,6 +32,8 @@ type TreeSortMode =
   | 'none'
   | ((a: TreeViewElement, b: TreeViewElement) => number);
 
+type TreeCheckedState = boolean | 'indeterminate';
+
 type TreeContextProps = {
   selectedId: string | undefined;
   expandedItems: string[] | undefined;
@@ -38,7 +41,10 @@ type TreeContextProps = {
   handleExpand: (id: string) => void;
   selectItem: (id: string) => void;
   setExpandedItems?: React.Dispatch<React.SetStateAction<string[] | undefined>>;
+  getCheckedState?: (element: TreeViewElement) => TreeCheckedState;
+  onCheckedChange?: (element: TreeViewElement, checked: boolean) => void;
   showIcons: boolean;
+  showLabels: boolean;
   showDates: boolean;
   openIcon?: React.ReactNode;
   closeIcon?: React.ReactNode;
@@ -148,6 +154,8 @@ const renderTreeElements = (
           key={element.id}
           value={element.id}
           element={element.name}
+          treeElement={element}
+          label={element.label}
           createdAt={element.created_at}
           isSelectable={element.isSelectable}
         >
@@ -162,6 +170,8 @@ const renderTreeElements = (
       <File
         key={element.id}
         value={element.id}
+        treeElement={element}
+        label={element.label}
         createdAt={element.created_at}
         isSelectable={element.isSelectable}
       >
@@ -176,7 +186,10 @@ type TreeViewProps = {
   elements?: TreeViewElement[];
   initialExpandedItems?: string[];
   onSelectItem?: (id: string) => void;
+  getCheckedState?: (element: TreeViewElement) => TreeCheckedState;
+  onCheckedChange?: (element: TreeViewElement, checked: boolean) => void;
   showIcons?: boolean;
+  showLabels?: boolean;
   showDates?: boolean;
   openIcon?: React.ReactNode;
   closeIcon?: React.ReactNode;
@@ -195,9 +208,12 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
       initialSelectedId,
       initialExpandedItems,
       onSelectItem,
+      getCheckedState,
+      onCheckedChange,
       children,
       indicator = true,
       showIcons = false,
+      showLabels = false,
       showDates = false,
       openIcon,
       closeIcon,
@@ -287,7 +303,10 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
           selectItem,
           setExpandedItems,
           indicator,
+          getCheckedState,
+          onCheckedChange,
           showIcons,
+          showLabels,
           showDates,
           openIcon,
           closeIcon,
@@ -344,6 +363,8 @@ TreeIndicator.displayName = 'TreeIndicator';
 type FolderProps = {
   expandedItems?: string[];
   element: string;
+  treeElement: TreeViewElement;
+  label?: string;
   createdAt?: string;
   isSelectable?: boolean;
   isSelect?: boolean;
@@ -357,6 +378,8 @@ const Folder = forwardRef<
     {
       className,
       element,
+      treeElement,
+      label,
       createdAt,
       value,
       isSelectable = true,
@@ -373,7 +396,10 @@ const Folder = forwardRef<
       indicator,
       selectedId,
       selectItem,
+      getCheckedState,
+      onCheckedChange,
       showIcons,
+      showLabels,
       showDates,
       openIcon,
       closeIcon
@@ -388,38 +414,53 @@ const Folder = forwardRef<
         value={value}
         className="relative h-full w-max min-w-full overflow-hidden"
       >
-        <AccordionPrimitive.Trigger
+        <div
           className={cn(
             `flex w-max min-w-full items-center gap-1 rounded-md text-sm`,
             className,
             {
-              'bg-muted rounded-md': isSelected && isSelectable,
+              'bg-accent/60 rounded-xs': isSelected && isSelectable,
               'cursor-pointer': isSelectable,
               'cursor-not-allowed opacity-50': !isSelectable
             }
           )}
-          disabled={!isSelectable}
-          onClick={() => {
-            selectItem(value);
-            handleExpand(value);
-          }}
         >
           <Checkbox2
             className="mr-1"
+            checked={getCheckedState?.(treeElement) ?? false}
             disabled={!isSelectable}
-            onClick={(event) => event.stopPropagation()}
+            onCheckedChange={(checked) =>
+              onCheckedChange?.(treeElement, checked === true)
+            }
           />
-          {showIcons &&
-            (expandedItems?.includes(value)
-              ? (openIcon ?? <FolderOpenIcon className="size-4" />)
-              : (closeIcon ?? <FolderIcon className="size-4" />))}
-          <span>{element}</span>
-          {formattedCreatedAt ? (
-            <Badge variant="secondary" className="ml-1 text-[10px]">
-              {formattedCreatedAt}
-            </Badge>
-          ) : null}
-        </AccordionPrimitive.Trigger>
+          <AccordionPrimitive.Trigger
+            className="flex min-w-0 flex-1 items-center gap-1 text-left"
+            disabled={!isSelectable}
+            onClick={() => {
+              selectItem(value);
+              handleExpand(value);
+            }}
+          >
+            {showIcons &&
+              (expandedItems?.includes(value)
+                ? (openIcon ?? <FolderOpenIcon className="size-4" />)
+                : (closeIcon ?? <FolderIcon className="size-4" />))}
+            <span>{element}</span>
+            {showLabels && label ? (
+              <Badge variant="outline" className="ml-1 rounded-sm text-[10px]">
+                {label}
+              </Badge>
+            ) : null}
+            {formattedCreatedAt ? (
+              <Badge
+                variant="secondary"
+                className="ml-1 text-[10px] rounded-sm"
+              >
+                {formattedCreatedAt}
+              </Badge>
+            ) : null}
+          </AccordionPrimitive.Trigger>
+        </div>
         <AccordionPrimitive.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down relative h-full overflow-hidden text-sm">
           {element && indicator && <TreeIndicator aria-hidden="true" />}
           <AccordionPrimitive.Root
@@ -439,18 +480,22 @@ const Folder = forwardRef<
 Folder.displayName = 'Folder';
 
 const File = forwardRef<
-  HTMLButtonElement,
+  HTMLDivElement,
   {
     value: string;
+    treeElement: TreeViewElement;
+    label?: string;
     createdAt?: string;
     handleSelect?: (id: string) => void;
     isSelectable?: boolean;
     isSelect?: boolean;
-  } & React.ButtonHTMLAttributes<HTMLButtonElement>
+  } & React.HTMLAttributes<HTMLDivElement>
 >(
   (
     {
       value,
+      treeElement,
+      label,
       createdAt,
       className,
       handleSelect,
@@ -466,46 +511,67 @@ const File = forwardRef<
       direction,
       selectedId,
       selectItem,
+      getCheckedState,
+      onCheckedChange,
       showIcons,
+      showLabels,
       showDates,
       fileIcon
     } = useTree();
     const isSelected = isSelect ?? selectedId === value;
     const formattedCreatedAt = showDates ? formatCreatedAt(createdAt) : null;
     return (
-      <button
+      <div
         ref={ref}
-        type="button"
-        disabled={!isSelectable}
+        role="button"
+        tabIndex={isSelectable ? 0 : -1}
+        aria-disabled={!isSelectable}
         className={cn(
           'flex w-max min-w-full items-center gap-1 rounded-md pr-1 text-sm duration-200 ease-in-out rtl:pr-0 rtl:pl-1',
           {
-            'bg-muted': isSelected && isSelectable
+            'bg-accent rounded-sm': isSelected && isSelectable
           },
           isSelectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
           direction === 'rtl' ? 'rtl' : 'ltr',
           className
         )}
         onClick={(event) => {
+          if (!isSelectable) return;
           selectItem(value);
           handleSelect?.(value);
           onClick?.(event);
+        }}
+        onKeyDown={(event) => {
+          if (!isSelectable) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            selectItem(value);
+            handleSelect?.(value);
+          }
         }}
         {...props}
       >
         <Checkbox2
           className="mr-1"
+          checked={getCheckedState?.(treeElement) ?? false}
           disabled={!isSelectable}
-          onClick={(event) => event.stopPropagation()}
+          onCheckedChange={(checked) =>
+            onCheckedChange?.(treeElement, checked === true)
+          }
         />
         {showIcons && (fileIcon ?? <FileIcon className="size-4" />)}
         {children}
+        {showLabels && label ? (
+          <Badge variant="outline" className="ml-1 rounded-sm text-[9px]">
+            {label}
+          </Badge>
+        ) : null}
         {formattedCreatedAt ? (
-          <Badge variant="secondary" className="ml-1 text-[10px]">
+          <Badge variant="secondary" className="ml-1 text-[9px] rounded-sm">
             {formattedCreatedAt}
           </Badge>
         ) : null}
-      </button>
+      </div>
     );
   }
 );
@@ -572,4 +638,4 @@ const CollapseButton = forwardRef<
 CollapseButton.displayName = 'CollapseButton';
 
 export { CollapseButton, File, Folder, Tree, type TreeViewElement };
-export type { TreeSortMode };
+export type { TreeCheckedState, TreeSortMode };
