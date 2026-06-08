@@ -19,8 +19,8 @@ function PrivacyPolicyArchivePage() {
               Privacy Policy Archive
             </h1>
             <p className="text-lg text-muted-foreground">
-              Previous versions of the LangQuest Privacy Policy are listed below.
-              The current policy is always available at{' '}
+              Previous versions of the LangQuest Privacy Policy are listed
+              below. The current policy is always available at{' '}
               <Link href="/privacy" className="text-primary hover:underline">
                 /privacy
               </Link>

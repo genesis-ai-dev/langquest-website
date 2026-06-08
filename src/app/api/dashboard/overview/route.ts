@@ -148,8 +148,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const activeRows = ((dashboardRows ?? []) as ProjectDashboardCurrentRow[])
-      .filter((row) => row.project_status === 'active');
+    const activeRows = (
+      (dashboardRows ?? []) as ProjectDashboardCurrentRow[]
+    ).filter((row) => row.project_status === 'active');
 
     const totals = activeRows.reduce(
       (acc, row) => ({
@@ -165,7 +166,8 @@ export async function GET(request: NextRequest) {
         total_target_languages:
           acc.total_target_languages + asNumber(row.total_target_languages),
         total_assets: acc.total_assets + asNumber(row.total_assets),
-        total_text_assets: acc.total_text_assets + asNumber(row.assets_with_text),
+        total_text_assets:
+          acc.total_text_assets + asNumber(row.assets_with_text),
         total_image_assets:
           acc.total_image_assets + asNumber(row.assets_with_image),
         total_audio_assets:

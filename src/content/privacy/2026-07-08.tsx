@@ -42,15 +42,17 @@ function PrivacyPolicy() {
           2. Information We Collect
         </h2>
         <div className="prose prose-gray dark:prose-invert space-y-4">
-          <h3 className="text-xl font-bold">2.1 Information You Provide to Us</h3>
+          <h3 className="text-xl font-bold">
+            2.1 Information You Provide to Us
+          </h3>
           <p>
             We collect the following information that you voluntarily provide to
             us:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>
-              <strong>Account Information</strong>: When you create an account, we
-              collect your email address (optional, for account recovery
+              <strong>Account Information</strong>: When you create an account,
+              we collect your email address (optional, for account recovery
               purposes) and username.
             </li>
             <li>
@@ -112,16 +114,16 @@ function PrivacyPolicy() {
                   times
                 </li>
                 <li>
-                  Account linkage: if you are signed in and have not opted out of
-                  analytics, we associate usage events with your account user ID
-                  to improve the App and diagnose issues. We do not send your
+                  Account linkage: if you are signed in and have not opted out
+                  of analytics, we associate usage events with your account user
+                  ID to improve the App and diagnose issues. We do not send your
                   email address to our analytics provider for this purpose.
                 </li>
                 <li>
                   Device and session identifiers: when analytics are enabled, we
-                  may also use device or session identifiers to understand usage.
-                  If you opt out of analytics or are not signed in, we do not
-                  link analytics to your account user ID.
+                  may also use device or session identifiers to understand
+                  usage. If you opt out of analytics or are not signed in, we do
+                  not link analytics to your account user ID.
                 </li>
                 <li>
                   Session replay: on supported devices, we may record limited
@@ -175,18 +177,18 @@ function PrivacyPolicy() {
           <h3 className="text-xl font-bold">4.1 User Content</h3>
           <p>
             All content you contribute to LangQuest (translations, recordings,
-            comments, votes) is made freely available worldwide under the CC0 1.0
-            Universal (CC0 1.0) Public Domain Dedication. This means anyone can
-            use this content for any purpose without attribution.
+            comments, votes) is made freely available worldwide under the CC0
+            1.0 Universal (CC0 1.0) Public Domain Dedication. This means anyone
+            can use this content for any purpose without attribution.
           </p>
 
           <h3 className="text-xl font-bold">4.1.1 Our Language Data Mission</h3>
           <p>
-            The entire purpose of LangQuest is to preserve and make language data
-            available to everyone. We do not sell language data, and we hope
-            everyone who has any interest in language preservation will use it.
-            We hope others will use this data to create new tools, resources, AI
-            models (text, speech recognition and synthesis, etc.).
+            The entire purpose of LangQuest is to preserve and make language
+            data available to everyone. We do not sell language data, and we
+            hope everyone who has any interest in language preservation will use
+            it. We hope others will use this data to create new tools,
+            resources, AI models (text, speech recognition and synthesis, etc.).
           </p>
           <p>
             It is very important to our mission that the language data is as
@@ -228,8 +230,8 @@ function PrivacyPolicy() {
               according to their privacy policy and our instructions.
             </li>
             <li>
-              <strong>Hosting and Infrastructure</strong>: Services that host the
-              App and store user data.
+              <strong>Hosting and Infrastructure</strong>: Services that host
+              the App and store user data.
             </li>
           </ul>
 
@@ -248,10 +250,10 @@ function PrivacyPolicy() {
         </h2>
         <div className="prose prose-gray dark:prose-invert">
           <p>
-            We implement reasonable security measures to protect your information
-            from unauthorized access, alteration, disclosure, or destruction.
-            However, no internet or electronic storage system is 100% secure, and
-            we cannot guarantee absolute security.
+            We implement reasonable security measures to protect your
+            information from unauthorized access, alteration, disclosure, or
+            destruction. However, no internet or electronic storage system is
+            100% secure, and we cannot guarantee absolute security.
           </p>
         </div>
       </div>
@@ -277,8 +279,8 @@ function PrivacyPolicy() {
           <h3 className="text-xl font-bold">6.2 Newsletter Unsubscribe</h3>
           <p>
             If you have subscribed to our newsletter, you can unsubscribe at any
-            time by following the unsubscribe link in the emails or by contacting
-            us.
+            time by following the unsubscribe link in the emails or by
+            contacting us.
           </p>
 
           <h3 className="text-xl font-bold">6.3 Account Deletion</h3>
@@ -313,8 +315,8 @@ function PrivacyPolicy() {
         <div className="prose prose-gray dark:prose-invert">
           <p>
             The App is not directed to children under the age of 13, and we do
-            not knowingly collect personal information from children. If you are a
-            parent or guardian and believe we have collected information from
+            not knowingly collect personal information from children. If you are
+            a parent or guardian and believe we have collected information from
             your child, please contact us.
           </p>
         </div>
@@ -330,8 +332,8 @@ function PrivacyPolicy() {
             processed and stored in the United States where our servers and
             service providers maintain facilities. By using the App, you consent
             to the transfer of information to countries outside your country of
-            residence, including from Canada to the United States, which may have
-            different data protection rules than those of your country.
+            residence, including from Canada to the United States, which may
+            have different data protection rules than those of your country.
           </p>
           <p>
             Please be aware that different countries have different data
@@ -354,8 +356,8 @@ function PrivacyPolicy() {
         <div className="prose prose-gray dark:prose-invert">
           <p>
             We&apos;re constantly trying to improve LangQuest, so we may need to
-            change this Privacy Policy from time to time. We will alert you to any
-            such changes by placing a notice on{' '}
+            change this Privacy Policy from time to time. We will alert you to
+            any such changes by placing a notice on{' '}
             <Link href="/privacy" className="text-primary hover:underline">
               langquest.org
             </Link>
@@ -369,10 +371,14 @@ function PrivacyPolicy() {
           </p>
           <p>
             If you use the App after any changes to the Privacy Policy have been
-            posted, that means you agree to all of the changes. Use of information
-            we collect is subject to the Privacy Policy in effect at the time such
-            information is collected. Previous versions are available in our{' '}
-            <Link href="/privacy/archive" className="text-primary hover:underline">
+            posted, that means you agree to all of the changes. Use of
+            information we collect is subject to the Privacy Policy in effect at
+            the time such information is collected. Previous versions are
+            available in our{' '}
+            <Link
+              href="/privacy/archive"
+              className="text-primary hover:underline"
+            >
               Privacy Policy archive
             </Link>
             .
@@ -460,11 +466,11 @@ function PrivacyPolicy() {
             If you are accessing our App from outside Canada and the United
             States, please be aware that your information may be transferred to,
             stored, and processed in the United States where our servers are
-            located and our central database is operated. The data protection and
-            other laws of the United States and Canada might not be as
-            comprehensive as those in your country. By using our App, you consent
-            to your information being transferred to and processed in the United
-            States.
+            located and our central database is operated. The data protection
+            and other laws of the United States and Canada might not be as
+            comprehensive as those in your country. By using our App, you
+            consent to your information being transferred to and processed in
+            the United States.
           </p>
         </div>
       </div>

@@ -486,7 +486,9 @@ export function BulkUpload({
                   Package the CSV file and all media files into a single ZIP
                   file.
                 </li>
-                <li>Place the CSV file in the root directory of the ZIP file.</li>
+                <li>
+                  Place the CSV file in the root directory of the ZIP file.
+                </li>
                 <li>
                   Place all audio and image files inside an{' '}
                   <strong>assets</strong> folder located in the root directory
