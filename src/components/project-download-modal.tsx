@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import {
   Dialog,
   DialogClose,
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { Spinner } from '@/components/spinner';
 import {
@@ -26,6 +26,10 @@ import {
   resolveAssetLabel,
   sortQuestByTemplate
 } from '@/lib/templatefunctions';
+import {
+  downloadProjectZip,
+  type ProjectDownloadProgress
+} from '@/lib/download';
 
 interface ProjectDownloadModalProps {
   projectId: string;
@@ -56,12 +60,6 @@ type DownloadTreeResponse = {
   projectId: string;
   projectTemplate?: string | null;
   tree: DownloadQuestNode[];
-};
-
-type DownloadJobResponse = {
-  jobId: string;
-  status: string;
-  createdAt: string;
 };
 
 function questNodeToTreeElement(quest: DownloadQuestNode): TreeViewElement {
@@ -156,8 +154,10 @@ export function ProjectDownloadModal({
     'includeCsv' | 'mergeAudioByQuest' | null
   >(null);
   const [questTreeError, setQuestTreeError] = useState<string | null>(null);
-  const [isCreatingDownloadJob, setIsCreatingDownloadJob] = useState(false);
-  const [downloadJobError, setDownloadJobError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] =
+    useState<ProjectDownloadProgress | null>(null);
   const isDialogOpen = open ?? internalOpen;
 
   const selectedQuestAssets = useMemo(() => {
@@ -348,62 +348,39 @@ export function ProjectDownloadModal({
     };
 
     questTree.forEach(walk);
-    return [...selectedAssetIds].filter((assetId) => validAssetIds.has(assetId));
+    return [...selectedAssetIds].filter((assetId) =>
+      validAssetIds.has(assetId)
+    );
   }, [questTree, selectedAssetIds]);
 
   const handleDownload = async () => {
-    setDownloadJobError(null);
+    setDownloadError(null);
+    setDownloadProgress(null);
 
     if (!selectedDownloadQuestIds.length || !selectedDownloadAssetIds.length) {
       const message = 'Select at least one quest with assets to download.';
-      setDownloadJobError(message);
-      toast.error(message);
+      setDownloadError(message);
       return;
     }
 
-    setIsCreatingDownloadJob(true);
+    setIsDownloading(true);
 
     try {
-      const {
-        data: { session }
-      } = await createBrowserClient().auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch(`/api/download/${projectId}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          questIds: selectedDownloadQuestIds,
-          assetIds: selectedDownloadAssetIds,
-          includeCsv: downloadOption === 'includeCsv',
-          combineAudioByQuest: downloadOption === 'mergeAudioByQuest'
-        })
+      await downloadProjectZip({
+        projectId,
+        questIds: selectedDownloadQuestIds,
+        assetIds: selectedDownloadAssetIds,
+        includeCsv: downloadOption === 'includeCsv',
+        mergeAudioByQuest: downloadOption === 'mergeAudioByQuest',
+        onProgress: setDownloadProgress
       });
-
-      const json = (await response.json()) as DownloadJobResponse & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(json.error || 'Failed to create download job');
-      }
-
-      console.log('Project download job response:', json);
-      toast.success('Download request created successfully.');
     } catch (error) {
-      console.error('Failed to create download job:', error);
+      console.error('Failed to download project:', error);
       const message =
-        error instanceof Error ? error.message : 'Failed to create download job';
-      setDownloadJobError(message);
-      toast.error(message);
+        error instanceof Error ? error.message : 'Failed to download project';
+      setDownloadError(message);
     } finally {
-      setIsCreatingDownloadJob(false);
+      setIsDownloading(false);
     }
   };
 
@@ -453,7 +430,8 @@ export function ProjectDownloadModal({
         setSelectedQuestId(null);
         setSelectedQuestIds(new Set());
         setSelectedAssetIds(new Set());
-        setDownloadJobError(null);
+        setDownloadError(null);
+        setDownloadProgress(null);
       } catch (error) {
         console.error('Failed to load project download tree:', error);
         if (!isActive) return;
@@ -466,7 +444,8 @@ export function ProjectDownloadModal({
         setSelectedQuestId(null);
         setSelectedQuestIds(new Set());
         setSelectedAssetIds(new Set());
-        setDownloadJobError(null);
+        setDownloadError(null);
+        setDownloadProgress(null);
       } finally {
         if (isActive) {
           setIsLoadingQuests(false);
@@ -584,8 +563,29 @@ export function ProjectDownloadModal({
           {selectedCounts.quests} quests selected, {selectedCounts.assets}{' '}
           assets selected
         </div>
-        {downloadJobError ? (
-          <div className="text-xs text-destructive">{downloadJobError}</div>
+        {downloadProgress ? (
+          <div className="space-y-2 rounded-md border px-3 py-2 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium">
+                  {downloadProgress.phase === 'complete'
+                    ? 'Download complete'
+                    : 'Preparing download'}
+                </div>
+                <div className="text-muted-foreground truncate">
+                  {downloadProgress.message}
+                </div>
+              </div>
+              <div className="shrink-0 text-muted-foreground">
+                {downloadProgress.currentQuest}/{downloadProgress.totalQuests}{' '}
+                quests
+              </div>
+            </div>
+            <Progress value={downloadProgress.percent} />
+          </div>
+        ) : null}
+        {downloadError ? (
+          <div className="text-xs text-destructive">{downloadError}</div>
         ) : null}
         <DialogFooter className="items-end justify-between sm:justify-between">
           <div className="flex flex-col gap-2 text-sm">
@@ -625,12 +625,12 @@ export function ProjectDownloadModal({
               type="button"
               disabled={
                 isLoadingQuests ||
-                isCreatingDownloadJob ||
+                isDownloading ||
                 !selectedDownloadAssetIds.length
               }
               onClick={handleDownload}
             >
-              {isCreatingDownloadJob ? 'Requesting...' : 'Download'}
+              {isDownloading ? 'Downloading...' : 'Download'}
             </Button>
           </div>
         </DialogFooter>
