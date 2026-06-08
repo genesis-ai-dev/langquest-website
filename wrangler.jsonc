@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "langquest-website",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-05-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "preview": {
+      "workers_dev": true,
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "langquest-website-preview"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "langquest-website-preview-cache"
+        }
+      ],
+      "images": {
+        "binding": "IMAGES"
+      }
+    },
+    "production": {
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "langquest-website-production"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "langquest-website-production-cache"
+        }
+      ],
+      "images": {
+        "binding": "IMAGES"
+      }
+      // "routes": [{ "pattern": "langquest.org", "custom_domain": true }]
+    }
+  }
+}
