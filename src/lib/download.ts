@@ -2,6 +2,11 @@ import JSZip from 'jszip';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
 import { getVerseMetadata, parseMetadata } from '@/lib/templatefunctions';
+import {
+  concatAclAudio,
+  type ConcatProgress
+} from '@/components/acl-reorder/audioConcat';
+import type { AclWithAudio } from '@/components/acl-reorder/useAclAudioPlayer';
 
 type TagLink = {
   tag?: {
@@ -22,6 +27,7 @@ type DownloadQuestRow = {
 
 type DownloadAssetContentRow = {
   id: string;
+  asset_id: string;
   text: string | null;
   audio: unknown;
   languoid_id: string | null;
@@ -171,6 +177,8 @@ export async function downloadProjectZip({
         await addStorageFilesToZip({
           zip,
           usedFileNames,
+          warnings,
+          missingFileContext: `${quest.name || 'Untitled Quest'} / ${asset.name} image`,
           files: parseStoragePaths(asset.images).map((path, index) => ({
             path,
             fileNameBase: buildAssetFileNameBase({
@@ -185,10 +193,22 @@ export async function downloadProjectZip({
       if (orderedAssets.length) {
         try {
           const mergedAudio = await mergeQuestAudio({
-            projectId,
-            questId,
-            assetIds: orderedAssets.map((asset) => asset.id),
-            accessToken: session.access_token
+            assets: orderedAssets,
+            onProgress: (concatProgress) => {
+              reportProgress(onProgress, {
+                phase: 'quest',
+                message: formatConcatProgressMessage(
+                  quest.name || 'Untitled Quest',
+                  concatProgress
+                ),
+                currentQuest: questIndex + 1,
+                totalQuests: questIds.length,
+                questId,
+                questName: quest.name || 'Untitled Quest',
+                percent: Math.round((questIndex / questIds.length) * 100),
+                warnings: [...warnings]
+              });
+            }
           });
           const mergedFileName = uniqueUploadAssetFileName(
             usedFileNames,
@@ -201,16 +221,14 @@ export async function downloadProjectZip({
           const message =
             error instanceof Error ? error.message : 'Audio merge failed';
 
-          if (!message.toLowerCase().includes('no valid audio')) {
-            throw error;
-          }
-
           warnings.push(
-            `${quest.name || 'Untitled Quest'} has no valid audio and was skipped.`
+            `${quest.name || 'Untitled Quest'} audio merge was skipped: ${formatMergeWarningMessage(
+              message
+            )}`
           );
           reportProgress(onProgress, {
             phase: 'quest',
-            message: `Skipped ${quest.name || 'Untitled Quest'}: no valid audio found.`,
+            message: `Skipped audio merge for ${quest.name || 'Untitled Quest'}.`,
             currentQuest: questIndex + 1,
             totalQuests: questIds.length,
             questId,
@@ -234,6 +252,8 @@ export async function downloadProjectZip({
       const imageFileNames = await addStorageFilesToZip({
         zip,
         usedFileNames,
+        warnings,
+        missingFileContext: `${quest.name || 'Untitled Quest'} / ${asset.name} image`,
         files: parseStoragePaths(asset.images).map((path, index) => ({
           path,
           fileNameBase: buildAssetFileNameBase({
@@ -252,6 +272,8 @@ export async function downloadProjectZip({
         const audioFileNames = await addStorageFilesToZip({
           zip,
           usedFileNames,
+          warnings,
+          missingFileContext: `${quest.name || 'Untitled Quest'} / ${asset.name} audio`,
           files: parseStoragePaths(content.audio).map((path, pathIndex) => ({
             path,
             fileNameBase: buildAssetFileNameBase({
@@ -378,7 +400,7 @@ async function loadAssets(projectId: string, assetIds: string[]) {
     const { data, error } = await createBrowserClient()
       .from('asset')
       .select(
-        'id,name,images,metadata,source_language_id,order_index,created_at,content:asset_content_link(id,text,audio,languoid_id,order_index,created_at),tags:asset_tag_link(tag(key,value))'
+        'id,name,images,metadata,source_language_id,order_index,created_at,content:asset_content_link(id,asset_id,text,audio,languoid_id,order_index,created_at),tags:asset_tag_link(tag(key,value))'
       )
       .eq('project_id', projectId)
       .eq('active', true)
@@ -430,45 +452,42 @@ async function loadLanguoids(languoidIds: string[]) {
 }
 
 async function mergeQuestAudio({
-  projectId,
-  questId,
-  assetIds,
-  accessToken
+  assets,
+  onProgress
 }: {
-  projectId: string;
-  questId: string;
-  assetIds: string[];
-  accessToken: string;
+  assets: DownloadAssetRow[];
+  onProgress?: (progress: ConcatProgress) => void;
 }) {
-  const response = await fetch(`/api/download/${projectId}/quest/${questId}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ assetIds })
-  });
+  const acls: AclWithAudio[] = assets.flatMap((asset) =>
+    [...(asset.content ?? [])].sort(sortContentRows).map((content) => ({
+      id: content.id,
+      asset_id: content.asset_id || asset.id,
+      order_index: content.order_index,
+      audio: content.audio,
+      text: content.text,
+      created_at: content.created_at
+    }))
+  );
 
-  if (!response.ok) {
-    const errorBody = (await response.json().catch(() => ({}))) as {
-      error?: string;
-    };
-    throw new Error(errorBody.error || 'Failed to merge quest audio');
-  }
+  const blob = await concatAclAudio(acls, onProgress);
 
   return {
-    blob: await response.blob(),
-    contentType: response.headers.get('content-type') || 'audio/mpeg'
+    blob,
+    contentType: blob.type || 'audio/wav'
   };
 }
 
 async function addStorageFilesToZip({
   zip,
   usedFileNames,
+  warnings,
+  missingFileContext,
   files
 }: {
   zip: JSZip;
   usedFileNames: Set<string>;
+  warnings?: string[];
+  missingFileContext: string;
   files: Array<{ path: string; fileNameBase: string }>;
 }) {
   const fileNames: string[] = [];
@@ -476,7 +495,10 @@ async function addStorageFilesToZip({
   for (const file of files) {
     const { path, fileNameBase } = file;
     const blob = await fetchFileFromSupabase(path);
-    if (!blob) continue;
+    if (!blob) {
+      warnings?.push(`${missingFileContext} file was not found: ${path}`);
+      continue;
+    }
 
     const fileName = uniqueUploadAssetFileName(
       usedFileNames,
@@ -493,8 +515,12 @@ async function fetchFileFromSupabase(filePath: string): Promise<Blob | null> {
   if (!filePath) return null;
 
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-    const response = await fetch(filePath);
-    return response.ok ? await response.blob() : null;
+    try {
+      const response = await fetch(filePath);
+      return response.ok ? await response.blob() : null;
+    } catch {
+      return null;
+    }
   }
 
   const supabase = createBrowserClient();
@@ -574,6 +600,36 @@ function buildMergedQuestFileNameBase(quest: DownloadQuestRow) {
       quest.created_at
     )}`
   );
+}
+
+function formatConcatProgressMessage(
+  questName: string,
+  progress: ConcatProgress
+) {
+  switch (progress.phase) {
+    case 'downloading':
+      return `Merging ${questName}: downloading audio ${progress.current}/${progress.total}...`;
+    case 'decoding':
+      return `Merging ${questName}: decoding audio ${progress.current}/${progress.total}...`;
+    case 'encoding':
+      return `Merging ${questName}: encoding WAV...`;
+  }
+}
+
+function isNoAudioMergeError(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('no valid audio') ||
+    normalized.includes('no audio files to concatenate')
+  );
+}
+
+function formatMergeWarningMessage(message: string) {
+  if (isNoAudioMergeError(message)) {
+    return 'no valid audio found.';
+  }
+
+  return message;
 }
 
 function buildAssetFileNameBase({
