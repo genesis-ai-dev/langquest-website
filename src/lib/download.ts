@@ -72,6 +72,7 @@ export type ProjectDownloadProgress = {
   questId?: string;
   questName?: string;
   percent: number;
+  warnings?: string[];
 };
 
 export type DownloadProjectZipOptions = {
@@ -143,6 +144,7 @@ export async function downloadProjectZip({
   const zip = new JSZip();
   const csvRows: QuestUploadCsvRow[] = [];
   const usedFileNames = new Set<string>();
+  const warnings: string[] = [];
 
   for (const [questIndex, questId] of questIds.entries()) {
     const quest = questsById.get(questId);
@@ -155,7 +157,8 @@ export async function downloadProjectZip({
       totalQuests: questIds.length,
       questId,
       questName: quest.name || 'Untitled Quest',
-      percent: Math.round((questIndex / questIds.length) * 100)
+      percent: Math.round((questIndex / questIds.length) * 100),
+      warnings: [...warnings]
     });
 
     const orderedAssets = (assetIdsByQuestId.get(questId) ?? [])
@@ -164,20 +167,58 @@ export async function downloadProjectZip({
       .sort(sortAssets);
 
     if (mergeAudioByQuest) {
-      if (orderedAssets.length) {
-        const mergedAudio = await mergeQuestAudio({
-          projectId,
-          questId,
-          assetIds: orderedAssets.map((asset) => asset.id),
-          accessToken: session.access_token
-        });
-        const mergedFileName = uniqueUploadAssetFileName(
+      for (const asset of orderedAssets) {
+        await addStorageFilesToZip({
+          zip,
           usedFileNames,
-          `${buildMergedQuestFileNameBase(quest)}.${getExtensionFromContentType(
-            mergedAudio.contentType
-          )}`
-        );
-        zip.file(`assets/${mergedFileName}`, mergedAudio.blob);
+          files: parseStoragePaths(asset.images).map((path, index) => ({
+            path,
+            fileNameBase: buildAssetFileNameBase({
+              quest,
+              asset,
+              sequence: `img${index + 1}`
+            })
+          }))
+        });
+      }
+
+      if (orderedAssets.length) {
+        try {
+          const mergedAudio = await mergeQuestAudio({
+            projectId,
+            questId,
+            assetIds: orderedAssets.map((asset) => asset.id),
+            accessToken: session.access_token
+          });
+          const mergedFileName = uniqueUploadAssetFileName(
+            usedFileNames,
+            `${buildMergedQuestFileNameBase(quest)}.${getExtensionFromContentType(
+              mergedAudio.contentType
+            )}`
+          );
+          zip.file(`assets/${mergedFileName}`, mergedAudio.blob);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Audio merge failed';
+
+          if (!message.toLowerCase().includes('no valid audio')) {
+            throw error;
+          }
+
+          warnings.push(
+            `${quest.name || 'Untitled Quest'} has no valid audio and was skipped.`
+          );
+          reportProgress(onProgress, {
+            phase: 'quest',
+            message: `Skipped ${quest.name || 'Untitled Quest'}: no valid audio found.`,
+            currentQuest: questIndex + 1,
+            totalQuests: questIds.length,
+            questId,
+            questName: quest.name || 'Untitled Quest',
+            percent: Math.round(((questIndex + 1) / questIds.length) * 100),
+            warnings: [...warnings]
+          });
+        }
       }
       continue;
     }
@@ -264,7 +305,8 @@ export async function downloadProjectZip({
     message: 'Creating ZIP file...',
     currentQuest: questIds.length,
     totalQuests: questIds.length,
-    percent: 95
+    percent: 95,
+    warnings: [...warnings]
   });
 
   const zipBlob = await zip.generateAsync({
@@ -286,10 +328,11 @@ export async function downloadProjectZip({
     message: 'Download completed.',
     currentQuest: questIds.length,
     totalQuests: questIds.length,
-    percent: 100
+    percent: 100,
+    warnings: [...warnings]
   });
 
-  return { filename, sizeBytes: zipBlob.size };
+  return { filename, sizeBytes: zipBlob.size, warnings };
 }
 
 async function loadProject(projectId: string) {

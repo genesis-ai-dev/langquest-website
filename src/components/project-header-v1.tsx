@@ -107,7 +107,7 @@ export function ProjectHeaderV1({
                   Dashboard
                 </Link>
               </Button>
-              <ProjectDownloadButton projectId={project.id} />
+              {/* <ProjectDownloadButton projectId={project.id} /> */}
               <ProjectDownloadModal
                 projectId={project.id}
                 trigger={
@@ -117,7 +117,7 @@ export function ProjectHeaderV1({
                     className="flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    New Download
+                    Download
                   </Button>
                 }
               />

@@ -582,6 +582,16 @@ export function ProjectDownloadModal({
               </div>
             </div>
             <Progress value={downloadProgress.percent} />
+            {downloadProgress.warnings?.length ? (
+              <div className="max-h-20 overflow-y-auto rounded-sm bg-yellow-50 px-2 py-1 text-yellow-800">
+                <div className="font-medium">Warnings</div>
+                <ul className="list-disc pl-4">
+                  {downloadProgress.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {downloadError ? (
@@ -591,7 +601,13 @@ export function ProjectDownloadModal({
           <div className="flex flex-col gap-2 text-sm">
             <div className="font-medium">Options</div>
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2">
+              <label
+                className={`flex items-center gap-2 ${
+                  downloadOption === 'mergeAudioByQuest'
+                    ? 'cursor-not-allowed text-muted-foreground opacity-60'
+                    : ''
+                }`}
+              >
                 <Checkbox
                   checked={downloadOption === 'includeCsv'}
                   disabled={downloadOption === 'mergeAudioByQuest'}
@@ -601,7 +617,13 @@ export function ProjectDownloadModal({
                 />
                 Include CSV file
               </label>
-              <label className="flex items-center gap-2">
+              <label
+                className={`flex items-center gap-2 ${
+                  downloadOption === 'includeCsv'
+                    ? 'cursor-not-allowed text-muted-foreground opacity-60'
+                    : ''
+                }`}
+              >
                 <Checkbox
                   checked={downloadOption === 'mergeAudioByQuest'}
                   disabled={downloadOption === 'includeCsv'}
