@@ -66,17 +66,16 @@ function UploadProcessModal({
   subtitle = 'Follow each step to upload, validate, adjust, and process your files.'
 }: UploadProcessModalProps) {
   const [currentStepIndex, setCurrentStepIndex] = React.useState(0);
-  const [maxVisibleStepIndex, setMaxVisibleStepIndex] = React.useState(1);
+  const [maxUnlockedStepIndex, setMaxUnlockedStepIndex] = React.useState(1);
 
   const currentStep = uploadProcessSteps[currentStepIndex];
-  const visibleSteps = uploadProcessSteps.slice(0, maxVisibleStepIndex + 1);
 
   function handleStepChange(value: string) {
     const nextStepIndex = uploadProcessSteps.findIndex(
       (step) => step.value === value
     );
 
-    if (nextStepIndex === -1 || nextStepIndex > maxVisibleStepIndex) {
+    if (nextStepIndex === -1 || nextStepIndex > maxUnlockedStepIndex) {
       return;
     }
 
@@ -94,8 +93,8 @@ function UploadProcessModal({
         uploadProcessSteps.length - 1
       );
 
-      setMaxVisibleStepIndex((visibleStepIndex) =>
-        Math.max(visibleStepIndex, nextStepIndex)
+      setMaxUnlockedStepIndex((unlockedStepIndex) =>
+        Math.max(unlockedStepIndex, nextStepIndex)
       );
 
       return nextStepIndex;
@@ -105,16 +104,24 @@ function UploadProcessModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="grid h-[75vh] max-h-[75vh] w-[75vw]! max-w-[75vw]! grid-rows-[auto_1fr_auto] overflow-hidden">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{subtitle}</DialogDescription>
         </DialogHeader>
 
-        <Tabs value={currentStep.value} onValueChange={handleStepChange}>
+        <Tabs
+          value={currentStep.value}
+          onValueChange={handleStepChange}
+          className="min-h-0"
+        >
           <TabsList className="h-auto w-full flex-wrap justify-start">
-            {visibleSteps.map((step) => (
-              <TabsTrigger key={step.value} value={step.value}>
+            {uploadProcessSteps.map((step, stepIndex) => (
+              <TabsTrigger
+                key={step.value}
+                value={step.value}
+                disabled={stepIndex > maxUnlockedStepIndex}
+              >
                 {step.label}
               </TabsTrigger>
             ))}
@@ -124,7 +131,7 @@ function UploadProcessModal({
             <TabsContent
               key={step.value}
               value={step.value}
-              className="min-h-48 rounded-lg border bg-muted/20 p-6"
+              className="min-h-0 overflow-auto rounded-lg border bg-muted/20 p-6"
             >
               <h3 className="text-base font-semibold">{step.label}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
