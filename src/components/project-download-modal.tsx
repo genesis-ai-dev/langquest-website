@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { Spinner } from '@/components/spinner';
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, ImageIcon, Volume2 } from 'lucide-react';
 import {
   Tree,
   type TreeCheckedState,
@@ -84,10 +84,29 @@ function assetToTreeElement(
   asset: DownloadAsset,
   label?: string | null
 ): TreeViewElement {
+  const extraContent =
+    (asset.imageCount ?? 0) > 0 || (asset.audioFileCount ?? 0) > 0 ? (
+      <span className="inline-flex items-center gap-1">
+        {(asset.imageCount ?? 0) > 0 ? (
+          <span className="inline-flex items-center gap-0.5">
+            <ImageIcon className="h-3 w-3" />
+            {asset.imageCount}
+          </span>
+        ) : null}
+        {(asset.audioFileCount ?? 0) > 0 ? (
+          <span className="inline-flex items-center gap-0.5">
+            <Volume2 className="h-3 w-3" />
+            {asset.audioFileCount}
+          </span>
+        ) : null}
+      </span>
+    ) : undefined;
+
   return {
     id: asset.id,
     name: asset.name,
     label: label || undefined,
+    extraContent,
     created_at: asset.created_At,
     type: 'file'
   };
@@ -618,6 +637,7 @@ export function ProjectDownloadModal({
                     elements={selectedQuestAssets}
                     getCheckedState={getAssetElementCheckedState}
                     onCheckedChange={handleAssetCheckedChange}
+                    showExtraContent={true}
                     showLabels={true}
                     showDates={true}
                     sort="none"
