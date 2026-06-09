@@ -14,8 +14,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { Spinner } from '@/components/spinner';
+import { CircleHelp } from 'lucide-react';
 import {
   Tree,
   type TreeCheckedState,
@@ -54,6 +60,8 @@ type DownloadAsset = {
   name: string;
   metadata: string | null;
   created_At: string;
+  imageCount?: number;
+  audioFileCount?: number;
 };
 
 type DownloadTreeResponse = {
@@ -353,6 +361,71 @@ export function ProjectDownloadModal({
     );
   }, [questTree, selectedAssetIds]);
 
+  const selectedFileCounts = useMemo(() => {
+    let imageFiles = 0;
+    let audioFiles = 0;
+    let combinedAudioFiles = 0;
+
+    const walk = (quest: DownloadQuestNode) => {
+      const selectedAssets = quest.assets.filter((asset) =>
+        selectedAssetIds.has(asset.id)
+      );
+
+      selectedAssets.forEach((asset) => {
+        imageFiles += asset.imageCount ?? 0;
+        if (downloadOption !== 'mergeAudioByQuest') {
+          audioFiles += asset.audioFileCount ?? 0;
+        }
+      });
+
+      if (
+        downloadOption === 'mergeAudioByQuest' &&
+        selectedAssets.some((asset) => (asset.audioFileCount ?? 0) > 0)
+      ) {
+        combinedAudioFiles += 1;
+      }
+
+      quest.children.forEach(walk);
+    };
+
+    questTree.forEach(walk);
+
+    return {
+      textFiles: downloadOption === 'includeCsv' ? 1 : 0,
+      imageFiles,
+      audioFiles:
+        downloadOption === 'mergeAudioByQuest' ? combinedAudioFiles : audioFiles
+    };
+  }, [downloadOption, questTree, selectedAssetIds]);
+
+  const selectedFileCountLabel = useMemo(() => {
+    const parts: string[] = [];
+
+    if (selectedFileCounts.textFiles) {
+      parts.push(
+        `${selectedFileCounts.textFiles} text ${selectedFileCounts.textFiles === 1 ? 'file' : 'files'}`
+      );
+    }
+
+    if (selectedFileCounts.imageFiles) {
+      parts.push(
+        `${selectedFileCounts.imageFiles} image ${selectedFileCounts.imageFiles === 1 ? 'file' : 'files'}`
+      );
+    }
+
+    if (selectedFileCounts.audioFiles) {
+      parts.push(
+        `${selectedFileCounts.audioFiles} audio ${selectedFileCounts.audioFiles === 1 ? 'file' : 'files'}`
+      );
+    }
+
+    if (!parts.length) {
+      return 'No files selected to download.';
+    }
+
+    return `${parts.join(', ')} will be downloaded.`;
+  }, [selectedFileCounts]);
+
   const handleDownload = async () => {
     setDownloadError(null);
     setDownloadProgress(null);
@@ -417,6 +490,9 @@ export function ProjectDownloadModal({
         if (!response.ok) {
           throw new Error(json.error || 'Failed to load project download tree');
         }
+
+        /* REMOVE THIS BEFORE DEPLOYMENT */
+        console.log('Project download API response:', json);
 
         if (!isActive) return;
         const sortedTree = sortQuestByTemplate(
@@ -559,10 +635,16 @@ export function ProjectDownloadModal({
             </div>
           </div>
         </div>
-        <div className="text-muted-foreground p-0 text-xs -mt-2">
-          {selectedCounts.quests} quests selected, {selectedCounts.assets}{' '}
-          assets selected
+        <div className="flex w-full justify-between gap-2">
+          <div className="text-muted-foreground p-0 text-xs -mt-2">
+            {selectedCounts.quests} quests selected, {selectedCounts.assets}{' '}
+            assets selected
+          </div>
+          <div className="text-muted-foreground p-0 text-xs -mt-2">
+            {selectedFileCountLabel}
+          </div>
         </div>
+
         {downloadProgress ? (
           <div className="space-y-2 rounded-md border px-3 py-2 text-xs">
             <div className="flex items-center justify-between gap-3">
@@ -616,6 +698,15 @@ export function ProjectDownloadModal({
                   }
                 />
                 Include CSV file
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CircleHelp className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    Creates a text file (CSV) with the list of exported items,
+                    including quests and assets.
+                  </TooltipContent>
+                </Tooltip>
               </label>
               <label
                 className={`flex items-center gap-2 ${
@@ -633,7 +724,16 @@ export function ProjectDownloadModal({
                     )
                   }
                 />
-                Combine audio by quest
+                Combine audio files
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CircleHelp className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    Combines audio files into one file for each quest version,
+                    such as a Bible chapter, pericope, or similar unit.
+                  </TooltipContent>
+                </Tooltip>
               </label>
             </div>
           </div>
