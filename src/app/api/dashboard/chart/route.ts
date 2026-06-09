@@ -60,7 +60,9 @@ function normalizeBreakdown(value: unknown): BreakdownItem[] {
       const name =
         'name' in item && typeof item.name === 'string' ? item.name : 'Unknown';
       const qty =
-        'qty' in item && typeof item.qty === 'number' && Number.isFinite(item.qty)
+        'qty' in item &&
+        typeof item.qty === 'number' &&
+        Number.isFinite(item.qty)
           ? item.qty
           : 0;
 
@@ -131,22 +133,22 @@ export async function GET(request: NextRequest) {
     .map((row) => {
       const date = row.date as string;
 
-    return {
-      date,
-      quests: asNumber(row.quests),
-      assets: asNumber(row.assets),
-      details: {
-        quests: {
-          project: normalizeBreakdown(row.quests_project),
-          member: normalizeBreakdown(row.quests_member)
-        },
-        assets: {
-          project: normalizeBreakdown(row.assets_project),
-          member: normalizeBreakdown(row.assets_member)
+      return {
+        date,
+        quests: asNumber(row.quests),
+        assets: asNumber(row.assets),
+        details: {
+          quests: {
+            project: normalizeBreakdown(row.quests_project),
+            member: normalizeBreakdown(row.quests_member)
+          },
+          assets: {
+            project: normalizeBreakdown(row.assets_project),
+            member: normalizeBreakdown(row.assets_member)
+          }
         }
-      }
-    };
-  });
+      };
+    });
 
   return chartJsonResponse({
     mocked: false,
