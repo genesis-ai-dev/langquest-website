@@ -16,7 +16,11 @@ type AssetRow = {
   id: string;
   name: string;
   metadata: string | null;
+  images: unknown;
   created_at: string;
+  content?: Array<{
+    audio: unknown;
+  }> | null;
 };
 
 type QuestAssetLinkRow = {
@@ -29,6 +33,8 @@ type DownloadAsset = {
   name: string;
   metadata: string | null;
   created_At: string;
+  imageCount: number;
+  audioFileCount: number;
 };
 
 type DownloadQuestNode = {
@@ -149,8 +155,44 @@ function normalizeAsset(asset: AssetRow): DownloadAsset {
     id: asset.id,
     name: asset.name,
     metadata: asset.metadata,
-    created_At: asset.created_at
+    created_At: asset.created_at,
+    imageCount: countTextArrayItems(asset.images),
+    audioFileCount: (asset.content ?? []).reduce(
+      (total, contentLink) => total + countTextArrayItems(contentLink.audio),
+      0
+    )
   };
+}
+
+function countTextArrayItems(value: unknown): number {
+  if (!value) return 0;
+
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item) => typeof item === 'string' && item.trim() !== ''
+    ).length;
+  }
+
+  if (typeof value !== 'string') return 0;
+
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.filter(
+        (item) => typeof item === 'string' && item.trim() !== ''
+      ).length;
+    }
+  } catch {
+    // Fall back to semicolon parsing below.
+  }
+
+  return trimmed
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean).length;
 }
 
 function isProjectPrivate(project: ProjectAccessRow): boolean {
@@ -311,7 +353,9 @@ export async function GET(
     if (questIds.length) {
       const { data: links, error: questAssetLinksError } = await supabase
         .from('quest_asset_link')
-        .select('quest_id,asset:asset_id!inner(id,name,metadata,created_at)')
+        .select(
+          'quest_id,asset:asset_id!inner(id,name,metadata,images,created_at,content:asset_content_link(audio))'
+        )
         .in('quest_id', questIds)
         .eq('active', true)
         .eq('asset.active', true)

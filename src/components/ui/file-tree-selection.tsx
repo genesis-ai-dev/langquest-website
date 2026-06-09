@@ -21,6 +21,7 @@ type TreeViewElement = {
   id: string;
   name: string;
   label?: string;
+  extraContent?: React.ReactNode;
   created_at?: string;
   type?: 'file' | 'folder';
   isSelectable?: boolean;
@@ -45,6 +46,7 @@ type TreeContextProps = {
   onCheckedChange?: (element: TreeViewElement, checked: boolean) => void;
   showIcons: boolean;
   showLabels: boolean;
+  showExtraContent: boolean;
   showDates: boolean;
   openIcon?: React.ReactNode;
   closeIcon?: React.ReactNode;
@@ -156,6 +158,7 @@ const renderTreeElements = (
           element={element.name}
           treeElement={element}
           label={element.label}
+          extraContent={element.extraContent}
           createdAt={element.created_at}
           isSelectable={element.isSelectable}
         >
@@ -172,6 +175,7 @@ const renderTreeElements = (
         value={element.id}
         treeElement={element}
         label={element.label}
+        extraContent={element.extraContent}
         createdAt={element.created_at}
         isSelectable={element.isSelectable}
       >
@@ -190,6 +194,7 @@ type TreeViewProps = {
   onCheckedChange?: (element: TreeViewElement, checked: boolean) => void;
   showIcons?: boolean;
   showLabels?: boolean;
+  showExtraContent?: boolean;
   showDates?: boolean;
   openIcon?: React.ReactNode;
   closeIcon?: React.ReactNode;
@@ -214,6 +219,7 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
       indicator = true,
       showIcons = false,
       showLabels = false,
+      showExtraContent = false,
       showDates = false,
       openIcon,
       closeIcon,
@@ -307,6 +313,7 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
           onCheckedChange,
           showIcons,
           showLabels,
+          showExtraContent,
           showDates,
           openIcon,
           closeIcon,
@@ -365,6 +372,7 @@ type FolderProps = {
   element: string;
   treeElement: TreeViewElement;
   label?: string;
+  extraContent?: React.ReactNode;
   createdAt?: string;
   isSelectable?: boolean;
   isSelect?: boolean;
@@ -380,6 +388,7 @@ const Folder = forwardRef<
       element,
       treeElement,
       label,
+      extraContent,
       createdAt,
       value,
       isSelectable = true,
@@ -400,6 +409,7 @@ const Folder = forwardRef<
       onCheckedChange,
       showIcons,
       showLabels,
+      showExtraContent,
       showDates,
       openIcon,
       closeIcon
@@ -446,6 +456,11 @@ const Folder = forwardRef<
                 ? (openIcon ?? <FolderOpenIcon className="size-4" />)
                 : (closeIcon ?? <FolderIcon className="size-4" />))}
             <span>{element}</span>
+            {showExtraContent && extraContent ? (
+              <Badge variant="outline" className="ml-1 rounded-sm text-[10px]">
+                {extraContent}
+              </Badge>
+            ) : null}
             {showLabels && label ? (
               <Badge variant="outline" className="ml-1 rounded-sm text-[10px]">
                 {label}
@@ -485,6 +500,7 @@ const File = forwardRef<
     value: string;
     treeElement: TreeViewElement;
     label?: string;
+    extraContent?: React.ReactNode;
     createdAt?: string;
     handleSelect?: (id: string) => void;
     isSelectable?: boolean;
@@ -496,6 +512,7 @@ const File = forwardRef<
       value,
       treeElement,
       label,
+      extraContent,
       createdAt,
       className,
       handleSelect,
@@ -515,6 +532,7 @@ const File = forwardRef<
       onCheckedChange,
       showIcons,
       showLabels,
+      showExtraContent,
       showDates,
       fileIcon
     } = useTree();
@@ -561,6 +579,11 @@ const File = forwardRef<
         />
         {showIcons && (fileIcon ?? <FileIcon className="size-4" />)}
         {children}
+        {showExtraContent && extraContent ? (
+          <Badge variant="outline" className="ml-1 rounded-sm text-[9px]">
+            {extraContent}
+          </Badge>
+        ) : null}
         {showLabels && label ? (
           <Badge variant="outline" className="ml-1 rounded-sm text-[9px]">
             {label}
