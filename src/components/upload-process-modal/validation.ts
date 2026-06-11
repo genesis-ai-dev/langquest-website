@@ -6,54 +6,13 @@ import type {
   UploadValidationIssue,
   UploadValidationResult
 } from './types';
-
-type CsvRow = Record<string, string>;
+import type { CsvRow } from './template';
+import {
+  validateTemplateHeaders,
+  validateTemplateRequiredFields
+} from './template';
 
 type ValidationProgressHandler = (percent: number, label: string) => void;
-
-const expectedHeaders: Record<UploadType, string[]> = {
-  project: [
-    'project_name',
-    'project_description',
-    'target_language',
-    'parent_quest_name',
-    'quest_name',
-    'quest_description',
-    'quest_tags',
-    'asset_name',
-    'asset_tags',
-    'source_language',
-    'source_images',
-    'source_content',
-    'source_audio'
-  ],
-  quest: [
-    'parent_quest_name',
-    'quest_name',
-    'quest_description',
-    'quest_tags',
-    'asset_name',
-    'asset_tags',
-    'source_language',
-    'source_images',
-    'source_content',
-    'source_audio'
-  ],
-  asset: [
-    'asset_name',
-    'asset_tags',
-    'source_language',
-    'source_images',
-    'source_content',
-    'source_audio'
-  ]
-};
-
-const requiredFields: Record<UploadType, string[]> = {
-  project: ['project_name', 'target_language', 'quest_name'],
-  quest: ['quest_name'],
-  asset: ['asset_name']
-};
 
 const mediaColumns = ['source_images', 'source_audio'] as const;
 
@@ -132,7 +91,7 @@ async function validateUploadPackage(
   const headers = parseResult.meta.fields ?? [];
 
   onProgress(50, 'Validating CSV structure...');
-  validateHeaders(headers, uploadType, issues);
+  validateTemplateHeaders(headers, uploadType, issues);
   validateRows(rows, uploadType, issues);
 
   onProgress(70, 'Checking referenced media files...');
@@ -154,43 +113,6 @@ async function validateUploadPackage(
   });
 }
 
-function validateHeaders(
-  headers: string[],
-  uploadType: UploadType,
-  issues: UploadValidationIssue[]
-) {
-  const expected = expectedHeaders[uploadType];
-  const missingHeaders = expected.filter((header) => !headers.includes(header));
-  const extraHeaders = headers.filter((header) => !expected.includes(header));
-
-  if (missingHeaders.length > 0) {
-    issues.push({
-      severity: 'error',
-      code: 'missing_headers',
-      message: `Missing required columns: ${missingHeaders.join(', ')}.`
-    });
-  }
-
-  if (extraHeaders.length > 0) {
-    issues.push({
-      severity: 'error',
-      code: 'unexpected_headers',
-      message: `Unexpected columns for ${uploadType} upload: ${extraHeaders.join(', ')}.`
-    });
-  }
-
-  if (
-    headers.length === expected.length &&
-    headers.some((header, index) => header !== expected[index])
-  ) {
-    issues.push({
-      severity: 'error',
-      code: 'invalid_header_order',
-      message: `CSV columns must match the ${uploadType} template order.`
-    });
-  }
-}
-
 function validateRows(
   rows: CsvRow[],
   uploadType: UploadType,
@@ -207,20 +129,10 @@ function validateRows(
 
   const projectNames = new Set<string>();
 
+  validateTemplateRequiredFields(rows, uploadType, issues);
+
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
-
-    requiredFields[uploadType].forEach((field) => {
-      if (!row[field]) {
-        issues.push({
-          severity: 'error',
-          code: 'missing_required_field',
-          message: `Missing required field '${field}'.`,
-          row: rowNumber,
-          field
-        });
-      }
-    });
 
     if (uploadType === 'project' && row.project_name) {
       projectNames.add(row.project_name);
@@ -265,15 +177,6 @@ function validateAssetPayload(
     });
   }
 
-  if (hasAnyAssetPayload && !row.source_language) {
-    issues.push({
-      severity: 'error',
-      code: 'missing_source_language',
-      message: 'Asset row must include source_language when asset content is provided.',
-      row: rowNumber,
-      field: 'source_language'
-    });
-  }
 }
 
 function getReferencedMediaFiles(
@@ -417,4 +320,4 @@ function createValidationResult({
   };
 }
 
-export { expectedHeaders, validateUploadPackage };
+export { validateUploadPackage };

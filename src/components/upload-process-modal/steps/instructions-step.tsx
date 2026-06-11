@@ -1,4 +1,3 @@
-import type { UploadProcessStepProps } from '../types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +7,9 @@ import {
   FolderOpen,
   Tags
 } from 'lucide-react';
+
+import { downloadUploadTemplate } from '../template';
+import type { UploadProcessStepProps } from '../types';
 
 const uploadTypeDescriptions = {
   project:
@@ -60,73 +62,7 @@ const fileRules = [
 
 function InstructionsStep({ uploadType }: UploadProcessStepProps) {
   function downloadTemplate() {
-    const headers =
-      uploadType === 'project'
-        ? [
-            'project_name',
-            'project_description',
-            'target_language',
-            'parent_quest_name',
-            'quest_name',
-            'quest_description',
-            'quest_tags',
-            'asset_name',
-            'asset_tags',
-            'source_language',
-            'source_images',
-            'source_content',
-            'source_audio'
-          ]
-        : uploadType === 'quest'
-          ? [
-              'parent_quest_name',
-              'quest_name',
-              'quest_description',
-              'quest_tags',
-              'asset_name',
-              'asset_tags',
-              'source_language',
-              'source_images',
-              'source_content',
-              'source_audio'
-            ]
-          : [
-              'asset_name',
-              'asset_tags',
-              'source_language',
-              'source_images',
-              'source_content',
-              'source_audio'
-            ];
-
-    const sampleData =
-      uploadType === 'project'
-        ? [
-            'My Project,Description of my project,Portuguese,Chapter 1,Quest A,First quest description,category:1;difficulty:2,Asset A1,content:1;theme:5,Portuguese,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
-            'My Project,Description of my project,Portuguese,Chapter 1,Quest B,Second quest description,category:1;difficulty:3,Asset B1,content:2;theme:7,Portuguese,image3.jpg,Content for asset B1 with cultural context,audio3.mp3',
-            'My Project,Description of my project,Portuguese,Chapter 2,Quest C,Third quest description,category:2;difficulty:4,Asset C1,content:3;theme:9,Portuguese,,Interactive quiz content about local history,audio4.wav;audio5.mp3'
-          ]
-        : uploadType === 'quest'
-          ? [
-              'Chapter 1,Quest A,First quest description,category:1;difficulty:2,Asset A1,content:1;theme:5,Portuguese,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
-              'Chapter 1,Quest B,Second quest description,category:1;difficulty:3,Asset B1,content:2;theme:7,Portuguese,image3.jpg,Content for asset B1 with cultural context,audio3.mp3',
-              'Chapter 2,Quest C,Third quest description,category:2;difficulty:4,Asset C1,content:3;theme:9,Portuguese,,Interactive quiz content about local history,audio4.wav;audio5.mp3'
-            ]
-          : [
-              'Asset A1,content:1;theme:5,Portuguese,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
-              'Asset B1,content:2;theme:7,Portuguese,image3.jpg,Content for asset B1 with cultural context,audio3.mp3',
-              'Asset C1,content:3;theme:9,Portuguese,,Interactive quiz content about local history,audio4.wav;audio5.mp3'
-            ];
-
-    const csvContent = [headers.join(','), ...sampleData].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-
-    anchor.href = url;
-    anchor.download = `${uploadType}-upload-template.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadUploadTemplate(uploadType);
   }
 
   return (
