@@ -2,10 +2,12 @@ import JSZip from 'jszip';
 import Papa from 'papaparse';
 
 import type {
+  UploadProjectSetup,
   UploadType,
   UploadValidationIssue,
   UploadValidationResult
 } from './types';
+import { buildCsvData } from './csv-data-build';
 import type { CsvRow } from './template';
 import {
   validateTemplateHeaders,
@@ -106,7 +108,10 @@ async function validateUploadPackage(
 
   return createValidationResult({
     csvFileName: csvEntry.name,
+    csvData: buildCsvData(rows),
     issues,
+    projectSetup:
+      uploadType === 'project' ? extractProjectSetup(rows) : undefined,
     rowsCount: rows.length,
     referencedFilesCount: referencedFiles.size,
     assetsFilesCount: assetsFiles.size
@@ -299,13 +304,17 @@ function normalizeFileName(path: string) {
 
 function createValidationResult({
   csvFileName,
+  csvData,
   issues,
+  projectSetup,
   rowsCount,
   referencedFilesCount,
   assetsFilesCount
 }: {
   csvFileName?: string;
+  csvData?: UploadValidationResult['csvData'];
   issues: UploadValidationIssue[];
+  projectSetup?: UploadProjectSetup;
   rowsCount: number;
   referencedFilesCount: number;
   assetsFilesCount: number;
@@ -316,8 +325,34 @@ function createValidationResult({
     rowsCount,
     referencedFilesCount,
     assetsFilesCount,
+    csvData,
+    projectSetup,
     issues
   };
+}
+
+function extractProjectSetup(rows: CsvRow[]): UploadProjectSetup | undefined {
+  const projectRow = rows.find((row) => row.project_name) ?? rows[0];
+
+  if (!projectRow) {
+    return undefined;
+  }
+
+  const firstSourceLanguageRow = rows.find((row) => row.source_language);
+
+  return {
+    projectName: projectRow.project_name ?? '',
+    description: projectRow.project_description ?? '',
+    template: normalizeTemplate(projectRow.project_template),
+    fiaContentLanguage: firstSourceLanguageRow?.source_language ?? '',
+    targetLanguage: projectRow.target_language ?? ''
+  };
+}
+
+function normalizeTemplate(template: string | undefined) {
+  const normalizedTemplate = template?.trim().toLowerCase();
+
+  return normalizedTemplate || 'unstructured';
 }
 
 export { validateUploadPackage };

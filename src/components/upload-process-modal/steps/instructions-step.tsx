@@ -1,15 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  CheckCircle2,
-  Download,
-  FolderOpen,
-  Tags
-} from 'lucide-react';
+import { CheckCircle2, Download, FolderOpen, Tags } from 'lucide-react';
 
-import { downloadUploadTemplate } from '../template';
-import type { UploadProcessStepProps } from '../types';
+import { downloadUploadTemplate } from '../lib/template';
+import type { UploadProcessStepProps } from '../lib/types';
 
 const uploadTypeDescriptions = {
   project:

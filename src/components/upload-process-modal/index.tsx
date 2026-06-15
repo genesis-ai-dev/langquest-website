@@ -17,11 +17,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { uploadProcessSteps } from './steps';
 import type {
   UploadProcessModalProps,
+  UploadProjectSetup,
   UploadType,
   UploadValidationProgress,
   UploadValidationResult
-} from './types';
-import { validateUploadPackage } from './validation';
+} from './lib/types';
+import { validateUploadPackage } from './lib/validation';
 
 const uploadTypeLabels: Record<UploadType, string> = {
   project: 'Project',
@@ -54,8 +55,17 @@ function UploadProcessModal({
     });
   const [validationResult, setValidationResult] =
     React.useState<UploadValidationResult | null>(null);
+  const [projectSetup, setProjectSetup] =
+    React.useState<UploadProjectSetup | null>(null);
 
-  const currentStep = uploadProcessSteps[currentStepIndex];
+  const visibleSteps = React.useMemo(
+    () =>
+      uploadProcessSteps.filter(
+        (step) => !step.uploadTypes || step.uploadTypes.includes(uploadType)
+      ),
+    [uploadType]
+  );
+  const currentStep = visibleSteps[currentStepIndex] ?? visibleSteps[0];
   const isCurrentStepValid = stepValidity[currentStep.value] ?? true;
   const uploadTypeLabel = uploadTypeLabels[uploadType];
   const modalTitle = title ?? `New ${uploadTypeLabel} Upload`;
@@ -63,8 +73,17 @@ function UploadProcessModal({
     subtitle ??
     `Follow each step to upload, validate, adjust, and process your ${uploadTypeLabel.toLowerCase()} files.`;
 
+  React.useEffect(() => {
+    setCurrentStepIndex((stepIndex) =>
+      Math.min(stepIndex, Math.max(visibleSteps.length - 1, 0))
+    );
+    setMaxUnlockedStepIndex((stepIndex) =>
+      Math.min(stepIndex, Math.max(visibleSteps.length - 1, 0))
+    );
+  }, [visibleSteps.length]);
+
   function handleStepChange(value: string) {
-    const nextStepIndex = uploadProcessSteps.findIndex(
+    const nextStepIndex = visibleSteps.findIndex(
       (step) => step.value === value
     );
 
@@ -100,10 +119,7 @@ function UploadProcessModal({
     }
 
     setCurrentStepIndex((stepIndex) => {
-      const nextStepIndex = Math.min(
-        stepIndex + 1,
-        uploadProcessSteps.length - 1
-      );
+      const nextStepIndex = Math.min(stepIndex + 1, visibleSteps.length - 1);
 
       setMaxUnlockedStepIndex((unlockedStepIndex) =>
         Math.max(unlockedStepIndex, nextStepIndex)
@@ -119,7 +135,7 @@ function UploadProcessModal({
       return;
     }
 
-    const validationStepIndex = uploadProcessSteps.findIndex(
+    const validationStepIndex = visibleSteps.findIndex(
       (step) => step.value === 'validation'
     );
 
@@ -147,6 +163,7 @@ function UploadProcessModal({
       );
 
       setValidationResult(result);
+      setProjectSetup(result.projectSetup ?? null);
       handleStepValidityChange('validation', result.isValid);
       setValidationProgress({
         isValidating: false,
@@ -174,6 +191,7 @@ function UploadProcessModal({
           }
         ]
       });
+      setProjectSetup(null);
       handleStepValidityChange('validation', false);
       setValidationProgress({
         isValidating: false,
@@ -186,6 +204,7 @@ function UploadProcessModal({
   function handleSelectedFileChange(file: File | null) {
     setSelectedFile(file);
     setValidationResult(null);
+    setProjectSetup(null);
     setValidationProgress({
       isValidating: false,
       percent: 0,
@@ -226,7 +245,7 @@ function UploadProcessModal({
           className="min-h-0"
         >
           <TabsList className="h-auto w-full flex-wrap justify-start">
-            {uploadProcessSteps.map((step, stepIndex) => (
+            {visibleSteps.map((step, stepIndex) => (
               <TabsTrigger
                 key={step.value}
                 value={step.value}
@@ -237,7 +256,7 @@ function UploadProcessModal({
             ))}
           </TabsList>
 
-          {uploadProcessSteps.map((step) => {
+          {visibleSteps.map((step) => {
             const StepComponent = step.Component;
 
             return (
@@ -252,6 +271,8 @@ function UploadProcessModal({
                   onSelectedFileChange={handleSelectedFileChange}
                   validationProgress={validationProgress}
                   validationResult={validationResult}
+                  projectSetup={projectSetup}
+                  onProjectSetupChange={setProjectSetup}
                   onValidityChange={(isValid) =>
                     handleStepValidityChange(step.value, isValid)
                   }
@@ -274,7 +295,7 @@ function UploadProcessModal({
             type="button"
             onClick={handleNext}
             disabled={
-              currentStepIndex === uploadProcessSteps.length - 1 ||
+              currentStepIndex === visibleSteps.length - 1 ||
               !isCurrentStepValid ||
               validationProgress.isValidating
             }

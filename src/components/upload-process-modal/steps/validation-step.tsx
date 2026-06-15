@@ -1,4 +1,4 @@
-import type { UploadProcessStepProps } from '../types';
+import type { UploadProcessStepProps } from '../lib/types';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,

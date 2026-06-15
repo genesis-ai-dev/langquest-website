@@ -1,4 +1,4 @@
-import type { UploadProcessStepProps } from '../types';
+import type { UploadProcessStepProps } from '../lib/types';
 import { StepLayout } from './step-layout';
 
 function DoneStep({ uploadType }: UploadProcessStepProps) {

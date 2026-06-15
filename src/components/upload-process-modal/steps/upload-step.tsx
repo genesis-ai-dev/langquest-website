@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle2, FileArchive, Upload } from 'lucide-react';
 
-import type { UploadProcessStepProps } from '../types';
+import type { UploadProcessStepProps } from '../lib/types';
 
 const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
 
