@@ -5,6 +5,7 @@ import {
   type NodeModel
 } from '@minoru/react-dnd-treeview';
 import {
+  AlertCircle,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -16,6 +17,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { Spinner } from '@/components/spinner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 import type { UploadProcessStepProps } from '../lib/types';
@@ -24,9 +26,11 @@ import {
   buildTemplateTree,
   type InitialTreeNodeData
 } from '../lib/tree-build';
+import { normalizeContentTree } from '../lib/tree-validation';
 
 type ContentNodeData = InitialTreeNodeData & {
   locked?: boolean;
+  validationStatus?: 'error' | 'warning' | 'valid';
 };
 
 type ContentNode = NodeModel<ContentNodeData>;
@@ -148,7 +152,12 @@ function ContentSetupStep({
           csvData
         });
 
-        setProjectStructure(initialTreeData.projectStructure);
+        setProjectStructure(
+          normalizeContentTree({
+            tree: initialTreeData.projectStructure,
+            template
+          })
+        );
         setUndefinedItems(initialTreeData.undefinedItems);
       })
       .catch((error) => {
@@ -239,6 +248,15 @@ function ContentSetupStep({
     setSelectedProjectNodeId(null);
   }
 
+  function handleProjectStructureDrop(tree: ContentNode[]) {
+    setProjectStructure(
+      normalizeContentTree({
+        tree,
+        template: projectSetup?.template || 'unstructured'
+      })
+    );
+  }
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
@@ -259,7 +277,7 @@ function ContentSetupStep({
             error={treeBuildError}
             selectedNodeId={selectedProjectNodeId}
             onSelectNode={setSelectedProjectNodeId}
-            onDrop={setProjectStructure}
+            onDrop={handleProjectStructureDrop}
           />
 
           <div className="flex flex-col items-center justify-center gap-3">
@@ -401,7 +419,7 @@ function TreeNode({
 }) {
   return (
     <div
-      className={getTreeRowClassName(isSelected)}
+      className={getTreeRowClassName(isSelected, node.data?.hasContent)}
       style={{ paddingLeft: depth * 18 + 8 }}
       onClick={onSelect}
     >
@@ -425,6 +443,7 @@ function TreeNode({
       )}
       <Folder className="h-4 w-4 shrink-0" />
       <span className="truncate">{node.text}</span>
+      <TreeNodeFlagIcon flag={node.data?.flag} />
     </div>
   );
 }
@@ -440,25 +459,54 @@ function TreeLeaf({
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const assetLabel =
+    node.data?.type === 'asset' ? node.data.asset.label : undefined;
+  const badgeVariant =
+    node.data?.validationStatus === 'error' ? 'destructive' : 'secondary';
+
   return (
     <div
-      className={getTreeRowClassName(isSelected)}
+      className={getTreeRowClassName(isSelected, node.data?.hasContent)}
       style={{ paddingLeft: depth * 18 + 8 }}
       onClick={onSelect}
+      title={node.data?.validationMessage}
     >
       <span className="w-5" />
       <FileText className="h-4 w-4 shrink-0" />
       <span className="truncate">{node.text}</span>
+      {assetLabel ? (
+        <Badge variant={badgeVariant} className="rounded-sm text-[10px]">
+          {assetLabel}
+        </Badge>
+      ) : null}
     </div>
   );
 }
 
-function getTreeRowClassName(isSelected: boolean) {
+function TreeNodeFlagIcon({
+  flag
+}: {
+  flag?: null | 'warning' | 'error';
+}) {
+  if (!flag) {
+    return null;
+  }
+
+  return (
+    <AlertCircle
+      className={`ml-auto h-4 w-4 shrink-0 ${
+        flag === 'error' ? 'text-destructive' : 'text-yellow-500'
+      }`}
+    />
+  );
+}
+
+function getTreeRowClassName(isSelected: boolean, hasContent?: boolean) {
   return `flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
     isSelected
       ? 'bg-primary text-primary-foreground'
       : 'hover:bg-muted text-foreground'
-  }`;
+  } ${hasContent ? 'opacity-100' : 'opacity-50'}`;
 }
 
 function collectNodeBranch(tree: ContentNode[], nodeId: ContentNode['id']) {

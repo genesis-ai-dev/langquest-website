@@ -17,12 +17,20 @@ type TemplateTreeNodeData = {
   type: 'book' | 'chapter' | 'pericope';
   lockedToDrop: boolean;
   lockedToDrag: boolean;
+  hasContent?: boolean;
+  validationStatus?: 'error' | 'warning' | 'valid';
+  validationMessage?: string;
+  flag?: null | 'warning' | 'error';
   bookId?: string;
   chapterNumber?: number;
   verseCount?: number;
   pericopeId?: string;
   pericopeSequence?: number;
   pericopeVerseRange?: string;
+  pericopeStartChapter?: number;
+  pericopeStartVerse?: number;
+  pericopeEndChapter?: number;
+  pericopeEndVerse?: number;
 };
 
 type TemplateTreeNode = NodeModel<TemplateTreeNodeData>;
@@ -31,6 +39,10 @@ type InitialTreeAssetData = {
   type: 'asset';
   lockedToDrop: boolean;
   lockedToDrag: boolean;
+  hasContent: boolean;
+  validationStatus?: 'error' | 'warning' | 'valid';
+  validationMessage?: string;
+  flag?: null | 'warning' | 'error';
   questName: string;
   parentQuestName: string;
   asset: CsvDataAsset;
@@ -40,6 +52,10 @@ type InitialTreeQuestData = {
   type: 'quest';
   lockedToDrop: boolean;
   lockedToDrag: boolean;
+  hasContent?: boolean;
+  validationStatus?: 'error' | 'warning' | 'valid';
+  validationMessage?: string;
+  flag?: null | 'warning' | 'error';
   questName: string;
   parentQuestName: string;
   description: string;
@@ -74,6 +90,10 @@ type FiaPericope = {
   id: string;
   sequence: number;
   verseRange: string;
+  startChapter?: number;
+  startVerse?: number;
+  endChapter?: number;
+  endVerse?: number;
 };
 
 type FiaBookPericopes = {
@@ -204,7 +224,11 @@ async function buildFIA(language?: string | null): Promise<TemplateTreeNode[]> {
             bookId: book.id,
             pericopeId: pericope.id,
             pericopeSequence,
-            pericopeVerseRange: pericope.verseRange
+            pericopeVerseRange: pericope.verseRange,
+            pericopeStartChapter: pericope.startChapter,
+            pericopeStartVerse: pericope.startVerse,
+            pericopeEndChapter: pericope.endChapter,
+            pericopeEndVerse: pericope.endVerse
           }
         } satisfies TemplateTreeNode;
       });
@@ -287,6 +311,10 @@ function normalizeFiaPericopesResponse(payload: unknown): FiaPericopesResponse {
                   id?: unknown;
                   sequence?: unknown;
                   verseRange?: unknown;
+                  startChapter?: unknown;
+                  startVerse?: unknown;
+                  endChapter?: unknown;
+                  endVerse?: unknown;
                 };
 
                 if (
@@ -300,7 +328,23 @@ function normalizeFiaPericopesResponse(payload: unknown): FiaPericopesResponse {
                 return {
                   id: pericopeObj.id,
                   sequence: pericopeObj.sequence,
-                  verseRange: pericopeObj.verseRange
+                  verseRange: pericopeObj.verseRange,
+                  startChapter:
+                    typeof pericopeObj.startChapter === 'number'
+                      ? pericopeObj.startChapter
+                      : undefined,
+                  startVerse:
+                    typeof pericopeObj.startVerse === 'number'
+                      ? pericopeObj.startVerse
+                      : undefined,
+                  endChapter:
+                    typeof pericopeObj.endChapter === 'number'
+                      ? pericopeObj.endChapter
+                      : undefined,
+                  endVerse:
+                    typeof pericopeObj.endVerse === 'number'
+                      ? pericopeObj.endVerse
+                      : undefined
                 };
               })
               .filter((value): value is FiaPericope => Boolean(value))
@@ -353,6 +397,11 @@ function buildInitialBibleTreeData(
 
     if (chapterNode) {
       processedQuests.add(quest);
+
+      if (quest.assets.length > 0) {
+        markNodeAndAncestorsWithContent(projectStructure, chapterNode.id);
+      }
+
       projectStructure.push(
         ...buildAssetNodes({
           assets: quest.assets,
@@ -417,6 +466,11 @@ function buildInitialFiaTreeData(
 
     if (pericopeNode) {
       processedQuests.add(quest);
+
+      if (quest.assets.length > 0) {
+        markNodeAndAncestorsWithContent(projectStructure, pericopeNode.id);
+      }
+
       projectStructure.push(
         ...buildAssetNodes({
           assets: quest.assets,
@@ -615,6 +669,7 @@ function buildAssetNodes({
       type: 'asset',
       lockedToDrop: false,
       lockedToDrag: false,
+      hasContent: true,
       questName: quest.name,
       parentQuestName: quest.parentName,
       asset
@@ -630,6 +685,7 @@ function buildCsvQuestTree(
 
   return sortQuestsByFirstRow(quests).flatMap((quest) => {
     const questNodeId = getCsvQuestNodeId(quest, parentId);
+    const hasContent = hasQuestContent(quest, options.shallow);
     const questNode: InitialTreeNode = {
       id: questNodeId,
       parent: parentId,
@@ -639,6 +695,7 @@ function buildCsvQuestTree(
         type: 'quest',
         lockedToDrop: false,
         lockedToDrag: false,
+        hasContent,
         questName: quest.name,
         parentQuestName: quest.parentName,
         description: quest.description,
@@ -658,6 +715,33 @@ function buildCsvQuestTree(
 
     return [questNode, ...assetNodes, ...childQuestNodes];
   });
+}
+
+function markNodeAndAncestorsWithContent(
+  tree: InitialTreeNode[],
+  nodeId: InitialTreeNode['id']
+) {
+  const node = tree.find((item) => item.id === nodeId);
+
+  if (!node) {
+    return;
+  }
+
+  node.data = {
+    ...node.data,
+    hasContent: true
+  } as InitialTreeNodeData;
+
+  if (node.parent !== ROOT_ID) {
+    markNodeAndAncestorsWithContent(tree, node.parent);
+  }
+}
+
+function hasQuestContent(quest: CsvDataQuest, shallow?: boolean): boolean {
+  return Boolean(
+    quest.assets.length > 0 ||
+      (!shallow && quest.quests.some((childQuest) => hasQuestContent(childQuest)))
+  );
 }
 
 function markQuestBranchAsProcessed(
