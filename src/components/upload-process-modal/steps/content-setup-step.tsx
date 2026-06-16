@@ -5,13 +5,14 @@ import {
   type NodeModel
 } from '@minoru/react-dnd-treeview';
 import {
-  AlertCircle,
   ChevronDown,
   ChevronRight,
+  CircleX,
   FileText,
   Folder,
   MoveLeft,
-  MoveRight
+  MoveRight,
+  TriangleAlert
 } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -461,6 +462,11 @@ function TreeLeaf({
 }) {
   const assetLabel =
     node.data?.type === 'asset' ? node.data.asset.label : undefined;
+  const validationFlag =
+    node.data?.validationStatus === 'error' ||
+    node.data?.validationStatus === 'warning'
+      ? node.data.validationStatus
+      : null;
   const badgeVariant =
     node.data?.validationStatus === 'error' ? 'destructive' : 'secondary';
 
@@ -479,6 +485,7 @@ function TreeLeaf({
           {assetLabel}
         </Badge>
       ) : null}
+      <TreeNodeFlagIcon flag={validationFlag} />
     </div>
   );
 }
@@ -492,8 +499,10 @@ function TreeNodeFlagIcon({
     return null;
   }
 
+  const Icon = flag === 'error' ? CircleX : TriangleAlert;
+
   return (
-    <AlertCircle
+    <Icon
       className={`ml-auto h-4 w-4 shrink-0 ${
         flag === 'error' ? 'text-destructive' : 'text-yellow-500'
       }`}

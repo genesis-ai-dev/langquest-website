@@ -14,6 +14,7 @@ type ValidationContext<TNode extends InitialTreeNode> = {
   nodesById: Map<InitialTreeNode['id'], TNode>;
   childrenByParent: Map<InitialTreeNode['id'], TNode[]>;
   issuesByNodeId: Map<InitialTreeNode['id'], string[]>;
+  severitiesByNodeId: Map<InitialTreeNode['id'], ValidationSeverity>;
   flagsByNodeId: Map<InitialTreeNode['id'], ValidationSeverity>;
 };
 
@@ -275,7 +276,46 @@ function validateAssetLabelsInContainer<TNode extends InitialTreeNode>(
     comparableRanges.push(validationResult.range);
   });
 
+  validateDuplicateAssetNames(context, assetNodes);
   validateInterleavedRanges(context, comparableRanges);
+}
+
+function validateDuplicateAssetNames<TNode extends InitialTreeNode>(
+  context: ValidationContext<TNode>,
+  assetNodes: TNode[]
+) {
+  const assetsByName = new Map<string, TNode[]>();
+
+  assetNodes.forEach((assetNode) => {
+    if (assetNode.data?.type !== 'asset') {
+      return;
+    }
+
+    const normalizedAssetName = normalizeAssetName(assetNode.data.asset.name);
+
+    if (!normalizedAssetName) {
+      return;
+    }
+
+    const matchingAssets = assetsByName.get(normalizedAssetName) ?? [];
+    matchingAssets.push(assetNode);
+    assetsByName.set(normalizedAssetName, matchingAssets);
+  });
+
+  assetsByName.forEach((matchingAssets) => {
+    if (matchingAssets.length < 2) {
+      return;
+    }
+
+    matchingAssets.forEach((assetNode) => {
+      addNodeIssue(
+        context,
+        assetNode,
+        'Another asset in this container has the same name.',
+        'warning'
+      );
+    });
+  });
 }
 
 function validateInterleavedRanges<TNode extends InitialTreeNode>(
@@ -323,6 +363,7 @@ function createValidationContext<TNode extends InitialTreeNode>(
     nodesById,
     childrenByParent,
     issuesByNodeId: new Map(),
+    severitiesByNodeId: new Map(),
     flagsByNodeId: new Map()
   };
 }
@@ -330,7 +371,8 @@ function createValidationContext<TNode extends InitialTreeNode>(
 function addNodeIssue<TNode extends InitialTreeNode>(
   context: ValidationContext<TNode>,
   node: TNode,
-  issue: string
+  issue: string,
+  severity: ValidationSeverity = 'error'
 ) {
   const nodeIssues = context.issuesByNodeId.get(node.id) ?? [];
 
@@ -339,7 +381,11 @@ function addNodeIssue<TNode extends InitialTreeNode>(
   }
 
   context.issuesByNodeId.set(node.id, nodeIssues);
-  markParentFlags(context, node.parent, 'error');
+  context.severitiesByNodeId.set(
+    node.id,
+    getPrioritizedSeverity(context.severitiesByNodeId.get(node.id), severity)
+  );
+  markParentFlags(context, node.parent, severity);
 }
 
 function markParentFlags<TNode extends InitialTreeNode>(
@@ -353,7 +399,10 @@ function markParentFlags<TNode extends InitialTreeNode>(
     return;
   }
 
-  context.flagsByNodeId.set(node.id, severity);
+  context.flagsByNodeId.set(
+    node.id,
+    getPrioritizedSeverity(context.flagsByNodeId.get(node.id), severity)
+  );
   markParentFlags(context, node.parent, severity);
 }
 
@@ -362,6 +411,7 @@ function applyValidationContext<TNode extends InitialTreeNode>(
 ): TNode[] {
   return context.tree.map((node) => {
     const issues = context.issuesByNodeId.get(node.id) ?? [];
+    const severity = context.severitiesByNodeId.get(node.id);
     const flag = context.flagsByNodeId.get(node.id) ?? null;
 
     return {
@@ -369,7 +419,7 @@ function applyValidationContext<TNode extends InitialTreeNode>(
       data: node.data
         ? ({
             ...node.data,
-            validationStatus: issues.length > 0 ? 'error' : undefined,
+            validationStatus: issues.length > 0 ? severity : undefined,
             validationMessage: issues.length > 0 ? issues.join(' ') : undefined,
             flag
           } as InitialTreeNodeData)
@@ -394,6 +444,17 @@ function clearValidationState<TNode extends InitialTreeNode>(
   })) as TNode[];
 }
 
+function getPrioritizedSeverity(
+  currentSeverity: ValidationSeverity | undefined,
+  nextSeverity: ValidationSeverity
+) {
+  if (currentSeverity === 'error' || nextSeverity === 'error') {
+    return 'error';
+  }
+
+  return 'warning';
+}
+
 function getDescendantAssetNodes<TNode extends InitialTreeNode>(
   context: ValidationContext<TNode>,
   node: TNode
@@ -407,6 +468,10 @@ function getDescendantAssetNodes<TNode extends InitialTreeNode>(
 
     return getDescendantAssetNodes(context, childNode);
   });
+}
+
+function normalizeAssetName(assetName: string) {
+  return assetName.trim().toLowerCase();
 }
 
 function parseBibleVerseRange(label: string): BibleVerseRange | null {
