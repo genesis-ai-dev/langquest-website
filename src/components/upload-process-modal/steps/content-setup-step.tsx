@@ -12,6 +12,7 @@ import {
   Folder,
   MoveLeft,
   MoveRight,
+  Pencil,
   TriangleAlert
 } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
@@ -21,6 +22,11 @@ import { Spinner } from '@/components/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+import {
+  ModalEditAsset,
+  type ModalEditAssetValues
+} from '../components/modal-edit-asset';
+import type { CsvDataAsset } from '../lib/csv-data-build';
 import type { UploadProcessStepProps } from '../lib/types';
 import {
   buildInitialTreeData,
@@ -35,6 +41,12 @@ type ContentNodeData = InitialTreeNodeData & {
 };
 
 type ContentNode = NodeModel<ContentNodeData>;
+
+type EditingAssetNode = {
+  nodeId: ContentNode['id'];
+  source: 'project' | 'undefined';
+  asset: CsvDataAsset;
+};
 
 const ROOT_ID = 0;
 
@@ -105,6 +117,8 @@ function ContentSetupStep({
   const [selectedUndefinedNodeId, setSelectedUndefinedNodeId] = React.useState<
     ContentNode['id'] | null
   >(null);
+  const [editingAssetNode, setEditingAssetNode] =
+    React.useState<EditingAssetNode | null>(null);
   const selectedProjectNode = React.useMemo(
     () =>
       selectedProjectNodeId
@@ -258,6 +272,42 @@ function ContentSetupStep({
     );
   }
 
+  function handleOpenAssetEdit(
+    source: EditingAssetNode['source'],
+    node: ContentNode
+  ) {
+    if (node.data?.type !== 'asset') {
+      return;
+    }
+
+    setEditingAssetNode({
+      nodeId: node.id,
+      source,
+      asset: node.data.asset
+    });
+  }
+
+  function handleSaveAssetEdit(values: ModalEditAssetValues) {
+    if (!editingAssetNode) {
+      return;
+    }
+
+    if (editingAssetNode.source === 'project') {
+      setProjectStructure((currentTree) =>
+        normalizeContentTree({
+          tree: updateAssetNode(currentTree, editingAssetNode.nodeId, values),
+          template: projectSetup?.template || 'unstructured'
+        })
+      );
+    } else {
+      setUndefinedItems((currentTree) =>
+        updateAssetNode(currentTree, editingAssetNode.nodeId, values)
+      );
+    }
+
+    setEditingAssetNode(null);
+  }
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
@@ -279,6 +329,7 @@ function ContentSetupStep({
             selectedNodeId={selectedProjectNodeId}
             onSelectNode={setSelectedProjectNodeId}
             onDrop={handleProjectStructureDrop}
+            onEditAsset={(node) => handleOpenAssetEdit('project', node)}
           />
 
           <div className="flex flex-col items-center justify-center gap-3">
@@ -290,7 +341,6 @@ function ContentSetupStep({
               disabled={!selectedUndefinedNodeId}
             >
               <MoveLeft className="h-4 w-4" />
-              Mover para esquerda
             </Button>
             <Button
               type="button"
@@ -299,7 +349,6 @@ function ContentSetupStep({
               onClick={handleMoveToRight}
               disabled={!canMoveSelectedProjectNode}
             >
-              Mover para direita
               <MoveRight className="h-4 w-4" />
             </Button>
           </div>
@@ -310,8 +359,20 @@ function ContentSetupStep({
             selectedNodeId={selectedUndefinedNodeId}
             onSelectNode={setSelectedUndefinedNodeId}
             onDrop={setUndefinedItems}
+            onEditAsset={(node) => handleOpenAssetEdit('undefined', node)}
           />
         </div>
+
+        <ModalEditAsset
+          open={Boolean(editingAssetNode)}
+          asset={editingAssetNode?.asset ?? null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingAssetNode(null);
+            }
+          }}
+          onSave={handleSaveAssetEdit}
+        />
       </div>
     </DndProvider>
   );
@@ -324,7 +385,8 @@ function TreePanel({
   error,
   selectedNodeId,
   onSelectNode,
-  onDrop
+  onDrop,
+  onEditAsset
 }: {
   title: string;
   tree: ContentNode[];
@@ -333,7 +395,13 @@ function TreePanel({
   selectedNodeId: ContentNode['id'] | null;
   onSelectNode: (nodeId: ContentNode['id']) => void;
   onDrop: (tree: ContentNode[], options: DropOptions<ContentNodeData>) => void;
+  onEditAsset?: (node: ContentNode) => void;
 }) {
+  const treeNodeIds = React.useMemo(
+    () => new Set(tree.map((node) => node.id)),
+    [tree]
+  );
+
   return (
     <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
       <h4 className="shrink-0 text-sm font-medium">{title}</h4>
@@ -356,6 +424,13 @@ function TreePanel({
             canDrag={(node) => node?.data?.lockedToDrag !== true}
             canDrop={(_tree, options) => {
               if (
+                options.dragSource &&
+                !treeNodeIds.has(options.dragSource.id)
+              ) {
+                return false;
+              }
+
+              if (
                 options.dropTarget?.data?.locked ||
                 options.dropTarget?.data?.lockedToDrop
               ) {
@@ -375,6 +450,7 @@ function TreePanel({
                   depth={depth}
                   isSelected={selectedNodeId === node.id}
                   onSelect={() => onSelectNode(node.id)}
+                  onEdit={() => onEditAsset?.(node)}
                 />
               ) : (
                 <TreeNode
@@ -444,7 +520,9 @@ function TreeNode({
       )}
       <Folder className="h-4 w-4 shrink-0" />
       <span className="truncate">{node.text}</span>
-      <TreeNodeFlagIcon flag={node.data?.flag} />
+      <div className="ml-auto flex shrink-0 items-center">
+        <TreeNodeFlagIcon flag={node.data?.flag} />
+      </div>
     </div>
   );
 }
@@ -453,12 +531,14 @@ function TreeLeaf({
   node,
   depth,
   isSelected,
-  onSelect
+  onSelect,
+  onEdit
 }: {
   node: ContentNode;
   depth: number;
   isSelected: boolean;
   onSelect: () => void;
+  onEdit?: () => void;
 }) {
   const assetLabel =
     node.data?.type === 'asset' ? node.data.asset.label : undefined;
@@ -485,16 +565,27 @@ function TreeLeaf({
           {assetLabel}
         </Badge>
       ) : null}
-      <TreeNodeFlagIcon flag={validationFlag} />
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        {onEdit ? (
+          <button
+            type="button"
+            className="rounded-full p-0.5 opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-70 focus:opacity-50"
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit();
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            <span className="sr-only">Edit asset</span>
+          </button>
+        ) : null}
+        <TreeNodeFlagIcon flag={validationFlag} />
+      </div>
     </div>
   );
 }
 
-function TreeNodeFlagIcon({
-  flag
-}: {
-  flag?: null | 'warning' | 'error';
-}) {
+function TreeNodeFlagIcon({ flag }: { flag?: null | 'warning' | 'error' }) {
   if (!flag) {
     return null;
   }
@@ -503,7 +594,7 @@ function TreeNodeFlagIcon({
 
   return (
     <Icon
-      className={`ml-auto h-4 w-4 shrink-0 ${
+      className={`h-4 w-4 shrink-0 ${
         flag === 'error' ? 'text-destructive' : 'text-yellow-500'
       }`}
     />
@@ -511,11 +602,36 @@ function TreeNodeFlagIcon({
 }
 
 function getTreeRowClassName(isSelected: boolean, hasContent?: boolean) {
-  return `flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+  return `group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
     isSelected
       ? 'bg-primary text-primary-foreground'
       : 'hover:bg-muted text-foreground'
   } ${hasContent ? 'opacity-100' : 'opacity-50'}`;
+}
+
+function updateAssetNode(
+  tree: ContentNode[],
+  nodeId: ContentNode['id'],
+  values: ModalEditAssetValues
+) {
+  return tree.map((node) => {
+    if (node.id !== nodeId || node.data?.type !== 'asset') {
+      return node;
+    }
+
+    return {
+      ...node,
+      text: values.name,
+      data: {
+        ...node.data,
+        asset: {
+          ...node.data.asset,
+          name: values.name,
+          label: values.label
+        }
+      }
+    };
+  });
 }
 
 function collectNodeBranch(tree: ContentNode[], nodeId: ContentNode['id']) {
