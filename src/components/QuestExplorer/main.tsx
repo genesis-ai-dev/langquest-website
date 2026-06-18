@@ -139,6 +139,8 @@ export function QuestExplorerMenu({
   const showRightMenuActions =
     showActionMenus?.right ?? behavior.showRightMenuActions;
   const allowAddQuest = behavior.allowAddQuest;
+  const allowBulkQuestUpload =
+    behavior.allowBulkQuestUpload ?? behavior.allowAddQuest;
   const allowAddAssets = behavior.allowAddAssets;
   const allowNewVersion = behavior.allowNewVersion;
   const subQuestMenuConfig = useMemo(
@@ -672,11 +674,14 @@ export function QuestExplorerMenu({
                 <CardTitle className="text-lg">
                   {copy.leftColumnTitle}
                 </CardTitle>
-                {showLeftMenuActions && (
+                {(showActionMenus?.left ??
+                  (showLeftMenuActions || allowBulkQuestUpload)) && (
                   <QuestMenuPlus
                     canManage={canManage}
                     projectId={projectId}
+                    projectTemplate={templateStrategy.id}
                     allowAddQuest={allowAddQuest}
+                    allowBulkQuestUpload={allowBulkQuestUpload}
                     onQuestSuccess={() => {
                       queryClient.invalidateQueries({
                         queryKey: ['qe-tree']

@@ -27,6 +27,7 @@ import {
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 import {
   ModalEditAsset,
@@ -59,6 +60,26 @@ type EditingAssetNode = {
 };
 
 const ROOT_ID = 0;
+
+async function fetchProjectSourceLanguageId(
+  projectId: string,
+  supabase: ReturnType<typeof createBrowserClient>
+) {
+  const { data, error } = await supabase
+    .from('project_language_link')
+    .select('languoid_id')
+    .eq('project_id', projectId)
+    .eq('language_type', 'source')
+    .not('languoid_id', 'is', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.languoid_id ?? null;
+}
 
 // const initialProjectStructure: ContentNode[] = [
 //   {
@@ -110,11 +131,15 @@ const ROOT_ID = 0;
 
 function ContentSetupStep({
   uploadType,
+  projectId,
+  projectTemplate,
+  projectFiaContentLanguage,
   projectSetup,
   validationResult,
   onGeneratedCsvContentChange,
   onValidityChange
 }: UploadProcessStepProps) {
+  const supabase = React.useMemo(() => createBrowserClient(), []);
   const [projectStructure, setProjectStructure] = React.useState<ContentNode[]>(
     []
   );
@@ -137,7 +162,7 @@ function ContentSetupStep({
     errors: 0,
     warnings: 0
   });
-  const template = projectSetup?.template || 'unstructured';
+  const template = projectSetup?.template || projectTemplate || 'unstructured';
   const selectedProjectNode = React.useMemo(
     () =>
       selectedProjectNodeId
@@ -201,7 +226,6 @@ function ContentSetupStep({
       return;
     }
 
-    const language = projectSetup?.fiaContentLanguage || null;
     const csvData = validationResult?.csvData;
     let isCancelled = false;
 
@@ -210,8 +234,16 @@ function ContentSetupStep({
     setSelectedProjectNodeId(null);
     setSelectedUndefinedNodeId(null);
 
-    buildTemplateTree({ template, language })
-      .then((tree) => {
+    async function buildTree() {
+      try {
+        const language =
+          projectSetup?.fiaContentLanguage ||
+          projectFiaContentLanguage ||
+          (template === 'fia' && projectId
+            ? await fetchProjectSourceLanguageId(projectId, supabase)
+            : null);
+        const tree = await buildTemplateTree({ template, language });
+
         if (isCancelled) {
           return;
         }
@@ -237,8 +269,7 @@ function ContentSetupStep({
         setProjectStructure(normalizedProjectTree.tree);
         setValidationCounts(normalizedProjectTree.summary);
         setUndefinedItems(recomputeHasContent(initialTreeData.undefinedItems));
-      })
-      .catch((error) => {
+      } catch (error) {
         if (isCancelled) {
           return;
         }
@@ -252,19 +283,25 @@ function ContentSetupStep({
         setUndefinedItems([]);
         setValidationCounts(createEmptyValidationCounts());
         setTreeBuildError(message);
-      })
-      .finally(() => {
+      } finally {
         if (!isCancelled) {
           setIsBuildingTree(false);
         }
-      });
+      }
+    }
+
+    buildTree();
 
     return () => {
       isCancelled = true;
     };
   }, [
+    projectFiaContentLanguage,
+    projectId,
     projectSetup?.fiaContentLanguage,
     projectSetup?.template,
+    projectTemplate,
+    supabase,
     uploadType,
     validationResult?.csvData
   ]);

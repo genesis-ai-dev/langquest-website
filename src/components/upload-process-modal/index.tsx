@@ -23,6 +23,7 @@ import type {
   UploadValidationResult
 } from './lib/types';
 import { validateUploadPackage } from './lib/validation';
+import type { UploadProcessResponse } from './lib/upload-processing';
 
 const uploadTypeLabels: Record<UploadType, string> = {
   project: 'Project',
@@ -30,13 +31,28 @@ const uploadTypeLabels: Record<UploadType, string> = {
   asset: 'Asset'
 };
 
+const initialStepValidity: Record<string, boolean> = {
+  upload: false,
+  validation: false,
+  processing: false
+};
+
+const initialValidationProgress: UploadValidationProgress = {
+  isValidating: false,
+  percent: 0,
+  label: 'Waiting for upload.'
+};
+
 function UploadProcessModal({
   open,
   onOpenChange,
+  onSuccess,
   trigger,
   uploadType = 'project',
   projectId,
   questId,
+  projectTemplate,
+  projectFiaContentLanguage,
   title,
   subtitle
 }: UploadProcessModalProps) {
@@ -44,23 +60,18 @@ function UploadProcessModal({
   const [maxUnlockedStepIndex, setMaxUnlockedStepIndex] = React.useState(1);
   const [stepValidity, setStepValidity] = React.useState<
     Record<string, boolean>
-  >({
-    upload: false,
-    validation: false,
-    processing: false
-  });
+  >(initialStepValidity);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [validationProgress, setValidationProgress] =
-    React.useState<UploadValidationProgress>({
-      isValidating: false,
-      percent: 0,
-      label: 'Waiting for upload.'
-    });
+    React.useState<UploadValidationProgress>(initialValidationProgress);
   const [validationResult, setValidationResult] =
     React.useState<UploadValidationResult | null>(null);
   const [projectSetup, setProjectSetup] =
     React.useState<UploadProjectSetup | null>(null);
   const [generatedCsvContent, setGeneratedCsvContent] = React.useState('');
+  const [processingResult, setProcessingResult] =
+    React.useState<UploadProcessResponse | null>(null);
+  const shouldResetOnNextOpenRef = React.useRef(false);
 
   const visibleSteps = React.useMemo(
     () =>
@@ -71,6 +82,12 @@ function UploadProcessModal({
   );
   const currentStep = visibleSteps[currentStepIndex] ?? visibleSteps[0];
   const isCurrentStepValid = stepValidity[currentStep.value] ?? true;
+  const processingStepIndex = visibleSteps.findIndex(
+    (step) => step.value === 'processing'
+  );
+  const doneStepIndex = visibleSteps.findIndex((step) => step.value === 'done');
+  const isProcessingLocked =
+    processingStepIndex !== -1 && currentStepIndex >= processingStepIndex;
   const uploadTypeLabel = uploadTypeLabels[uploadType];
   const modalTitle = title ?? `New ${uploadTypeLabel} Upload`;
   const modalSubtitle =
@@ -86,12 +103,48 @@ function UploadProcessModal({
     );
   }, [visibleSteps.length]);
 
+  React.useEffect(() => {
+    if (open && shouldResetOnNextOpenRef.current) {
+      resetUploadProcess();
+      shouldResetOnNextOpenRef.current = false;
+    }
+  }, [open]);
+
+  function resetUploadProcess() {
+    setCurrentStepIndex(0);
+    setMaxUnlockedStepIndex(1);
+    setStepValidity(initialStepValidity);
+    setSelectedFile(null);
+    setValidationProgress(initialValidationProgress);
+    setValidationResult(null);
+    setProjectSetup(null);
+    setGeneratedCsvContent('');
+    setProcessingResult(null);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen && shouldResetOnNextOpenRef.current) {
+      resetUploadProcess();
+      shouldResetOnNextOpenRef.current = false;
+    }
+
+    if (!nextOpen && ['processing', 'done'].includes(currentStep.value)) {
+      shouldResetOnNextOpenRef.current = true;
+    }
+
+    onOpenChange?.(nextOpen);
+  }
+
   function handleStepChange(value: string) {
     const nextStepIndex = visibleSteps.findIndex(
       (step) => step.value === value
     );
 
     if (nextStepIndex === -1 || nextStepIndex > maxUnlockedStepIndex) {
+      return;
+    }
+
+    if (isProcessingLocked && nextStepIndex < processingStepIndex) {
       return;
     }
 
@@ -103,10 +156,19 @@ function UploadProcessModal({
   }
 
   function handlePrevious() {
-    setCurrentStepIndex((stepIndex) => {
-      const previousStepIndex = Math.max(stepIndex - 1, 0);
+    if (currentStep.value === 'processing') {
+      return;
+    }
 
-      setMaxUnlockedStepIndex(previousStepIndex);
+    setCurrentStepIndex((stepIndex) => {
+      const previousStepIndex =
+        currentStep.value === 'done' && processingStepIndex !== -1
+          ? processingStepIndex
+          : Math.max(stepIndex - 1, 0);
+
+      if (previousStepIndex < processingStepIndex) {
+        setMaxUnlockedStepIndex(previousStepIndex);
+      }
 
       return previousStepIndex;
     });
@@ -114,6 +176,12 @@ function UploadProcessModal({
 
   async function handleNext() {
     if (!isCurrentStepValid) {
+      return;
+    }
+
+    if (currentStep.value === 'done') {
+      onSuccess?.();
+      handleOpenChange(false);
       return;
     }
 
@@ -210,6 +278,7 @@ function UploadProcessModal({
     setValidationResult(null);
     setProjectSetup(null);
     setGeneratedCsvContent('');
+    setProcessingResult(null);
     setValidationProgress({
       isValidating: false,
       percent: 0,
@@ -237,7 +306,7 @@ function UploadProcessModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="grid h-[75vh] max-h-[75vh] w-[75vw]! max-w-[75vw]! grid-rows-[auto_1fr_auto] overflow-hidden">
         <DialogHeader>
@@ -255,7 +324,10 @@ function UploadProcessModal({
               <TabsTrigger
                 key={step.value}
                 value={step.value}
-                disabled={stepIndex > maxUnlockedStepIndex}
+                disabled={
+                  stepIndex > maxUnlockedStepIndex ||
+                  (isProcessingLocked && stepIndex < processingStepIndex)
+                }
               >
                 {step.label}
               </TabsTrigger>
@@ -273,17 +345,21 @@ function UploadProcessModal({
               >
                 <StepComponent
                   uploadType={uploadType}
-                  isActive={currentStep.value === step.value}
+                  isActive={open !== false && currentStep.value === step.value}
                   selectedFile={selectedFile}
                   projectId={projectId}
                   questId={questId}
+                  projectTemplate={projectTemplate}
+                  projectFiaContentLanguage={projectFiaContentLanguage}
                   onSelectedFileChange={handleSelectedFileChange}
                   validationProgress={validationProgress}
                   validationResult={validationResult}
                   projectSetup={projectSetup}
                   generatedCsvContent={generatedCsvContent}
+                  processingResult={processingResult}
                   onProjectSetupChange={setProjectSetup}
                   onGeneratedCsvContentChange={setGeneratedCsvContent}
+                  onProcessingResultChange={setProcessingResult}
                   onValidityChange={(isValid) =>
                     handleStepValidityChange(step.value, isValid)
                   }
@@ -298,7 +374,11 @@ function UploadProcessModal({
             type="button"
             variant="outline"
             onClick={handlePrevious}
-            disabled={currentStepIndex === 0}
+            disabled={
+              currentStepIndex === 0 ||
+              currentStep.value === 'processing' ||
+              currentStep.value === 'done'
+            }
           >
             Previous
           </Button>
@@ -306,12 +386,13 @@ function UploadProcessModal({
             type="button"
             onClick={handleNext}
             disabled={
-              currentStepIndex === visibleSteps.length - 1 ||
-              !isCurrentStepValid ||
+              (currentStepIndex === visibleSteps.length - 1 &&
+                currentStep.value !== 'done') ||
+              (currentStep.value !== 'done' && !isCurrentStepValid) ||
               validationProgress.isValidating
             }
           >
-            Next
+            {currentStep.value === 'done' ? 'Done' : 'Next'}
           </Button>
         </DialogFooter>
       </DialogContent>

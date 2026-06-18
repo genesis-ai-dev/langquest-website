@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 
 import type { CsvDataBuildResult } from './csv-data-build';
+import type { UploadProcessResponse } from './upload-processing';
 
 type UploadType = 'project' | 'quest' | 'asset';
 
@@ -47,13 +48,17 @@ type UploadProcessStepProps = {
   selectedFile?: File | null;
   projectId?: string;
   questId?: string;
+  projectTemplate?: string;
+  projectFiaContentLanguage?: string | null;
   onSelectedFileChange?: (file: File | null) => void;
   validationProgress?: UploadValidationProgress;
   validationResult?: UploadValidationResult | null;
   projectSetup?: UploadProjectSetup | null;
   generatedCsvContent?: string;
+  processingResult?: UploadProcessResponse | null;
   onProjectSetupChange?: (projectSetup: UploadProjectSetup) => void;
   onGeneratedCsvContentChange?: (csvContent: string) => void;
+  onProcessingResultChange?: (result: UploadProcessResponse | null) => void;
   onValidityChange?: (isValid: boolean) => void;
 };
 
@@ -74,10 +79,13 @@ type UploadProcessStepDefinition = {
 type UploadProcessModalProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
   trigger?: ReactNode;
   uploadType?: UploadType;
   projectId?: string;
   questId?: string;
+  projectTemplate?: string;
+  projectFiaContentLanguage?: string | null;
   title?: string;
   subtitle?: string;
 };

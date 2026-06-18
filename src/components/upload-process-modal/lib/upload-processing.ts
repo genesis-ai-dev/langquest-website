@@ -15,7 +15,11 @@ type UploadProcessResponse = {
   uploadPath?: string;
   rowsCount?: number;
   stats?: {
+    projects?: { read: number; created: number };
+    quests?: { read: number; created: number };
+    assets?: { read: number; created: number };
     errors?: Array<{ row: number; message: string }>;
+    warnings?: Array<{ row: number; message: string }>;
   };
 };
 

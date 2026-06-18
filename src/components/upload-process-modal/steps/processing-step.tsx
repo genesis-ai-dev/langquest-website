@@ -42,6 +42,7 @@ function ProcessingStep({
   generatedCsvContent,
   projectId,
   questId,
+  onProcessingResultChange,
   onValidityChange
 }: UploadProcessStepProps) {
   const supabase = React.useMemo(() => createBrowserClient(), []);
@@ -122,6 +123,7 @@ function ProcessingStep({
     const csvToProcess = generatedCsvContent;
 
     activeProcessKeyRef.current = processKey;
+    onProcessingResultChange?.(null);
     onValidityChangeRef.current?.(false);
 
     async function runProcess() {
@@ -204,6 +206,7 @@ function ProcessingStep({
             `Upload process request received (${result.rowsCount ?? 0} rows).`
         });
         completedProcessKeyRef.current = processKey;
+        onProcessingResultChange?.(result);
         onValidityChangeRef.current?.(true);
       } catch (error) {
         if (isCancelled) return;
@@ -252,6 +255,7 @@ function ProcessingStep({
   }, [
     generatedCsvContent,
     isActive,
+    onProcessingResultChange,
     processKey,
     projectId,
     questId,
