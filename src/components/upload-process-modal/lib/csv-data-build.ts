@@ -1,6 +1,21 @@
 import Papa from 'papaparse';
 
-import type { CsvRow } from './template';
+import { getUploadTemplate, type CsvRow } from './template';
+import type { UploadProjectSetup, UploadType } from './types';
+
+type CsvTreeNode = {
+  id: string | number;
+  parent: string | number;
+  text: string;
+  data?: {
+    type?: string;
+    questName?: string;
+    parentQuestName?: string;
+    description?: string;
+    tags?: string[];
+    asset?: CsvDataAsset;
+  };
+};
 
 type CsvDataAsset = {
   type: 'asset';
@@ -32,6 +47,14 @@ type CsvDataBuildResult = {
 
 type CsvDataBuildInput = string | CsvRow[];
 
+type BuildCsvFromProjectTreeParams = {
+  tree: CsvTreeNode[];
+  uploadType: UploadType;
+  projectSetup?: UploadProjectSetup | null;
+};
+
+const ROOT_ID = 0;
+
 function buildCsvData(csv: CsvDataBuildInput): CsvDataBuildResult {
   const rows = Array.isArray(csv) ? csv : parseCsvRows(csv);
   const questMap = new Map<string, CsvDataQuest>();
@@ -58,6 +81,100 @@ function buildCsvData(csv: CsvDataBuildInput): CsvDataBuildResult {
   });
 
   return connectQuestHierarchy(questMap);
+}
+
+function buildCsvFromProjectTree({
+  tree,
+  uploadType,
+  projectSetup
+}: BuildCsvFromProjectTreeParams) {
+  const rows = buildCsvRowsFromProjectTree({
+    tree,
+    uploadType,
+    projectSetup
+  });
+
+  return Papa.unparse(rows, {
+    columns: getUploadTemplate(uploadType).headers
+  });
+}
+
+function buildCsvRowsFromProjectTree({
+  tree,
+  uploadType,
+  projectSetup
+}: BuildCsvFromProjectTreeParams): CsvRow[] {
+  const rows: CsvRow[] = [];
+  const nodesById = new Map<CsvTreeNode['id'], CsvTreeNode>();
+  const childrenByParent = new Map<CsvTreeNode['id'], CsvTreeNode[]>();
+
+  tree.forEach((node) => {
+    nodesById.set(node.id, node);
+
+    const siblings = childrenByParent.get(node.parent) ?? [];
+    siblings.push(node);
+    childrenByParent.set(node.parent, siblings);
+  });
+
+  function pushQuestBranchRows(parentId: CsvTreeNode['id']) {
+    const children = childrenByParent.get(parentId) ?? [];
+
+    children.forEach((node) => {
+      if (node.data?.type === 'asset') {
+        pushAssetRow(node);
+        return;
+      }
+
+      if (
+        nodeHasAssetDescendant(node.id, childrenByParent) &&
+        !nodeHasDirectAssetChild(node.id, childrenByParent)
+      ) {
+        pushQuestRow(node);
+      }
+
+      pushQuestBranchRows(node.id);
+    });
+  }
+
+  function pushQuestRow(questNode: CsvTreeNode) {
+    const parentQuestNode =
+      questNode.parent !== ROOT_ID ? nodesById.get(questNode.parent) : undefined;
+
+    rows.push(
+      createCsvRow({
+        uploadType,
+        projectSetup,
+        parentQuestNode,
+        questNode
+      })
+    );
+  }
+
+  function pushAssetRow(assetNode: CsvTreeNode) {
+    if (assetNode.data?.type !== 'asset' || !assetNode.data.asset) {
+      return;
+    }
+
+    const questNode = nodesById.get(assetNode.parent);
+    const parentQuestNode =
+      questNode && questNode.parent !== ROOT_ID
+        ? nodesById.get(questNode.parent)
+        : undefined;
+
+    rows.push(
+      createCsvRow({
+        uploadType,
+        projectSetup,
+        parentQuestNode,
+        questNode,
+        asset: assetNode.data.asset
+      })
+    );
+  }
+
+  pushQuestBranchRows(ROOT_ID);
+
+  return rows;
 }
 
 function parseCsvRows(csvContent: string): CsvRow[] {
@@ -135,7 +252,6 @@ function connectQuestHierarchy(
 
     if (!parentQuest) {
       orphanQuests.push(quest);
-      rootQuests.push(quest);
       return;
     }
 
@@ -187,10 +303,108 @@ function mergeUniqueValues(valuesA: string[], valuesB: string[]) {
   return Array.from(new Set([...valuesA, ...valuesB]));
 }
 
-export { buildCsvData };
+function createCsvRow({
+  uploadType,
+  projectSetup,
+  parentQuestNode,
+  questNode,
+  asset
+}: {
+  uploadType: UploadType;
+  projectSetup?: UploadProjectSetup | null;
+  parentQuestNode?: CsvTreeNode;
+  questNode?: CsvTreeNode;
+  asset?: CsvDataAsset;
+}): CsvRow {
+  return {
+    ...(uploadType === 'project'
+      ? {
+          project_name: projectSetup?.projectName ?? '',
+          project_description: projectSetup?.description ?? '',
+          project_template: projectSetup?.template ?? '',
+          target_language: getProjectTargetLanguageName(projectSetup)
+        }
+      : {}),
+    parent_quest_name: parentQuestNode ? getNodeQuestName(parentQuestNode) : '',
+    quest_name: questNode ? getNodeQuestName(questNode) : '',
+    quest_description: questNode ? getNodeQuestDescription(questNode) : '',
+    quest_tags: questNode ? joinList(getNodeQuestTags(questNode)) : '',
+    asset_name: asset?.name ?? '',
+    asset_tags: asset ? joinList(asset.tags) : '',
+    asset_label: asset?.label ?? '',
+    source_language: asset?.sourceLanguage ?? '',
+    source_images: asset ? joinList(asset.sourceImages) : '',
+    source_content: asset?.sourceContent ?? '',
+    source_audio: asset ? joinList(asset.sourceAudio) : ''
+  };
+}
+
+function getProjectTargetLanguageName(
+  projectSetup?: UploadProjectSetup | null
+) {
+  if (!projectSetup) {
+    return '';
+  }
+
+  if (projectSetup.targetLanguageName) {
+    return projectSetup.targetLanguageName;
+  }
+
+  return isLikelyId(projectSetup.targetLanguage)
+    ? ''
+    : projectSetup.targetLanguage;
+}
+
+function isLikelyId(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+function nodeHasAssetDescendant(
+  nodeId: CsvTreeNode['id'],
+  childrenByParent: Map<CsvTreeNode['id'], CsvTreeNode[]>
+): boolean {
+  const children = childrenByParent.get(nodeId) ?? [];
+
+  return children.some(
+    (childNode) =>
+      childNode.data?.type === 'asset' ||
+      nodeHasAssetDescendant(childNode.id, childrenByParent)
+  );
+}
+
+function nodeHasDirectAssetChild(
+  nodeId: CsvTreeNode['id'],
+  childrenByParent: Map<CsvTreeNode['id'], CsvTreeNode[]>
+): boolean {
+  const children = childrenByParent.get(nodeId) ?? [];
+
+  return children.some((childNode) => childNode.data?.type === 'asset');
+}
+
+function getNodeQuestName(node: CsvTreeNode) {
+  return node.data?.questName || node.text;
+}
+
+function getNodeQuestDescription(node: CsvTreeNode) {
+  return node.data?.description ?? '';
+}
+
+function getNodeQuestTags(node: CsvTreeNode) {
+  return node.data?.tags ?? [];
+}
+
+function joinList(values: string[]) {
+  return values.join(';');
+}
+
+export { buildCsvData, buildCsvFromProjectTree, buildCsvRowsFromProjectTree };
 export type {
+  BuildCsvFromProjectTreeParams,
   CsvDataAsset,
   CsvDataBuildInput,
   CsvDataBuildResult,
-  CsvDataQuest
+  CsvDataQuest,
+  CsvTreeNode
 };

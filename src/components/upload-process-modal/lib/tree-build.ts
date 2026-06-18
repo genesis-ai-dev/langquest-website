@@ -435,6 +435,7 @@ function buildInitialBibleTreeData(
   }
 
   csvData.quests.forEach(processQuest);
+  undefinedItems.push(...buildCsvQuestTree(csvData.orphanQuests));
 
 //   console.log('projectStructure', projectStructure);
 //   console.log('undefinedItems', undefinedItems);
@@ -504,6 +505,7 @@ function buildInitialFiaTreeData(
   }
 
   csvData.quests.forEach(processQuest);
+  undefinedItems.push(...buildCsvQuestTree(csvData.orphanQuests));
 
   return {
     projectStructure,

@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-import { LanguoidComboboxUpload } from '@/components/languoid-combobox-upload';
+import {
+  LanguoidComboboxUpload,
+  type Languoid
+} from '@/components/languoid-combobox-upload';
 import { Spinner } from '@/components/spinner';
 import { fetchFiaLanguoids } from '@/app/db/languoid';
 import { createBrowserClient } from '@/lib/supabase/client';
@@ -32,7 +35,8 @@ const emptyProjectSetup: UploadProjectSetup = {
   description: '',
   template: 'unstructured',
   fiaContentLanguage: '',
-  targetLanguage: ''
+  targetLanguage: '',
+  targetLanguageName: ''
 };
 
 function ProjectSetupStep({
@@ -62,9 +66,12 @@ function ProjectSetupStep({
 
     let isCancelled = false;
 
-    resolveLanguoidIdByName(setup.targetLanguage).then((languoidId) => {
-      if (!isCancelled && languoidId) {
-        updateProjectSetup({ targetLanguage: languoidId });
+    resolveLanguoidByName(setup.targetLanguage).then((languoid) => {
+      if (!isCancelled && languoid) {
+        updateProjectSetup({
+          targetLanguage: languoid.id,
+          targetLanguageName: languoid.name
+        });
       }
     });
 
@@ -72,6 +79,28 @@ function ProjectSetupStep({
       isCancelled = true;
     };
   }, [setup.targetLanguage]);
+
+  React.useEffect(() => {
+    if (
+      !setup.targetLanguage ||
+      !isLikelyId(setup.targetLanguage) ||
+      setup.targetLanguageName
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    resolveLanguoidNameById(setup.targetLanguage).then((languageName) => {
+      if (!isCancelled && languageName) {
+        updateProjectSetup({ targetLanguageName: languageName });
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [setup.targetLanguage, setup.targetLanguageName]);
 
   React.useEffect(() => {
     if (
@@ -103,7 +132,7 @@ function ProjectSetupStep({
     onValidityChange?.(isProjectSetupValid(nextSetup));
   }
 
-  async function resolveLanguoidIdByName(languageName: string) {
+  async function resolveLanguoidByName(languageName: string) {
     const { data, error } = await supabase.rpc('search_languoids', {
       search_query: languageName.trim().toLowerCase(),
       result_limit: 10,
@@ -120,7 +149,34 @@ function ProjectSetupStep({
         languoid.name.toLowerCase() === languageName.trim().toLowerCase()
     );
 
-    return typeof exactMatch?.id === 'string' ? exactMatch.id : null;
+    return typeof exactMatch?.id === 'string' &&
+      typeof exactMatch?.name === 'string'
+      ? {
+          id: exactMatch.id,
+          name: exactMatch.name
+        }
+      : null;
+  }
+
+  async function resolveLanguoidNameById(languoidId: string) {
+    const { data, error } = await supabase
+      .from('languoid')
+      .select('name')
+      .eq('id', languoidId)
+      .maybeSingle();
+
+    if (error || typeof data?.name !== 'string') {
+      return null;
+    }
+
+    return data.name;
+  }
+
+  function handleTargetLanguageSelect(languoid: Languoid | null) {
+    updateProjectSetup({
+      targetLanguage: languoid?.id ?? setup.targetLanguage,
+      targetLanguageName: languoid?.name ?? ''
+    });
   }
 
   return (
@@ -232,8 +288,12 @@ function ProjectSetupStep({
               <LanguoidComboboxUpload
                 value={setup.targetLanguage}
                 onChange={(targetLanguage) =>
-                  updateProjectSetup({ targetLanguage })
+                  updateProjectSetup({
+                    targetLanguage,
+                    targetLanguageName: ''
+                  })
                 }
+                onLanguoidSelect={handleTargetLanguageSelect}
                 placeholder="Select target language"
               />
             </div>

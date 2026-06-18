@@ -35,6 +35,8 @@ function UploadProcessModal({
   onOpenChange,
   trigger,
   uploadType = 'project',
+  projectId,
+  questId,
   title,
   subtitle
 }: UploadProcessModalProps) {
@@ -44,7 +46,8 @@ function UploadProcessModal({
     Record<string, boolean>
   >({
     upload: false,
-    validation: false
+    validation: false,
+    processing: false
   });
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [validationProgress, setValidationProgress] =
@@ -57,6 +60,7 @@ function UploadProcessModal({
     React.useState<UploadValidationResult | null>(null);
   const [projectSetup, setProjectSetup] =
     React.useState<UploadProjectSetup | null>(null);
+  const [generatedCsvContent, setGeneratedCsvContent] = React.useState('');
 
   const visibleSteps = React.useMemo(
     () =>
@@ -205,12 +209,14 @@ function UploadProcessModal({
     setSelectedFile(file);
     setValidationResult(null);
     setProjectSetup(null);
+    setGeneratedCsvContent('');
     setValidationProgress({
       isValidating: false,
       percent: 0,
       label: 'Waiting for validation.'
     });
     handleStepValidityChange('validation', false);
+    handleStepValidityChange('processing', false);
 
     if (maxUnlockedStepIndex > 1) {
       setMaxUnlockedStepIndex(1);
@@ -267,12 +273,17 @@ function UploadProcessModal({
               >
                 <StepComponent
                   uploadType={uploadType}
+                  isActive={currentStep.value === step.value}
                   selectedFile={selectedFile}
+                  projectId={projectId}
+                  questId={questId}
                   onSelectedFileChange={handleSelectedFileChange}
                   validationProgress={validationProgress}
                   validationResult={validationResult}
                   projectSetup={projectSetup}
+                  generatedCsvContent={generatedCsvContent}
                   onProjectSetupChange={setProjectSetup}
+                  onGeneratedCsvContentChange={setGeneratedCsvContent}
                   onValidityChange={(isValid) =>
                     handleStepValidityChange(step.value, isValid)
                   }

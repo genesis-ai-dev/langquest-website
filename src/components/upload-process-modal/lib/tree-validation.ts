@@ -7,6 +7,16 @@ type NormalizeContentTreeParams<TNode extends InitialTreeNode> = {
   template: string;
 };
 
+type ValidationSummary = {
+  errors: number;
+  warnings: number;
+};
+
+type NormalizeContentTreeResult<TNode extends InitialTreeNode> = {
+  tree: TNode[];
+  summary: ValidationSummary;
+};
+
 type ValidationSeverity = 'error' | 'warning';
 
 type ValidationContext<TNode extends InitialTreeNode> = {
@@ -43,6 +53,13 @@ function normalizeContentTree<TNode extends InitialTreeNode>({
   tree,
   template
 }: NormalizeContentTreeParams<TNode>): TNode[] {
+  return normalizeContentTreeWithSummary({ tree, template }).tree;
+}
+
+function normalizeContentTreeWithSummary<TNode extends InitialTreeNode>({
+  tree,
+  template
+}: NormalizeContentTreeParams<TNode>): NormalizeContentTreeResult<TNode> {
   const treeWithContent = clearValidationState(recomputeHasContent(tree));
 
   switch (template) {
@@ -98,7 +115,7 @@ function recomputeHasContent<TNode extends InitialTreeNode>(
 
 function normalizeBibleContentTree<TNode extends InitialTreeNode>(
   tree: TNode[]
-): TNode[] {
+): NormalizeContentTreeResult<TNode> {
   const context = createValidationContext(tree);
   const chapterNodes = tree.filter((node) => node.data?.type === 'chapter');
 
@@ -152,7 +169,7 @@ function normalizeBibleContentTree<TNode extends InitialTreeNode>(
 
 function normalizeFiaContentTree<TNode extends InitialTreeNode>(
   tree: TNode[]
-): TNode[] {
+): NormalizeContentTreeResult<TNode> {
   const context = createValidationContext(tree);
   const pericopeNodes = tree.filter((node) => node.data?.type === 'pericope');
 
@@ -243,8 +260,11 @@ function normalizeFiaContentTree<TNode extends InitialTreeNode>(
 
 function normalizeUnstructuredContentTree<TNode extends InitialTreeNode>(
   tree: TNode[]
-): TNode[] {
-  return tree;
+): NormalizeContentTreeResult<TNode> {
+  return {
+    tree,
+    summary: createEmptyValidationSummary()
+  };
 }
 
 function validateAssetLabelsInContainer<TNode extends InitialTreeNode>(
@@ -408,11 +428,20 @@ function markParentFlags<TNode extends InitialTreeNode>(
 
 function applyValidationContext<TNode extends InitialTreeNode>(
   context: ValidationContext<TNode>
-): TNode[] {
-  return context.tree.map((node) => {
+): NormalizeContentTreeResult<TNode> {
+  const summary = createEmptyValidationSummary();
+  const tree = context.tree.map((node) => {
     const issues = context.issuesByNodeId.get(node.id) ?? [];
     const severity = context.severitiesByNodeId.get(node.id);
     const flag = context.flagsByNodeId.get(node.id) ?? null;
+
+    if (issues.length > 0 && severity === 'error') {
+      summary.errors += 1;
+    }
+
+    if (issues.length > 0 && severity === 'warning') {
+      summary.warnings += 1;
+    }
 
     return {
       ...node,
@@ -426,6 +455,18 @@ function applyValidationContext<TNode extends InitialTreeNode>(
         : node.data
     };
   }) as TNode[];
+
+  return {
+    tree,
+    summary
+  };
+}
+
+function createEmptyValidationSummary(): ValidationSummary {
+  return {
+    errors: 0,
+    warnings: 0
+  };
 }
 
 function clearValidationState<TNode extends InitialTreeNode>(
@@ -594,5 +635,13 @@ function toAbsoluteVerse(
   return previousChaptersVerseCount + reference.verse;
 }
 
-export { normalizeContentTree, recomputeHasContent };
-export type { NormalizeContentTreeParams };
+export {
+  normalizeContentTree,
+  normalizeContentTreeWithSummary,
+  recomputeHasContent
+};
+export type {
+  NormalizeContentTreeParams,
+  NormalizeContentTreeResult,
+  ValidationSummary
+};

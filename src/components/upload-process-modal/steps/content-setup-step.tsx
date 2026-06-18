@@ -21,11 +21,18 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Spinner } from '@/components/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card';
 
 import {
   ModalEditAsset,
   type ModalEditAssetValues
 } from '../components/modal-edit-asset';
+import { buildCsvFromProjectTree } from '../lib/csv-data-build';
 import type { CsvDataAsset } from '../lib/csv-data-build';
 import type { UploadProcessStepProps } from '../lib/types';
 import {
@@ -33,7 +40,10 @@ import {
   buildTemplateTree,
   type InitialTreeNodeData
 } from '../lib/tree-build';
-import { normalizeContentTree } from '../lib/tree-validation';
+import {
+  normalizeContentTreeWithSummary,
+  recomputeHasContent
+} from '../lib/tree-validation';
 
 type ContentNodeData = InitialTreeNodeData & {
   locked?: boolean;
@@ -101,7 +111,9 @@ const ROOT_ID = 0;
 function ContentSetupStep({
   uploadType,
   projectSetup,
-  validationResult
+  validationResult,
+  onGeneratedCsvContentChange,
+  onValidityChange
 }: UploadProcessStepProps) {
   const [projectStructure, setProjectStructure] = React.useState<ContentNode[]>(
     []
@@ -119,6 +131,13 @@ function ContentSetupStep({
   >(null);
   const [editingAssetNode, setEditingAssetNode] =
     React.useState<EditingAssetNode | null>(null);
+  const [discardUndefinedItems, setDiscardUndefinedItems] =
+    React.useState(false);
+  const [validationCounts, setValidationCounts] = React.useState({
+    errors: 0,
+    warnings: 0
+  });
+  const template = projectSetup?.template || 'unstructured';
   const selectedProjectNode = React.useMemo(
     () =>
       selectedProjectNodeId
@@ -129,17 +148,59 @@ function ContentSetupStep({
   const canMoveSelectedProjectNode =
     Boolean(selectedProjectNode) &&
     selectedProjectNode?.data?.lockedToDrag !== true;
+  const selectedUndefinedNode = React.useMemo(
+    () =>
+      selectedUndefinedNodeId
+        ? undefinedItems.find((node) => node.id === selectedUndefinedNodeId)
+        : null,
+    [undefinedItems, selectedUndefinedNodeId]
+  );
+  const canMoveToLeft = canMoveUndefinedNodeToProject({
+    movingNode: selectedUndefinedNode,
+    targetNode: selectedProjectNode,
+    template
+  });
+  const canMoveToRight = canMoveProjectNodeToUndefined({
+    movingNode: selectedProjectNode,
+    targetNode: selectedUndefinedNode
+  });
+  const isContentSetupValid =
+    validationCounts.errors === 0 &&
+    (undefinedItems.length === 0 || discardUndefinedItems);
+
+  React.useEffect(() => {
+    onValidityChange?.(isContentSetupValid);
+  }, [isContentSetupValid, onValidityChange]);
+
+  React.useEffect(() => {
+    if (!onGeneratedCsvContentChange) {
+      return;
+    }
+
+    if (projectStructure.length === 0) {
+      onGeneratedCsvContentChange('');
+      return;
+    }
+
+    onGeneratedCsvContentChange(
+      buildCsvFromProjectTree({
+        tree: projectStructure,
+        uploadType,
+        projectSetup
+      })
+    );
+  }, [onGeneratedCsvContentChange, projectSetup, projectStructure, uploadType]);
 
   React.useEffect(() => {
     if (uploadType === 'project' && !projectSetup) {
       setProjectStructure([]);
       setUndefinedItems([]);
+      setValidationCounts(createEmptyValidationCounts());
       setTreeBuildError(null);
       setIsBuildingTree(false);
       return;
     }
 
-    const template = projectSetup?.template || 'unstructured';
     const language = projectSetup?.fiaContentLanguage || null;
     const csvData = validationResult?.csvData;
     let isCancelled = false;
@@ -158,6 +219,7 @@ function ContentSetupStep({
         if (!csvData) {
           setProjectStructure(tree);
           setUndefinedItems([]);
+          setValidationCounts(createEmptyValidationCounts());
           return;
         }
 
@@ -167,13 +229,14 @@ function ContentSetupStep({
           csvData
         });
 
-        setProjectStructure(
-          normalizeContentTree({
-            tree: initialTreeData.projectStructure,
-            template
-          })
-        );
-        setUndefinedItems(initialTreeData.undefinedItems);
+        const normalizedProjectTree = normalizeContentTreeWithSummary({
+          tree: initialTreeData.projectStructure,
+          template
+        });
+
+        setProjectStructure(normalizedProjectTree.tree);
+        setValidationCounts(normalizedProjectTree.summary);
+        setUndefinedItems(recomputeHasContent(initialTreeData.undefinedItems));
       })
       .catch((error) => {
         if (isCancelled) {
@@ -187,6 +250,7 @@ function ContentSetupStep({
 
         setProjectStructure([]);
         setUndefinedItems([]);
+        setValidationCounts(createEmptyValidationCounts());
         setTreeBuildError(message);
       })
       .finally(() => {
@@ -206,70 +270,85 @@ function ContentSetupStep({
   ]);
 
   function handleMoveToLeft() {
-    if (!selectedUndefinedNodeId) {
+    if (!selectedUndefinedNodeId || !canMoveToLeft) {
       return;
     }
 
+    const targetParentId =
+      selectedProjectNode && canReceiveMovedNode(selectedProjectNode)
+        ? selectedProjectNode.id
+        : ROOT_ID;
     const movingNodes = collectNodeBranch(
       undefinedItems,
       selectedUndefinedNodeId
     );
 
     setUndefinedItems((currentItems) =>
-      currentItems.filter(
-        (item) => !movingNodes.some((movingNode) => movingNode.id === item.id)
+      recomputeHasContent(
+        currentItems.filter(
+          (item) => !movingNodes.some((movingNode) => movingNode.id === item.id)
+        )
       )
     );
-    setProjectStructure((currentItems) => [
-      ...currentItems,
-      ...movingNodes.map((node) =>
-        node.id === selectedUndefinedNodeId
-          ? {
-              ...node,
-              parent: ROOT_ID
-            }
-          : node
-      )
-    ]);
+    setProjectStructure((currentItems) =>
+      normalizeProjectStructure({
+        tree: [
+          ...currentItems,
+          ...movingNodes.map((node) =>
+            node.id === selectedUndefinedNodeId
+              ? {
+                  ...node,
+                  parent: targetParentId
+                }
+              : node
+          )
+        ]
+      })
+    );
     setSelectedUndefinedNodeId(null);
   }
 
   function handleMoveToRight() {
-    if (!selectedProjectNodeId) {
+    if (!selectedProjectNodeId || !canMoveToRight) {
       return;
     }
 
+    const targetParentId =
+      selectedUndefinedNode && canReceiveMovedNode(selectedUndefinedNode)
+        ? selectedUndefinedNode.id
+        : ROOT_ID;
     const movingNodes = collectNodeBranch(
       projectStructure,
       selectedProjectNodeId
     );
 
     setProjectStructure((currentItems) =>
-      currentItems.filter(
-        (item) => !movingNodes.some((movingNode) => movingNode.id === item.id)
-      )
+      normalizeProjectStructure({
+        tree: currentItems.filter(
+          (item) => !movingNodes.some((movingNode) => movingNode.id === item.id)
+        )
+      })
     );
-    setUndefinedItems((currentItems) => [
-      ...currentItems,
-      ...movingNodes.map((node) =>
-        node.id === selectedProjectNodeId
-          ? {
-              ...node,
-              parent: ROOT_ID
-            }
-          : node
-      )
-    ]);
+    setUndefinedItems((currentItems) =>
+      recomputeHasContent([
+        ...currentItems,
+        ...movingNodes.map((node) => {
+          const cleanNode = clearTreeNodeValidation(node);
+
+          return cleanNode.id === selectedProjectNodeId
+            ? {
+                ...cleanNode,
+                parent: targetParentId
+              }
+            : cleanNode;
+        })
+      ])
+    );
     setSelectedProjectNodeId(null);
   }
 
   function handleProjectStructureDrop(tree: ContentNode[]) {
-    setProjectStructure(
-      normalizeContentTree({
-        tree,
-        template: projectSetup?.template || 'unstructured'
-      })
-    );
+    setProjectStructure(normalizeProjectStructure({ tree }));
   }
 
   function handleOpenAssetEdit(
@@ -294,18 +373,34 @@ function ContentSetupStep({
 
     if (editingAssetNode.source === 'project') {
       setProjectStructure((currentTree) =>
-        normalizeContentTree({
-          tree: updateAssetNode(currentTree, editingAssetNode.nodeId, values),
-          template: projectSetup?.template || 'unstructured'
+        normalizeProjectStructure({
+          tree: updateAssetNode(currentTree, editingAssetNode.nodeId, values)
         })
       );
     } else {
       setUndefinedItems((currentTree) =>
-        updateAssetNode(currentTree, editingAssetNode.nodeId, values)
+        recomputeHasContent(
+          updateAssetNode(currentTree, editingAssetNode.nodeId, values)
+        )
       );
     }
 
     setEditingAssetNode(null);
+  }
+
+  function normalizeProjectStructure({
+    tree
+  }: {
+    tree: ContentNode[];
+  }): ContentNode[] {
+    const normalizedTree = normalizeContentTreeWithSummary({
+      tree,
+      template
+    });
+
+    setValidationCounts(normalizedTree.summary);
+
+    return normalizedTree.tree;
   }
 
   return (
@@ -314,9 +409,13 @@ function ContentSetupStep({
         <div className="shrink-0 space-y-2">
           <h3 className="text-xl font-semibold">Content Setup</h3>
           <p className="text-sm text-muted-foreground">
-            Organize the validated {uploadType} content before processing. Drag
+            {/* Organize the validated {uploadType} content before processing. Drag
             items inside each tree or use the buttons to move selected items
-            between lists.
+            between lists. */}
+            Review how the uploaded assets were matched to the selected project
+            template. Move items between Project Structure and Undefined Items,
+            place assets into the correct folders, and edit labels when needed.
+            Fix all errors before continuing.
           </p>
         </div>
 
@@ -338,7 +437,7 @@ function ContentSetupStep({
               variant="outline"
               size="sm"
               onClick={handleMoveToLeft}
-              disabled={!selectedUndefinedNodeId}
+              disabled={!canMoveToLeft}
             >
               <MoveLeft className="h-4 w-4" />
             </Button>
@@ -347,7 +446,7 @@ function ContentSetupStep({
               variant="outline"
               size="sm"
               onClick={handleMoveToRight}
-              disabled={!canMoveSelectedProjectNode}
+              disabled={!canMoveToRight}
             >
               <MoveRight className="h-4 w-4" />
             </Button>
@@ -358,9 +457,31 @@ function ContentSetupStep({
             tree={undefinedItems}
             selectedNodeId={selectedUndefinedNodeId}
             onSelectNode={setSelectedUndefinedNodeId}
-            onDrop={setUndefinedItems}
+            onDrop={recomputeHasContent}
             onEditAsset={(node) => handleOpenAssetEdit('undefined', node)}
+            headerAction={
+              <label className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                Discard Items
+                <Checkbox
+                  checked={discardUndefinedItems}
+                  onCheckedChange={(checked) =>
+                    setDiscardUndefinedItems(checked === true)
+                  }
+                />
+              </label>
+            }
           />
+        </div>
+
+        <div className="flex shrink-0 items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <CircleX className="h-4 w-4 text-destructive" />
+            {validationCounts.errors} Errors
+          </span>
+          <span className="flex items-center gap-1.5">
+            <TriangleAlert className="h-4 w-4 text-yellow-500" />
+            {validationCounts.warnings} Warnings
+          </span>
         </div>
 
         <ModalEditAsset
@@ -386,25 +507,34 @@ function TreePanel({
   selectedNodeId,
   onSelectNode,
   onDrop,
-  onEditAsset
+  onEditAsset,
+  headerAction
 }: {
   title: string;
   tree: ContentNode[];
   isLoading?: boolean;
   error?: string | null;
   selectedNodeId: ContentNode['id'] | null;
-  onSelectNode: (nodeId: ContentNode['id']) => void;
+  onSelectNode: (nodeId: ContentNode['id'] | null) => void;
   onDrop: (tree: ContentNode[], options: DropOptions<ContentNodeData>) => void;
   onEditAsset?: (node: ContentNode) => void;
+  headerAction?: React.ReactNode;
 }) {
   const treeNodeIds = React.useMemo(
     () => new Set(tree.map((node) => node.id)),
     [tree]
   );
 
+  function handleSelectNode(nodeId: ContentNode['id']) {
+    onSelectNode(selectedNodeId === nodeId ? null : nodeId);
+  }
+
   return (
     <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
-      <h4 className="shrink-0 text-sm font-medium">{title}</h4>
+      <div className="flex shrink-0 items-center justify-between gap-3">
+        <h4 className="text-sm font-medium">{title}</h4>
+        {headerAction}
+      </div>
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card p-2">
         {isLoading ? (
           <div className="flex h-full items-center justify-center rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
@@ -449,7 +579,7 @@ function TreePanel({
                   node={node}
                   depth={depth}
                   isSelected={selectedNodeId === node.id}
-                  onSelect={() => onSelectNode(node.id)}
+                  onSelect={() => handleSelectNode(node.id)}
                   onEdit={() => onEditAsset?.(node)}
                 />
               ) : (
@@ -459,7 +589,7 @@ function TreePanel({
                   isOpen={isOpen}
                   isSelected={selectedNodeId === node.id}
                   onToggle={onToggle}
-                  onSelect={() => onSelectNode(node.id)}
+                  onSelect={() => handleSelectNode(node.id)}
                 />
               )
             }
@@ -494,6 +624,14 @@ function TreeNode({
   onToggle: () => void;
   onSelect: () => void;
 }) {
+  const validationFlag = node.data?.flag;
+  const validationMessage =
+    validationFlag === 'error'
+      ? 'There are errors in this container.'
+      : validationFlag === 'warning'
+        ? 'There are warnings in this container.'
+        : undefined;
+
   return (
     <div
       className={getTreeRowClassName(isSelected, node.data?.hasContent)}
@@ -521,7 +659,10 @@ function TreeNode({
       <Folder className="h-4 w-4 shrink-0" />
       <span className="truncate">{node.text}</span>
       <div className="ml-auto flex shrink-0 items-center">
-        <TreeNodeFlagIcon flag={node.data?.flag} />
+        <TreeValidationFlagHover
+          flag={validationFlag}
+          message={validationMessage}
+        />
       </div>
     </div>
   );
@@ -549,13 +690,14 @@ function TreeLeaf({
       : null;
   const badgeVariant =
     node.data?.validationStatus === 'error' ? 'destructive' : 'secondary';
+  const validationMessage = node.data?.validationMessage;
 
   return (
     <div
       className={getTreeRowClassName(isSelected, node.data?.hasContent)}
       style={{ paddingLeft: depth * 18 + 8 }}
       onClick={onSelect}
-      title={node.data?.validationMessage}
+      // title={node.data?.validationMessage}
     >
       <span className="w-5" />
       <FileText className="h-4 w-4 shrink-0" />
@@ -579,9 +721,59 @@ function TreeLeaf({
             <span className="sr-only">Edit asset</span>
           </button>
         ) : null}
-        <TreeNodeFlagIcon flag={validationFlag} />
+        <TreeValidationFlagHover
+          flag={validationFlag}
+          message={validationMessage}
+        />
       </div>
     </div>
+  );
+}
+
+function TreeValidationFlagHover({
+  flag,
+  message
+}: {
+  flag?: null | 'warning' | 'error';
+  message?: string;
+}) {
+  if (!flag) {
+    return null;
+  }
+
+  if (!message) {
+    return <TreeNodeFlagIcon flag={flag} />;
+  }
+
+  const isError = flag === 'error';
+
+  return (
+    <HoverCard openDelay={150} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <span
+          className="inline-flex"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <TreeNodeFlagIcon flag={flag} />
+        </span>
+      </HoverCardTrigger>
+      <HoverCardContent
+        side="top"
+        align="end"
+        className={`w-72 ${
+          isError
+            ? 'border-destructive bg-destructive text-destructive'
+            : 'border-yellow-600 bg-yellow-600 text-white'
+        }`}
+      >
+        <div className="space-y-1">
+          {/* <p className="text-sm font-semibold text-white">
+            {isError ? 'Validation error' : 'Validation warning'}
+          </p> */}
+          <p className="text-sm leading-snug text-white">{message}</p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -632,6 +824,76 @@ function updateAssetNode(
       }
     };
   });
+}
+
+function createEmptyValidationCounts() {
+  return {
+    errors: 0,
+    warnings: 0
+  };
+}
+
+function clearTreeNodeValidation(node: ContentNode): ContentNode {
+  if (!node.data) {
+    return node;
+  }
+
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      validationStatus: undefined,
+      validationMessage: undefined,
+      flag: null
+    }
+  };
+}
+
+function canMoveUndefinedNodeToProject({
+  movingNode,
+  targetNode,
+  template
+}: {
+  movingNode?: ContentNode | null;
+  targetNode?: ContentNode | null;
+  template: string;
+}) {
+  if (!movingNode) {
+    return false;
+  }
+
+  const isMovingAsset = movingNode.data?.type === 'asset';
+  const isMovingFolder = Boolean(movingNode.droppable);
+
+  if (isMovingAsset) {
+    return canReceiveMovedNode(targetNode);
+  }
+
+  if (!isMovingFolder || template !== 'unstructured') {
+    return false;
+  }
+
+  return !targetNode || canReceiveMovedNode(targetNode);
+}
+
+function canMoveProjectNodeToUndefined({
+  movingNode,
+  targetNode
+}: {
+  movingNode?: ContentNode | null;
+  targetNode?: ContentNode | null;
+}) {
+  if (!movingNode || movingNode.data?.lockedToDrag) {
+    return false;
+  }
+
+  return !targetNode || canReceiveMovedNode(targetNode);
+}
+
+function canReceiveMovedNode(node?: ContentNode | null) {
+  return Boolean(
+    node && node.droppable && !node.data?.locked && !node.data?.lockedToDrop
+  );
 }
 
 function collectNodeBranch(tree: ContentNode[], nodeId: ContentNode['id']) {
