@@ -17,21 +17,25 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { BulkUpload } from '@/components/new-bulk-upload';
 import { QuestForm } from '@/components/new-quest-form';
+import { UploadProcessModal } from '@/components/upload-process-modal';
 
 interface QuestMenuPlusProps {
   canManage: boolean;
   projectId: string;
+  projectTemplate?: string;
   onQuestSuccess?: () => void;
   allowAddQuest?: boolean;
+  allowBulkQuestUpload?: boolean;
 }
 
 export function QuestMenuPlus({
   canManage,
   projectId,
+  projectTemplate,
   onQuestSuccess,
-  allowAddQuest = true
+  allowAddQuest = true,
+  allowBulkQuestUpload = true
 }: QuestMenuPlusProps) {
   const [showBulkQuestUpload, setShowBulkQuestUpload] = useState(false);
   const [showQuestForm, setShowQuestForm] = useState(false);
@@ -41,7 +45,7 @@ export function QuestMenuPlus({
     onQuestSuccess?.();
   };
 
-  if (!canManage || !allowAddQuest) {
+  if (!canManage || (!allowAddQuest && !allowBulkQuestUpload)) {
     return null;
   }
 
@@ -59,14 +63,18 @@ export function QuestMenuPlus({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem onSelect={() => setShowQuestForm(true)}>
-            <FolderPlus className="h-4 w-4" />
-            Add Quest
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setShowBulkQuestUpload(true)}>
-            <Upload className="h-4 w-4" />
-            Bulk Upload Quests
-          </DropdownMenuItem>
+          {allowAddQuest && (
+            <DropdownMenuItem onSelect={() => setShowQuestForm(true)}>
+              <FolderPlus className="h-4 w-4" />
+              Add Quest
+            </DropdownMenuItem>
+          )}
+          {allowBulkQuestUpload && (
+            <DropdownMenuItem onSelect={() => setShowBulkQuestUpload(true)}>
+              <Upload className="h-4 w-4" />
+              Bulk Upload Quests
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -86,28 +94,19 @@ export function QuestMenuPlus({
         </DialogContent>
       </Dialog>
 
-      <Dialog
+      <UploadProcessModal
         open={showBulkQuestUpload}
-        onOpenChange={(open) => setShowBulkQuestUpload(open)}
-      >
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Upload Quests to Project</DialogTitle>
-            <DialogDescription>
-              Add multiple quests with their assets.
-            </DialogDescription>
-          </DialogHeader>
-          <BulkUpload
-            mode="quest"
-            projectId={projectId || undefined}
-            onSuccess={() => {
-              setShowBulkQuestUpload(false);
-              toast.success('Quests uploaded successfully');
-              handleQuestSuccess();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+        uploadType="quest"
+        projectId={projectId || undefined}
+        projectTemplate={projectTemplate}
+        onOpenChange={setShowBulkQuestUpload}
+        onSuccess={() => {
+          toast.success('Quests uploaded successfully');
+          handleQuestSuccess();
+        }}
+        title="Upload Quests to Project"
+        subtitle="Follow each step to add multiple quests with their assets."
+      />
     </>
   );
 }

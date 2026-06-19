@@ -50,6 +50,7 @@ export interface TemplateBehavior {
   showRightMenuActions: boolean;
   allowDisabledQuests: boolean;
   allowAddQuest: boolean;
+  allowBulkQuestUpload?: boolean;
   allowAddAssets: boolean;
   allowNewVersion: boolean;
   allowLabel: boolean;

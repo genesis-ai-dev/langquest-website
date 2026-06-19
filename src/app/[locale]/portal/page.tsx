@@ -43,6 +43,7 @@ import { BulkUpload } from '@/components/new-bulk-upload';
 
 import { Link } from '@/i18n/navigation';
 import { PortalHeader } from '@/components/portal-header';
+import { UploadProcessModal } from '@/components/upload-process-modal';
 
 export default function AdminPage() {
   return (
@@ -116,6 +117,7 @@ function AdminContent() {
     showAssetForm: false,
     showBulkAssetUpload: false,
     showProjectUpload: false,
+    showNewProjectUpload: false,
     showQuestUpload: false,
     projectToClone: null as string | null
   });
@@ -356,12 +358,24 @@ function AdminContent() {
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Create Project
                 </Button>
-                <Button
+                {/* <Button
                   variant="outline"
                   onClick={() =>
                     setPageState((prevState) => ({
                       ...prevState,
                       showProjectUpload: true
+                    }))
+                  }
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Project
+                </Button> */}
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setPageState((prevState) => ({
+                      ...prevState,
+                      showNewProjectUpload: true
                     }))
                   }
                 >
@@ -642,6 +656,23 @@ function AdminContent() {
             />
           </DialogContent>
         </Dialog>
+
+        <UploadProcessModal
+          open={pageState.showNewProjectUpload}
+          uploadType="project"
+          onOpenChange={(open) =>
+            setPageState((prevState) => ({
+              ...prevState,
+              showNewProjectUpload: open
+            }))
+          }
+          onSuccess={() => {
+            refetchProjects();
+            toast.success('Project uploaded successfully');
+          }}
+          title="New Upload Project"
+          subtitle="Follow the new upload flow to create a project from your files."
+        />
       </div>
     </div>
   );
