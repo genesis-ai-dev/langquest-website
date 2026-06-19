@@ -35,6 +35,29 @@ type ProcessingState = {
   error?: string;
 };
 
+function normalizeQuestMetadata(
+  metadata: unknown
+): Record<string, unknown> | null {
+  if (!metadata) {
+    return null;
+  }
+
+  if (typeof metadata === 'string') {
+    try {
+      const parsedMetadata = JSON.parse(metadata);
+      return normalizeQuestMetadata(parsedMetadata);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof metadata === 'object' && !Array.isArray(metadata)) {
+    return metadata as Record<string, unknown>;
+  }
+
+  return null;
+}
+
 function ProcessingStep({
   uploadType,
   isActive,
@@ -42,11 +65,16 @@ function ProcessingStep({
   generatedCsvContent,
   projectId,
   questId,
+  selectedQuest,
   projectSetup,
   onProcessingResultChange,
   onValidityChange
 }: UploadProcessStepProps) {
   const supabase = React.useMemo(() => createBrowserClient(), []);
+  const selectedQuestMetadata = React.useMemo(
+    () => normalizeQuestMetadata(selectedQuest?.metadata),
+    [selectedQuest?.metadata]
+  );
   const [retryCount, setRetryCount] = React.useState(0);
   const [processingState, setProcessingState] =
     React.useState<ProcessingState>({
@@ -66,6 +94,7 @@ function ProcessingStep({
         generatedCsvContent?.length ?? 0,
         projectId ?? '',
         questId ?? '',
+        selectedQuestMetadata ? JSON.stringify(selectedQuestMetadata) : '',
         projectSetup?.fiaContentLanguage ?? '',
         retryCount
       ].join(':'),
@@ -77,6 +106,7 @@ function ProcessingStep({
       retryCount,
       selectedFile?.name,
       selectedFile?.size,
+      selectedQuestMetadata,
       uploadType
     ]
   );
@@ -120,7 +150,6 @@ function ProcessingStep({
     }
 
     let isCancelled = false;
-    let startTimer: ReturnType<typeof setTimeout> | undefined;
     let processingInterval: ReturnType<typeof setInterval> | undefined;
     const fileToProcess = selectedFile;
     const csvToProcess = generatedCsvContent;
@@ -197,6 +226,8 @@ function ProcessingStep({
           csvContent: csvToProcess,
           projectId,
           questId,
+          questMetadata:
+            uploadType === 'asset' ? selectedQuestMetadata : undefined,
           fiaContentLanguoidId:
             uploadType === 'project' && projectSetup?.template === 'fia'
               ? projectSetup.fiaContentLanguage
@@ -241,7 +272,7 @@ function ProcessingStep({
       }
     }
 
-    startTimer = setTimeout(() => {
+    const startTimer = setTimeout(() => {
       runProcess();
     }, 0);
 
@@ -265,8 +296,11 @@ function ProcessingStep({
     onProcessingResultChange,
     processKey,
     projectId,
+    projectSetup?.fiaContentLanguage,
+    projectSetup?.template,
     questId,
     selectedFile,
+    selectedQuestMetadata,
     supabase,
     uploadType
   ]);

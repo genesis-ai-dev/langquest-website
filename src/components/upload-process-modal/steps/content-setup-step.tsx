@@ -65,6 +65,29 @@ type EditingAssetNode = {
 const ROOT_ID = 0;
 const EMPTY_EXISTING_QUEST_ASSETS: AssetSummary[] = [];
 
+function normalizeQuestMetadata(
+  metadata: unknown
+): Record<string, unknown> | null {
+  if (!metadata) {
+    return null;
+  }
+
+  if (typeof metadata === 'string') {
+    try {
+      const parsedMetadata = JSON.parse(metadata);
+      return normalizeQuestMetadata(parsedMetadata);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof metadata === 'object' && !Array.isArray(metadata)) {
+    return metadata as Record<string, unknown>;
+  }
+
+  return null;
+}
+
 async function fetchProjectSourceLanguageId(
   projectId: string,
   supabase: ReturnType<typeof createBrowserClient>
@@ -226,7 +249,9 @@ function getExistingFiaAssetLabel(
 }
 
 function parseFiaVerseRange(label: string) {
-  const match = label.trim().match(/^(\d+):(\d+)(?:\s*-\s*(\d+):(\d+))?$/);
+  const match = label
+    .trim()
+    .match(/^(\d+):(\d+)(?:\s*-\s*(?:(\d+):)?(\d+))?$/);
 
   if (!match) {
     return null;
@@ -362,6 +387,10 @@ function ContentSetupStep({
   });
   const template = projectSetup?.template || projectTemplate || 'unstructured';
   const isAssetUpload = uploadType === 'asset';
+  const selectedQuestMetadata = React.useMemo(
+    () => normalizeQuestMetadata(selectedQuest?.metadata),
+    [selectedQuest?.metadata]
+  );
   const questAssetsTitle = selectedQuest?.name
     ? `Quest Assets: ${selectedQuest.name}`
     : 'Quest Assets';
@@ -432,13 +461,13 @@ function ContentSetupStep({
       const assetTree = buildAssetUploadTree({
         csvAssets: csvData?.assets ?? [],
         existingAssets: stableExistingQuestAssets,
-        selectedQuestMetadata: selectedQuest?.metadata ?? null,
+        selectedQuestMetadata,
         template
       });
       const normalizedAssetTree = normalizeAssetUploadContentTreeWithSummary({
         tree: assetTree,
         template,
-        selectedQuestMetadata: selectedQuest?.metadata ?? null
+        selectedQuestMetadata
       });
 
       setProjectStructure(normalizedAssetTree.tree);
@@ -523,7 +552,7 @@ function ContentSetupStep({
     projectFiaContentLanguage,
     projectId,
     projectSetup,
-    selectedQuest?.metadata,
+    selectedQuestMetadata,
     stableExistingQuestAssets,
     supabase,
     template,
@@ -660,7 +689,7 @@ function ContentSetupStep({
         ? normalizeAssetUploadContentTreeWithSummary({
             tree: sortAssetUploadTree(tree),
             template,
-            selectedQuestMetadata: selectedQuest?.metadata ?? null
+            selectedQuestMetadata
           })
         : normalizeContentTreeWithSummary({
             tree,

@@ -34,7 +34,8 @@ type UploadContext = {
   template: ProjectTemplate;
   fileMap: UploadedFileMap;
   languageCache: Map<string, string | null>;
-  assetOrderSequence: number;
+  assetOrderSequencesByQuestVerse: Map<string, number>;
+  questMetadata?: Record<string, unknown> | null;
   stats: UploadStats;
 };
 
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
     const projectId = getStringValue(body.projectId);
     const questId = getStringValue(body.questId);
     const fiaContentLanguoidId = getStringValue(body.fiaContentLanguoidId);
+    const questMetadata = getRecordValue(body.questMetadata);
 
     if (!uploadType) {
       return NextResponse.json(
@@ -280,7 +282,8 @@ export async function POST(request: NextRequest) {
       template,
       fileMap,
       languageCache: new Map(),
-      assetOrderSequence: 0,
+      assetOrderSequencesByQuestVerse: new Map(),
+      questMetadata,
       stats
     };
 
@@ -312,6 +315,12 @@ function getUploadType(value: unknown): UploadType | null {
 
 function getStringValue(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function getRecordValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function normalizeCsvRow(row: CsvUploadRow): CsvUploadRow {
@@ -556,10 +565,9 @@ async function processUploadRows(context: UploadContext, rows: CsvUploadRow[]) {
 
   if (context.uploadType === 'asset') {
     const quest = await loadQuestById(context.supabase, context.questId!);
-    context.assetOrderSequence = await countExistingQuestAssets(
-      context.supabase,
-      context.questId!
-    );
+    const questMetadata =
+      parseJsonObject(quest.metadata) ?? context.questMetadata ?? undefined;
+    await seedExistingAssetOrderSequencesByVerse(context, context.questId!);
 
     await createAssetsForRows(
       context,
@@ -568,7 +576,7 @@ async function processUploadRows(context: UploadContext, rows: CsvUploadRow[]) {
         rowNumber: index + 2,
         questId: context.questId!,
         projectId: context.projectId!,
-        questMetadata: parseJsonObject(quest.metadata) ?? undefined
+        questMetadata
       }))
     );
     return;
@@ -774,10 +782,9 @@ async function createAssetsForRows(
         row.asset_label,
         target.questMetadata
       );
-      context.assetOrderSequence += 1;
       const assetOrderIndex = getAssetOrderIndex(
         assetMetadata,
-        context.assetOrderSequence
+        getNextAssetOrderSequence(context, questId, assetMetadata)
       );
       const assetPayload = {
         name: row.asset_name,
@@ -999,22 +1006,6 @@ async function loadQuestById(supabase: SupabaseClient, questId: string) {
   return data as QuestRecord;
 }
 
-async function countExistingQuestAssets(
-  supabase: SupabaseClient,
-  questId: string
-) {
-  const { count, error } = await supabase
-    .from('quest_asset_link')
-    .select('asset_id', { count: 'exact', head: true })
-    .eq('quest_id', questId);
-
-  if (error) {
-    throw new Error(`Failed to count existing quest assets: ${error.message}`);
-  }
-
-  return count ?? 0;
-}
-
 function findExistingQuestByName(
   quests: QuestRecord[],
   name: string,
@@ -1045,7 +1036,17 @@ function findExistingTemplateBookQuest(
 }
 
 function resolveTemplateQuest(template: ProjectTemplate, row: CsvUploadRow) {
-  const book = resolveBook(row.parent_quest_name || row.quest_name, template);
+  const fiaQuestName =
+    template === 'fia' ? parseFiaQuestName(row.quest_name) : null;
+  const book =
+    template === 'fia'
+      ? resolveBook(
+          getFiaBookIdFromPericopeId(fiaQuestName?.pericopeId) ||
+            row.parent_quest_name ||
+            row.quest_name,
+          template
+        )
+      : resolveBook(row.parent_quest_name || row.quest_name, template);
   if (!book) {
     return null;
   }
@@ -1071,7 +1072,6 @@ function resolveTemplateQuest(template: ProjectTemplate, row: CsvUploadRow) {
     };
   }
 
-  const fiaQuestName = parseFiaQuestName(row.quest_name);
   const verseRange = fiaQuestName?.verseRange ?? null;
   if (!verseRange) {
     return null;
@@ -1113,13 +1113,112 @@ function getAssetOrderIndex(
   assetMetadata: Record<string, unknown> | null,
   sequence: number
 ) {
-  const verseFrom = (assetMetadata as { verse?: { from?: number } } | null)
-    ?.verse?.from;
+  const verseFrom = getAssetVerseFrom(assetMetadata);
   const verseBase =
     typeof verseFrom === 'number' ? Math.floor(verseFrom) : 999;
   const normalizedSequence = Number.isFinite(sequence) ? sequence : 0;
 
   return verseBase * 1000 * 1000 + normalizedSequence * 1000;
+}
+
+async function seedExistingAssetOrderSequencesByVerse(
+  context: UploadContext,
+  questId: string
+) {
+  const { data, error } = await context.supabase
+    .from('quest_asset_link')
+    .select(
+      `
+      asset:asset_id (
+        order_index,
+        active
+      )
+    `
+    )
+    .eq('quest_id', questId)
+    .is('asset.source_asset_id', null);
+
+  if (error) {
+    throw new Error(
+      `Failed to load existing asset order indexes: ${error.message}`
+    );
+  }
+
+  (data || []).forEach((item: any) => {
+    const value = item?.asset;
+    const asset = Array.isArray(value) ? value[0] : value;
+    const orderIndex = asset?.order_index;
+
+    if (!asset?.active || typeof orderIndex !== 'number') {
+      return;
+    }
+
+    const { verseBase, sequence } = parseAssetOrderIndex(orderIndex);
+    const sequenceKey = getAssetOrderSequenceKeyFromVerse(
+      questId,
+      verseBase === 999 ? null : verseBase
+    );
+    const currentSequence =
+      context.assetOrderSequencesByQuestVerse.get(sequenceKey) ?? 0;
+
+    if (sequence > currentSequence) {
+      context.assetOrderSequencesByQuestVerse.set(sequenceKey, sequence);
+    }
+  });
+}
+
+function getNextAssetOrderSequence(
+  context: UploadContext,
+  questId: string,
+  assetMetadata: Record<string, unknown> | null
+) {
+  const sequenceKey = getAssetOrderSequenceKey(questId, assetMetadata);
+  const nextSequence =
+    (context.assetOrderSequencesByQuestVerse.get(sequenceKey) ?? 0) + 1;
+  context.assetOrderSequencesByQuestVerse.set(sequenceKey, nextSequence);
+
+  return nextSequence;
+}
+
+function getAssetOrderSequenceKey(
+  questId: string,
+  assetMetadata: Record<string, unknown> | null
+) {
+  const verseFrom = getAssetVerseFrom(assetMetadata);
+  const verseKey =
+    typeof verseFrom === 'number' && Number.isFinite(verseFrom)
+      ? Math.floor(verseFrom).toString()
+      : 'unlabeled';
+
+  return `${questId}:${verseKey}`;
+}
+
+function getAssetOrderSequenceKeyFromVerse(
+  questId: string,
+  verseFrom: number | null
+) {
+  const verseKey =
+    typeof verseFrom === 'number' && Number.isFinite(verseFrom)
+      ? Math.floor(verseFrom).toString()
+      : 'unlabeled';
+
+  return `${questId}:${verseKey}`;
+}
+
+function parseAssetOrderIndex(orderIndex: number) {
+  const verseBase = Math.floor(orderIndex / 1000 / 1000);
+  const sequence = Math.floor((orderIndex % (1000 * 1000)) / 1000);
+
+  return { verseBase, sequence };
+}
+
+function getAssetVerseFrom(assetMetadata: Record<string, unknown> | null) {
+  const verseFrom = (assetMetadata as { verse?: { from?: number } } | null)
+    ?.verse?.from;
+
+  return typeof verseFrom === 'number' && Number.isFinite(verseFrom)
+    ? verseFrom
+    : null;
 }
 
 function parseBibleAssetLabel(label: string) {
@@ -1225,9 +1324,16 @@ function resolveBook(bookName: string, template: ProjectTemplate) {
   const normalizedBookName = normalizeName(bookName);
 
   return books.find(
-    (book) =>
-      normalizeName(book.name) === normalizedBookName ||
-      normalizedBookName.startsWith(`${normalizeName(book.name)} `)
+    (book) => {
+      const imgId = (book as { imgId?: string }).imgId;
+
+      return (
+        normalizeName(book.id) === normalizedBookName ||
+        (imgId ? normalizeName(imgId) === normalizedBookName : false) ||
+        normalizeName(book.name) === normalizedBookName ||
+        normalizedBookName.startsWith(`${normalizeName(book.name)} `)
+      );
+    }
   );
 }
 
@@ -1250,6 +1356,10 @@ function parseFiaQuestName(questName: string) {
     pericopeId: pericopeIdPart || '',
     verseRange
   };
+}
+
+function getFiaBookIdFromPericopeId(pericopeId?: string) {
+  return pericopeId?.split('-')[0]?.trim() || null;
 }
 
 function parseTrailingNumber(value: string) {

@@ -31,6 +31,7 @@ type StartUploadProcessParams = {
   projectId?: string;
   questId?: string;
   fiaContentLanguoidId?: string;
+  questMetadata?: Record<string, unknown> | null;
 };
 
 async function uploadZipFileWithProgress({
@@ -72,7 +73,8 @@ async function startUploadProcess({
   csvContent,
   projectId,
   questId,
-  fiaContentLanguoidId
+  fiaContentLanguoidId,
+  questMetadata
 }: StartUploadProcessParams): Promise<UploadProcessResponse> {
   const response = await fetch('/api/uploadprocess', {
     method: 'POST',
@@ -86,7 +88,8 @@ async function startUploadProcess({
       csvContent,
       projectId,
       questId,
-      fiaContentLanguoidId
+      fiaContentLanguoidId,
+      questMetadata
     })
   });
 

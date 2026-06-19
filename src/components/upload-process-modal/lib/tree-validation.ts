@@ -818,7 +818,7 @@ function parseBibleVerseRange(label: string): BibleVerseRange | null {
 function parseFiaVerseRange(label: string): FiaVerseRange | null {
   const match = label
     .trim()
-    .match(/^(\d+):(\d+)(?:\s*-\s*(\d+):(\d+))?$/);
+    .match(/^(\d+):(\d+)(?:\s*-\s*(?:(\d+):)?(\d+))?$/);
 
   if (!match) {
     return null;
