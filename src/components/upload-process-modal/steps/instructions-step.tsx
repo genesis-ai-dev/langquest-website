@@ -33,27 +33,43 @@ const formattingRules = [
   "If a quest's Parent Name cannot be matched to an existing quest, the quest will be created at the root level of the project."
 ];
 
-const fileRules = [
-  {
-    title: 'File limits',
-    description: (
-      <>
-        The ZIP file size must not exceed <strong>50 MB</strong>.
-      </>
-    )
-  },
-  {
-    title: 'Supported file types',
-    description: (
-      <>
-        Supported audio formats are <strong>mp3</strong>, <strong>m4a</strong>,{' '}
-        <strong>wav</strong>, and <strong>ogg</strong>. Supported image formats
-        are <strong>jpg</strong>, <strong>jpeg</strong>, <strong>png</strong>,
-        and <strong>webp</strong>.
-      </>
-    )
-  }
+const generalInformation = [
+  'Use the appropriate template for each import type: Project, Quest, or Asset.',
+  'For FIA template project imports, the FIA Content Language must be selected during the Project Setup step.',
+  'Project imports support only one project per file. Each import will always create a new project.',
+  'For Quest imports, quests in Unstructured projects are matched based on the combination of Quest Name and Parent Quest Name. In Bible and FIA template projects, quests are matched using the Book Name and Chapter/Pericope. The system will create a new quest version for each import. Any unmatched quests will be separated for manual assignment during the import process.',
+  'For Asset imports, assets will be added to the selected quest. To import assets into a new quest version, the quest must be created first.',
+  'The project_name, quest_name, and asset_name fields are required.',
+  'At least one asset content field must be provided: source_content, source_image, or source_audio.',
+  'The label field is used in Bible and FIA template projects to identify Bible verses. For Bible projects, use only a verse number or verse range (e.g., 1 or 1-3). For FIA projects, use a chapter and verse reference or range (e.g., 1:1 or 1:1-2:3). Overlapping verse ranges are not allowed. This field is optional.'
 ];
+
+const fileLimits = [
+  'The ZIP file size must not exceed 50 MB.',
+  'Supported audio formats are mp3, m4a, wav, and ogg. Supported image formats are jpg, jpeg, png, and webp.'
+];
+
+// const fileRules = [
+//   {
+//     title: 'File limits',
+//     description: (
+//       <>
+//         The ZIP file size must not exceed <strong>50 MB</strong>.
+//       </>
+//     )
+//   },
+//   {
+//     title: 'Supported file types',
+//     description: (
+//       <>
+//         Supported audio formats are <strong>mp3</strong>, <strong>m4a</strong>,{' '}
+//         <strong>wav</strong>, and <strong>ogg</strong>. Supported image formats
+//         are <strong>jpg</strong>, <strong>jpeg</strong>, <strong>png</strong>,
+//         and <strong>webp</strong>.
+//       </>
+//     )
+//   }
+// ];
 
 function InstructionsStep({ uploadType }: UploadProcessStepProps) {
   function downloadTemplate() {
@@ -107,16 +123,16 @@ function InstructionsStep({ uploadType }: UploadProcessStepProps) {
           <CardHeader className="shrink-0 pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Tags className="h-4 w-4" />
-              CSV Rules
+              Guidelines
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Follow these rules to avoid validation errors during import.
+              Follow these rules to avoid validation and import errors.
             </p>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-4">
               <div className="space-y-5 text-sm">
-                <div>
+                {/* <div>
                   <ul className="space-y-3">
                     {fileRules.map((rule) => (
                       <li key={rule.title} className="flex gap-3">
@@ -130,6 +146,18 @@ function InstructionsStep({ uploadType }: UploadProcessStepProps) {
                       </li>
                     ))}
                   </ul>
+                </div> */}
+
+                <div>
+                  <p className="mb-3 font-medium">File Limits</p>
+                  <ul className="space-y-3">
+                    {fileLimits.map((rule) => (
+                      <li key={rule} className="flex gap-3">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span className="text-muted-foreground">{rule}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <div>
@@ -139,6 +167,17 @@ function InstructionsStep({ uploadType }: UploadProcessStepProps) {
                       <li key={rule} className="flex gap-3">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <span className="text-muted-foreground">{rule}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-3 font-medium">General Information</p>
+                  <ul className="space-y-3">
+                    {generalInformation.map((info) => (
+                      <li key={info} className="flex gap-3">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span className="text-muted-foreground">{info}</span>
                       </li>
                     ))}
                   </ul>
