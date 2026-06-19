@@ -42,6 +42,7 @@ function ProcessingStep({
   generatedCsvContent,
   projectId,
   questId,
+  projectSetup,
   onProcessingResultChange,
   onValidityChange
 }: UploadProcessStepProps) {
@@ -65,11 +66,13 @@ function ProcessingStep({
         generatedCsvContent?.length ?? 0,
         projectId ?? '',
         questId ?? '',
+        projectSetup?.fiaContentLanguage ?? '',
         retryCount
       ].join(':'),
     [
       generatedCsvContent?.length,
       projectId,
+      projectSetup?.fiaContentLanguage,
       questId,
       retryCount,
       selectedFile?.name,
@@ -193,7 +196,11 @@ function ProcessingStep({
           uploadPath,
           csvContent: csvToProcess,
           projectId,
-          questId
+          questId,
+          fiaContentLanguoidId:
+            uploadType === 'project' && projectSetup?.template === 'fia'
+              ? projectSetup.fiaContentLanguage
+              : undefined
         });
 
         if (isCancelled) return;

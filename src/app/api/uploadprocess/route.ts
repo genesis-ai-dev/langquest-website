@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
     const csvContent = getStringValue(body.csvContent);
     const projectId = getStringValue(body.projectId);
     const questId = getStringValue(body.questId);
+    const fiaContentLanguoidId = getStringValue(body.fiaContentLanguoidId);
 
     if (!uploadType) {
       return NextResponse.json(
@@ -262,7 +263,8 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         uploadType,
         rows,
-        projectId
+        projectId,
+        fiaContentLanguoidId
       });
 
     const stats = createUploadStats();
@@ -449,13 +451,15 @@ async function resolveProjectContext({
   userId,
   uploadType,
   rows,
-  projectId
+  projectId,
+  fiaContentLanguoidId
 }: {
   supabase: SupabaseClient;
   userId: string;
   uploadType: UploadType;
   rows: CsvUploadRow[];
   projectId?: string;
+  fiaContentLanguoidId?: string;
 }) {
   if (uploadType !== 'project') {
     if (!projectId) {
@@ -521,6 +525,22 @@ async function resolveProjectContext({
       languoid_id: targetLanguageId,
       language_type: 'target'
     });
+  }
+
+  if (template === 'fia' && fiaContentLanguoidId) {
+    const { error: sourceLanguageError } = await supabase
+      .from('project_language_link')
+      .insert({
+        project_id: project.id,
+        languoid_id: fiaContentLanguoidId,
+        language_type: 'source'
+      });
+
+    if (sourceLanguageError) {
+      throw new Error(
+        `Failed to link FIA content language: ${sourceLanguageError.message}`
+      );
+    }
   }
 
   return {
@@ -1051,19 +1071,22 @@ function resolveTemplateQuest(template: ProjectTemplate, row: CsvUploadRow) {
     };
   }
 
-  const verseRange = parseQuestVerseRange(row.quest_name);
+  const fiaQuestName = parseFiaQuestName(row.quest_name);
+  const verseRange = fiaQuestName?.verseRange ?? null;
   if (!verseRange) {
     return null;
   }
 
+  const questName = fiaQuestName?.displayName || `${book.name} ${verseRange}`;
+
   return {
     book,
-    name: `${book.name} ${verseRange}`,
+    name: questName,
     description: verseRange,
     metadata: {
       fia: {
         bookId: book.id,
-        pericopeId: `${book.id}:${verseRange}`,
+        pericopeId: fiaQuestName?.pericopeId || `${book.id}:${verseRange}`,
         verseRange
       }
     }
@@ -1210,6 +1233,23 @@ function resolveBook(bookName: string, template: ProjectTemplate) {
 
 function parseQuestVerseRange(questName: string) {
   return questName.match(/\d+:\d+\s*-\s*(?:\d+:)?\d+/)?.[0] ?? null;
+}
+
+function parseFiaQuestName(questName: string) {
+  const [displayNamePart, pericopeIdPart] = questName
+    .split(',')
+    .map((part) => part.trim());
+  const verseRange = parseQuestVerseRange(displayNamePart);
+
+  if (!verseRange) {
+    return null;
+  }
+
+  return {
+    displayName: displayNamePart,
+    pericopeId: pericopeIdPart || '',
+    verseRange
+  };
 }
 
 function parseTrailingNumber(value: string) {

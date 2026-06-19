@@ -588,7 +588,26 @@ function findFiaPericopeNode(
 ) {
   const pericopeSequence = getFiaPericopeSequence(questName);
 
-  if (!pericopeSequence) {
+  if (pericopeSequence) {
+    const sequenceMatch =
+      templateTree.find(
+        (node) =>
+          node.parent === bookNode.id &&
+          node.data?.type === 'pericope' &&
+          node.data.pericopeSequence === pericopeSequence
+      ) ?? null;
+
+    if (sequenceMatch) {
+      return sequenceMatch;
+    }
+  }
+
+  const normalizedQuestRange = getNormalizedFiaRangeFromQuestName(
+    questName,
+    bookNode.text
+  );
+
+  if (!normalizedQuestRange) {
     return null;
   }
 
@@ -597,7 +616,8 @@ function findFiaPericopeNode(
       (node) =>
         node.parent === bookNode.id &&
         node.data?.type === 'pericope' &&
-        node.data.pericopeSequence === pericopeSequence
+        normalizeFiaVerseRange(node.data.pericopeVerseRange) ===
+          normalizedQuestRange
     ) ?? null
   );
 }
@@ -629,14 +649,15 @@ function getBibleChapterNumber(questName: string, bookName: string) {
 }
 
 function getFiaPericopeSequence(questName: string) {
+  const trimmedQuestName = questName.trim();
   const normalizedQuestName = normalizeMatchName(questName);
 
   if (!normalizedQuestName) {
     return null;
   }
 
-  if (/^\d+$/.test(normalizedQuestName)) {
-    return Number(normalizedQuestName);
+  if (/^\d+$/.test(trimmedQuestName)) {
+    return Number(trimmedQuestName);
   }
 
   if (
@@ -651,6 +672,54 @@ function getFiaPericopeSequence(questName: string) {
   return Number.isInteger(pericopeNumber) && pericopeNumber > 0
     ? pericopeNumber
     : null;
+}
+
+function getNormalizedFiaRangeFromQuestName(
+  questName: string,
+  bookName: string
+) {
+  const trimmedQuestName = questName.trim();
+  const rangeMatch = trimmedQuestName.match(
+    /(?:^|\s)(\d+)\s*:\s*(\d+)\s*-\s*(?:(\d+)\s*:\s*)?(\d+)(?:\s|$)/
+  );
+
+  if (!rangeMatch) {
+    return null;
+  }
+
+  const prefix = trimmedQuestName.slice(0, rangeMatch.index).trim();
+
+  if (prefix && normalizeMatchName(prefix) !== normalizeMatchName(bookName)) {
+    return null;
+  }
+
+  return normalizeFiaVerseRange(rangeMatch[0]);
+}
+
+function normalizeFiaVerseRange(value: string | undefined) {
+  const match = value
+    ?.trim()
+    .match(/^(\d+)\s*:\s*(\d+)\s*-\s*(?:(\d+)\s*:\s*)?(\d+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const startChapter = Number(match[1]);
+  const startVerse = Number(match[2]);
+  const endChapter = Number(match[3] ?? match[1]);
+  const endVerse = Number(match[4]);
+
+  if (
+    !Number.isInteger(startChapter) ||
+    !Number.isInteger(startVerse) ||
+    !Number.isInteger(endChapter) ||
+    !Number.isInteger(endVerse)
+  ) {
+    return null;
+  }
+
+  return `${startChapter}:${startVerse}-${endChapter}:${endVerse}`;
 }
 
 function buildAssetNodes({

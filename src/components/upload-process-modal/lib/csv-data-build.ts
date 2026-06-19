@@ -15,6 +15,9 @@ type CsvTreeNode = {
     tags?: string[];
     asset?: CsvDataAsset;
     isExistingAsset?: boolean;
+    bookId?: string;
+    pericopeId?: string;
+    pericopeVerseRange?: string;
   };
 };
 
@@ -338,7 +341,9 @@ function createCsvRow({
         }
       : {}),
     parent_quest_name: parentQuestNode ? getNodeQuestName(parentQuestNode) : '',
-    quest_name: questNode ? getNodeQuestName(questNode) : '',
+    quest_name: questNode
+      ? getNodeQuestName(questNode, parentQuestNode)
+      : '',
     quest_description: questNode ? getNodeQuestDescription(questNode) : '',
     quest_tags: questNode ? joinList(getNodeQuestTags(questNode)) : '',
     asset_name: asset?.name ?? '',
@@ -395,7 +400,21 @@ function nodeHasDirectAssetChild(
   return children.some((childNode) => childNode.data?.type === 'asset');
 }
 
-function getNodeQuestName(node: CsvTreeNode) {
+function getNodeQuestName(node: CsvTreeNode, parentNode?: CsvTreeNode): string {
+  if (
+    node.data?.type === 'pericope' &&
+    node.data.pericopeVerseRange &&
+    parentNode
+  ) {
+    const pericopeName = `${getNodeQuestName(parentNode)} ${
+      node.data.pericopeVerseRange
+    }`;
+
+    return node.data.pericopeId
+      ? `${pericopeName}, ${node.data.pericopeId}`
+      : pericopeName;
+  }
+
   return node.data?.questName || node.text;
 }
 
