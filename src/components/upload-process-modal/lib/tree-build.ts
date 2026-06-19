@@ -110,7 +110,7 @@ type FiaPericopesResponse = {
 
 const ROOT_ID = 0;
 const BIBLE_BOOK_ORDER = new Map(
-    FIA_BIBLE_BOOKS.map((book, index) => [book.id, index])
+  FIA_BIBLE_BOOKS.map((book, index) => [book.id, index])
 );
 
 async function buildTemplateTree({
@@ -215,9 +215,7 @@ async function buildFIA(language?: string | null): Promise<TemplateTreeNode[]> {
         return {
           id: getPericopeNodeId(book.id, pericope.id),
           parent: bookNode.id,
-          text: `Pericope ${pericopeSequence} (${getPericopeLabel(
-            pericope
-          )})`,
+          text: `Pericope ${pericopeSequence} (${getPericopeLabel(pericope)})`,
           droppable: true,
           data: {
             type: 'pericope',
@@ -239,7 +237,9 @@ async function buildFIA(language?: string | null): Promise<TemplateTreeNode[]> {
   });
 }
 
-async function fetchFiaPericopes(language: string): Promise<FiaPericopesResponse> {
+async function fetchFiaPericopes(
+  language: string
+): Promise<FiaPericopesResponse> {
   const supabase = createBrowserClient();
   const {
     data: { session }
@@ -439,8 +439,8 @@ function buildInitialBibleTreeData(
   csvData.quests.forEach(processQuest);
   undefinedItems.push(...buildCsvQuestTree(csvData.orphanQuests));
 
-//   console.log('projectStructure', projectStructure);
-//   console.log('undefinedItems', undefinedItems);
+  //   console.log('projectStructure', projectStructure);
+  //   console.log('undefinedItems', undefinedItems);
 
   return {
     projectStructure,
@@ -519,7 +519,9 @@ function buildInitialUnstructuredTreeData(
   csvData: CsvDataBuildResult
 ): InitialTreeDataResult {
   const orphanQuests = new Set(csvData.orphanQuests);
-  const projectQuests = csvData.quests.filter((quest) => !orphanQuests.has(quest));
+  const projectQuests = csvData.quests.filter(
+    (quest) => !orphanQuests.has(quest)
+  );
 
   return {
     projectStructure: buildCsvQuestTree(projectQuests),
@@ -527,7 +529,9 @@ function buildInitialUnstructuredTreeData(
   };
 }
 
-function cloneTemplateTree(templateTree: TemplateTreeNode[]): InitialTreeNode[] {
+function cloneTemplateTree(
+  templateTree: TemplateTreeNode[]
+): InitialTreeNode[] {
   return templateTree.map((node) => ({
     ...node,
     data: node.data ? { ...node.data } : undefined
@@ -541,10 +545,7 @@ function getTemplateNodesByType(
   return templateTree.filter((node) => node.data?.type === type);
 }
 
-function findTemplateBookNode(
-  bookNodes: TemplateTreeNode[],
-  bookName: string
-) {
+function findTemplateBookNode(bookNodes: TemplateTreeNode[], bookName: string) {
   const normalizedBookName = normalizeMatchName(bookName);
 
   if (!normalizedBookName) {
@@ -638,9 +639,7 @@ function getBibleChapterNumber(questName: string, bookName: string) {
     return null;
   }
 
-  const chapterCandidate = normalizedQuestName.slice(
-    normalizedBookName.length
-  );
+  const chapterCandidate = normalizedQuestName.slice(normalizedBookName.length);
   const chapterNumber = Number(chapterCandidate.match(/\d+/)?.[0]);
 
   return Number.isInteger(chapterNumber) && chapterNumber > 0
@@ -813,7 +812,8 @@ function markNodeAndAncestorsWithContent(
 function hasQuestContent(quest: CsvDataQuest, shallow?: boolean): boolean {
   return Boolean(
     quest.assets.length > 0 ||
-      (!shallow && quest.quests.some((childQuest) => hasQuestContent(childQuest)))
+      (!shallow &&
+        quest.quests.some((childQuest) => hasQuestContent(childQuest)))
   );
 }
 

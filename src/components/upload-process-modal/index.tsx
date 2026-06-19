@@ -60,9 +60,8 @@ function UploadProcessModal({
 }: UploadProcessModalProps) {
   const [currentStepIndex, setCurrentStepIndex] = React.useState(0);
   const [maxUnlockedStepIndex, setMaxUnlockedStepIndex] = React.useState(1);
-  const [stepValidity, setStepValidity] = React.useState<
-    Record<string, boolean>
-  >(initialStepValidity);
+  const [stepValidity, setStepValidity] =
+    React.useState<Record<string, boolean>>(initialStepValidity);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [validationProgress, setValidationProgress] =
     React.useState<UploadValidationProgress>(initialValidationProgress);

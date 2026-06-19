@@ -289,16 +289,19 @@ export async function POST(request: NextRequest) {
 
     await processUploadRows(context, rows);
 
-    return NextResponse.json({
-      success: stats.errors.length === 0,
-      message:
-        stats.errors.length === 0
-          ? 'Upload processed successfully.'
-          : 'Upload processed with errors.',
-      uploadPath,
-      rowsCount: rows.length,
-      stats
-    }, { status: stats.errors.length === 0 ? 200 : 400 });
+    return NextResponse.json(
+      {
+        success: stats.errors.length === 0,
+        message:
+          stats.errors.length === 0
+            ? 'Upload processed successfully.'
+            : 'Upload processed with errors.',
+        uploadPath,
+        rowsCount: rows.length,
+        stats
+      },
+      { status: stats.errors.length === 0 ? 200 : 400 }
+    );
   } catch (error) {
     console.error('[UPLOAD PROCESS] Unexpected error:', error);
     const message =
@@ -308,7 +311,8 @@ export async function POST(request: NextRequest) {
 }
 
 function getUploadType(value: unknown): UploadType | null {
-  return typeof value === 'string' && allowedUploadTypes.has(value as UploadType)
+  return typeof value === 'string' &&
+    allowedUploadTypes.has(value as UploadType)
     ? (value as UploadType)
     : null;
 }
@@ -814,12 +818,7 @@ async function createAssetsForRows(
         quest_id: questId,
         asset_id: asset.id
       });
-      await createAssetContentLinks(
-        context,
-        asset.id,
-        row,
-        sourceLanguageId
-      );
+      await createAssetContentLinks(context, asset.id, row, sourceLanguageId);
     } catch (error) {
       context.stats.errors.push({
         row: rowNumber,
@@ -857,7 +856,9 @@ async function createQuest(
     .single();
 
   if (error || !quest) {
-    throw new Error(`Failed to create quest '${name}': ${error?.message ?? ''}`);
+    throw new Error(
+      `Failed to create quest '${name}': ${error?.message ?? ''}`
+    );
   }
 
   context.stats.quests.created++;
@@ -1114,8 +1115,7 @@ function getAssetOrderIndex(
   sequence: number
 ) {
   const verseFrom = getAssetVerseFrom(assetMetadata);
-  const verseBase =
-    typeof verseFrom === 'number' ? Math.floor(verseFrom) : 999;
+  const verseBase = typeof verseFrom === 'number' ? Math.floor(verseFrom) : 999;
   const normalizedSequence = Number.isFinite(sequence) ? sequence : 0;
 
   return verseBase * 1000 * 1000 + normalizedSequence * 1000;
@@ -1296,7 +1296,11 @@ function toRelativeVerseNumber(
   const startAbsolute = toAbsoluteVerse(versesPerChapter, rangeStart);
   const referenceAbsolute = toAbsoluteVerse(versesPerChapter, reference);
 
-  if (!startAbsolute || !referenceAbsolute || referenceAbsolute < startAbsolute) {
+  if (
+    !startAbsolute ||
+    !referenceAbsolute ||
+    referenceAbsolute < startAbsolute
+  ) {
     return null;
   }
 
@@ -1308,7 +1312,11 @@ function toAbsoluteVerse(
   reference: { chapter: number; verse: number }
 ) {
   const chapterVerseCount = versesPerChapter[reference.chapter - 1];
-  if (!chapterVerseCount || reference.verse < 1 || reference.verse > chapterVerseCount) {
+  if (
+    !chapterVerseCount ||
+    reference.verse < 1 ||
+    reference.verse > chapterVerseCount
+  ) {
     return null;
   }
 
@@ -1323,18 +1331,16 @@ function resolveBook(bookName: string, template: ProjectTemplate) {
   const books = template === 'bible' ? BIBLE_BOOKS : FIA_BIBLE_BOOKS;
   const normalizedBookName = normalizeName(bookName);
 
-  return books.find(
-    (book) => {
-      const imgId = (book as { imgId?: string }).imgId;
+  return books.find((book) => {
+    const imgId = (book as { imgId?: string }).imgId;
 
-      return (
-        normalizeName(book.id) === normalizedBookName ||
-        (imgId ? normalizeName(imgId) === normalizedBookName : false) ||
-        normalizeName(book.name) === normalizedBookName ||
-        normalizedBookName.startsWith(`${normalizeName(book.name)} `)
-      );
-    }
-  );
+    return (
+      normalizeName(book.id) === normalizedBookName ||
+      (imgId ? normalizeName(imgId) === normalizedBookName : false) ||
+      normalizeName(book.name) === normalizedBookName ||
+      normalizedBookName.startsWith(`${normalizeName(book.name)} `)
+    );
+  });
 }
 
 function parseQuestVerseRange(questName: string) {
@@ -1474,8 +1480,9 @@ function getUnstructuredQuestDefinitionKey(
 }
 
 function mergeTagStrings(currentTags: string, nextTags?: string) {
-  return Array.from(new Set([...splitList(currentTags), ...splitList(nextTags)]))
-    .join(';');
+  return Array.from(
+    new Set([...splitList(currentTags), ...splitList(nextTags)])
+  ).join(';');
 }
 
 function getBaseFileName(filePath: string) {

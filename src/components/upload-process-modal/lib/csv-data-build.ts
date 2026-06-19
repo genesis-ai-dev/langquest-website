@@ -152,7 +152,9 @@ function buildCsvRowsFromProjectTree({
 
   function pushQuestRow(questNode: CsvTreeNode) {
     const parentQuestNode =
-      questNode.parent !== ROOT_ID ? nodesById.get(questNode.parent) : undefined;
+      questNode.parent !== ROOT_ID
+        ? nodesById.get(questNode.parent)
+        : undefined;
 
     rows.push(
       createCsvRow({
@@ -341,9 +343,7 @@ function createCsvRow({
         }
       : {}),
     parent_quest_name: parentQuestNode ? getNodeQuestName(parentQuestNode) : '',
-    quest_name: questNode
-      ? getNodeQuestName(questNode, parentQuestNode)
-      : '',
+    quest_name: questNode ? getNodeQuestName(questNode, parentQuestNode) : '',
     quest_description: questNode ? getNodeQuestDescription(questNode) : '',
     quest_tags: questNode ? joinList(getNodeQuestTags(questNode)) : '',
     asset_name: asset?.name ?? '',
@@ -373,9 +373,7 @@ function getProjectTargetLanguageName(
 }
 
 function isLikelyId(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    value
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 function nodeHasAssetDescendant(

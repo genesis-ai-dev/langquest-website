@@ -55,7 +55,8 @@ const uploadTemplates: Record<UploadType, UploadTemplate> = {
       ',Genesis,First quest description',
       'Genesis,Genesis 1,First sub-quest description,category:1;difficulty:2,Asset A1,content:1;theme:5,1-3,English,image1.jpg;image2.png,This is the main content for asset A1,audio1.mp3;audio2.wav',
       'Genesis,Genesis 1,First sub-quest description,category:1;difficulty:2,Asset A2,content:2;theme:7,4,English,image3.jpg,This is the main content for asset A2,audio3.mp3',
-      'Genesis,Genesis 2,Second sub-quest description,category:1;difficulty:4,Asset B1,content:3;theme:9,,English,,This is the main content for asset B1,audio4.wav;audio5.mp3'    ],
+      'Genesis,Genesis 2,Second sub-quest description,category:1;difficulty:4,Asset B1,content:3;theme:9,,English,,This is the main content for asset B1,audio4.wav;audio5.mp3'
+    ],
     requiredFields: ['quest_name'],
     filename: 'quest-upload-template.csv'
   },

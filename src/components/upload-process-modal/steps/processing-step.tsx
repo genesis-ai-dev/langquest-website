@@ -26,7 +26,12 @@ import {
 } from '../lib/upload-processing';
 import type { UploadProcessStepProps } from '../lib/types';
 
-type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
+type ProcessingStatus =
+  | 'idle'
+  | 'uploading'
+  | 'processing'
+  | 'success'
+  | 'error';
 
 type ProcessingState = {
   status: ProcessingStatus;
@@ -76,12 +81,13 @@ function ProcessingStep({
     [selectedQuest?.metadata]
   );
   const [retryCount, setRetryCount] = React.useState(0);
-  const [processingState, setProcessingState] =
-    React.useState<ProcessingState>({
+  const [processingState, setProcessingState] = React.useState<ProcessingState>(
+    {
       status: 'idle',
       percent: 0,
       label: 'Waiting to start processing.'
-    });
+    }
+  );
   const activeProcessKeyRef = React.useRef('');
   const completedProcessKeyRef = React.useRef('');
   const onValidityChangeRef = React.useRef(onValidityChange);

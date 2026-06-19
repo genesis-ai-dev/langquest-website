@@ -181,7 +181,6 @@ function validateAssetPayload(
       row: rowNumber
     });
   }
-
 }
 
 function getReferencedMediaFiles(

@@ -249,9 +249,7 @@ function getExistingFiaAssetLabel(
 }
 
 function parseFiaVerseRange(label: string) {
-  const match = label
-    .trim()
-    .match(/^(\d+):(\d+)(?:\s*-\s*(?:(\d+):)?(\d+))?$/);
+  const match = label.trim().match(/^(\d+):(\d+)(?:\s*-\s*(?:(\d+):)?(\d+))?$/);
 
   if (!match) {
     return null;

@@ -91,9 +91,15 @@ function normalizeAssetUploadContentTreeWithSummary<
 
   switch (template) {
     case 'bible':
-      return normalizeBibleAssetUploadTree(treeWithContent, selectedQuestMetadata);
+      return normalizeBibleAssetUploadTree(
+        treeWithContent,
+        selectedQuestMetadata
+      );
     case 'fia':
-      return normalizeFiaAssetUploadTree(treeWithContent, selectedQuestMetadata);
+      return normalizeFiaAssetUploadTree(
+        treeWithContent,
+        selectedQuestMetadata
+      );
     case 'unstructured':
     default:
       return normalizeUnstructuredAssetUploadTree(treeWithContent);
@@ -255,7 +261,8 @@ function normalizeFiaContentTree<TNode extends InitialTreeNode>(
 
       if (!isFiaVerseRangeInsideBook(book.verses, parsedRange)) {
         return {
-          error: 'FIA label references a verse that does not exist in this book.'
+          error:
+            'FIA label references a verse that does not exist in this book.'
         };
       }
 
@@ -816,9 +823,7 @@ function parseBibleVerseRange(label: string): BibleVerseRange | null {
 }
 
 function parseFiaVerseRange(label: string): FiaVerseRange | null {
-  const match = label
-    .trim()
-    .match(/^(\d+):(\d+)(?:\s*-\s*(?:(\d+):)?(\d+))?$/);
+  const match = label.trim().match(/^(\d+):(\d+)(?:\s*-\s*(?:(\d+):)?(\d+))?$/);
 
   if (!match) {
     return null;
@@ -907,10 +912,7 @@ function isFiaVerseRefInsideBook(
   );
 }
 
-function toAbsoluteVerse(
-  versesPerChapter: number[],
-  reference: FiaVerseRef
-) {
+function toAbsoluteVerse(versesPerChapter: number[], reference: FiaVerseRef) {
   const previousChaptersVerseCount = versesPerChapter
     .slice(0, reference.chapter - 1)
     .reduce((sum, verseCount) => sum + verseCount, 0);
