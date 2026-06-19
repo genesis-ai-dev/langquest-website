@@ -4,6 +4,7 @@ import {
   type DropOptions,
   type NodeModel
 } from '@minoru/react-dnd-treeview';
+import type { AssetSummary } from '@/app/db/questExplorer';
 import {
   ChevronDown,
   ChevronRight,
@@ -22,6 +23,7 @@ import { Spinner } from '@/components/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { BIBLE_BOOKS as FIA_BIBLE_BOOKS } from '@/components/QuestExplorer/template-strategies/fia.template';
 import {
   HoverCard,
   HoverCardContent,
@@ -42,6 +44,7 @@ import {
   type InitialTreeNodeData
 } from '../lib/tree-build';
 import {
+  normalizeAssetUploadContentTreeWithSummary,
   normalizeContentTreeWithSummary,
   recomputeHasContent
 } from '../lib/tree-validation';
@@ -60,6 +63,7 @@ type EditingAssetNode = {
 };
 
 const ROOT_ID = 0;
+const EMPTY_EXISTING_QUEST_ASSETS: AssetSummary[] = [];
 
 async function fetchProjectSourceLanguageId(
   projectId: string,
@@ -79,6 +83,196 @@ async function fetchProjectSourceLanguageId(
   }
 
   return data?.languoid_id ?? null;
+}
+
+function buildAssetUploadTree({
+  csvAssets,
+  existingAssets,
+  selectedQuestMetadata,
+  template
+}: {
+  csvAssets: CsvDataAsset[];
+  existingAssets: AssetSummary[];
+  selectedQuestMetadata?: Record<string, unknown> | null;
+  template: string;
+}): ContentNode[] {
+  const existingNodes: ContentNode[] = existingAssets.map((asset, index) => ({
+    id: `existing-asset:${asset.id}`,
+    parent: ROOT_ID,
+    text: asset.name || `Existing asset ${index + 1}`,
+    droppable: false,
+    data: {
+      type: 'asset',
+      lockedToDrop: true,
+      lockedToDrag: true,
+      hasContent: true,
+      isExistingAsset: true,
+      existingAssetId: asset.id,
+      questName: '',
+      parentQuestName: '',
+      asset: {
+        type: 'asset',
+        name: asset.name || `Existing asset ${index + 1}`,
+        tags: [],
+        label: getExistingAssetLabel(asset, selectedQuestMetadata, template),
+        sourceLanguage: '',
+        sourceImages: asset.images ?? [],
+        sourceContent: asset.content?.[0]?.text ?? '',
+        sourceAudio: [],
+        rowNumber: 0
+      }
+    }
+  }));
+
+  const uploadedNodes: ContentNode[] = csvAssets.map((asset, index) => ({
+    id: `csv-asset:${asset.rowNumber}:${index}`,
+    parent: ROOT_ID,
+    text: asset.name,
+    droppable: false,
+    data: {
+      type: 'asset',
+      lockedToDrop: true,
+      lockedToDrag: false,
+      hasContent: true,
+      questName: '',
+      parentQuestName: '',
+      asset
+    }
+  }));
+
+  return sortAssetUploadTree([...existingNodes, ...uploadedNodes]);
+}
+
+function sortAssetUploadTree(tree: ContentNode[]) {
+  return [...tree].sort((nodeA, nodeB) => {
+    const nodeAIsExisting =
+      nodeA.data?.type === 'asset' && nodeA.data.isExistingAsset;
+    const nodeBIsExisting =
+      nodeB.data?.type === 'asset' && nodeB.data.isExistingAsset;
+
+    if (nodeAIsExisting !== nodeBIsExisting) {
+      return nodeAIsExisting ? -1 : 1;
+    }
+
+    return 0;
+  });
+}
+
+function getExistingAssetLabel(
+  asset: AssetSummary,
+  selectedQuestMetadata: Record<string, unknown> | null | undefined,
+  template: string
+) {
+  const verse = (
+    asset.metadata as { verse?: { from?: number; to?: number } } | null
+  )?.verse;
+
+  if (typeof verse?.from !== 'number') {
+    return '';
+  }
+
+  const to = typeof verse.to === 'number' ? verse.to : verse.from;
+
+  if (template === 'fia') {
+    return getExistingFiaAssetLabel(verse.from, to, selectedQuestMetadata);
+  }
+
+  return verse.from === to ? `${verse.from}` : `${verse.from}-${to}`;
+}
+
+function getExistingFiaAssetLabel(
+  from: number,
+  to: number,
+  selectedQuestMetadata: Record<string, unknown> | null | undefined
+) {
+  const fiaMetadata = (selectedQuestMetadata?.fia || null) as {
+    bookId?: string;
+    verseRange?: string;
+  } | null;
+  const book = FIA_BIBLE_BOOKS.find((item) => item.id === fiaMetadata?.bookId);
+  const pericopeRange = fiaMetadata?.verseRange
+    ? parseFiaVerseRange(fiaMetadata.verseRange)
+    : null;
+
+  if (!book || !pericopeRange) {
+    return from === to ? `${from}` : `${from}-${to}`;
+  }
+
+  const fromReference = resolveSequentialVerseToReference(
+    book.verses,
+    pericopeRange.start.chapter,
+    pericopeRange.start.verse,
+    from
+  );
+  const toReference = resolveSequentialVerseToReference(
+    book.verses,
+    pericopeRange.start.chapter,
+    pericopeRange.start.verse,
+    to
+  );
+
+  if (!fromReference || !toReference) {
+    return from === to ? `${from}` : `${from}-${to}`;
+  }
+
+  if (
+    fromReference.chapter === toReference.chapter &&
+    fromReference.verse === toReference.verse
+  ) {
+    return `${fromReference.chapter}:${fromReference.verse}`;
+  }
+
+  return `${fromReference.chapter}:${fromReference.verse}-${toReference.chapter}:${toReference.verse}`;
+}
+
+function parseFiaVerseRange(label: string) {
+  const match = label.trim().match(/^(\d+):(\d+)(?:\s*-\s*(\d+):(\d+))?$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    start: {
+      chapter: Number(match[1]),
+      verse: Number(match[2])
+    },
+    end: {
+      chapter: Number(match[3] ?? match[1]),
+      verse: Number(match[4] ?? match[2])
+    }
+  };
+}
+
+function resolveSequentialVerseToReference(
+  versesPerChapter: number[],
+  startChapter: number,
+  startVerse: number,
+  offset: number
+) {
+  let remaining = offset - 1;
+
+  for (
+    let chapterIndex = Math.max(startChapter - 1, 0);
+    chapterIndex < versesPerChapter.length;
+    chapterIndex += 1
+  ) {
+    const chapter = chapterIndex + 1;
+    const firstVerse = chapter === startChapter ? startVerse : 1;
+    const verseCount = versesPerChapter[chapterIndex];
+    const versesAvailable = verseCount - firstVerse + 1;
+
+    if (remaining < versesAvailable) {
+      return {
+        chapter,
+        verse: firstVerse + remaining
+      };
+    }
+
+    remaining -= versesAvailable;
+  }
+
+  return null;
 }
 
 // const initialProjectStructure: ContentNode[] = [
@@ -134,12 +328,16 @@ function ContentSetupStep({
   projectId,
   projectTemplate,
   projectFiaContentLanguage,
+  selectedQuest,
+  existingQuestAssets,
   projectSetup,
   validationResult,
   onGeneratedCsvContentChange,
   onValidityChange
 }: UploadProcessStepProps) {
   const supabase = React.useMemo(() => createBrowserClient(), []);
+  const stableExistingQuestAssets =
+    existingQuestAssets ?? EMPTY_EXISTING_QUEST_ASSETS;
   const [projectStructure, setProjectStructure] = React.useState<ContentNode[]>(
     []
   );
@@ -163,6 +361,10 @@ function ContentSetupStep({
     warnings: 0
   });
   const template = projectSetup?.template || projectTemplate || 'unstructured';
+  const isAssetUpload = uploadType === 'asset';
+  const questAssetsTitle = selectedQuest?.name
+    ? `Quest Assets: ${selectedQuest.name}`
+    : 'Quest Assets';
   const selectedProjectNode = React.useMemo(
     () =>
       selectedProjectNodeId
@@ -170,9 +372,6 @@ function ContentSetupStep({
         : null,
     [projectStructure, selectedProjectNodeId]
   );
-  const canMoveSelectedProjectNode =
-    Boolean(selectedProjectNode) &&
-    selectedProjectNode?.data?.lockedToDrag !== true;
   const selectedUndefinedNode = React.useMemo(
     () =>
       selectedUndefinedNodeId
@@ -183,7 +382,8 @@ function ContentSetupStep({
   const canMoveToLeft = canMoveUndefinedNodeToProject({
     movingNode: selectedUndefinedNode,
     targetNode: selectedProjectNode,
-    template
+    template,
+    allowRootAssetTarget: isAssetUpload
   });
   const canMoveToRight = canMoveProjectNodeToUndefined({
     movingNode: selectedProjectNode,
@@ -227,6 +427,30 @@ function ContentSetupStep({
     }
 
     const csvData = validationResult?.csvData;
+
+    if (uploadType === 'asset') {
+      const assetTree = buildAssetUploadTree({
+        csvAssets: csvData?.assets ?? [],
+        existingAssets: stableExistingQuestAssets,
+        selectedQuestMetadata: selectedQuest?.metadata ?? null,
+        template
+      });
+      const normalizedAssetTree = normalizeAssetUploadContentTreeWithSummary({
+        tree: assetTree,
+        template,
+        selectedQuestMetadata: selectedQuest?.metadata ?? null
+      });
+
+      setProjectStructure(normalizedAssetTree.tree);
+      setUndefinedItems([]);
+      setValidationCounts(normalizedAssetTree.summary);
+      setTreeBuildError(null);
+      setIsBuildingTree(false);
+      setSelectedProjectNodeId(null);
+      setSelectedUndefinedNodeId(null);
+      return;
+    }
+
     let isCancelled = false;
 
     setIsBuildingTree(true);
@@ -298,10 +522,11 @@ function ContentSetupStep({
   }, [
     projectFiaContentLanguage,
     projectId,
-    projectSetup?.fiaContentLanguage,
-    projectSetup?.template,
-    projectTemplate,
+    projectSetup,
+    selectedQuest?.metadata,
+    stableExistingQuestAssets,
     supabase,
+    template,
     uploadType,
     validationResult?.csvData
   ]);
@@ -430,10 +655,17 @@ function ContentSetupStep({
   }: {
     tree: ContentNode[];
   }): ContentNode[] {
-    const normalizedTree = normalizeContentTreeWithSummary({
-      tree,
-      template
-    });
+    const normalizedTree =
+      uploadType === 'asset'
+        ? normalizeAssetUploadContentTreeWithSummary({
+            tree: sortAssetUploadTree(tree),
+            template,
+            selectedQuestMetadata: selectedQuest?.metadata ?? null
+          })
+        : normalizeContentTreeWithSummary({
+            tree,
+            template
+          });
 
     setValidationCounts(normalizedTree.summary);
 
@@ -446,27 +678,36 @@ function ContentSetupStep({
         <div className="shrink-0 space-y-2">
           <h3 className="text-xl font-semibold">Content Setup</h3>
           <p className="text-sm text-muted-foreground">
-            {/* Organize the validated {uploadType} content before processing. Drag
-            items inside each tree or use the buttons to move selected items
-            between lists. */}
-            Review how the uploaded assets were matched to the selected project
-            template. Move items between Project Structure and Undefined Items,
-            place assets into the correct folders, and edit labels when needed.
-            Fix all errors before continuing.
+            {isAssetUpload
+              ? 'Review the assets from the CSV before processing. Existing assets from the selected quest are shown with lower opacity and are used to validate names and labels, but they will not be uploaded again.'
+              : 'Review how the uploaded assets were matched to the selected project template. Move items between Project Structure and Undefined Items, place assets into the correct folders, and edit labels when needed. Fix all errors before continuing.'}
           </p>
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 overflow-hidden">
-          <TreePanel
-            title="Project Structure"
-            tree={projectStructure}
-            isLoading={isBuildingTree}
-            error={treeBuildError}
-            selectedNodeId={selectedProjectNodeId}
-            onSelectNode={setSelectedProjectNodeId}
-            onDrop={handleProjectStructureDrop}
-            onEditAsset={(node) => handleOpenAssetEdit('project', node)}
-          />
+          {isAssetUpload ? (
+            <TreePanel
+              title={questAssetsTitle}
+              tree={projectStructure}
+              isLoading={isBuildingTree}
+              error={treeBuildError}
+              selectedNodeId={selectedProjectNodeId}
+              onSelectNode={setSelectedProjectNodeId}
+              onDrop={handleProjectStructureDrop}
+              onEditAsset={(node) => handleOpenAssetEdit('project', node)}
+            />
+          ) : (
+            <TreePanel
+              title="Project Structure"
+              tree={projectStructure}
+              isLoading={isBuildingTree}
+              error={treeBuildError}
+              selectedNodeId={selectedProjectNodeId}
+              onSelectNode={setSelectedProjectNodeId}
+              onDrop={handleProjectStructureDrop}
+              onEditAsset={(node) => handleOpenAssetEdit('project', node)}
+            />
+          )}
 
           <div className="flex flex-col items-center justify-center gap-3">
             <Button
@@ -490,7 +731,7 @@ function ContentSetupStep({
           </div>
 
           <TreePanel
-            title="Undefined items"
+            title="Undefined Items"
             tree={undefinedItems}
             selectedNodeId={selectedUndefinedNodeId}
             onSelectNode={setSelectedUndefinedNodeId}
@@ -617,7 +858,11 @@ function TreePanel({
                   depth={depth}
                   isSelected={selectedNodeId === node.id}
                   onSelect={() => handleSelectNode(node.id)}
-                  onEdit={() => onEditAsset?.(node)}
+                  onEdit={
+                    node.data.isExistingAsset
+                      ? undefined
+                      : () => onEditAsset?.(node)
+                  }
                 />
               ) : (
                 <TreeNode
@@ -728,10 +973,16 @@ function TreeLeaf({
   const badgeVariant =
     node.data?.validationStatus === 'error' ? 'destructive' : 'secondary';
   const validationMessage = node.data?.validationMessage;
+  const isExistingAsset =
+    node.data?.type === 'asset' && node.data.isExistingAsset;
 
   return (
     <div
-      className={getTreeRowClassName(isSelected, node.data?.hasContent)}
+      className={getTreeRowClassName(
+        isSelected,
+        node.data?.hasContent,
+        isExistingAsset
+      )}
       style={{ paddingLeft: depth * 18 + 8 }}
       onClick={onSelect}
       // title={node.data?.validationMessage}
@@ -739,6 +990,11 @@ function TreeLeaf({
       <span className="w-5" />
       <FileText className="h-4 w-4 shrink-0" />
       <span className="truncate">{node.text}</span>
+      {isExistingAsset ? (
+        <Badge variant="outline" className="rounded-sm text-[10px]">
+          Existing
+        </Badge>
+      ) : null}
       {assetLabel ? (
         <Badge variant={badgeVariant} className="rounded-sm text-[10px]">
           {assetLabel}
@@ -830,12 +1086,16 @@ function TreeNodeFlagIcon({ flag }: { flag?: null | 'warning' | 'error' }) {
   );
 }
 
-function getTreeRowClassName(isSelected: boolean, hasContent?: boolean) {
+function getTreeRowClassName(
+  isSelected: boolean,
+  hasContent?: boolean,
+  isExistingAsset?: boolean
+) {
   return `group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
     isSelected
       ? 'bg-primary text-primary-foreground'
       : 'hover:bg-muted text-foreground'
-  } ${hasContent ? 'opacity-100' : 'opacity-50'}`;
+  } ${isExistingAsset ? 'opacity-60' : hasContent ? 'opacity-100' : 'opacity-50'}`;
 }
 
 function updateAssetNode(
@@ -889,11 +1149,13 @@ function clearTreeNodeValidation(node: ContentNode): ContentNode {
 function canMoveUndefinedNodeToProject({
   movingNode,
   targetNode,
-  template
+  template,
+  allowRootAssetTarget = false
 }: {
   movingNode?: ContentNode | null;
   targetNode?: ContentNode | null;
   template: string;
+  allowRootAssetTarget?: boolean;
 }) {
   if (!movingNode) {
     return false;
@@ -903,7 +1165,7 @@ function canMoveUndefinedNodeToProject({
   const isMovingFolder = Boolean(movingNode.droppable);
 
   if (isMovingAsset) {
-    return canReceiveMovedNode(targetNode);
+    return allowRootAssetTarget ? true : canReceiveMovedNode(targetNode);
   }
 
   if (!isMovingFolder || template !== 'unstructured') {

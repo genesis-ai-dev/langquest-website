@@ -14,6 +14,7 @@ type CsvTreeNode = {
     description?: string;
     tags?: string[];
     asset?: CsvDataAsset;
+    isExistingAsset?: boolean;
   };
 };
 
@@ -43,6 +44,7 @@ type CsvDataQuest = {
 type CsvDataBuildResult = {
   quests: CsvDataQuest[];
   orphanQuests: CsvDataQuest[];
+  assets: CsvDataAsset[];
 };
 
 type CsvDataBuildInput = string | CsvRow[];
@@ -58,12 +60,17 @@ const ROOT_ID = 0;
 function buildCsvData(csv: CsvDataBuildInput): CsvDataBuildResult {
   const rows = Array.isArray(csv) ? csv : parseCsvRows(csv);
   const questMap = new Map<string, CsvDataQuest>();
+  const assets: CsvDataAsset[] = [];
 
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
+    const asset = buildAsset(row, rowNumber);
     const questName = normalizeValue(row.quest_name);
 
     if (!questName) {
+      if (asset) {
+        assets.push(asset);
+      }
       return;
     }
 
@@ -74,13 +81,15 @@ function buildCsvData(csv: CsvDataBuildInput): CsvDataBuildResult {
     quest.tags = mergeUniqueValues(quest.tags, splitList(row.quest_tags));
     quest.rowNumbers.push(rowNumber);
 
-    const asset = buildAsset(row, rowNumber);
     if (asset) {
       quest.assets.push(asset);
     }
   });
 
-  return connectQuestHierarchy(questMap);
+  return {
+    ...connectQuestHierarchy(questMap),
+    assets
+  };
 }
 
 function buildCsvFromProjectTree({
@@ -121,7 +130,9 @@ function buildCsvRowsFromProjectTree({
 
     children.forEach((node) => {
       if (node.data?.type === 'asset') {
-        pushAssetRow(node);
+        if (!node.data.isExistingAsset) {
+          pushAssetRow(node);
+        }
         return;
       }
 
@@ -260,7 +271,8 @@ function connectQuestHierarchy(
 
   return {
     quests: sortQuests(rootQuests),
-    orphanQuests: sortQuests(orphanQuests)
+    orphanQuests: sortQuests(orphanQuests),
+    assets: []
   };
 }
 

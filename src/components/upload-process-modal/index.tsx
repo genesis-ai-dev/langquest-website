@@ -53,6 +53,8 @@ function UploadProcessModal({
   questId,
   projectTemplate,
   projectFiaContentLanguage,
+  selectedQuest,
+  existingQuestAssets,
   title,
   subtitle
 }: UploadProcessModalProps) {
@@ -85,7 +87,6 @@ function UploadProcessModal({
   const processingStepIndex = visibleSteps.findIndex(
     (step) => step.value === 'processing'
   );
-  const doneStepIndex = visibleSteps.findIndex((step) => step.value === 'done');
   const isProcessingLocked =
     processingStepIndex !== -1 && currentStepIndex >= processingStepIndex;
   const uploadTypeLabel = uploadTypeLabels[uploadType];
@@ -317,7 +318,7 @@ function UploadProcessModal({
         <Tabs
           value={currentStep.value}
           onValueChange={handleStepChange}
-          className="min-h-0"
+          className="flex min-h-0 flex-col overflow-hidden"
         >
           <TabsList className="h-auto w-full flex-wrap justify-start">
             {visibleSteps.map((step, stepIndex) => (
@@ -341,7 +342,7 @@ function UploadProcessModal({
               <TabsContent
                 key={step.value}
                 value={step.value}
-                className="min-h-0 overflow-auto rounded-lg border bg-muted/20 p-6"
+                className="min-h-0 flex-1 overflow-hidden rounded-lg border bg-muted/20 p-6"
               >
                 <StepComponent
                   uploadType={uploadType}
@@ -351,6 +352,8 @@ function UploadProcessModal({
                   questId={questId}
                   projectTemplate={projectTemplate}
                   projectFiaContentLanguage={projectFiaContentLanguage}
+                  selectedQuest={selectedQuest}
+                  existingQuestAssets={existingQuestAssets}
                   onSelectedFileChange={handleSelectedFileChange}
                   validationProgress={validationProgress}
                   validationResult={validationResult}

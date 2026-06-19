@@ -34,6 +34,7 @@ type UploadContext = {
   template: ProjectTemplate;
   fileMap: UploadedFileMap;
   languageCache: Map<string, string | null>;
+  assetOrderSequence: number;
   stats: UploadStats;
 };
 
@@ -277,6 +278,7 @@ export async function POST(request: NextRequest) {
       template,
       fileMap,
       languageCache: new Map(),
+      assetOrderSequence: 0,
       stats
     };
 
@@ -534,6 +536,10 @@ async function processUploadRows(context: UploadContext, rows: CsvUploadRow[]) {
 
   if (context.uploadType === 'asset') {
     const quest = await loadQuestById(context.supabase, context.questId!);
+    context.assetOrderSequence = await countExistingQuestAssets(
+      context.supabase,
+      context.questId!
+    );
 
     await createAssetsForRows(
       context,
@@ -748,6 +754,11 @@ async function createAssetsForRows(
         row.asset_label,
         target.questMetadata
       );
+      context.assetOrderSequence += 1;
+      const assetOrderIndex = getAssetOrderIndex(
+        assetMetadata,
+        context.assetOrderSequence
+      );
       const assetPayload = {
         name: row.asset_name,
         creator_id: context.userId,
@@ -755,6 +766,7 @@ async function createAssetsForRows(
         source_language_id: sourceLanguageId,
         visible: true,
         source_asset_id: null,
+        order_index: assetOrderIndex,
         images: imageFiles.length > 0 ? imageFiles : null,
         metadata: assetMetadata ? JSON.stringify(assetMetadata) : null
       };
@@ -847,6 +859,7 @@ async function createAssetContentLinks(
       text: text || (audioPath ? ' ' : ''),
       audio: audioPath ? [audioPath] : null,
       languoid_id: sourceLanguageId,
+      order_index: index + 1,
       id: randomUUID()
     };
 
@@ -966,6 +979,22 @@ async function loadQuestById(supabase: SupabaseClient, questId: string) {
   return data as QuestRecord;
 }
 
+async function countExistingQuestAssets(
+  supabase: SupabaseClient,
+  questId: string
+) {
+  const { count, error } = await supabase
+    .from('quest_asset_link')
+    .select('asset_id', { count: 'exact', head: true })
+    .eq('quest_id', questId);
+
+  if (error) {
+    throw new Error(`Failed to count existing quest assets: ${error.message}`);
+  }
+
+  return count ?? 0;
+}
+
 function findExistingQuestByName(
   quests: QuestRecord[],
   name: string,
@@ -1055,6 +1084,19 @@ function buildAssetMetadata(
   }
 
   return parseFiaAssetLabel(label, questMetadata);
+}
+
+function getAssetOrderIndex(
+  assetMetadata: Record<string, unknown> | null,
+  sequence: number
+) {
+  const verseFrom = (assetMetadata as { verse?: { from?: number } } | null)
+    ?.verse?.from;
+  const verseBase =
+    typeof verseFrom === 'number' ? Math.floor(verseFrom) : 999;
+  const normalizedSequence = Number.isFinite(sequence) ? sequence : 0;
+
+  return verseBase * 1000 * 1000 + normalizedSequence * 1000;
 }
 
 function parseBibleAssetLabel(label: string) {

@@ -1,5 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 
+import type { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
+
 import type { CsvDataBuildResult } from './csv-data-build';
 import type { UploadProcessResponse } from './upload-processing';
 
@@ -50,6 +52,8 @@ type UploadProcessStepProps = {
   questId?: string;
   projectTemplate?: string;
   projectFiaContentLanguage?: string | null;
+  selectedQuest?: QuestRecord | null;
+  existingQuestAssets?: AssetSummary[];
   onSelectedFileChange?: (file: File | null) => void;
   validationProgress?: UploadValidationProgress;
   validationResult?: UploadValidationResult | null;
@@ -86,6 +90,8 @@ type UploadProcessModalProps = {
   questId?: string;
   projectTemplate?: string;
   projectFiaContentLanguage?: string | null;
+  selectedQuest?: QuestRecord | null;
+  existingQuestAssets?: AssetSummary[];
   title?: string;
   subtitle?: string;
 };

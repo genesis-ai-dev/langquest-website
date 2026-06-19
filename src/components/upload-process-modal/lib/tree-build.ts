@@ -40,6 +40,8 @@ type InitialTreeAssetData = {
   lockedToDrop: boolean;
   lockedToDrag: boolean;
   hasContent: boolean;
+  isExistingAsset?: boolean;
+  existingAssetId?: string;
   validationStatus?: 'error' | 'warning' | 'valid';
   validationMessage?: string;
   flag?: null | 'warning' | 'error';
