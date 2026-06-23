@@ -358,18 +358,6 @@ function AdminContent() {
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Create Project
                 </Button>
-                {/* <Button
-                  variant="outline"
-                  onClick={() =>
-                    setPageState((prevState) => ({
-                      ...prevState,
-                      showProjectUpload: true
-                    }))
-                  }
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Project
-                </Button> */}
                 <Button
                   variant="outline"
                   onClick={() =>
