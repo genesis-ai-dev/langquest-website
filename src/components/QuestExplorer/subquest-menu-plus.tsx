@@ -26,9 +26,9 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import BulkAssetModal from '@/components/new-bulk-asset-modal';
-import { BulkUpload } from '@/components/new-bulk-upload';
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
+import { UploadProcessModal } from '@/components/upload-process-modal';
 import { useAuth } from '@/components/auth-provider';
 import { useQueryClient } from '@tanstack/react-query';
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
@@ -258,30 +258,24 @@ export function SubQuestMenuPlus({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog
+      <UploadProcessModal
         open={showBulkAssetUpload}
-        onOpenChange={(open) => setShowBulkAssetUpload(open)}
-      >
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Upload Assets to Quest</DialogTitle>
-            <DialogDescription>Add multiple assets.</DialogDescription>
-          </DialogHeader>
-          <BulkUpload
-            mode="asset"
-            projectId={projectId || undefined}
-            questId={selectedQuestId || undefined}
-            onSuccess={() => {
-              setShowBulkAssetUpload(false);
-              toast.success(
-                menuConfig?.msgBulkAssetsUploaded ||
-                  'Assets uploaded successfully'
-              );
-              handleAssetSuccess();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+        uploadType="asset"
+        projectId={projectId || undefined}
+        questId={selectedQuestId || undefined}
+        projectTemplate={labelContext?.template || 'unstructured'}
+        selectedQuest={labelContext?.quest || null}
+        existingQuestAssets={labelContext?.assets || []}
+        onOpenChange={setShowBulkAssetUpload}
+        onSuccess={() => {
+          toast.success(
+            menuConfig?.msgBulkAssetsUploaded || 'Assets uploaded successfully'
+          );
+          handleAssetSuccess();
+        }}
+        title="Upload Assets to Quest"
+        subtitle="Follow each step to add multiple assets to this quest."
+      />
 
       <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

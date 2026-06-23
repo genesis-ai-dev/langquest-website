@@ -57,6 +57,7 @@ export const bibleStrategy: TemplateStrategy = {
     showRightMenuActions: true,
     allowDisabledQuests: true,
     allowAddQuest: false,
+    allowBulkQuestUpload: true,
     allowAddAssets: true,
     allowNewVersion: true,
     allowLabel: true,
