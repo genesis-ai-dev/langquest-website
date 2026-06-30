@@ -51,6 +51,7 @@ type DownloadQuestNode = {
   name: string | null;
   metadata: string | null;
   createdAt: string;
+  assetCount: number;
   children: DownloadQuestNode[];
   assets: DownloadAsset[];
 };
@@ -70,14 +71,32 @@ type DownloadTreeResponse = {
   tree: DownloadQuestNode[];
 };
 
+type QuestAssetsResponse = {
+  projectId: string;
+  questId: string;
+  assets: DownloadAsset[];
+};
+
+type AssetLoadState = 'loading' | 'loaded' | 'error';
+
 function questNodeToTreeElement(quest: DownloadQuestNode): TreeViewElement {
+  const totalAssetCount = countQuestTreeAssets(quest);
+
   return {
     id: quest.id,
     name: quest.name || 'Untitled Quest',
+    label: `${totalAssetCount} ${totalAssetCount === 1 ? 'asset' : 'assets'}`,
     created_at: quest.createdAt,
     type: quest.children.length ? 'folder' : 'file',
     children: quest.children.map(questNodeToTreeElement)
   };
+}
+
+function countQuestTreeAssets(quest: DownloadQuestNode): number {
+  return (
+    quest.assetCount +
+    quest.children.reduce((total, child) => total + countQuestTreeAssets(child), 0)
+  );
 }
 
 function assetToTreeElement(
@@ -156,6 +175,26 @@ function applySelection(current: Set<string>, ids: string[], checked: boolean) {
   return next;
 }
 
+function updateQuestAssets(
+  quests: DownloadQuestNode[],
+  questId: string,
+  assets: DownloadAsset[]
+): DownloadQuestNode[] {
+  return quests.map((quest) => {
+    if (quest.id === questId) {
+      return {
+        ...quest,
+        assets
+      };
+    }
+
+    return {
+      ...quest,
+      children: updateQuestAssets(quest.children, questId, assets)
+    };
+  });
+}
+
 export function ProjectDownloadModal({
   projectId,
   trigger,
@@ -177,6 +216,12 @@ export function ProjectDownloadModal({
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(
     () => new Set()
   );
+  const [assetLoadStates, setAssetLoadStates] = useState<
+    Record<string, AssetLoadState>
+  >({});
+  const [assetLoadErrors, setAssetLoadErrors] = useState<
+    Record<string, string>
+  >({});
   const [downloadOption, setDownloadOption] = useState<
     'includeCsv' | 'mergeAudioByQuest' | null
   >(null);
@@ -197,7 +242,7 @@ export function ProjectDownloadModal({
       return [];
     }
 
-    const assets = quest.assets.sort((a, b) => {
+    const assets = [...quest.assets].sort((a, b) => {
       const aFrom = getVerseMetadata(a.metadata)?.from;
       const bFrom = getVerseMetadata(b.metadata)?.from;
       const aOrder =
@@ -241,10 +286,36 @@ export function ProjectDownloadModal({
 
   const getQuestCheckedState = (quest: DownloadQuestNode): TreeCheckedState => {
     const childStates = quest.children.map(getQuestCheckedState);
-    const assetStates = quest.assets.map((asset) =>
-      selectedAssetIds.has(asset.id)
-    );
-    const descendantStates = [...childStates, ...assetStates];
+    const assetState = (() => {
+      if (quest.assetCount === 0) {
+        return null;
+      }
+
+      if (selectedQuestIds.has(quest.id)) {
+        return true;
+      }
+
+      const selectedLoadedAssets = quest.assets.filter((asset) =>
+        selectedAssetIds.has(asset.id)
+      );
+
+      if (!selectedLoadedAssets.length) {
+        return false;
+      }
+
+      if (
+        quest.assets.length === quest.assetCount &&
+        selectedLoadedAssets.length === quest.assetCount
+      ) {
+        return true;
+      }
+
+      return 'indeterminate';
+    })();
+    const descendantStates = [
+      ...childStates,
+      ...(assetState === null ? [] : [assetState])
+    ];
 
     if (!descendantStates.length) {
       return selectedQuestIds.has(quest.id);
@@ -265,28 +336,6 @@ export function ProjectDownloadModal({
     questTree.length > 0 &&
     questTree.every((quest) => getQuestCheckedState(quest) === true);
 
-  const selectedCounts = useMemo(() => {
-    const validAssetIds = new Set<string>();
-    let selectedQuests = 0;
-
-    const walk = (quest: DownloadQuestNode) => {
-      quest.assets.forEach((asset) => validAssetIds.add(asset.id));
-      quest.children.forEach(walk);
-
-      const checkedState = getQuestCheckedState(quest);
-      if (checkedState === true || checkedState === 'indeterminate') {
-        selectedQuests += 1;
-      }
-    };
-
-    questTree.forEach(walk);
-
-    return {
-      quests: selectedQuests,
-      assets: [...selectedAssetIds].filter((id) => validAssetIds.has(id)).length
-    };
-  }, [questTree, selectedAssetIds, selectedQuestIds]);
-
   const getQuestElementCheckedState = (
     element: TreeViewElement
   ): TreeCheckedState => {
@@ -297,6 +346,35 @@ export function ProjectDownloadModal({
 
     return getQuestCheckedState(quest);
   };
+
+  const selectedCounts = useMemo(() => {
+    let selectedQuests = 0;
+    let selectedAssets = 0;
+
+    const walk = (quest: DownloadQuestNode) => {
+      const checkedState = getQuestCheckedState(quest);
+      if (checkedState === true || checkedState === 'indeterminate') {
+        selectedQuests += 1;
+      }
+
+      if (checkedState === true) {
+        selectedAssets += quest.assetCount;
+      } else {
+        selectedAssets += quest.assets.filter((asset) =>
+          selectedAssetIds.has(asset.id)
+        ).length;
+      }
+
+      quest.children.forEach(walk);
+    };
+
+    questTree.forEach(walk);
+
+    return {
+      quests: selectedQuests,
+      assets: selectedAssets
+    };
+  }, [questTree, selectedAssetIds, selectedQuestIds]);
 
   const handleQuestCheckedChange = (
     element: TreeViewElement,
@@ -328,18 +406,48 @@ export function ProjectDownloadModal({
   };
 
   const getAssetElementCheckedState = (element: TreeViewElement) =>
-    selectedAssetIds.has(element.id);
+    selectedAssetIds.has(element.id) ||
+    Boolean(selectedQuestId && selectedQuestIds.has(selectedQuestId));
 
   const handleAssetCheckedChange = (
     element: TreeViewElement,
     checked: boolean
   ) => {
+    const currentQuest = selectedQuestId
+      ? findQuestNode(questTree, selectedQuestId)
+      : null;
+
+    if (!currentQuest) {
+      return;
+    }
+
+    if (selectedQuestIds.has(currentQuest.id)) {
+      setSelectedQuestIds((current) =>
+        applySelection(current, [currentQuest.id], false)
+      );
+      setSelectedAssetIds((current) =>
+        applySelection(
+          current,
+          currentQuest.assets
+            .map((asset) => asset.id)
+            .filter((assetId) => assetId !== element.id),
+          true
+        )
+      );
+    }
+
     setSelectedAssetIds((current) =>
       applySelection(current, [element.id], checked)
     );
   };
 
   const handleAllCurrentQuestAssetsCheckedChange = (checked: boolean) => {
+    if (!checked && selectedQuestId) {
+      setSelectedQuestIds((current) =>
+        applySelection(current, [selectedQuestId], false)
+      );
+    }
+
     setSelectedAssetIds((current) =>
       applySelection(current, selectedAssetIdsForCurrentQuest, checked)
     );
@@ -350,106 +458,65 @@ export function ProjectDownloadModal({
     onOpenChange?.(nextOpen);
   };
 
-  const selectedDownloadQuestIds = useMemo(() => {
-    const questIds: string[] = [];
+  const selectedDownloadSelection = useMemo(() => {
+    const fullQuestIds: string[] = [];
+    const partialQuestIds: string[] = [];
+    const partialAssetIds = new Set<string>();
 
     const walk = (quest: DownloadQuestNode) => {
       const checkedState = getQuestCheckedState(quest);
-      if (checkedState === true || checkedState === 'indeterminate') {
-        questIds.push(quest.id);
+      if (checkedState === true) {
+        fullQuestIds.push(quest.id);
+      } else if (checkedState === 'indeterminate') {
+        partialQuestIds.push(quest.id);
+        quest.assets.forEach((asset) => {
+          if (selectedAssetIds.has(asset.id)) {
+            partialAssetIds.add(asset.id);
+          }
+        });
       }
 
       quest.children.forEach(walk);
     };
 
     questTree.forEach(walk);
-    return questIds;
+    return {
+      fullQuestIds,
+      partialQuestIds,
+      partialAssetIds: [...partialAssetIds]
+    };
   }, [questTree, selectedAssetIds, selectedQuestIds]);
 
-  const selectedDownloadAssetIds = useMemo(() => {
-    const validAssetIds = new Set<string>();
+  const hasDownloadSelection =
+    selectedDownloadSelection.fullQuestIds.length > 0 ||
+    selectedDownloadSelection.partialAssetIds.length > 0;
 
-    const walk = (quest: DownloadQuestNode) => {
-      quest.assets.forEach((asset) => validAssetIds.add(asset.id));
-      quest.children.forEach(walk);
-    };
+  const selectedQuestAssetCountLabel = useMemo(() => {
+    if (!selectedQuest) {
+      return 'Select a quest to view asset counts.';
+    }
 
-    questTree.forEach(walk);
-    return [...selectedAssetIds].filter((assetId) =>
-      validAssetIds.has(assetId)
+    const imageFiles = selectedQuest.assets.reduce(
+      (total, asset) => total + (asset.imageCount ?? 0),
+      0
     );
-  }, [questTree, selectedAssetIds]);
+    const audioFiles = selectedQuest.assets.reduce(
+      (total, asset) => total + (asset.audioFileCount ?? 0),
+      0
+    );
+    const selectedAssets = selectedQuestIds.has(selectedQuest.id)
+      ? selectedQuest.assetCount
+      : selectedQuest.assets.filter((asset) => selectedAssetIds.has(asset.id))
+          .length;
 
-  const selectedFileCounts = useMemo(() => {
-    let imageFiles = 0;
-    let audioFiles = 0;
-    let combinedAudioFiles = 0;
-
-    const walk = (quest: DownloadQuestNode) => {
-      const selectedAssets = quest.assets.filter((asset) =>
-        selectedAssetIds.has(asset.id)
-      );
-
-      selectedAssets.forEach((asset) => {
-        imageFiles += asset.imageCount ?? 0;
-        if (downloadOption !== 'mergeAudioByQuest') {
-          audioFiles += asset.audioFileCount ?? 0;
-        }
-      });
-
-      if (
-        downloadOption === 'mergeAudioByQuest' &&
-        selectedAssets.some((asset) => (asset.audioFileCount ?? 0) > 0)
-      ) {
-        combinedAudioFiles += 1;
-      }
-
-      quest.children.forEach(walk);
-    };
-
-    questTree.forEach(walk);
-
-    return {
-      textFiles: downloadOption === 'includeCsv' ? 1 : 0,
-      imageFiles,
-      audioFiles:
-        downloadOption === 'mergeAudioByQuest' ? combinedAudioFiles : audioFiles
-    };
-  }, [downloadOption, questTree, selectedAssetIds]);
-
-  const selectedFileCountLabel = useMemo(() => {
-    const parts: string[] = [];
-
-    if (selectedFileCounts.textFiles) {
-      parts.push(
-        `${selectedFileCounts.textFiles} text ${selectedFileCounts.textFiles === 1 ? 'file' : 'files'}`
-      );
-    }
-
-    if (selectedFileCounts.imageFiles) {
-      parts.push(
-        `${selectedFileCounts.imageFiles} image ${selectedFileCounts.imageFiles === 1 ? 'file' : 'files'}`
-      );
-    }
-
-    if (selectedFileCounts.audioFiles) {
-      parts.push(
-        `${selectedFileCounts.audioFiles} audio ${selectedFileCounts.audioFiles === 1 ? 'file' : 'files'}`
-      );
-    }
-
-    if (!parts.length) {
-      return 'No files selected to download.';
-    }
-
-    return `${parts.join(', ')} will be downloaded.`;
-  }, [selectedFileCounts]);
+    return `${imageFiles} images, ${audioFiles} audio. ${selectedQuest.assetCount} assets available, ${selectedAssets} assets selected.`;
+  }, [selectedAssetIds, selectedQuest, selectedQuestIds]);
 
   const handleDownload = async () => {
     setDownloadError(null);
     setDownloadProgress(null);
 
-    if (!selectedDownloadQuestIds.length || !selectedDownloadAssetIds.length) {
+    if (!hasDownloadSelection) {
       const message = 'Select at least one quest with assets to download.';
       setDownloadError(message);
       return;
@@ -460,8 +527,9 @@ export function ProjectDownloadModal({
     try {
       await downloadProjectZip({
         projectId,
-        questIds: selectedDownloadQuestIds,
-        assetIds: selectedDownloadAssetIds,
+        fullQuestIds: selectedDownloadSelection.fullQuestIds,
+        partialQuestIds: selectedDownloadSelection.partialQuestIds,
+        assetIds: selectedDownloadSelection.partialAssetIds,
         includeCsv: downloadOption === 'includeCsv',
         mergeAudioByQuest: downloadOption === 'mergeAudioByQuest',
         onProgress: setDownloadProgress
@@ -525,6 +593,8 @@ export function ProjectDownloadModal({
         setSelectedQuestId(null);
         setSelectedQuestIds(new Set());
         setSelectedAssetIds(new Set());
+        setAssetLoadStates({});
+        setAssetLoadErrors({});
         setDownloadError(null);
         setDownloadProgress(null);
       } catch (error) {
@@ -539,6 +609,8 @@ export function ProjectDownloadModal({
         setSelectedQuestId(null);
         setSelectedQuestIds(new Set());
         setSelectedAssetIds(new Set());
+        setAssetLoadStates({});
+        setAssetLoadErrors({});
         setDownloadError(null);
         setDownloadProgress(null);
       } finally {
@@ -554,6 +626,88 @@ export function ProjectDownloadModal({
       isActive = false;
     };
   }, [isDialogOpen, projectId]);
+
+  useEffect(() => {
+    if (!isDialogOpen || !selectedQuestId) {
+      return;
+    }
+
+    const quest = findQuestNode(questTree, selectedQuestId);
+    const currentLoadState = assetLoadStates[selectedQuestId];
+    if (!quest || quest.assetCount === 0 || currentLoadState === 'loaded') {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadQuestAssets = async () => {
+      setAssetLoadStates((current) => ({
+        ...current,
+        [selectedQuestId]: 'loading'
+      }));
+      setAssetLoadErrors((current) => {
+        const next = { ...current };
+        delete next[selectedQuestId];
+        return next;
+      });
+
+      try {
+        const {
+          data: { session }
+        } = await createBrowserClient().auth.getSession();
+
+        if (!session?.access_token) {
+          throw new Error('Authentication required');
+        }
+
+        const response = await fetch(
+          `/api/download/${projectId}/quests/${selectedQuestId}/assets`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          }
+        );
+
+        const json = (await response.json()) as QuestAssetsResponse & {
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(json.error || 'Failed to load quest assets');
+        }
+
+        if (!isActive) return;
+
+        setQuestTree((current) =>
+          updateQuestAssets(current, selectedQuestId, json.assets)
+        );
+        setAssetLoadStates((current) => ({
+          ...current,
+          [selectedQuestId]: 'loaded'
+        }));
+      } catch (error) {
+        console.error('Failed to load quest assets:', error);
+        if (!isActive) return;
+
+        setAssetLoadStates((current) => ({
+          ...current,
+          [selectedQuestId]: 'error'
+        }));
+        setAssetLoadErrors((current) => ({
+          ...current,
+          [selectedQuestId]:
+            error instanceof Error ? error.message : 'Failed to load assets'
+        }));
+      }
+    };
+
+    loadQuestAssets();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isDialogOpen, projectId, selectedQuestId]);
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
@@ -600,6 +754,7 @@ export function ProjectDownloadModal({
                   initialExpandedItems={questTreeElements.map(
                     (quest) => quest.id
                   )}
+                  showLabels={true}
                   showDates={true}
                   sort="none"
                 />
@@ -630,7 +785,15 @@ export function ProjectDownloadModal({
             </div>
             <div className="min-h-0 flex-1 overflow-hidden rounded-md border p-3">
               {selectedQuestId ? (
-                selectedQuestAssets.length ? (
+                assetLoadStates[selectedQuestId] === 'loading' ? (
+                  <div className="flex h-full items-center justify-center">
+                    <Spinner className="h-6 w-6" />
+                  </div>
+                ) : assetLoadStates[selectedQuestId] === 'error' ? (
+                  <div className="text-sm text-destructive">
+                    {assetLoadErrors[selectedQuestId] || 'Failed to load assets'}
+                  </div>
+                ) : selectedQuestAssets.length ? (
                   <Tree
                     key={selectedQuestId}
                     className="h-full"
@@ -655,13 +818,13 @@ export function ProjectDownloadModal({
             </div>
           </div>
         </div>
-        <div className="flex w-full justify-between gap-2">
+        <div className="grid w-full grid-cols-2 gap-4">
           <div className="text-muted-foreground p-0 text-xs -mt-2">
             {selectedCounts.quests} quests selected, {selectedCounts.assets}{' '}
             assets selected
           </div>
           <div className="text-muted-foreground p-0 text-xs -mt-2">
-            {selectedFileCountLabel}
+            {selectedQuestAssetCountLabel}
           </div>
         </div>
 
@@ -768,7 +931,7 @@ export function ProjectDownloadModal({
               disabled={
                 isLoadingQuests ||
                 isDownloading ||
-                !selectedDownloadAssetIds.length
+                !hasDownloadSelection
               }
               onClick={handleDownload}
             >
