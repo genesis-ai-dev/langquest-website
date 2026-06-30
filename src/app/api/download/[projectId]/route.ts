@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
 import { env } from '@/lib/env';
 import { Database } from '../../../../../database.types';
 
@@ -12,38 +11,14 @@ type QuestRow = {
   created_at: string;
 };
 
-type AssetRow = {
-  id: string;
-  name: string;
-  metadata: string | null;
-  images: unknown;
-  created_at: string;
-  content?: Array<{
-    audio: unknown;
-  }> | null;
-};
-
-type QuestAssetLinkRow = {
-  quest_id: string;
-  asset: AssetRow | AssetRow[] | null;
-};
-
-type DownloadAsset = {
-  id: string;
-  name: string;
-  metadata: string | null;
-  created_At: string;
-  imageCount: number;
-  audioFileCount: number;
-};
-
 type DownloadQuestNode = {
   id: string;
   name: string | null;
   metadata: string | null;
   createdAt: string;
+  assetCount: number;
   children: DownloadQuestNode[];
-  assets: DownloadAsset[];
+  assets: [];
 };
 
 type ProjectAccessRow = {
@@ -55,145 +30,8 @@ type ProjectAccessRow = {
 
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-type DownloadJobRequest = {
-  questIds: string[];
-  assetIds: string[];
-  includeCsv: boolean;
-  combineAudioByQuest: boolean;
-};
-
-function isUuidArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => uuidRegex.test(item));
-}
-
-function normalizeDownloadJobRequest(body: unknown): DownloadJobRequest | null {
-  if (!body || typeof body !== 'object') {
-    return null;
-  }
-
-  const value = body as Record<string, unknown>;
-  if (!isUuidArray(value.questIds) || !isUuidArray(value.assetIds)) {
-    return null;
-  }
-
-  if (
-    typeof value.includeCsv !== 'boolean' ||
-    typeof value.combineAudioByQuest !== 'boolean'
-  ) {
-    return null;
-  }
-
-  if (value.includeCsv && value.combineAudioByQuest) {
-    return null;
-  }
-
-  const questIds = [...new Set(value.questIds)];
-  const assetIds = [...new Set(value.assetIds)];
-  if (!questIds.length || !assetIds.length) {
-    return null;
-  }
-
-  return {
-    questIds,
-    assetIds,
-    includeCsv: value.includeCsv,
-    combineAudioByQuest: value.combineAudioByQuest
-  };
-}
-
-function createRequestChecksum(projectId: string, payload: DownloadJobRequest) {
-  return crypto
-    .createHash('sha256')
-    .update(
-      JSON.stringify({
-        projectId,
-        questIds: [...payload.questIds].sort(),
-        assetIds: [...payload.assetIds].sort(),
-        includeCsv: payload.includeCsv,
-        combineAudioByQuest: payload.combineAudioByQuest
-      })
-    )
-    .digest('hex');
-}
-
-async function triggerDownloadWorker(jobId: string, accessToken: string) {
-  const functionUrl = `${env.NEXT_PUBLIC_SUPABASE_URL.replace(
-    /\/$/,
-    ''
-  )}/functions/v1/project-download-job`;
-
-  try {
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ jobId })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      console.error('download job route worker trigger failed:', {
-        jobId,
-        status: response.status,
-        body: errorText
-      });
-    }
-  } catch (error) {
-    console.error('download job route worker trigger error:', {
-      jobId,
-      error
-    });
-  }
-}
-
-function normalizeAsset(asset: AssetRow): DownloadAsset {
-  return {
-    id: asset.id,
-    name: asset.name,
-    metadata: asset.metadata,
-    created_At: asset.created_at,
-    imageCount: countTextArrayItems(asset.images),
-    audioFileCount: (asset.content ?? []).reduce(
-      (total, contentLink) => total + countTextArrayItems(contentLink.audio),
-      0
-    )
-  };
-}
-
-function countTextArrayItems(value: unknown): number {
-  if (!value) return 0;
-
-  if (Array.isArray(value)) {
-    return value.filter(
-      (item) => typeof item === 'string' && item.trim() !== ''
-    ).length;
-  }
-
-  if (typeof value !== 'string') return 0;
-
-  const trimmed = value.trim();
-  if (!trimmed) return 0;
-
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (Array.isArray(parsed)) {
-      return parsed.filter(
-        (item) => typeof item === 'string' && item.trim() !== ''
-      ).length;
-    }
-  } catch {
-    // Fall back to semicolon parsing below.
-  }
-
-  return trimmed
-    .split(';')
-    .map((item) => item.trim())
-    .filter(Boolean).length;
-}
+const QUEST_PAGE_SIZE = 1000;
+const ASSET_COUNT_BATCH_SIZE = 10;
 
 function isProjectPrivate(project: ProjectAccessRow): boolean {
   if (typeof project.private === 'boolean') {
@@ -205,7 +43,7 @@ function isProjectPrivate(project: ProjectAccessRow): boolean {
 
 function buildQuestTree(
   quests: QuestRow[],
-  assetsByQuestId: Map<string, DownloadAsset[]>
+  assetCountsByQuestId: Map<string, number>
 ): DownloadQuestNode[] {
   const nodesById = new Map<string, DownloadQuestNode>();
   const roots: DownloadQuestNode[] = [];
@@ -216,8 +54,9 @@ function buildQuestTree(
       name: quest.name,
       metadata: quest.metadata,
       createdAt: quest.created_at,
+      assetCount: assetCountsByQuestId.get(quest.id) ?? 0,
       children: [],
-      assets: assetsByQuestId.get(quest.id) ?? []
+      assets: []
     });
   });
 
@@ -235,6 +74,82 @@ function buildQuestTree(
   });
 
   return roots;
+}
+
+async function loadProjectQuests(
+  supabase: ReturnType<typeof createClient<Database>>,
+  projectId: string
+) {
+  const quests: QuestRow[] = [];
+
+  for (let from = 0; ; from += QUEST_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('quest')
+      .select('id,name,parent_id,metadata,created_at')
+      .eq('project_id', projectId)
+      .eq('active', true)
+      .order('created_at', { ascending: true })
+      .range(from, from + QUEST_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as QuestRow[];
+    quests.push(...rows);
+
+    if (rows.length < QUEST_PAGE_SIZE) {
+      return quests;
+    }
+  }
+}
+
+async function countQuestAssets(
+  supabase: ReturnType<typeof createClient<Database>>,
+  projectId: string,
+  questId: string
+) {
+  const { count, error } = await supabase
+    .from('quest_asset_link')
+    .select('asset_id,asset:asset_id!inner(id)', {
+      count: 'exact',
+      head: true
+    })
+    .eq('quest_id', questId)
+    .eq('active', true)
+    .eq('asset.active', true)
+    .eq('asset.project_id', projectId)
+    .eq('asset.content_type', 'source');
+
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
+async function loadQuestAssetCounts(
+  supabase: ReturnType<typeof createClient<Database>>,
+  projectId: string,
+  questIds: string[]
+) {
+  const countsByQuestId = new Map<string, number>();
+
+  for (let index = 0; index < questIds.length; index += ASSET_COUNT_BATCH_SIZE) {
+    const batch = questIds.slice(index, index + ASSET_COUNT_BATCH_SIZE);
+    const counts = await Promise.all(
+      batch.map(async (questId) => ({
+        questId,
+        count: await countQuestAssets(supabase, projectId, questId)
+      }))
+    );
+
+    counts.forEach(({ questId, count }) => {
+      countsByQuestId.set(questId, count);
+    });
+  }
+
+  return countsByQuestId;
 }
 
 export async function GET(
@@ -329,14 +244,10 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data: quests, error: questsError } = await supabase
-      .from('quest')
-      .select('id,name,parent_id,metadata,created_at')
-      .eq('project_id', projectId)
-      .eq('active', true)
-      .order('created_at', { ascending: true });
-
-    if (questsError) {
+    let questRows: QuestRow[];
+    try {
+      questRows = await loadProjectQuests(supabase, projectId);
+    } catch (questsError) {
       console.error('download route query error:', {
         questsError
       });
@@ -346,51 +257,30 @@ export async function GET(
       );
     }
 
-    const questRows = (quests ?? []) as QuestRow[];
     const questIds = questRows.map((quest) => quest.id);
-    let questAssetLinks: QuestAssetLinkRow[] = [];
+    let assetCountsByQuestId = new Map<string, number>();
 
-    if (questIds.length) {
-      const { data: links, error: questAssetLinksError } = await supabase
-        .from('quest_asset_link')
-        .select(
-          'quest_id,asset:asset_id!inner(id,name,metadata,images,created_at,content:asset_content_link(audio))'
-        )
-        .in('quest_id', questIds)
-        .eq('active', true)
-        .eq('asset.active', true)
-        .eq('asset.project_id', projectId)
-        .eq('asset.content_type', 'source')
-        .order('created_at', { ascending: true });
-
-      if (questAssetLinksError) {
-        console.error(
-          'download route quest-asset-links error:',
-          questAssetLinksError
-        );
-        return NextResponse.json(
-          { error: 'Failed to load project assets' },
-          { status: 500 }
-        );
-      }
-
-      questAssetLinks = (links ?? []) as QuestAssetLinkRow[];
+    try {
+      assetCountsByQuestId = await loadQuestAssetCounts(
+        supabase,
+        projectId,
+        questIds
+      );
+    } catch (questAssetCountsError) {
+      console.error(
+        'download route quest-asset-counts error:',
+        questAssetCountsError
+      );
+      return NextResponse.json(
+        { error: 'Failed to load project asset counts' },
+        { status: 500 }
+      );
     }
-
-    const assetsByQuestId = new Map<string, DownloadAsset[]>();
-    questAssetLinks.forEach((link) => {
-      const asset = Array.isArray(link.asset) ? link.asset[0] : link.asset;
-      if (!asset) return;
-
-      const currentAssets = assetsByQuestId.get(link.quest_id) ?? [];
-      currentAssets.push(normalizeAsset(asset));
-      assetsByQuestId.set(link.quest_id, currentAssets);
-    });
 
     return NextResponse.json({
       projectId,
       projectTemplate: project.template,
-      tree: buildQuestTree(questRows, assetsByQuestId)
+      tree: buildQuestTree(questRows, assetCountsByQuestId)
     });
   } catch (error) {
     console.error('download route unexpected error:', error);

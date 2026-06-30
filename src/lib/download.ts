@@ -83,7 +83,8 @@ export type ProjectDownloadProgress = {
 
 export type DownloadProjectZipOptions = {
   projectId: string;
-  questIds: string[];
+  fullQuestIds: string[];
+  partialQuestIds: string[];
   assetIds: string[];
   includeCsv: boolean;
   mergeAudioByQuest: boolean;
@@ -104,24 +105,28 @@ const QUEST_UPLOAD_CSV_HEADERS: Array<keyof QuestUploadCsvRow> = [
 ];
 
 const QUERY_CHUNK_SIZE = 40;
+const QUEST_ASSET_LINK_PAGE_SIZE = 1000;
 
 export async function downloadProjectZip({
   projectId,
-  questIds,
+  fullQuestIds,
+  partialQuestIds,
   assetIds,
   includeCsv,
   mergeAudioByQuest,
   onProgress
 }: DownloadProjectZipOptions) {
-  if (!questIds.length || !assetIds.length) {
+  if (!fullQuestIds.length && !assetIds.length) {
     throw new Error('Select at least one quest with assets to download.');
   }
+
+  const selectedQuestIds = uniqueStrings([...fullQuestIds, ...partialQuestIds]);
 
   reportProgress(onProgress, {
     phase: 'loading',
     message: 'Loading download data...',
     currentQuest: 0,
-    totalQuests: questIds.length,
+    totalQuests: selectedQuestIds.length,
     percent: 0
   });
 
@@ -134,12 +139,23 @@ export async function downloadProjectZip({
     throw new Error('Authentication required');
   }
 
-  const [project, quests, assets, links] = await Promise.all([
+  const [project, quests, links] = await Promise.all([
     loadProject(projectId),
-    loadQuests(questIds),
-    loadAssets(projectId, assetIds),
-    loadQuestAssetLinks(questIds, assetIds)
+    loadQuests(selectedQuestIds),
+    loadSelectedQuestAssetLinks({
+      projectId,
+      fullQuestIds,
+      partialQuestIds,
+      assetIds
+    })
   ]);
+  const selectedAssetIds = uniqueStrings(links.map((link) => link.asset_id));
+
+  if (!selectedAssetIds.length) {
+    throw new Error('Select at least one quest with assets to download.');
+  }
+
+  const assets = await loadAssets(projectId, selectedAssetIds);
 
   const questsById = new Map(quests.map((quest) => [quest.id, quest]));
   const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
@@ -152,7 +168,7 @@ export async function downloadProjectZip({
   const usedFileNames = new Set<string>();
   const warnings: string[] = [];
 
-  for (const [questIndex, questId] of questIds.entries()) {
+  for (const [questIndex, questId] of selectedQuestIds.entries()) {
     const quest = questsById.get(questId);
     if (!quest) continue;
 
@@ -160,10 +176,10 @@ export async function downloadProjectZip({
       phase: 'quest',
       message: `Processing ${quest.name || 'Untitled Quest'}...`,
       currentQuest: questIndex + 1,
-      totalQuests: questIds.length,
+      totalQuests: selectedQuestIds.length,
       questId,
       questName: quest.name || 'Untitled Quest',
-      percent: Math.round((questIndex / questIds.length) * 100),
+      percent: Math.round((questIndex / selectedQuestIds.length) * 100),
       warnings: [...warnings]
     });
 
@@ -202,10 +218,10 @@ export async function downloadProjectZip({
                   concatProgress
                 ),
                 currentQuest: questIndex + 1,
-                totalQuests: questIds.length,
+                totalQuests: selectedQuestIds.length,
                 questId,
                 questName: quest.name || 'Untitled Quest',
-                percent: Math.round((questIndex / questIds.length) * 100),
+                percent: Math.round((questIndex / selectedQuestIds.length) * 100),
                 warnings: [...warnings]
               });
             }
@@ -230,10 +246,12 @@ export async function downloadProjectZip({
             phase: 'quest',
             message: `Skipped audio merge for ${quest.name || 'Untitled Quest'}.`,
             currentQuest: questIndex + 1,
-            totalQuests: questIds.length,
+            totalQuests: selectedQuestIds.length,
             questId,
             questName: quest.name || 'Untitled Quest',
-            percent: Math.round(((questIndex + 1) / questIds.length) * 100),
+            percent: Math.round(
+              ((questIndex + 1) / selectedQuestIds.length) * 100
+            ),
             warnings: [...warnings]
           });
         }
@@ -325,8 +343,8 @@ export async function downloadProjectZip({
   reportProgress(onProgress, {
     phase: 'zipping',
     message: 'Creating ZIP file...',
-    currentQuest: questIds.length,
-    totalQuests: questIds.length,
+    currentQuest: selectedQuestIds.length,
+    totalQuests: selectedQuestIds.length,
     percent: 95,
     warnings: [...warnings]
   });
@@ -348,8 +366,8 @@ export async function downloadProjectZip({
   reportProgress(onProgress, {
     phase: 'complete',
     message: 'Download completed.',
-    currentQuest: questIds.length,
-    totalQuests: questIds.length,
+    currentQuest: selectedQuestIds.length,
+    totalQuests: selectedQuestIds.length,
     percent: 100,
     warnings: [...warnings]
   });
@@ -404,6 +422,7 @@ async function loadAssets(projectId: string, assetIds: string[]) {
       )
       .eq('project_id', projectId)
       .eq('active', true)
+      .eq('content_type', 'source')
       .in('id', assetIdChunk);
 
     if (error) throw error;
@@ -413,24 +432,74 @@ async function loadAssets(projectId: string, assetIds: string[]) {
   return assets;
 }
 
-async function loadQuestAssetLinks(questIds: string[], assetIds: string[]) {
+async function loadSelectedQuestAssetLinks({
+  projectId,
+  fullQuestIds,
+  partialQuestIds,
+  assetIds
+}: {
+  projectId: string;
+  fullQuestIds: string[];
+  partialQuestIds: string[];
+  assetIds: string[];
+}) {
   const links: QuestAssetLinkRow[] = [];
+  const fullQuestIdSet = new Set(fullQuestIds);
 
-  for (const questIdChunk of chunkArray(questIds, QUERY_CHUNK_SIZE)) {
+  for (const questId of uniqueStrings(fullQuestIds)) {
+    links.push(...(await loadQuestAssetLinksForQuest(projectId, questId)));
+  }
+
+  for (const questId of uniqueStrings(partialQuestIds)) {
+    if (fullQuestIdSet.has(questId)) {
+      continue;
+    }
+
     for (const assetIdChunk of chunkArray(assetIds, QUERY_CHUNK_SIZE)) {
-      const { data, error } = await createBrowserClient()
-        .from('quest_asset_link')
-        .select('quest_id,asset_id')
-        .eq('active', true)
-        .in('quest_id', questIdChunk)
-        .in('asset_id', assetIdChunk);
-
-      if (error) throw error;
-      links.push(...((data ?? []) as QuestAssetLinkRow[]));
+      links.push(
+        ...(await loadQuestAssetLinksForQuest(projectId, questId, assetIdChunk))
+      );
     }
   }
 
-  return links;
+  return uniqueQuestAssetLinks(links);
+}
+
+async function loadQuestAssetLinksForQuest(
+  projectId: string,
+  questId: string,
+  assetIds?: string[]
+) {
+  const links: QuestAssetLinkRow[] = [];
+  const supabase = createBrowserClient();
+
+  for (let from = 0; ; from += QUEST_ASSET_LINK_PAGE_SIZE) {
+    let query = supabase
+      .from('quest_asset_link')
+      .select('quest_id,asset_id,asset:asset_id!inner(id)')
+      .eq('quest_id', questId)
+      .eq('active', true)
+      .eq('asset.active', true)
+      .eq('asset.project_id', projectId)
+      .eq('asset.content_type', 'source')
+      .order('created_at', { ascending: true })
+      .range(from, from + QUEST_ASSET_LINK_PAGE_SIZE - 1);
+
+    if (assetIds?.length) {
+      query = query.in('asset_id', assetIds);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    const rows = (data ?? []) as unknown as QuestAssetLinkRow[];
+    links.push(...rows);
+
+    if (rows.length < QUEST_ASSET_LINK_PAGE_SIZE) {
+      return links;
+    }
+  }
 }
 
 async function loadLanguoids(languoidIds: string[]) {
@@ -865,6 +934,27 @@ function reportProgress(
   progress: ProjectDownloadProgress
 ) {
   onProgress?.(progress);
+}
+
+function uniqueStrings(items: string[]) {
+  return [...new Set(items)];
+}
+
+function uniqueQuestAssetLinks(links: QuestAssetLinkRow[]) {
+  const seen = new Set<string>();
+  const uniqueLinks: QuestAssetLinkRow[] = [];
+
+  links.forEach((link) => {
+    const key = `${link.quest_id}:${link.asset_id}`;
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    uniqueLinks.push(link);
+  });
+
+  return uniqueLinks;
 }
 
 function chunkArray<T>(items: T[], chunkSize: number) {
