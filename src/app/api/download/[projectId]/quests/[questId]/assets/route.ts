@@ -141,10 +141,7 @@ export async function GET(
       !uuidRegex.test(projectId) ||
       !uuidRegex.test(questId)
     ) {
-      return NextResponse.json(
-        { error: 'Invalid ID format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
     const authHeader = request.headers.get('authorization');

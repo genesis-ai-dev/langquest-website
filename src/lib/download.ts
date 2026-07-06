@@ -221,7 +221,9 @@ export async function downloadProjectZip({
                 totalQuests: selectedQuestIds.length,
                 questId,
                 questName: quest.name || 'Untitled Quest',
-                percent: Math.round((questIndex / selectedQuestIds.length) * 100),
+                percent: Math.round(
+                  (questIndex / selectedQuestIds.length) * 100
+                ),
                 warnings: [...warnings]
               });
             }

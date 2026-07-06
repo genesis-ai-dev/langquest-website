@@ -20,7 +20,8 @@ function PrivacyPolicy() {
           </p>
           <p>
             We are committed to protecting your privacy. We collect minimal data
-            necessary to provide the App and Website, as outlined in this policy.
+            necessary to provide the App and Website, as outlined in this
+            policy.
           </p>
           <p>
             Frontier R&amp;D is based in Canada, and this Privacy Policy is
@@ -109,8 +110,8 @@ function PrivacyPolicy() {
                   do not collect analytics data or session replays.
                 </li>
                 <li>
-                  <strong>After you opt in.</strong> If you turn on analytics
-                  in the App, we collect:
+                  <strong>After you opt in.</strong> If you turn on analytics in
+                  the App, we collect:
                   <ul className="list-disc pl-6 space-y-2 mt-2">
                     <li>
                       Usage patterns: features accessed, screens viewed, and
@@ -154,10 +155,10 @@ function PrivacyPolicy() {
           <p>
             Umami does not use cookies on the Website and does not track you
             across other websites. We use this data to measure traffic and
-            improve the site. We rely on our legitimate interest in understanding
-            how visitors use the site. If you object to this processing, you may
-            enable Global Privacy Control or Do Not Track in your browser, or
-            contact us at{' '}
+            improve the site. We rely on our legitimate interest in
+            understanding how visitors use the site. If you object to this
+            processing, you may enable Global Privacy Control or Do Not Track in
+            your browser, or contact us at{' '}
             <a
               href="mailto:admin@frontierrnd.com"
               className="text-primary underline"
@@ -386,8 +387,8 @@ function PrivacyPolicy() {
             research and archiving, we keep voice recordings you contributed
             after your account is deleted, with your username and account link
             removed. These recordings remain part of the LangQuest language
-            archive. If you want your own recordings deleted instead, contact
-            us at{' '}
+            archive. If you want your own recordings deleted instead, contact us
+            at{' '}
             <a
               href="mailto:admin@frontierrnd.com"
               className="text-primary underline"
@@ -406,12 +407,12 @@ function PrivacyPolicy() {
 
           <h3 className="text-xl font-bold">6.4 Analytics opt-out</h3>
           <p>
-            PostHog does not run until you sign in and turn analytics on. You can
-            opt in from the analytics prompt or in Profile settings. If you opt
-            in, you can opt out again anytime in Profile settings. Opting out
-            stops account-linked analytics and session replay while you remain
-            signed in. It does not delete data already collected; contact us to
-            exercise your deletion rights.
+            PostHog does not run until you sign in and turn analytics on. You
+            can opt in from the analytics prompt or in Profile settings. If you
+            opt in, you can opt out again anytime in Profile settings. Opting
+            out stops account-linked analytics and session replay while you
+            remain signed in. It does not delete data already collected; contact
+            us to exercise your deletion rights.
           </p>
         </div>
       </div>
@@ -544,8 +545,9 @@ function PrivacyPolicy() {
               personal data we hold about you.
             </li>
             <li>
-              <strong>Right to erasure</strong>: You may request deletion of your
-              personal data, subject to exceptions described in Section 6.3.
+              <strong>Right to erasure</strong>: You may request deletion of
+              your personal data, subject to exceptions described in Section
+              6.3.
             </li>
             <li>
               <strong>Right to rectification</strong>: You may ask us to correct
