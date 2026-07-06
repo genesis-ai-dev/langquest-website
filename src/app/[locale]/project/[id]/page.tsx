@@ -129,23 +129,28 @@ function ProjectPageContent() {
     }
   });
 
-  // Single query to fetch Assets and Translations
+  // Fetch counts without downloading rows, avoiding Supabase's default row limit.
   const { data: assetsCounts = { assets: 0, translations: 0 } } = useQuery({
     queryKey: ['assets-translations-count', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('asset')
-        .select('source_asset_id')
-        .eq('project_id', projectId);
+      const [assetsResult, translationsResult] = await Promise.all([
+        supabase
+          .from('asset')
+          .select('*', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .eq('content_type', 'source'),
+        supabase
+          .from('asset')
+          .select('*', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .eq('content_type', 'translation')
+      ]);
 
-      if (error) throw error;
+      if (assetsResult.error) throw assetsResult.error;
+      if (translationsResult.error) throw translationsResult.error;
 
-      const assets = (data || []).filter(
-        (item) => item.source_asset_id === null
-      ).length;
-      const translations = (data || []).filter(
-        (item) => item.source_asset_id !== null
-      ).length;
+      const assets = assetsResult.count ?? 0;
+      const translations = translationsResult.count ?? 0;
 
       return { assets, translations };
     },
