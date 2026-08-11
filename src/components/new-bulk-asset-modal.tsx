@@ -43,6 +43,10 @@ import { LanguoidCombobox } from '@/components/languoid-combobox';
 import { LabelSelectorModal } from '@/components/QuestExplorer/label-selector-modal';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
 import { env } from '@/lib/env';
@@ -527,13 +531,19 @@ export function BulkAssetModal({
         }
 
         // Create asset (languoid is stored in asset_content_link, not asset)
+        const placementFields = buildAssetPlacementFields({
+          name: asset.name,
+          order_index: orderIndex,
+          metadata: asset.labelMetadata
+        });
+        const timestamps = assetWriteTimestamps();
+
         const { data: assetData, error: assetError } = await supabase
           .from('asset')
           .insert({
-            name: asset.name,
+            ...placementFields,
+            ...timestamps,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
-            metadata: asset.labelMetadata || null,
-            order_index: orderIndex,
             source_language_id: asset.source_languoid_id || null,
             active: true,
             project_id: projectId,
@@ -554,7 +564,8 @@ export function BulkAssetModal({
               audio: uploadedAudioId ? [uploadedAudioId] : null, // Only set audio if we have a value
               id: crypto.randomUUID(),
               active: true,
-              languoid_id: asset.source_languoid_id || null
+              languoid_id: asset.source_languoid_id || null,
+              ...timestamps
             });
 
           if (contentError) throw contentError;
@@ -562,11 +573,13 @@ export function BulkAssetModal({
 
         // Images are already handled in the asset creation (stored in the images column)
 
-        // Add quest relationships
+        // Duplicate placement fields on quest_asset_link (same values as asset)
         if (asset.questIds && asset.questIds.length > 0) {
           const questInserts = asset.questIds.map((questId) => ({
             quest_id: questId,
-            asset_id: assetData.id
+            asset_id: assetData.id,
+            ...placementFields,
+            ...timestamps
           }));
 
           const { error: questError } = await supabase

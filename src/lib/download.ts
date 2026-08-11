@@ -50,6 +50,9 @@ type DownloadAssetRow = {
 type QuestAssetLinkRow = {
   quest_id: string;
   asset_id: string;
+  name: string | null;
+  order_index: number | null;
+  metadata: unknown;
 };
 
 type LanguoidRow = {
@@ -159,7 +162,7 @@ export async function downloadProjectZip({
 
   const questsById = new Map(quests.map((quest) => [quest.id, quest]));
   const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
-  const assetIdsByQuestId = groupAssetIdsByQuest(links);
+  const linksByQuestId = groupLinksByQuest(links);
   const languoidIds = collectLanguoidIds(assets);
   const languoidsById = await loadLanguoids([...languoidIds]);
 
@@ -183,8 +186,12 @@ export async function downloadProjectZip({
       warnings: [...warnings]
     });
 
-    const orderedAssets = (assetIdsByQuestId.get(questId) ?? [])
-      .map((assetId) => assetsById.get(assetId))
+    const orderedAssets = (linksByQuestId.get(questId) ?? [])
+      .map((link) => {
+        const asset = assetsById.get(link.asset_id);
+        if (!asset) return null;
+        return resolveDownloadAssetForQuest(asset, link);
+      })
       .filter((asset): asset is DownloadAssetRow => Boolean(asset))
       .sort(sortAssets);
 
@@ -478,12 +485,15 @@ async function loadQuestAssetLinksForQuest(
   for (let from = 0; ; from += QUEST_ASSET_LINK_PAGE_SIZE) {
     let query = supabase
       .from('quest_asset_link')
-      .select('quest_id,asset_id,asset:asset_id!inner(id)')
+      .select(
+        'quest_id,asset_id,name,order_index,metadata,asset:asset_id!inner(id)'
+      )
       .eq('quest_id', questId)
       .eq('active', true)
       .eq('asset.active', true)
       .eq('asset.project_id', projectId)
       .eq('asset.content_type', 'source')
+      .order('order_index', { ascending: true })
       .order('created_at', { ascending: true })
       .range(from, from + QUEST_ASSET_LINK_PAGE_SIZE - 1);
 
@@ -653,16 +663,29 @@ function collectLanguoidIds(assets: DownloadAssetRow[]) {
   return languoidIds;
 }
 
-function groupAssetIdsByQuest(links: QuestAssetLinkRow[]) {
-  const assetIdsByQuestId = new Map<string, string[]>();
+function groupLinksByQuest(links: QuestAssetLinkRow[]) {
+  const linksByQuestId = new Map<string, QuestAssetLinkRow[]>();
 
   links.forEach((link) => {
-    const current = assetIdsByQuestId.get(link.quest_id) ?? [];
-    current.push(link.asset_id);
-    assetIdsByQuestId.set(link.quest_id, current);
+    const current = linksByQuestId.get(link.quest_id) ?? [];
+    current.push(link);
+    linksByQuestId.set(link.quest_id, current);
   });
 
-  return assetIdsByQuestId;
+  return linksByQuestId;
+}
+
+/** Prefer quest_asset_link name/order_index/metadata; fall back to asset. */
+function resolveDownloadAssetForQuest(
+  asset: DownloadAssetRow,
+  link: QuestAssetLinkRow
+): DownloadAssetRow {
+  return {
+    ...asset,
+    name: link.name ?? asset.name,
+    order_index: link.order_index ?? asset.order_index,
+    metadata: link.metadata ?? asset.metadata
+  };
 }
 
 function buildMergedQuestFileNameBase(quest: DownloadQuestRow) {

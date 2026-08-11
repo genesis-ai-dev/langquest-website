@@ -217,6 +217,7 @@ interface CreateBibleChapterPayload {
   chapterNumber: number;
   verseCount: number;
   existingBookQuestId?: string | null;
+  versionLabel?: string | null;
 }
 
 interface CreateFiaPericopePayload {
@@ -227,6 +228,7 @@ interface CreateFiaPericopePayload {
   sequence: number;
   verseRange: string;
   existingBookQuestId?: string | null;
+  versionLabel?: string | null;
 }
 
 export function useCreateBibleChapter() {

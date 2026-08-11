@@ -14,6 +14,9 @@ type AssetRow = {
 };
 
 type QuestAssetLinkRow = {
+  name: string | null;
+  order_index: number | null;
+  metadata: string | null;
   asset: AssetRow | AssetRow[] | null;
 };
 
@@ -75,11 +78,14 @@ function countTextArrayItems(value: unknown): number {
     .filter(Boolean).length;
 }
 
-function normalizeAsset(asset: AssetRow): DownloadAsset {
+function normalizeAsset(
+  asset: AssetRow,
+  link: Pick<QuestAssetLinkRow, 'name' | 'metadata'>
+): DownloadAsset {
   return {
     id: asset.id,
-    name: asset.name,
-    metadata: asset.metadata,
+    name: link.name ?? asset.name,
+    metadata: link.metadata ?? asset.metadata,
     created_At: asset.created_at,
     imageCount: countTextArrayItems(asset.images),
     audioFileCount: (asset.content ?? []).reduce(
@@ -100,13 +106,14 @@ async function loadQuestAssets(
     const { data, error } = await supabase
       .from('quest_asset_link')
       .select(
-        'asset:asset_id!inner(id,name,metadata,images,created_at,content:asset_content_link(audio))'
+        'name,order_index,metadata,asset:asset_id!inner(id,name,metadata,images,created_at,content:asset_content_link(audio))'
       )
       .eq('quest_id', questId)
       .eq('active', true)
       .eq('asset.active', true)
       .eq('asset.project_id', projectId)
       .eq('asset.content_type', 'source')
+      .order('order_index', { ascending: true })
       .order('created_at', { ascending: true })
       .range(from, from + ASSET_LINK_PAGE_SIZE - 1);
 
@@ -118,7 +125,7 @@ async function loadQuestAssets(
     rows.forEach((link) => {
       const asset = Array.isArray(link.asset) ? link.asset[0] : link.asset;
       if (asset) {
-        assets.push(normalizeAsset(asset));
+        assets.push(normalizeAsset(asset, link));
       }
     });
 
