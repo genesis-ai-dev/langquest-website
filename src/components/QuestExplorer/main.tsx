@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ import {
   useQuestAssets,
   useQuestTree
 } from '@/app/db/useQuestExplorerQueries';
+import type { QuestRecord } from '@/app/db/questExplorer';
 import { useAuth } from '@/components/auth-provider';
 import { getChildrenNodes, getRootNodes } from './model';
 import {
@@ -40,9 +42,11 @@ import {
   getTemplateStrategy
 } from './template-strategies';
 import {
+  formatQuestVersionLabel,
   getQuestDisabledFlag,
+  getQuestVersionDisplayLabel,
   getQuestVersionLabel,
-  getQuestVersionName
+  withQuestVersionLabel
 } from './template-strategies/helpers';
 import { QuestList } from './quest-list';
 import { SubquestList } from './subquest-list';
@@ -121,10 +125,12 @@ export function QuestExplorerMenu({
   const [pendingBibleChapter, setPendingBibleChapter] =
     useState<PendingBibleChapter | null>(null);
   const [showChapterConfirmModal, setShowChapterConfirmModal] = useState(false);
+  const [chapterVersionLabel, setChapterVersionLabel] = useState('');
   const [pendingFiaPericope, setPendingFiaPericope] =
     useState<PendingFiaPericope | null>(null);
   const [showFiaPericopeConfirmModal, setShowFiaPericopeConfirmModal] =
     useState(false);
+  const [fiaVersionLabel, setFiaVersionLabel] = useState('');
 
   const templateStrategy = useMemo(
     () => getTemplateStrategy(template),
@@ -235,7 +241,7 @@ export function QuestExplorerMenu({
       ...baseNode,
       questId: selectedVariant.id,
       quest: selectedVariant,
-      versionName: getQuestVersionName(selectedVariant),
+      versionLabel: getQuestVersionLabel(selectedVariant),
       disabled: getQuestDisabledFlag(selectedVariant)
     };
   }, [middleNodes, selectedMiddleNode]);
@@ -251,7 +257,7 @@ export function QuestExplorerMenu({
         questId: child.id,
         quest: child,
         variants: [child],
-        versionName: getQuestVersionName(child),
+        versionLabel: getQuestVersionLabel(child),
         kind: 'quest' as const,
         disabled: getQuestDisabledFlag(child)
       })) || [],
@@ -308,6 +314,7 @@ export function QuestExplorerMenu({
         verseCount,
         existingBookQuestId: contextNode?.questId || null
       });
+      setChapterVersionLabel('');
       setShowChapterConfirmModal(true);
       return;
     }
@@ -335,6 +342,7 @@ export function QuestExplorerMenu({
         verseRange: node.pericopeVerseRange,
         existingBookQuestId: contextNode?.questId || null
       });
+      setFiaVersionLabel('');
       setShowFiaPericopeConfirmModal(true);
       return;
     }
@@ -415,10 +423,16 @@ export function QuestExplorerMenu({
       ...baseNode,
       questId: selectedQuest.id,
       quest: selectedQuest,
-      versionName: getQuestVersionName(selectedQuest),
+      versionLabel: getQuestVersionLabel(selectedQuest),
       disabled: getQuestDisabledFlag(selectedQuest)
     });
     setSelectedAssetId(null);
+  };
+
+  const closeChapterConfirmModal = () => {
+    setShowChapterConfirmModal(false);
+    setPendingBibleChapter(null);
+    setChapterVersionLabel('');
   };
 
   const handleConfirmBibleChapter = async () => {
@@ -427,13 +441,15 @@ export function QuestExplorerMenu({
     }
 
     try {
+      const trimmedVersionLabel = chapterVersionLabel.trim();
       const result = await createBibleChapterMutation.mutateAsync({
         projectId,
         bookId: pendingBibleChapter.bookId,
         bookName: pendingBibleChapter.bookName,
         chapterNumber: pendingBibleChapter.chapterNumber,
         verseCount: pendingBibleChapter.verseCount,
-        existingBookQuestId: pendingBibleChapter.existingBookQuestId
+        existingBookQuestId: pendingBibleChapter.existingBookQuestId,
+        versionLabel: trimmedVersionLabel || null
       });
 
       setContextNode((prev) =>
@@ -444,49 +460,49 @@ export function QuestExplorerMenu({
             }
           : prev
       );
+
+      const createdMetadata = withQuestVersionLabel(
+        {
+          bible: {
+            book: pendingBibleChapter.bookId,
+            chapter: pendingBibleChapter.chapterNumber
+          }
+        },
+        trimmedVersionLabel
+      );
+      const createdQuest: QuestRecord = {
+        id: result.chapterQuestId,
+        name: `${pendingBibleChapter.bookName} ${pendingBibleChapter.chapterNumber}`,
+        description: `${pendingBibleChapter.verseCount} verses`,
+        metadata: createdMetadata,
+        parent_id: result.bookQuestId,
+        created_at: new Date().toISOString(),
+        creator_id: user?.id ?? null,
+        creator_username:
+          (user?.user_metadata?.username as string | undefined) ?? null,
+        children: []
+      };
+
       setSelectedMiddleNode({
         ...pendingBibleChapter.node,
         questId: result.chapterQuestId,
-        quest: {
-          id: result.chapterQuestId,
-          name: `${pendingBibleChapter.bookName} ${pendingBibleChapter.chapterNumber}`,
-          description: `${pendingBibleChapter.verseCount} verses`,
-          metadata: {
-            bible: {
-              book: pendingBibleChapter.bookId,
-              chapter: pendingBibleChapter.chapterNumber
-            }
-          },
-          parent_id: result.bookQuestId,
-          created_at: new Date().toISOString(),
-          children: []
-        },
-        variants: [
-          {
-            id: result.chapterQuestId,
-            name: `${pendingBibleChapter.bookName} ${pendingBibleChapter.chapterNumber}`,
-            description: `${pendingBibleChapter.verseCount} verses`,
-            metadata: {
-              bible: {
-                book: pendingBibleChapter.bookId,
-                chapter: pendingBibleChapter.chapterNumber
-              }
-            },
-            parent_id: result.bookQuestId,
-            created_at: new Date().toISOString(),
-            children: []
-          }
-        ],
-        versionName: undefined
+        quest: createdQuest,
+        variants: [createdQuest],
+        versionLabel: trimmedVersionLabel || undefined
       });
       toast.success(
         `Created ${pendingBibleChapter.bookName} ${pendingBibleChapter.chapterNumber}`
       );
-      setShowChapterConfirmModal(false);
-      setPendingBibleChapter(null);
+      closeChapterConfirmModal();
     } catch {
       toast.error('Failed to create chapter quest');
     }
+  };
+
+  const closeFiaPericopeConfirmModal = () => {
+    setShowFiaPericopeConfirmModal(false);
+    setPendingFiaPericope(null);
+    setFiaVersionLabel('');
   };
 
   const handleConfirmFiaPericope = async () => {
@@ -495,6 +511,7 @@ export function QuestExplorerMenu({
     }
 
     try {
+      const trimmedVersionLabel = fiaVersionLabel.trim();
       const result = await createFiaPericopeMutation.mutateAsync({
         projectId,
         bookId: pendingFiaPericope.bookId,
@@ -502,7 +519,8 @@ export function QuestExplorerMenu({
         pericopeId: pendingFiaPericope.pericopeId,
         sequence: pendingFiaPericope.sequence,
         verseRange: pendingFiaPericope.verseRange,
-        existingBookQuestId: pendingFiaPericope.existingBookQuestId
+        existingBookQuestId: pendingFiaPericope.existingBookQuestId,
+        versionLabel: trimmedVersionLabel || null
       });
 
       setContextNode((prev) =>
@@ -515,19 +533,25 @@ export function QuestExplorerMenu({
       );
 
       const createdAt = new Date().toISOString();
-      const createdQuest = {
+      const createdQuest: QuestRecord = {
         id: result.pericopeQuestId,
         name: `${pendingFiaPericope.bookName} ${pendingFiaPericope.verseRange}`,
         description: pendingFiaPericope.verseRange,
-        metadata: {
-          fia: {
-            bookId: pendingFiaPericope.bookId,
-            pericopeId: pendingFiaPericope.pericopeId,
-            verseRange: pendingFiaPericope.verseRange
-          }
-        },
+        metadata: withQuestVersionLabel(
+          {
+            fia: {
+              bookId: pendingFiaPericope.bookId,
+              pericopeId: pendingFiaPericope.pericopeId,
+              verseRange: pendingFiaPericope.verseRange
+            }
+          },
+          trimmedVersionLabel
+        ),
         parent_id: result.bookQuestId,
         created_at: createdAt,
+        creator_id: user?.id ?? null,
+        creator_username:
+          (user?.user_metadata?.username as string | undefined) ?? null,
         children: []
       };
 
@@ -536,14 +560,13 @@ export function QuestExplorerMenu({
         questId: result.pericopeQuestId,
         quest: createdQuest,
         variants: [createdQuest],
-        versionName: undefined
+        versionLabel: trimmedVersionLabel || undefined
       });
 
       toast.success(
         `Created ${pendingFiaPericope.bookName} ${pendingFiaPericope.verseRange}`
       );
-      setShowFiaPericopeConfirmModal(false);
-      setPendingFiaPericope(null);
+      closeFiaPericopeConfirmModal();
     } catch {
       toast.error('Failed to create pericope quest');
     }
@@ -552,6 +575,9 @@ export function QuestExplorerMenu({
   const contentTitle = selectedContentNode
     ? selectedContentNode.title
     : copy.rightDefaultTitleByContext?.(contextNode) || copy.rightDefaultTitle;
+  const contentVersionLabel = selectedContentNode?.quest
+    ? getQuestVersionDisplayLabel(selectedContentNode.quest)
+    : null;
   const selectedContentVariants = useMemo(
     () =>
       [...(selectedContentNode?.variants || [])].sort((a, b) => {
@@ -813,7 +839,25 @@ export function QuestExplorerMenu({
                 <div className="px-4 py-3 border-b">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <CardTitle className="truncate">{contentTitle}</CardTitle>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <CardTitle className="truncate" title={contentTitle}>
+                          {contentTitle}
+                        </CardTitle>
+                        {contentVersionLabel ? (
+                          <>
+                            <span
+                              aria-hidden
+                              className="size-1 shrink-0 rounded-full bg-muted-foreground/50"
+                            />
+                            <span
+                              className="truncate text-sm font-normal text-muted-foreground"
+                              title={contentVersionLabel}
+                            >
+                              {contentVersionLabel}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
                       {selectedContentNode?.quest?.description ? (
                         <p className="mt-1 truncate text-xs text-muted-foreground">
                           {selectedContentNode.quest.description}
@@ -826,17 +870,17 @@ export function QuestExplorerMenu({
                           asChild
                           size="sm"
                           variant="outline"
-                          className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80"
+                          className="flex items-center gap-2 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/80 mr-2"
                         >
                           <Link
                             href={reorderHref}
                             className="flex items-center gap-2"
                           >
                             <ListOrdered className="h-4 w-4" />
-                            Reorder & Export
+                            {/* Reorder & Export */}
                             <Badge
                               variant="outline"
-                              className="ml-1 border-amber-500/60 text-[10px] px-1.5 py-0"
+                              className="absolute ml-8 -mt-8 border-amber-500/60 bg-amber-500/10 text-[10px] px-1.5 py-0"
                             >
                               Beta
                             </Badge>
@@ -848,15 +892,23 @@ export function QuestExplorerMenu({
                           value={selectedContentNode.questId || ''}
                           onValueChange={handleSelectVersion}
                         >
-                          <SelectTrigger className="h-8 w-[190px]">
+                          <SelectTrigger className="h-8 w-[190px] overflow-hidden [&>span]:min-w-0 [&>span]:truncate">
                             <SelectValue placeholder="Select version" />
                           </SelectTrigger>
-                          <SelectContent>
-                            {selectedContentVariants.map((variant) => (
-                              <SelectItem key={variant.id} value={variant.id}>
-                                {getQuestVersionLabel(variant)}
-                              </SelectItem>
-                            ))}
+                          <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                            {selectedContentVariants.map((variant) => {
+                              const label = formatQuestVersionLabel(variant);
+                              return (
+                                <SelectItem
+                                  key={variant.id}
+                                  value={variant.id}
+                                  title={label}
+                                  className="overflow-hidden *:[span]:last:block *:[span]:last:min-w-0 *:[span]:last:truncate"
+                                >
+                                  {label}
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       )}
@@ -886,6 +938,17 @@ export function QuestExplorerMenu({
                               ]
                             });
                             toast.success(copy.msgSubquestCreated);
+                          }}
+                          onNewVersionCreated={(questId) => {
+                            setSelectedMiddleNode((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    questId
+                                  }
+                                : prev
+                            );
+                            setSelectedAssetId(null);
                           }}
                           onAssetSuccess={() => {
                             queryClient.invalidateQueries({
@@ -977,7 +1040,11 @@ export function QuestExplorerMenu({
 
       <Dialog
         open={showChapterConfirmModal}
-        onOpenChange={setShowChapterConfirmModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeChapterConfirmModal();
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -991,13 +1058,22 @@ export function QuestExplorerMenu({
               ?
             </DialogDescription>
           </DialogHeader>
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="chapter-version-label">Version name</Label>
+            <Input
+              id="chapter-version-label"
+              value={chapterVersionLabel}
+              onChange={(event) => setChapterVersionLabel(event.target.value)}
+              placeholder="Optional"
+              disabled={createBibleChapterMutation.isPending}
+              autoFocus
+            />
+          </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button
               variant="outline"
-              onClick={() => {
-                setShowChapterConfirmModal(false);
-                setPendingBibleChapter(null);
-              }}
+              onClick={closeChapterConfirmModal}
+              disabled={createBibleChapterMutation.isPending}
             >
               Cancel
             </Button>
@@ -1005,7 +1081,9 @@ export function QuestExplorerMenu({
               onClick={handleConfirmBibleChapter}
               disabled={createBibleChapterMutation.isPending}
             >
-              Create
+              {createBibleChapterMutation.isPending
+                ? 'Creating...'
+                : 'Create Version'}
             </Button>
           </div>
         </DialogContent>
@@ -1013,7 +1091,11 @@ export function QuestExplorerMenu({
 
       <Dialog
         open={showFiaPericopeConfirmModal}
-        onOpenChange={setShowFiaPericopeConfirmModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeFiaPericopeConfirmModal();
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1027,13 +1109,22 @@ export function QuestExplorerMenu({
               ?
             </DialogDescription>
           </DialogHeader>
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="fia-version-label">Version name</Label>
+            <Input
+              id="fia-version-label"
+              value={fiaVersionLabel}
+              onChange={(event) => setFiaVersionLabel(event.target.value)}
+              placeholder="Optional"
+              disabled={createFiaPericopeMutation.isPending}
+              autoFocus
+            />
+          </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button
               variant="outline"
-              onClick={() => {
-                setShowFiaPericopeConfirmModal(false);
-                setPendingFiaPericope(null);
-              }}
+              onClick={closeFiaPericopeConfirmModal}
+              disabled={createFiaPericopeMutation.isPending}
             >
               Cancel
             </Button>
@@ -1041,7 +1132,9 @@ export function QuestExplorerMenu({
               onClick={handleConfirmFiaPericope}
               disabled={createFiaPericopeMutation.isPending}
             >
-              Create
+              {createFiaPericopeMutation.isPending
+                ? 'Creating...'
+                : 'Create Version'}
             </Button>
           </div>
         </DialogContent>

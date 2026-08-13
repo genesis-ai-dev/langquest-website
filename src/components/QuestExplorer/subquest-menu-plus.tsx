@@ -26,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import BulkAssetModal from '@/components/new-bulk-asset-modal';
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
@@ -34,6 +36,7 @@ import { ImportAssetsModal } from '@/components/import-assets-modal';
 import { useAuth } from '@/components/auth-provider';
 import { useQueryClient } from '@tanstack/react-query';
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
+import { withQuestVersionLabel } from './template-strategies/helpers';
 
 interface SubQuestMenuPlusProps {
   canManage: boolean;
@@ -41,6 +44,7 @@ interface SubQuestMenuPlusProps {
   selectedQuestId: string | null;
   questAssetsCount?: number;
   onQuestSuccess?: () => void;
+  onNewVersionCreated?: (questId: string) => void;
   onAssetSuccess?: (currentQuestId?: string) => void;
   disableQuestSelection?: boolean;
   disableSubquestCreation?: boolean;
@@ -67,6 +71,7 @@ export function SubQuestMenuPlus({
   selectedQuestId,
   questAssetsCount,
   onQuestSuccess,
+  onNewVersionCreated,
   onAssetSuccess,
   disableQuestSelection = false,
   disableSubquestCreation = false,
@@ -80,6 +85,7 @@ export function SubQuestMenuPlus({
   const [showQuestForm, setShowQuestForm] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
+  const [newVersionLabel, setNewVersionLabel] = useState('');
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
 
   const canAddQuest =
@@ -110,6 +116,11 @@ export function SubQuestMenuPlus({
     onAssetSuccess?.(selectedQuestId || undefined);
   };
 
+  const closeNewVersionDialog = () => {
+    setShowNewVersionConfirm(false);
+    setNewVersionLabel('');
+  };
+
   const handleCreateNewVersion = async () => {
     if (!selectedQuestId || !user) {
       toast.error(
@@ -131,12 +142,31 @@ export function SubQuestMenuPlus({
         throw sourceError || new Error('Source quest not found');
       }
 
+      let sourceMetadata: Record<string, unknown> | null = null;
+      if (typeof sourceQuest.metadata === 'string') {
+        try {
+          sourceMetadata = JSON.parse(sourceQuest.metadata) as Record<
+            string,
+            unknown
+          >;
+        } catch {
+          sourceMetadata = null;
+        }
+      } else if (
+        sourceQuest.metadata &&
+        typeof sourceQuest.metadata === 'object'
+      ) {
+        sourceMetadata = sourceQuest.metadata as Record<string, unknown>;
+      }
+
+      const metadata = withQuestVersionLabel(sourceMetadata, newVersionLabel);
+
       const { data: createdQuest, error: createError } = await supabase
         .from('quest')
         .insert({
           name: sourceQuest.name,
           description: sourceQuest.description,
-          metadata: sourceQuest.metadata,
+          metadata,
           parent_id: sourceQuest.parent_id,
           project_id: sourceQuest.project_id,
           creator_id: user.id
@@ -172,12 +202,12 @@ export function SubQuestMenuPlus({
         }
       }
 
-      setShowNewVersionConfirm(false);
+      closeNewVersionDialog();
       toast.success(
         menuConfig?.msgNewVersionCreated || 'New quest version created'
       );
       await invalidateQuestQueries();
-      onQuestSuccess?.();
+      onNewVersionCreated?.(createdQuest.id);
     } catch (error: any) {
       toast.error(
         error?.message ||
@@ -214,7 +244,12 @@ export function SubQuestMenuPlus({
             </DropdownMenuItem>
           )}
           {canAddNewVersion && (
-            <DropdownMenuItem onSelect={() => setShowNewVersionConfirm(true)}>
+            <DropdownMenuItem
+              onSelect={() => {
+                setNewVersionLabel('');
+                setShowNewVersionConfirm(true);
+              }}
+            >
               <GitBranchPlus className="h-4 w-4" />
               Add New Version
             </DropdownMenuItem>
@@ -317,7 +352,13 @@ export function SubQuestMenuPlus({
 
       <Dialog
         open={showNewVersionConfirm}
-        onOpenChange={setShowNewVersionConfirm}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeNewVersionDialog();
+            return;
+          }
+          setShowNewVersionConfirm(true);
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -327,10 +368,21 @@ export function SubQuestMenuPlus({
                 'This will create a new version of the same quest. Do you want to continue?'}
             </DialogDescription>
           </DialogHeader>
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="new-version-label">Version name</Label>
+            <Input
+              id="new-version-label"
+              value={newVersionLabel}
+              onChange={(event) => setNewVersionLabel(event.target.value)}
+              placeholder="Optional"
+              disabled={isCreatingVersion}
+              autoFocus
+            />
+          </div>
           <div className="mt-4 flex justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowNewVersionConfirm(false)}
+              onClick={closeNewVersionDialog}
               disabled={isCreatingVersion}
             >
               Cancel

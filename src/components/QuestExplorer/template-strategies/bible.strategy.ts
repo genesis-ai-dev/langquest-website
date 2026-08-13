@@ -1,6 +1,6 @@
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { BIBLE_BOOKS, ICONS_PATH } from './bible.template';
-import { getQuestDisabledFlag, getQuestVersionName } from './helpers';
+import { getQuestDisabledFlag, getQuestVersionLabel } from './helpers';
 import { BibleAvailableLabel, DisplayNode, TemplateStrategy } from './types';
 
 function getBibleMetadata(
@@ -107,7 +107,7 @@ export const bibleStrategy: TemplateStrategy = {
         questId: rootQuest?.id || null,
         quest: rootQuest,
         variants: rootVariants,
-        versionName: getQuestVersionName(rootQuest),
+        versionLabel: getQuestVersionLabel(rootQuest),
         kind: 'book' as const,
         book,
         disabled: getQuestDisabledFlag(rootQuest)
@@ -153,7 +153,7 @@ export const bibleStrategy: TemplateStrategy = {
           questId: chapterQuest?.id || null,
           quest: chapterQuest,
           variants: chapterVariants,
-          versionName: getQuestVersionName(chapterQuest),
+          versionLabel: getQuestVersionLabel(chapterQuest),
           kind: 'chapter' as const,
           chapterNumber,
           book: contextNode.book,
@@ -169,7 +169,7 @@ export const bibleStrategy: TemplateStrategy = {
       questId: child.id,
       quest: child,
       variants: [child],
-      versionName: getQuestVersionName(child),
+      versionLabel: getQuestVersionLabel(child),
       kind: 'quest' as const,
       disabled: getQuestDisabledFlag(child)
     }));
