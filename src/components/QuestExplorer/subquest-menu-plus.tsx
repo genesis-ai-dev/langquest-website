@@ -7,6 +7,7 @@ import {
   FileStack,
   FolderPlus,
   GitBranchPlus,
+  Import as ImportIcon,
   Plus,
   Upload
 } from 'lucide-react';
@@ -29,6 +30,7 @@ import BulkAssetModal from '@/components/new-bulk-asset-modal';
 import { QuestForm } from '@/components/new-quest-form';
 import { AssetForm } from '@/components/new-asset-form';
 import { UploadProcessModal } from '@/components/upload-process-modal';
+import { ImportAssetsModal } from '@/components/import-assets-modal';
 import { useAuth } from '@/components/auth-provider';
 import { useQueryClient } from '@tanstack/react-query';
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
@@ -74,6 +76,7 @@ export function SubQuestMenuPlus({
   const { user, supabase } = useAuth();
   const queryClient = useQueryClient();
   const [showBulkAssetUpload, setShowBulkAssetUpload] = useState(false);
+  const [showImportAssets, setShowImportAssets] = useState(false);
   const [showQuestForm, setShowQuestForm] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
@@ -255,6 +258,16 @@ export function SubQuestMenuPlus({
               Bulk Upload Assets
             </DropdownMenuItem>
           )}
+
+          {canAddAssets && (
+            <DropdownMenuItem
+              onSelect={() => setShowImportAssets(true)}
+              disabled={!selectedQuestId}
+            >
+              <ImportIcon className="h-4 w-4" />
+              Import Assets
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -276,6 +289,15 @@ export function SubQuestMenuPlus({
         title="Upload Assets to Quest"
         subtitle="Follow each step to add multiple assets to this quest."
       />
+
+      {selectedQuestId ? (
+        <ImportAssetsModal
+          projectId={projectId}
+          questId={selectedQuestId}
+          open={showImportAssets}
+          onOpenChange={setShowImportAssets}
+        />
+      ) : null}
 
       <Dialog open={showQuestForm} onOpenChange={setShowQuestForm}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

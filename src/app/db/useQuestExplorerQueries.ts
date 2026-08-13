@@ -6,6 +6,7 @@ import {
   createBibleChapterQuest,
   createFiaPericopeQuest,
   fetchAssetDetails,
+  fetchCompatibleSourceQuests,
   fetchProjectQuestTree,
   fetchQuestAssets
 } from './questExplorer';
@@ -197,6 +198,20 @@ export function useQuestAssets(questId: string | null) {
     queryKey: ['qe-assets', questId],
     enabled: !!questId && !!user,
     queryFn: () => fetchQuestAssets(supabase, questId || '')
+  });
+}
+
+export function useCompatibleSourceQuests(
+  projectId: string,
+  questId: string,
+  enabled = true
+) {
+  const { user, supabase } = useAuth();
+
+  return useQuery({
+    queryKey: ['qe-compatible-source-quests', projectId, questId],
+    enabled: enabled && !!projectId && !!questId && !!user,
+    queryFn: () => fetchCompatibleSourceQuests(supabase, projectId, questId)
   });
 }
 

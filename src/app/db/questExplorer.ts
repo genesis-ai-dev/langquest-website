@@ -487,3 +487,187 @@ export async function createFiaPericopeQuest(
     pericopeQuestId: pericopeQuest.id as string
   };
 }
+
+export interface SourceQuestVersion {
+  id: string;
+  name: string | null;
+  versionLabel: string;
+  createdAt: string;
+  authorInitials: string;
+  authorName: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface CompatibleSourceQuestsResult {
+  template: string | null;
+  versions: SourceQuestVersion[];
+}
+
+function getQuestVersionLabelFromMetadata(
+  metadata: Record<string, unknown> | null
+): string {
+  const value = metadata?.versionName;
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+
+  return 'Unnamed version';
+}
+
+function getAuthorInitials(username: string | null | undefined): string {
+  if (!username?.trim()) {
+    return '?';
+  }
+
+  const words = username
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
+
+  if (words.length > 1) {
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }
+
+  return words[0].slice(0, 2).toUpperCase();
+}
+
+function getCompatibleQuestMatchKey(
+  template: string | null,
+  metadata: Record<string, unknown> | null
+): string | null {
+  if (!metadata) {
+    return null;
+  }
+
+  if (template === 'fia') {
+    const fia = metadata.fia as
+      | { bookId?: string; pericopeId?: string }
+      | undefined;
+    if (!fia?.bookId || !fia?.pericopeId) {
+      return null;
+    }
+
+    return `fia:${fia.bookId}:${fia.pericopeId}`;
+  }
+
+  if (template === 'bible') {
+    const bible = metadata.bible as
+      | { book?: string; chapter?: number | string }
+      | undefined;
+    if (!bible?.book || bible.chapter == null || bible.chapter === '') {
+      return null;
+    }
+
+    const chapter = Number(bible.chapter);
+    if (!Number.isFinite(chapter)) {
+      return null;
+    }
+
+    return `bible:${bible.book}:${chapter}`;
+  }
+
+  return null;
+}
+
+export async function fetchCompatibleSourceQuests(
+  supabase: SupabaseClient,
+  projectId: string,
+  questId: string
+): Promise<CompatibleSourceQuestsResult> {
+  const [currentQuestResult, projectResult, questsResult] = await Promise.all([
+    supabase.from('quest').select('id, metadata').eq('id', questId).single(),
+    supabase.from('project').select('template').eq('id', projectId).single(),
+    supabase
+      .from('quest')
+      .select('id, name, metadata, created_at, creator_id')
+      .eq('project_id', projectId)
+      .eq('active', true)
+      .neq('id', questId)
+      .order('created_at', { ascending: false })
+  ]);
+
+  if (currentQuestResult.error) {
+    throw currentQuestResult.error;
+  }
+
+  if (projectResult.error) {
+    throw projectResult.error;
+  }
+
+  if (questsResult.error) {
+    throw questsResult.error;
+  }
+
+  const template = (projectResult.data?.template as string | null) || null;
+  const currentMatchKey = getCompatibleQuestMatchKey(
+    template,
+    parseMetadata(currentQuestResult.data?.metadata)
+  );
+
+  if (!currentMatchKey) {
+    return {
+      template,
+      versions: []
+    };
+  }
+
+  const compatibleQuests = ((questsResult.data || []) as Array<{
+    id: string;
+    name: string | null;
+    metadata: unknown;
+    created_at: string;
+    creator_id: string | null;
+  }>).filter((quest) => {
+    const matchKey = getCompatibleQuestMatchKey(
+      template,
+      parseMetadata(quest.metadata)
+    );
+    return matchKey === currentMatchKey;
+  });
+
+  const creatorIds = [
+    ...new Set(
+      compatibleQuests
+        .map((quest) => quest.creator_id)
+        .filter((id): id is string => !!id)
+    )
+  ];
+
+  const usernameById = new Map<string, string | null>();
+  if (creatorIds.length > 0) {
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profile')
+      .select('id, username')
+      .in('id', creatorIds);
+
+    if (profilesError) {
+      throw profilesError;
+    }
+
+    ((profiles || []) as Array<{ id: string; username: string | null }>).forEach(
+      (profile) => {
+        usernameById.set(profile.id, profile.username);
+      }
+    );
+  }
+
+  return {
+    template,
+    versions: compatibleQuests.map((quest) => {
+      const metadata = parseMetadata(quest.metadata);
+      const authorName = quest.creator_id
+        ? (usernameById.get(quest.creator_id) ?? null)
+        : null;
+
+      return {
+        id: quest.id,
+        name: quest.name,
+        versionLabel: getQuestVersionLabelFromMetadata(metadata),
+        createdAt: quest.created_at,
+        authorInitials: getAuthorInitials(authorName),
+        authorName,
+        metadata
+      };
+    })
+  };
+}
