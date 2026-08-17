@@ -1,4 +1,8 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 
 export interface QuestRecord {
   id: string;
@@ -587,6 +591,7 @@ export interface SourceQuestVersion {
   authorInitials: string;
   authorName: string | null;
   metadata: Record<string, unknown> | null;
+  assetCount: number;
 }
 
 export interface CompatibleSourceQuestsResult {
@@ -597,7 +602,7 @@ export interface CompatibleSourceQuestsResult {
 function getQuestVersionLabelFromMetadata(
   metadata: Record<string, unknown> | null
 ): string {
-  const value = metadata?.versionName;
+  const value = metadata?.versionLabel;
   if (typeof value === 'string' && value.trim()) {
     return value.trim();
   }
@@ -665,100 +670,133 @@ export async function fetchCompatibleSourceQuests(
   projectId: string,
   questId: string
 ): Promise<CompatibleSourceQuestsResult> {
-  const [currentQuestResult, projectResult, questsResult] = await Promise.all([
-    supabase.from('quest').select('id, metadata').eq('id', questId).single(),
+  const [projectResult, tree] = await Promise.all([
     supabase.from('project').select('template').eq('id', projectId).single(),
-    supabase
-      .from('quest')
-      .select('id, name, metadata, created_at, creator_id')
-      .eq('project_id', projectId)
-      .eq('active', true)
-      .neq('id', questId)
-      .order('created_at', { ascending: false })
+    fetchProjectQuestTree(supabase, projectId)
   ]);
-
-  if (currentQuestResult.error) {
-    throw currentQuestResult.error;
-  }
 
   if (projectResult.error) {
     throw projectResult.error;
   }
 
-  if (questsResult.error) {
-    throw questsResult.error;
-  }
-
   const template = (projectResult.data?.template as string | null) || null;
+  const currentQuest = tree.byId[questId];
   const currentMatchKey = getCompatibleQuestMatchKey(
     template,
-    parseMetadata(currentQuestResult.data?.metadata)
+    currentQuest?.metadata ?? null
   );
 
-  if (!currentMatchKey) {
+  if (!currentQuest || !currentMatchKey) {
     return {
       template,
       versions: []
     };
   }
 
-  const compatibleQuests = ((questsResult.data || []) as Array<{
-    id: string;
-    name: string | null;
-    metadata: unknown;
-    created_at: string;
-    creator_id: string | null;
-  }>).filter((quest) => {
-    const matchKey = getCompatibleQuestMatchKey(
-      template,
-      parseMetadata(quest.metadata)
-    );
-    return matchKey === currentMatchKey;
-  });
-
-  const creatorIds = [
-    ...new Set(
-      compatibleQuests
-        .map((quest) => quest.creator_id)
-        .filter((id): id is string => !!id)
-    )
-  ];
-
-  const usernameById = new Map<string, string | null>();
-  if (creatorIds.length > 0) {
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profile')
-      .select('id, username')
-      .in('id', creatorIds);
-
-    if (profilesError) {
-      throw profilesError;
-    }
-
-    ((profiles || []) as Array<{ id: string; username: string | null }>).forEach(
-      (profile) => {
-        usernameById.set(profile.id, profile.username);
+  const compatibleQuests = tree.flat
+    .filter((quest) => {
+      if (quest.id === questId) {
+        return false;
       }
-    );
-  }
+
+      return (
+        getCompatibleQuestMatchKey(template, quest.metadata) === currentMatchKey
+      );
+    })
+    .sort((a, b) => {
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
+
+  const assetCounts = await fetchQuestAssetCounts(
+    supabase,
+    compatibleQuests.map((quest) => quest.id)
+  );
 
   return {
     template,
-    versions: compatibleQuests.map((quest) => {
-      const metadata = parseMetadata(quest.metadata);
-      const authorName = quest.creator_id
-        ? (usernameById.get(quest.creator_id) ?? null)
-        : null;
-
-      return {
-        id: quest.id,
-        name: quest.name,
-        versionLabel: getQuestVersionLabelFromMetadata(metadata),
-        createdAt: quest.created_at,
-        authorInitials: getAuthorInitials(authorName),
-        authorName,
-        metadata
-      };
-    })
+    versions: compatibleQuests.map((quest) => ({
+      id: quest.id,
+      name: quest.name,
+      versionLabel: getQuestVersionLabelFromMetadata(quest.metadata),
+      createdAt: quest.created_at,
+      authorInitials: getAuthorInitials(quest.creator_username),
+      authorName: quest.creator_username,
+      metadata: quest.metadata,
+      assetCount: assetCounts.get(quest.id) ?? 0
+    }))
   };
+}
+
+async function fetchQuestAssetCounts(
+  supabase: SupabaseClient,
+  questIds: string[]
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (questIds.length === 0) {
+    return counts;
+  }
+
+  const { data, error } = await supabase
+    .from('quest_asset_link')
+    .select('quest_id, asset:asset_id(active)')
+    .in('quest_id', questIds)
+    .is('asset.source_asset_id', null);
+
+  if (error) {
+    throw error;
+  }
+
+  (
+    (data || []) as Array<{
+      quest_id: string;
+      asset?: { active?: boolean } | Array<{ active?: boolean }>;
+    }>
+  ).forEach((row) => {
+    const asset = Array.isArray(row.asset) ? row.asset[0] : row.asset;
+    if (!asset?.active) {
+      return;
+    }
+
+    counts.set(row.quest_id, (counts.get(row.quest_id) ?? 0) + 1);
+  });
+
+  return counts;
+}
+
+export interface ImportQuestAssetLink {
+  assetId: string;
+  name: string | null;
+  order_index: number;
+  metadata: Record<string, unknown> | null;
+}
+
+export async function importAssetsToQuest(
+  supabase: SupabaseClient,
+  questId: string,
+  items: ImportQuestAssetLink[]
+): Promise<void> {
+  if (!questId || items.length === 0) {
+    return;
+  }
+
+  const timestamps = assetWriteTimestamps();
+  const payload = items.map((item) => ({
+    quest_id: questId,
+    asset_id: item.assetId,
+    active: true,
+    ...buildAssetPlacementFields({
+      name: item.name || 'Untitled asset',
+      order_index: item.order_index,
+      metadata: item.metadata
+    }),
+    ...timestamps
+  }));
+
+  const { error } = await supabase.from('quest_asset_link').insert(payload);
+
+  if (error) {
+    throw error;
+  }
 }

@@ -331,6 +331,10 @@ export function SubQuestMenuPlus({
           questId={selectedQuestId}
           open={showImportAssets}
           onOpenChange={setShowImportAssets}
+          labelContext={labelContext}
+          onSuccess={() => {
+            onAssetSuccess?.(selectedQuestId);
+          }}
         />
       ) : null}
 
