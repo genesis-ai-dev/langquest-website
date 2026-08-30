@@ -22,7 +22,8 @@ export function buildAssetPlacementFields(input: {
   return {
     name: input.name,
     order_index:
-      typeof input.order_index === 'number' && Number.isFinite(input.order_index)
+      typeof input.order_index === 'number' &&
+      Number.isFinite(input.order_index)
         ? input.order_index
         : 0,
     metadata: serializeAssetMetadata(input.metadata)

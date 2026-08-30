@@ -691,7 +691,9 @@ function QuestContent({
       const assets =
         data
           ?.map((item: any) => {
-            const asset = Array.isArray(item.asset) ? item.asset[0] : item.asset;
+            const asset = Array.isArray(item.asset)
+              ? item.asset[0]
+              : item.asset;
             if (!asset || !asset.active) return null;
             return {
               ...asset,

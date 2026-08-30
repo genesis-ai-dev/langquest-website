@@ -195,13 +195,13 @@ export async function fetchProjectQuestTree(
       throw profilesError;
     }
 
-    ((profiles || []) as Array<{ id: string; username: string | null }>).forEach(
-      (profile) => {
-        if (profile.username?.trim()) {
-          creatorUsernameById.set(profile.id, profile.username.trim());
-        }
+    (
+      (profiles || []) as Array<{ id: string; username: string | null }>
+    ).forEach((profile) => {
+      if (profile.username?.trim()) {
+        creatorUsernameById.set(profile.id, profile.username.trim());
       }
-    );
+    });
   }
 
   const normalized = rows.map((row) =>

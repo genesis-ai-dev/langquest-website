@@ -52,7 +52,9 @@ export function withQuestVersionLabel(
   return next;
 }
 
-function getCreatorInitials(username: string | null | undefined): string | null {
+function getCreatorInitials(
+  username: string | null | undefined
+): string | null {
   if (!username?.trim()) {
     return null;
   }

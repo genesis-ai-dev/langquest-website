@@ -133,7 +133,9 @@ export function AclReorderView() {
           };
         })
         .filter(
-          (asset): asset is {
+          (
+            asset
+          ): asset is {
             id: string;
             name: string;
             order_index: number;
