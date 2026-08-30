@@ -662,10 +662,15 @@ function QuestContent({
         .from('quest_asset_link')
         .select(
           `
+          name,
+          order_index,
+          metadata,
           asset:asset_id (
             id,
             name,
             active,
+            order_index,
+            metadata,
             created_at,
             last_updated,
             images,
@@ -677,15 +682,36 @@ function QuestContent({
         )
         .eq('quest_id', currentChapterQuestId)
         .is('asset.source_asset_id', null)
+        .order('order_index', { ascending: true })
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      // Filter only assets that are active and extract the asset data
+      // Prefer quest_asset_link fields; fall back to asset (legacy)
       const assets =
         data
-          ?.map((item: any) => item.asset)
-          .filter((asset: any) => asset && asset.active) || [];
+          ?.map((item: any) => {
+            const asset = Array.isArray(item.asset)
+              ? item.asset[0]
+              : item.asset;
+            if (!asset || !asset.active) return null;
+            return {
+              ...asset,
+              name: item.name ?? asset.name,
+              order_index: item.order_index ?? asset.order_index ?? null,
+              metadata: item.metadata ?? asset.metadata ?? null
+            };
+          })
+          .filter(Boolean)
+          .sort((a: any, b: any) => {
+            const aOrder = a.order_index ?? Number.MAX_SAFE_INTEGER;
+            const bOrder = b.order_index ?? Number.MAX_SAFE_INTEGER;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return (
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()
+            );
+          }) || [];
 
       return assets;
     },

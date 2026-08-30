@@ -135,7 +135,11 @@ async function loadQuestAssetCounts(
 ) {
   const countsByQuestId = new Map<string, number>();
 
-  for (let index = 0; index < questIds.length; index += ASSET_COUNT_BATCH_SIZE) {
+  for (
+    let index = 0;
+    index < questIds.length;
+    index += ASSET_COUNT_BATCH_SIZE
+  ) {
     const batch = questIds.slice(index, index + ASSET_COUNT_BATCH_SIZE);
     const counts = await Promise.all(
       batch.map(async (questId) => ({

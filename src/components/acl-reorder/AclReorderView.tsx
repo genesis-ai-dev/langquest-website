@@ -103,21 +103,48 @@ export function AclReorderView() {
 
       const { data: qal, error: qalError } = await supabase
         .from('quest_asset_link')
-        .select('asset_id')
-        .eq('quest_id', selectedQuestId);
+        .select(
+          `
+          name,
+          order_index,
+          metadata,
+          asset:asset_id (
+            id,
+            name,
+            order_index,
+            metadata,
+            source_asset_id
+          )
+        `
+        )
+        .eq('quest_id', selectedQuestId)
+        .order('order_index', { ascending: true });
       if (qalError) throw qalError;
-      const assetIds = (qal || []).map((r) => r.asset_id);
-      if (assetIds.length === 0) return [];
 
-      const { data: assets, error: assetsError } = await supabase
-        .from('asset')
-        .select('id, name, order_index, metadata')
-        .in('id', assetIds)
-        .is('source_asset_id', null);
-      if (assetsError) throw assetsError;
-      const topLevelAssets = (assets || []).sort(
-        (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
-      );
+      const topLevelAssets = (qal || [])
+        .map((link: any) => {
+          const asset = Array.isArray(link.asset) ? link.asset[0] : link.asset;
+          if (!asset || asset.source_asset_id != null) return null;
+          return {
+            id: asset.id as string,
+            name: (link.name ?? asset.name) as string,
+            order_index: (link.order_index ?? asset.order_index ?? 0) as number,
+            metadata: (link.metadata ?? asset.metadata ?? null) as string | null
+          };
+        })
+        .filter(
+          (
+            asset
+          ): asset is {
+            id: string;
+            name: string;
+            order_index: number;
+            metadata: string | null;
+          } => !!asset
+        )
+        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+      if (topLevelAssets.length === 0) return [];
       const topLevelIds = topLevelAssets.map((a) => a.id);
 
       const { data: acls, error: aclsError } = await supabase

@@ -1,5 +1,5 @@
 import { QuestRecord } from '@/app/db/questExplorer';
-import { getQuestDisabledFlag, getQuestVersionName } from './helpers';
+import { getQuestDisabledFlag, getQuestVersionLabel } from './helpers';
 import { DisplayNode, TemplateStrategy } from './types';
 
 function mapQuestNode(quest: QuestRecord): DisplayNode {
@@ -10,7 +10,7 @@ function mapQuestNode(quest: QuestRecord): DisplayNode {
     questId: quest.id,
     quest,
     variants: [quest],
-    versionName: getQuestVersionName(quest),
+    versionLabel: getQuestVersionLabel(quest),
     kind: 'quest',
     disabled: getQuestDisabledFlag(quest)
   };

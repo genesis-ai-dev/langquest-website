@@ -709,6 +709,9 @@ export type Database = {
           asset_id: string;
           created_at: string;
           last_updated: string;
+          metadata: string | null;
+          name: string | null;
+          order_index: number | null;
           quest_id: string;
         };
         Insert: {
@@ -716,6 +719,9 @@ export type Database = {
           asset_id: string;
           created_at?: string;
           last_updated?: string;
+          metadata?: string | null;
+          name?: string | null;
+          order_index?: number | null;
           quest_id: string;
         };
         Update: {
@@ -723,6 +729,9 @@ export type Database = {
           asset_id?: string;
           created_at?: string;
           last_updated?: string;
+          metadata?: string | null;
+          name?: string | null;
+          order_index?: number | null;
           quest_id?: string;
         };
         Relationships: [

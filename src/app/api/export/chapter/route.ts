@@ -401,12 +401,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch assets for this quest
+    // Fetch assets for this quest (order_index from quest_asset_link, fallback to asset)
     const { data: questAssetLinks, error: questAssetLinksError } =
       await supabase
         .from('quest_asset_link')
-        .select('asset_id')
-        .eq('quest_id', body.quest_id);
+        .select(
+          `
+          asset_id,
+          order_index,
+          asset:asset_id (
+            id,
+            order_index,
+            source_asset_id
+          )
+        `
+        )
+        .eq('quest_id', body.quest_id)
+        .order('order_index', { ascending: true });
 
     if (questAssetLinksError || !questAssetLinks) {
       console.error(
@@ -426,30 +437,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const assetIds = questAssetLinks.map((link) => link.asset_id);
-
-    // Fetch asset details to get order_index and filter out translation assets
-    // Translation assets have source_asset_id set (they are translations of other assets)
-    const { data: assets, error: assetsError } = await supabase
-      .from('asset')
-      .select('id, order_index, source_asset_id')
-      .in('id', assetIds);
-
-    if (assetsError) {
-      console.error('[Export API] Error fetching assets:', assetsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch asset details' },
-        { status: 500 }
-      );
-    }
-
     // Filter out translation assets (only include top-level assets where source_asset_id is null)
-    const topLevelAssets = (assets || [])
-      .filter((asset) => asset.source_asset_id === null)
-      .map((asset) => ({
-        asset_id: asset.id,
-        order_index: asset.order_index ?? 0
-      }));
+    const topLevelAssets = (questAssetLinks || [])
+      .map((link: any) => {
+        const asset = Array.isArray(link.asset) ? link.asset[0] : link.asset;
+        if (!asset || asset.source_asset_id !== null) return null;
+        return {
+          asset_id: asset.id as string,
+          order_index: (link.order_index ?? asset.order_index ?? 0) as number
+        };
+      })
+      .filter(
+        (asset): asset is { asset_id: string; order_index: number } => !!asset
+      );
 
     if (topLevelAssets.length === 0) {
       return NextResponse.json(

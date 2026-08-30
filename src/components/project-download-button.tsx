@@ -82,9 +82,14 @@ export function ProjectDownloadButton({
             name,
             description,
             assets:quest_asset_link(
+              name,
+              order_index,
+              metadata,
               asset:asset_id(
                 id,
                 name,
+                order_index,
+                metadata,
                 translations:translation(
                   id,
                   text,
@@ -111,7 +116,19 @@ export function ProjectDownloadButton({
             ...quest,
             assets:
               quest.assets
-                ?.map((assetLink: any) => assetLink.asset)
+                ?.map((assetLink: any) => {
+                  const asset = Array.isArray(assetLink.asset)
+                    ? assetLink.asset[0]
+                    : assetLink.asset;
+                  if (!asset) return null;
+                  return {
+                    ...asset,
+                    name: assetLink.name ?? asset.name,
+                    order_index:
+                      assetLink.order_index ?? asset.order_index ?? null,
+                    metadata: assetLink.metadata ?? asset.metadata ?? null
+                  };
+                })
                 .filter(Boolean) || []
           })) || []
       };

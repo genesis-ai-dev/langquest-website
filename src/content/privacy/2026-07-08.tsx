@@ -12,12 +12,16 @@ function PrivacyPolicy() {
             This Privacy Policy describes how Frontier R&amp;D (&quot;we,&quot;
             &quot;us,&quot; or &quot;our&quot;) collects, uses, and shares
             information in connection with your use of the LangQuest mobile
-            application (&quot;App&quot;).
+            application (&quot;App&quot;) and our website at{' '}
+            <Link href="/" className="text-primary hover:underline">
+              langquest.org
+            </Link>{' '}
+            (&quot;Website&quot;).
           </p>
           <p>
             We are committed to protecting your privacy. We collect minimal data
-            necessary to provide you with the App&apos;s functionality, as
-            outlined in this policy.
+            necessary to provide the App and Website, as outlined in this
+            policy.
           </p>
           <p>
             Frontier R&amp;D is based in Canada, and this Privacy Policy is
@@ -75,8 +79,11 @@ function PrivacyPolicy() {
             2.2 Information We Collect Automatically
           </h3>
           <p>
-            When you use our App, we may collect certain information
-            automatically, including:
+            When you use the App or visit the Website, we may collect certain
+            information automatically.
+          </p>
+          <p>
+            <strong>App.</strong> When you use the App, this may include:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>
@@ -86,54 +93,80 @@ function PrivacyPolicy() {
             </li>
             <li>
               <strong>Device Information</strong>: Information about your
-              device, including device model, and operating system.
+              device, including device model and operating system, when you opt
+              in to account-linked analytics after sign-in (see Analytics Data
+              below).
             </li>
             <li>
-              <strong>Analytics Data</strong>: We use PostHog, an analytics
-              service, to collect usage data to help us improve the App. This
-              may include:
+              <strong>Analytics Data (PostHog)</strong>: We use PostHog on the
+              native App (not on web or in development) only after you sign in
+              and opt in to analytics. Until then, PostHog does not run on your
+              device — no usage data, no session replay, and no error telemetry
+              is sent.
               <ul className="list-disc pl-6 space-y-2 mt-2">
                 <li>
-                  Device metadata: device type, screen dimensions, operating
-                  system version, and app version
+                  <strong>Before you opt in.</strong> Whether you are browsing
+                  before sign-in or signed in without turning analytics on, we
+                  do not collect analytics data or session replays.
                 </li>
                 <li>
-                  Location data: general geographic location (country and city)
-                  based on IP address
-                </li>
-                <li>
-                  Usage patterns: features accessed, buttons clicked, screens
-                  viewed, and navigation paths
-                </li>
-                <li>
-                  Session information: session duration, frequency of use, and
-                  timestamps of activities
-                </li>
-                <li>
-                  Technical events: app crashes, network requests, and loading
-                  times
-                </li>
-                <li>
-                  Account linkage: if you are signed in and have not opted out
-                  of analytics, we associate usage events with your account user
-                  ID to improve the App and diagnose issues. We do not send your
-                  email address to our analytics provider for this purpose.
-                </li>
-                <li>
-                  Device and session identifiers: when analytics are enabled, we
-                  may also use device or session identifiers to understand
-                  usage. If you opt out of analytics or are not signed in, we do
-                  not link analytics to your account user ID.
-                </li>
-                <li>
-                  Session replay: on supported devices, we may record limited
-                  replays of how you use the App (such as screens viewed and
-                  interactions). Text you type into forms is masked; we use this
-                  to find bugs and improve usability.
+                  <strong>After you opt in.</strong> If you turn on analytics in
+                  the App, we collect:
+                  <ul className="list-disc pl-6 space-y-2 mt-2">
+                    <li>
+                      Usage patterns: features accessed, screens viewed, and
+                      navigation paths
+                    </li>
+                    <li>
+                      Device metadata: device manufacturer, model, operating
+                      system version, app version, and OTA update identifier
+                    </li>
+                    <li>
+                      Session replay on supported devices: recordings of screens
+                      and interactions while you are signed in. Text you type
+                      into forms is masked.
+                    </li>
+                    <li>
+                      Technical events: app crashes, unhandled errors, and
+                      related diagnostic data
+                    </li>
+                    <li>
+                      Account linkage: we associate usage with your account user
+                      ID through PostHog. We do not send your email address to
+                      PostHog.
+                    </li>
+                  </ul>
                 </li>
               </ul>
             </li>
           </ul>
+          <p>
+            <strong>Website.</strong> When you visit langquest.org, we use
+            Umami, a cookieless analytics service, to understand how visitors
+            use the site. Umami may collect:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Pages viewed and referring URLs</li>
+            <li>Browser type, operating system, and device type</li>
+            <li>
+              General geographic location (country) derived from your IP address
+            </li>
+          </ul>
+          <p>
+            Umami does not use cookies on the Website and does not track you
+            across other websites. We use this data to measure traffic and
+            improve the site. We rely on our legitimate interest in
+            understanding how visitors use the site. If you object to this
+            processing, you may enable Global Privacy Control or Do Not Track in
+            your browser, or contact us at{' '}
+            <a
+              href="mailto:admin@frontierrnd.com"
+              className="text-primary underline"
+            >
+              admin@frontierrnd.com
+            </a>{' '}
+            to opt out.
+          </p>
         </div>
       </div>
 
@@ -150,8 +183,9 @@ function PrivacyPolicy() {
               contributions, and user interactions.
             </li>
             <li>
-              <strong>Improve the App</strong>: To understand how users interact
-              with the App and identify areas for improvement.
+              <strong>Improve the App</strong>: To understand how opted-in users
+              use the App after they turn on analytics, so we can find and fix
+              problems.
             </li>
             <li>
               <strong>Communicate with you</strong>: To respond to your
@@ -180,6 +214,17 @@ function PrivacyPolicy() {
             comments, votes) is made freely available worldwide under the CC0
             1.0 Universal (CC0 1.0) Public Domain Dedication. This means anyone
             can use this content for any purpose without attribution.
+          </p>
+          <p>
+            <strong>Audio recordings.</strong> When you record audio for a
+            contribution, that recording may identify you by your voice. A
+            reading may also include names or other personal details if you
+            speak them. CC0 dedicates the language data itself to the public
+            domain; it does not make a voice recording anonymous. If you delete
+            your account, we may keep your recordings as part of the LangQuest
+            language archive with your username and account link removed, as
+            described in Section 6.3. You may contact us to request deletion of
+            your own recordings.
           </p>
 
           <h3 className="text-xl font-bold">4.1.1 Our Language Data Mission</h3>
@@ -220,20 +265,44 @@ function PrivacyPolicy() {
 
           <h3 className="text-xl font-bold">4.2 Service Providers</h3>
           <p>
-            We may share your information with third-party service providers who
-            perform services on our behalf, including:
+            We share personal data with service providers who process it on our
+            behalf. They may only use it to provide services to us and must
+            protect it under contract.
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>
-              <strong>Analytics</strong>: We use PostHog to collect and analyze
-              usage data. PostHog processes this information on our behalf
-              according to their privacy policy and our instructions.
+              <strong>Supabase</strong> (database, authentication, file storage,
+              and backend functions): hosts account data, contributions, and app
+              content.
             </li>
             <li>
-              <strong>Hosting and Infrastructure</strong>: Services that host
-              the App and store user data.
+              <strong>PostHog</strong> (App analytics): processes usage data,
+              device metadata, and session replay only if you opt in to
+              analytics after sign-in, as described in Section 2.2.
+            </li>
+            <li>
+              <strong>Umami</strong> (Website analytics): collects cookieless
+              page-view and traffic data on langquest.org, as described in
+              Section 2.2.
+            </li>
+            <li>
+              <strong>Resend</strong> (email): sends transactional emails,
+              invites, and newsletter messages to addresses you provide.
+            </li>
+            <li>
+              <strong>Cloudflare</strong> (infrastructure): runs edge services
+              that route email webhooks, proxy App analytics, and store exported
+              audio files.
+            </li>
+            <li>
+              <strong>Vercel</strong> (Website hosting): hosts langquest.org and
+              standard web server logs.
             </li>
           </ul>
+          <p>
+            These providers may process data in the United States or other
+            countries. See Section 8 for transfer details.
+          </p>
 
           <h3 className="text-xl font-bold">4.3 Legal Requirements</h3>
           <p>
@@ -285,25 +354,65 @@ function PrivacyPolicy() {
 
           <h3 className="text-xl font-bold">6.3 Account Deletion</h3>
           <p>
-            You can request the deletion of your account by contacting us at{' '}
+            You can request deletion of your account in the App (Profile →
+            Account Deletion) or by contacting us at{' '}
             <a
               href="mailto:admin@frontierrnd.com"
               className="text-primary underline"
             >
               admin@frontierrnd.com
             </a>
-            . Upon deletion, we will remove your account information from our
-            active systems. However, some information may remain in our backups
-            or records as required by law.
+            .
+          </p>
+          <p>
+            When you request deletion, we schedule a permanent purge after a
+            30-day grace period. During that period you can sign back in and
+            cancel the deletion. When the purge runs, we delete your account,
+            profile, email address, and other personal information tied to your
+            identity from our active systems.
+          </p>
+          <p>
+            <strong>Contributions you published.</strong> Text translations,
+            comments, and votes that you contributed under CC0 stay available in
+            the public language dataset, but we remove the link between those
+            items and your account (your username and contributor ID are
+            removed). Please do not include personal details in shared text if
+            you do not want them to remain public.
+          </p>
+          <p>
+            <strong>Voice recordings.</strong> Audio recordings are different
+            from text. A voice can identify a speaker even after we remove your
+            account link, and many recordings are audio-only translations with
+            no separate text. To preserve irreplaceable language data for
+            research and archiving, we keep voice recordings you contributed
+            after your account is deleted, with your username and account link
+            removed. These recordings remain part of the LangQuest language
+            archive. If you want your own recordings deleted instead, contact us
+            at{' '}
+            <a
+              href="mailto:admin@frontierrnd.com"
+              className="text-primary underline"
+            >
+              admin@frontierrnd.com
+            </a>{' '}
+            when you request account deletion or at any time before or after the
+            purge. We will honor that request within one month.
+          </p>
+          <p>
+            <strong>Backups.</strong> Deleted information may still exist in
+            backup copies until those backups rotate out. We do not use backup
+            copies for normal processing, and we do not restore deleted accounts
+            on request.
           </p>
 
-          <h3 className="text-xl font-bold">6.4 Analytics Opt-Out</h3>
+          <h3 className="text-xl font-bold">6.4 Analytics opt-out</h3>
           <p>
-            You can opt out of analytics collection directly in the App&apos;s
-            profile settings. Simply navigate to your profile and disable
-            analytics tracking. This stops linking usage events to your account
-            user ID and prevents further analytics and session replay collection
-            while you continue to use the App.
+            PostHog does not run until you sign in and turn analytics on. You
+            can opt in from the analytics prompt or in Profile settings. If you
+            opt in, you can opt out again anytime in Profile settings. Opting
+            out stops account-linked analytics and session replay while you
+            remain signed in. It does not delete data already collected; contact
+            us to exercise your deletion rights.
           </p>
         </div>
       </div>
@@ -423,7 +532,66 @@ function PrivacyPolicy() {
           11. Additional Information for Specific Jurisdictions
         </h2>
         <div className="prose prose-gray dark:prose-invert space-y-4">
-          <h3 className="text-xl font-bold">11.1 California Residents</h3>
+          <h3 className="text-xl font-bold">
+            11.2 European Economic Area and United Kingdom
+          </h3>
+          <p>
+            If you are in the European Economic Area or the United Kingdom, you
+            have additional rights under the EU GDPR and UK GDPR, including:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              <strong>Right of access</strong>: You may request a copy of the
+              personal data we hold about you.
+            </li>
+            <li>
+              <strong>Right to erasure</strong>: You may request deletion of
+              your personal data, subject to exceptions described in Section
+              6.3.
+            </li>
+            <li>
+              <strong>Right to rectification</strong>: You may ask us to correct
+              inaccurate personal data.
+            </li>
+            <li>
+              <strong>Right to restrict processing</strong>: You may ask us to
+              limit how we use your data in certain circumstances.
+            </li>
+            <li>
+              <strong>Right to data portability</strong>: You may request your
+              data in a structured, machine-readable format where applicable.
+            </li>
+            <li>
+              <strong>Right to object</strong>: You may object to processing
+              based on legitimate interest, including Umami website analytics
+              (see Section 2.2). You may withdraw analytics consent anytime in
+              Profile settings.
+            </li>
+            <li>
+              <strong>Right to lodge a complaint</strong>: You may contact your
+              local supervisory authority. We do not have an EU or UK
+              representative appointed at this time; contact us at{' '}
+              <a
+                href="mailto:admin@frontierrnd.com"
+                className="text-primary underline"
+              >
+                admin@frontierrnd.com
+              </a>
+              .
+            </li>
+          </ul>
+          <p>
+            To exercise these rights, contact us at{' '}
+            <a
+              href="mailto:admin@frontierrnd.com"
+              className="text-primary underline"
+            >
+              admin@frontierrnd.com
+            </a>
+            . We respond within one month.
+          </p>
+
+          <h3 className="text-xl font-bold">11.3 California Residents</h3>
           <p>
             If you are a California resident, you may have additional rights
             under the California Consumer Privacy Act (CCPA), including:
@@ -438,7 +606,9 @@ function PrivacyPolicy() {
             <li>
               <strong>Right to Delete</strong>: You may request deletion of
               personal information we&apos;ve collected from you, subject to
-              certain exceptions.
+              certain exceptions — including voice recordings we retain in the
+              language archive after account deletion, as described in Section
+              6.3, unless you ask us to delete your own recordings.
             </li>
             <li>
               <strong>Right to Opt-Out</strong>: You may opt-out of the
@@ -461,7 +631,7 @@ function PrivacyPolicy() {
             .
           </p>
 
-          <h3 className="text-xl font-bold">11.2 International Users</h3>
+          <h3 className="text-xl font-bold">11.4 International Users</h3>
           <p>
             If you are accessing our App from outside Canada and the United
             States, please be aware that your information may be transferred to,

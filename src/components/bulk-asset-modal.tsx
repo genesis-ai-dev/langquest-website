@@ -40,6 +40,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { TagSelector } from '@/components/tag-selector';
 import { createBrowserClient } from '@/lib/supabase/client';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 import { useAuth } from '@/components/auth-provider';
 import { toast } from 'sonner';
 import { Plus, Trash2, Upload, MoreHorizontal, X } from 'lucide-react';
@@ -414,10 +418,18 @@ export function BulkAssetModal({
         }
 
         // Create asset (source_language_id is deprecated - languoid stored in asset_content_link)
+        const placementFields = buildAssetPlacementFields({
+          name: asset.name,
+          order_index: i,
+          metadata: null
+        });
+        const timestamps = assetWriteTimestamps();
+
         const { data: assetData, error: assetError } = await supabase
           .from('asset')
           .insert({
-            name: asset.name,
+            ...placementFields,
+            ...timestamps,
             images: uploadedImageIds.length > 0 ? uploadedImageIds : null,
             active: true
           })
@@ -435,7 +447,8 @@ export function BulkAssetModal({
               text: asset.content,
               audio_id: uploadedAudioId,
               id: crypto.randomUUID(),
-              active: true
+              active: true,
+              ...timestamps
             });
 
           if (contentError) throw contentError;
@@ -443,13 +456,15 @@ export function BulkAssetModal({
 
         // Images are already handled in the asset creation (stored in the images column)
 
-        // Add quest relationship
+        // Duplicate placement fields on quest_asset_link (same values as asset)
         if (asset.questId) {
           const { error: questError } = await supabase
             .from('quest_asset_link')
             .insert({
               quest_id: asset.questId,
-              asset_id: assetData.id
+              asset_id: assetData.id,
+              ...placementFields,
+              ...timestamps
             });
 
           if (questError) throw questError;

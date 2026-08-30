@@ -8,6 +8,10 @@ import { BIBLE_BOOKS } from '@/components/QuestExplorer/template-strategies/bibl
 import { BIBLE_BOOKS as FIA_BIBLE_BOOKS } from '@/components/QuestExplorer/template-strategies/fia.template';
 import { getUploadTemplate } from '@/components/upload-process-modal/lib/template';
 import { env } from '@/lib/env';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 
 import type { Database } from '../../../../database.types';
 
@@ -790,16 +794,21 @@ async function createAssetsForRows(
         assetMetadata,
         getNextAssetOrderSequence(context, questId, assetMetadata)
       );
-      const assetPayload = {
+      const placementFields = buildAssetPlacementFields({
         name: row.asset_name,
+        order_index: assetOrderIndex,
+        metadata: assetMetadata
+      });
+      const timestamps = assetWriteTimestamps();
+      const assetPayload = {
+        ...placementFields,
+        ...timestamps,
         creator_id: context.userId,
         project_id: projectId,
         source_language_id: sourceLanguageId,
         visible: true,
         source_asset_id: null,
-        order_index: assetOrderIndex,
-        images: imageFiles.length > 0 ? imageFiles : null,
-        metadata: assetMetadata ? JSON.stringify(assetMetadata) : null
+        images: imageFiles.length > 0 ? imageFiles : null
       };
       const { data: asset, error: assetError } = await context.supabase
         .from('asset')
@@ -816,7 +825,9 @@ async function createAssetsForRows(
       await linkTags(context.supabase, 'asset', asset.id, row.asset_tags);
       await context.supabase.from('quest_asset_link').insert({
         quest_id: questId,
-        asset_id: asset.id
+        asset_id: asset.id,
+        ...placementFields,
+        ...timestamps
       });
       await createAssetContentLinks(context, asset.id, row, sourceLanguageId);
     } catch (error) {
@@ -888,7 +899,8 @@ async function createAssetContentLinks(
       audio: audioPath ? [audioPath] : null,
       languoid_id: sourceLanguageId,
       order_index: index + 1,
-      id: randomUUID()
+      id: randomUUID(),
+      ...assetWriteTimestamps()
     };
 
     await context.supabase
@@ -1129,6 +1141,7 @@ async function seedExistingAssetOrderSequencesByVerse(
     .from('quest_asset_link')
     .select(
       `
+      order_index,
       asset:asset_id (
         order_index,
         active
@@ -1147,7 +1160,7 @@ async function seedExistingAssetOrderSequencesByVerse(
   (data || []).forEach((item: any) => {
     const value = item?.asset;
     const asset = Array.isArray(value) ? value[0] : value;
-    const orderIndex = asset?.order_index;
+    const orderIndex = item?.order_index ?? asset?.order_index;
 
     if (!asset?.active || typeof orderIndex !== 'number') {
       return;

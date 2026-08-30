@@ -1,6 +1,6 @@
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { BIBLE_BOOKS, ICONS_PATH } from './fia.template';
-import { getQuestDisabledFlag, getQuestVersionName } from './helpers';
+import { getQuestDisabledFlag, getQuestVersionLabel } from './helpers';
 import {
   DisplayNode,
   FiaBookPericopes,
@@ -307,7 +307,7 @@ export const fiaStrategy: TemplateStrategy = {
         questId: rootQuest?.id || null,
         quest: rootQuest,
         variants: rootVariants,
-        versionName: getQuestVersionName(rootQuest),
+        versionLabel: getQuestVersionLabel(rootQuest),
         kind: 'book' as const,
         book,
         disabled: isUnavailableInApi || getQuestDisabledFlag(rootQuest)
@@ -365,7 +365,7 @@ export const fiaStrategy: TemplateStrategy = {
             questId: pericopeQuest?.id || null,
             quest: pericopeQuest,
             variants: pericopeVariants,
-            versionName: getQuestVersionName(pericopeQuest),
+            versionLabel: getQuestVersionLabel(pericopeQuest),
             kind: 'pericope' as const,
             book: contextNode.book,
             pericopeId: pericope.id,
@@ -383,7 +383,7 @@ export const fiaStrategy: TemplateStrategy = {
       questId: child.id,
       quest: child,
       variants: [child],
-      versionName: getQuestVersionName(child),
+      versionLabel: getQuestVersionLabel(child),
       kind: 'quest' as const,
       disabled: getQuestDisabledFlag(child)
     }));

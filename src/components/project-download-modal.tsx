@@ -95,7 +95,10 @@ function questNodeToTreeElement(quest: DownloadQuestNode): TreeViewElement {
 function countQuestTreeAssets(quest: DownloadQuestNode): number {
   return (
     quest.assetCount +
-    quest.children.reduce((total, child) => total + countQuestTreeAssets(child), 0)
+    quest.children.reduce(
+      (total, child) => total + countQuestTreeAssets(child),
+      0
+    )
   );
 }
 
@@ -791,7 +794,8 @@ export function ProjectDownloadModal({
                   </div>
                 ) : assetLoadStates[selectedQuestId] === 'error' ? (
                   <div className="text-sm text-destructive">
-                    {assetLoadErrors[selectedQuestId] || 'Failed to load assets'}
+                    {assetLoadErrors[selectedQuestId] ||
+                      'Failed to load assets'}
                   </div>
                 ) : selectedQuestAssets.length ? (
                   <Tree
@@ -929,9 +933,7 @@ export function ProjectDownloadModal({
             <Button
               type="button"
               disabled={
-                isLoadingQuests ||
-                isDownloading ||
-                !hasDownloadSelection
+                isLoadingQuests || isDownloading || !hasDownloadSelection
               }
               onClick={handleDownload}
             >

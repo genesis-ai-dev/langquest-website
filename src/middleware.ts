@@ -1,74 +1,11 @@
 import createNextIntlMiddleware from 'next-intl/middleware';
-import { routing } from './i18n/routing'; // Assuming routing exports locales, defaultLocale etc.
+import { routing } from './i18n/routing';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize next-intl middleware
-// Assumes `routing` object is the configuration for createNextIntlMiddleware
 const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
-// CORS configuration for relay endpoint
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://yourdomain.com' // Replace with your production domain
-];
-
-const corsOptions = {
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers':
-    'Content-Type, Authorization, X-Requested-With'
-};
-
 export default async function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone();
-
-  // Handle relay endpoint with proper CORS
-  if (url.pathname.startsWith('/relay-Mx9k')) {
-    const origin = request.headers.get('origin') ?? '';
-    const isAllowedOrigin = allowedOrigins.includes(origin) || origin === ''; // Allow same-origin requests
-
-    const hostname = url.pathname.startsWith('/relay-Mx9k/static/')
-      ? 'us-assets.i.posthog.com'
-      : 'us.i.posthog.com';
-
-    // Handle preflighted requests
-    const isPreflight = request.method === 'OPTIONS';
-
-    if (isPreflight) {
-      const preflightHeaders = {
-        ...(isAllowedOrigin && { 'Access-Control-Allow-Origin': origin }),
-        ...corsOptions
-      };
-      return NextResponse.json({}, { headers: preflightHeaders });
-    }
-
-    // Handle simple requests - set up the rewrite
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('host', hostname);
-
-    url.protocol = 'https';
-    url.hostname = hostname;
-    url.port = '443';
-    url.pathname = url.pathname.replace(/^\/relay-Mx9k/, '');
-
-    const response = NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders
-      }
-    });
-
-    // Set CORS headers for the response
-    if (isAllowedOrigin) {
-      response.headers.set('Access-Control-Allow-Origin', origin);
-    }
-
-    Object.entries(corsOptions).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-
-    return response;
-  }
-
   console.log('[MIDDLEWARE] Hit. Pathname:', request.nextUrl.pathname);
   console.log('[MIDDLEWARE] Full URL:', request.url);
   console.log(
@@ -174,15 +111,5 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next (internal files)
-     * - static files (e.g. /favicon.ico)
-     * - ingest (PostHog ingestion)
-     */
-    '/((?!api|static|relay-Mx9k|.*\\..*|_next|ingest|supabase).*)',
-    '/relay-Mx9k/:path*'
-  ]
+  matcher: ['/((?!api|static|.*\\..*|_next|supabase).*)']
 };
