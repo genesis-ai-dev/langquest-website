@@ -11,7 +11,7 @@ export interface DisplayNode {
   questId: string | null;
   quest: QuestRecord | null;
   variants?: QuestRecord[];
-  versionName?: string;
+  versionLabel?: string;
   kind: 'quest' | 'book' | 'chapter' | 'pericope';
   book?: BibleBook;
   chapterNumber?: number;

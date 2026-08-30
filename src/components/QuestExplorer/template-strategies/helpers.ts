@@ -23,7 +23,7 @@ export function getQuestDisabledFlag(quest: QuestRecord | null): boolean {
   return false;
 }
 
-export function getQuestVersionName(
+export function getQuestVersionLabel(
   quest: QuestRecord | null
 ): string | undefined {
   if (!quest?.metadata) {
@@ -31,15 +31,49 @@ export function getQuestVersionName(
   }
 
   const metadata = quest.metadata as Record<string, unknown>;
-  const value = metadata.versionName;
+  const value = metadata.versionLabel;
 
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
-export function getQuestVersionLabel(quest: QuestRecord): string {
-  const versionName = getQuestVersionName(quest);
-  if (versionName) {
-    return versionName;
+export function withQuestVersionLabel(
+  metadata: Record<string, unknown> | null | undefined,
+  versionLabel: string | null | undefined
+): Record<string, unknown> {
+  const next = { ...(metadata || {}) };
+  const trimmed = versionLabel?.trim();
+
+  if (trimmed) {
+    next.versionLabel = trimmed;
+  } else {
+    delete next.versionLabel;
+  }
+
+  return next;
+}
+
+function getCreatorInitials(username: string | null | undefined): string | null {
+  if (!username?.trim()) {
+    return null;
+  }
+
+  const words = username.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return null;
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+/** Version name or creation date — without creator initials. */
+export function getQuestVersionDisplayLabel(quest: QuestRecord): string {
+  const versionLabel = getQuestVersionLabel(quest);
+  if (versionLabel) {
+    return versionLabel;
   }
 
   const date = new Date(quest.created_at);
@@ -48,4 +82,10 @@ export function getQuestVersionLabel(quest: QuestRecord): string {
   }
 
   return date.toLocaleString();
+}
+
+export function formatQuestVersionLabel(quest: QuestRecord): string {
+  const label = getQuestVersionDisplayLabel(quest);
+  const initials = getCreatorInitials(quest.creator_username);
+  return initials ? `${initials} - ${label}` : label;
 }

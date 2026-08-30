@@ -4,6 +4,10 @@ import { Database } from '../../../../database.types';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
 import { env } from '@/lib/env';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 // import { th } from 'date-fns/locale';
 // import { metadata } from '@/app/[locale]/layout';
 
@@ -655,7 +659,8 @@ async function processContentAndAudio(
         audio: audioFilePath ? [audioFilePath] : null, // Use array format for audio
         // languoid_id: languoidId,
         languoid_id: normalizedData.sourceLanguage,
-        id: crypto.randomUUID()
+        id: crypto.randomUUID(),
+        ...assetWriteTimestamps()
       });
     } catch (error: any) {
       errors.push({
@@ -829,15 +834,22 @@ async function processProjectUpload(
             .filter(Boolean)
         : [];
 
+      const placementFields = buildAssetPlacementFields({
+        name: row.asset_name,
+        order_index: i,
+        metadata: null
+      });
+      const timestamps = assetWriteTimestamps();
+
       const { data: asset, error: assetError } = await supabase
         .from('asset')
         .insert({
-          name: row.asset_name,
+          ...placementFields,
+          ...timestamps,
           creator_id: userId,
           project_id: projectId,
           source_language_id: normalizedData.sourceLanguage,
           visible: true,
-          created_at: new Date().toISOString(),
           source_asset_id: null,
           images: imageFiles.length > 0 ? imageFiles : null
         })
@@ -884,7 +896,9 @@ async function processProjectUpload(
       // Link asset to quest
       await supabase.from('quest_asset_link').insert({
         quest_id: questId,
-        asset_id: asset.id
+        asset_id: asset.id,
+        ...placementFields,
+        ...timestamps
       });
 
       // Handle content and audio files - add to asset_content_link with position correlation
@@ -1036,15 +1050,22 @@ async function processQuestUpload(
         : [];
 
       // Create asset
+      const placementFields = buildAssetPlacementFields({
+        name: row.asset_name,
+        order_index: i,
+        metadata: null
+      });
+      const timestamps = assetWriteTimestamps();
+
       const { data: asset, error: assetError } = await supabase
         .from('asset')
         .insert({
-          name: row.asset_name,
+          ...placementFields,
+          ...timestamps,
           creator_id: userId,
           project_id: projectId,
           source_language_id: normalizedData.sourceLanguage,
           visible: true,
-          created_at: new Date().toISOString(),
           source_asset_id: null,
           images: imageFiles.length > 0 ? imageFiles : null
         })
@@ -1082,7 +1103,9 @@ async function processQuestUpload(
       // Link asset to quest
       await supabase.from('quest_asset_link').insert({
         quest_id: questId,
-        asset_id: asset.id
+        asset_id: asset.id,
+        ...placementFields,
+        ...timestamps
       });
 
       // Handle content and audio files - add to asset_content_link with position correlation
@@ -1213,15 +1236,22 @@ async function processAssetUpload(
         : [];
 
       // Create asset
+      const placementFields = buildAssetPlacementFields({
+        name: row.asset_name,
+        order_index: i,
+        metadata: null
+      });
+      const timestamps = assetWriteTimestamps();
+
       const { data: asset, error: assetError } = await supabase
         .from('asset')
         .insert({
-          name: row.asset_name,
+          ...placementFields,
+          ...timestamps,
           creator_id: userId,
           project_id: quest.project_id,
           source_language_id: normalizedData.sourceLanguage,
           visible: true,
-          created_at: new Date().toISOString(),
           source_asset_id: null,
           images: imageFiles.length > 0 ? imageFiles : null
         })
@@ -1259,7 +1289,9 @@ async function processAssetUpload(
       // Link asset to quest
       await supabase.from('quest_asset_link').insert({
         quest_id: questId,
-        asset_id: asset.id
+        asset_id: asset.id,
+        ...placementFields,
+        ...timestamps
       });
 
       // Handle content and audio files - add to asset_content_link with position correlation

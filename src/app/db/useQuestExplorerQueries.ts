@@ -6,8 +6,11 @@ import {
   createBibleChapterQuest,
   createFiaPericopeQuest,
   fetchAssetDetails,
+  fetchCompatibleSourceQuests,
   fetchProjectQuestTree,
-  fetchQuestAssets
+  fetchQuestAssets,
+  importAssetsToQuest,
+  type ImportQuestAssetLink
 } from './questExplorer';
 import { lookupFiaLanguageCode } from './languoid';
 
@@ -200,6 +203,47 @@ export function useQuestAssets(questId: string | null) {
   });
 }
 
+export function useCompatibleSourceQuests(
+  projectId: string,
+  questId: string,
+  enabled = true
+) {
+  const { user, supabase } = useAuth();
+
+  return useQuery({
+    queryKey: ['qe-compatible-source-quests', projectId, questId],
+    enabled: enabled && !!projectId && !!questId && !!user,
+    queryFn: () => fetchCompatibleSourceQuests(supabase, projectId, questId)
+  });
+}
+
+interface ImportAssetsToQuestPayload {
+  projectId: string;
+  questId: string;
+  items: ImportQuestAssetLink[];
+}
+
+export function useImportAssetsToQuest() {
+  const queryClient = useQueryClient();
+  const { supabase } = useAuth();
+
+  return useMutation({
+    mutationFn: (payload: ImportAssetsToQuestPayload) =>
+      importAssetsToQuest(supabase, payload.questId, payload.items),
+    onSuccess: (_data, payload) => {
+      queryClient.invalidateQueries({
+        queryKey: ['qe-assets', payload.questId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['qe-compatible-source-quests', payload.projectId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['qe-tree', payload.projectId]
+      });
+    }
+  });
+}
+
 export function useAssetDetails(assetId: string | null) {
   const { user, supabase } = useAuth();
 
@@ -217,6 +261,7 @@ interface CreateBibleChapterPayload {
   chapterNumber: number;
   verseCount: number;
   existingBookQuestId?: string | null;
+  versionLabel?: string | null;
 }
 
 interface CreateFiaPericopePayload {
@@ -227,6 +272,7 @@ interface CreateFiaPericopePayload {
   sequence: number;
   verseRange: string;
   existingBookQuestId?: string | null;
+  versionLabel?: string | null;
 }
 
 export function useCreateBibleChapter() {

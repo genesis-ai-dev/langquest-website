@@ -29,6 +29,10 @@ import { env } from '@/lib/env';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AudioButton } from './ui/audio-button';
 import { checkProjectOwnership } from '@/lib/project-permissions';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 
 const assetFormSchema = z.object({
   name: z.string().min(2, {
@@ -325,14 +329,20 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
       }
 
       let assetId: string;
+      const placementFields = buildAssetPlacementFields({
+        name: values.name,
+        order_index: 0,
+        metadata: null
+      });
 
       if (initialData?.id) {
         // Update existing asset
         const { data, error } = await createBrowserClient()
           .from('asset')
           .update({
-            name: values.name,
-            images: finalImagePaths.length > 0 ? finalImagePaths : null
+            ...placementFields,
+            images: finalImagePaths.length > 0 ? finalImagePaths : null,
+            last_updated: new Date().toISOString()
           })
           .eq('id', initialData.id)
           .select('id')
@@ -365,7 +375,8 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           const { data, error } = await createBrowserClient()
             .from('asset')
             .insert({
-              name: values.name,
+              ...placementFields,
+              ...assetWriteTimestamps(),
               images: finalImagePaths.length > 0 ? finalImagePaths : null,
               active: true,
               creator_id: user?.id,
@@ -409,13 +420,15 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
           }
         }
 
+        const contentTimestamps = assetWriteTimestamps();
         const contentLinks = updatedContent.map((item) => ({
           asset_id: assetId,
           text: item.text,
           audio: item.audio_id ? [item.audio_id] : null, // audio is a jsonb array column
           id: crypto.randomUUID(),
           active: true,
-          languoid_id: sourceLanguoidId
+          languoid_id: sourceLanguoidId,
+          ...contentTimestamps
         }));
 
         const { error: contentError } = await createBrowserClient()
@@ -485,12 +498,15 @@ export function AssetForm({ initialData, onSuccess, questId }: AssetFormProps) {
         selectedQuests
       );
 
-      // Add new quest links
+      // Duplicate placement fields on quest_asset_link (same values as asset)
       if (selectedQuests.length > 0) {
+        const linkTimestamps = assetWriteTimestamps();
         const questLinksPayload = selectedQuests.map((questId) => ({
           asset_id: assetId,
           quest_id: questId,
-          active: true
+          active: true,
+          ...placementFields,
+          ...linkTimestamps
         }));
         console.log(
           '[AssetForm - onSubmit] Constructed questLinksPayload:',

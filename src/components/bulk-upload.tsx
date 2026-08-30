@@ -28,6 +28,10 @@ import Papa from 'papaparse';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth-provider';
 import { createProjectOwnership } from '@/lib/project-permissions';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 
 interface BulkUploadProps {
   mode: 'project' | 'quest' | 'questToProject';
@@ -484,10 +488,18 @@ export function BulkUpload({
         }
 
         // Create asset (source_language_id deprecated - using languoid in asset_content_link)
+        const placementFields = buildAssetPlacementFields({
+          name: row.asset_name,
+          order_index: i,
+          metadata: null
+        });
+        const timestamps = assetWriteTimestamps();
+
         const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
-            name: row.asset_name,
+            ...placementFields,
+            ...timestamps,
             creator_id: user?.id
           })
           .select('id')
@@ -500,7 +512,8 @@ export function BulkUpload({
           await supabaseClient.from('asset_content_link').insert({
             asset_id: asset.id,
             text: row.asset_content,
-            id: crypto.randomUUID()
+            id: crypto.randomUUID(),
+            ...timestamps
           });
         }
 
@@ -538,7 +551,9 @@ export function BulkUpload({
         // Link asset to quest
         await supabaseClient.from('quest_asset_link').insert({
           quest_id: questId,
-          asset_id: asset.id
+          asset_id: asset.id,
+          ...placementFields,
+          ...timestamps
         });
 
         // Handle image and audio URLs (validation warnings)
@@ -603,10 +618,18 @@ export function BulkUpload({
 
       try {
         // Create asset (source_language_id deprecated)
+        const placementFields = buildAssetPlacementFields({
+          name: row.asset_name,
+          order_index: i,
+          metadata: null
+        });
+        const timestamps = assetWriteTimestamps();
+
         const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
-            name: row.asset_name,
+            ...placementFields,
+            ...timestamps,
             creator_id: user?.id
           })
           .select('id')
@@ -619,7 +642,8 @@ export function BulkUpload({
           await supabaseClient.from('asset_content_link').insert({
             asset_id: asset.id,
             text: row.asset_content,
-            id: crypto.randomUUID()
+            id: crypto.randomUUID(),
+            ...timestamps
           });
         }
 
@@ -657,7 +681,9 @@ export function BulkUpload({
         // Link asset to quest
         await supabaseClient.from('quest_asset_link').insert({
           quest_id: questId,
-          asset_id: asset.id
+          asset_id: asset.id,
+          ...placementFields,
+          ...timestamps
         });
 
         // Handle image and audio URLs (validation warnings)
@@ -813,10 +839,18 @@ export function BulkUpload({
         }
 
         // Create asset
+        const placementFields = buildAssetPlacementFields({
+          name: row.asset_name,
+          order_index: i,
+          metadata: null
+        });
+        const timestamps = assetWriteTimestamps();
+
         const { data: asset, error: assetError } = await supabaseClient
           .from('asset')
           .insert({
-            name: row.asset_name,
+            ...placementFields,
+            ...timestamps,
             creator_id: user?.id
           })
           .select('id')
@@ -829,7 +863,8 @@ export function BulkUpload({
           await supabaseClient.from('asset_content_link').insert({
             asset_id: asset.id,
             text: row.asset_content,
-            id: crypto.randomUUID()
+            id: crypto.randomUUID(),
+            ...timestamps
           });
         }
 
@@ -884,7 +919,9 @@ export function BulkUpload({
         // Link asset to quest
         await supabaseClient.from('quest_asset_link').insert({
           quest_id: questId,
-          asset_id: asset.id
+          asset_id: asset.id,
+          ...placementFields,
+          ...timestamps
         });
 
         // Handle image and audio URLs (validation warnings)

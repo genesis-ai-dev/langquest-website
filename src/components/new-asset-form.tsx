@@ -36,6 +36,10 @@ import {
 import { getTemplateStrategy } from './QuestExplorer/template-strategies';
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { canCreateContentInProject } from '@/lib/project-permissions';
+import {
+  assetWriteTimestamps,
+  buildAssetPlacementFields
+} from '@/lib/asset-placement';
 // import { checkProjectOwnership } from '@/lib/project-permissions';
 
 const assetFormSchema = z.object({
@@ -325,16 +329,21 @@ export function AssetForm({
 
       let assetId: string;
 
+      const placementFields = buildAssetPlacementFields({
+        name: values.name,
+        order_index: computedOrderIndex,
+        metadata: selectedLabelMetadata
+      });
+
       if (initialData?.id) {
         // Update existing asset
         const { data, error } = await createBrowserClient()
           .from('asset')
           .update({
-            name: values.name,
-            metadata: selectedLabelMetadata,
-            order_index: computedOrderIndex,
+            ...placementFields,
             source_language_id: values.source_languoid_id || null,
-            images: finalImagePaths.length > 0 ? finalImagePaths : null
+            images: finalImagePaths.length > 0 ? finalImagePaths : null,
+            last_updated: new Date().toISOString()
           })
           .eq('id', initialData.id)
           .select('id')
@@ -353,10 +362,9 @@ export function AssetForm({
       } else {
         // Create new asset (languoid is stored in asset_content_link, not asset)
         const assetInsertData = {
-          name: values.name,
+          ...placementFields,
+          ...assetWriteTimestamps(),
           images: finalImagePaths.length > 0 ? finalImagePaths : null,
-          metadata: selectedLabelMetadata,
-          order_index: computedOrderIndex,
           source_language_id: values.source_languoid_id || null,
           active: true,
           project_id: projectId,
@@ -381,13 +389,15 @@ export function AssetForm({
       // Add content items
       console.log('Updated content items:', contentToSave);
       if (contentToSave.length > 0) {
+        const contentTimestamps = assetWriteTimestamps();
         const contentLinks = contentToSave.map((item) => ({
           asset_id: assetId,
           text: item.text,
           audio: item.audio_id ? [item.audio_id] : null, // Only set audio if we have a value
           id: crypto.randomUUID(),
           active: true,
-          languoid_id: values.source_languoid_id || null // Store languoid in asset_content_link
+          languoid_id: values.source_languoid_id || null, // Store languoid in asset_content_link
+          ...contentTimestamps
         }));
         console.log('Creating content links:', contentLinks);
 
@@ -458,12 +468,15 @@ export function AssetForm({
       //   selectedQuests
       // );
 
-      // Add new quest links
+      // Duplicate placement fields on quest_asset_link (same values as asset)
       if (selectedQuests.length > 0) {
+        const linkTimestamps = assetWriteTimestamps();
         const questLinksPayload = selectedQuests.map((questId) => ({
           asset_id: assetId,
           quest_id: questId,
-          active: true
+          active: true,
+          ...placementFields,
+          ...linkTimestamps
         }));
         console.log(
           '[AssetForm - onSubmit] Constructed questLinksPayload:',
@@ -479,9 +492,11 @@ export function AssetForm({
         if (questError) {
           console.error(
             '[AssetForm - onSubmit] Error linking asset to quests (Supabase error):',
-            questError
+            JSON.stringify(questError, null, 2)
           );
-          toast.error(`Failed to link asset to quests: ${questError.message}`);
+          toast.error(
+            `Failed to link asset to quests: ${questError.message || questError.code || 'unknown error'}`
+          );
         } else if (
           !insertedLinks ||
           insertedLinks.length !== questLinksPayload.length
