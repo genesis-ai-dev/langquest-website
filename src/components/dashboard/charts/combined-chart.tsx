@@ -147,7 +147,7 @@ export default function CombinedChart({
   const areaChartData = useMemo<ChartDataPoint[]>(
     () =>
       data.map((item) => {
-        const { details: _details, ...flatData } = item;
+        const { ...flatData } = item;
         return flatData as ChartDataPoint;
       }),
     [data]

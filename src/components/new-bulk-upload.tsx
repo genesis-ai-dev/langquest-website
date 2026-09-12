@@ -77,7 +77,7 @@ export function BulkUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const instructionsScrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const [_isCreatingLanguage, setIsCreatingLanguage] = useState(false);
+  const [setIsCreatingLanguage] = useState(false);
   const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
   const [isInstructionsScrolledToEnd, setIsInstructionsScrolledToEnd] =
     useState(false);

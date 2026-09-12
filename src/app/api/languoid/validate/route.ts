@@ -108,16 +108,13 @@ export async function POST(request: NextRequest) {
         } else {
           validLanguages.push(languageName);
         }
-      } catch (_error) {
+      } catch {
         try {
-          const { data: suggestions } = await supabase.rpc(
-            'search_languoids',
-            {
-              search_query: trimmedName,
-              result_limit: 5,
-              ui_ready_only: false
-            }
-          );
+          const { data: suggestions } = await supabase.rpc('search_languoids', {
+            search_query: trimmedName,
+            result_limit: 5,
+            ui_ready_only: false
+          });
 
           invalidLanguages.push({
             language: languageName,

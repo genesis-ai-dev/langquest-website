@@ -1,7 +1,6 @@
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
 import { BibleBook } from './bible.template';
 
-
 export type QuestTemplate = 'bible' | 'unstructured' | string;
 
 export interface DisplayNode {

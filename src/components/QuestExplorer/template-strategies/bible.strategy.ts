@@ -140,26 +140,28 @@ export const bibleStrategy: TemplateStrategy = {
         });
       });
 
-      return contextNode.book.verses.map((verseCount: number, index: number) => {
-        const chapterNumber = index + 1;
-        const chapterVariants =
-          chapterVariantsByNumber.get(chapterNumber) || [];
-        const chapterQuest = getLatestQuest(chapterVariants);
+      return contextNode.book.verses.map(
+        (verseCount: number, index: number) => {
+          const chapterNumber = index + 1;
+          const chapterVariants =
+            chapterVariantsByNumber.get(chapterNumber) || [];
+          const chapterQuest = getLatestQuest(chapterVariants);
 
-        return {
-          key: `${contextNode.book?.id}:${chapterNumber}`,
-          title: `Chapter ${chapterNumber}`,
-          subtitle: `${verseCount} verses`,
-          questId: chapterQuest?.id || null,
-          quest: chapterQuest,
-          variants: chapterVariants,
-          versionLabel: getQuestVersionLabel(chapterQuest),
-          kind: 'chapter' as const,
-          chapterNumber,
-          book: contextNode.book,
-          disabled: getQuestDisabledFlag(chapterQuest)
-        };
-      });
+          return {
+            key: `${contextNode.book?.id}:${chapterNumber}`,
+            title: `Chapter ${chapterNumber}`,
+            subtitle: `${verseCount} verses`,
+            questId: chapterQuest?.id || null,
+            quest: chapterQuest,
+            variants: chapterVariants,
+            versionLabel: getQuestVersionLabel(chapterQuest),
+            kind: 'chapter' as const,
+            chapterNumber,
+            book: contextNode.book,
+            disabled: getQuestDisabledFlag(chapterQuest)
+          };
+        }
+      );
     }
 
     return (contextNode.quest?.children || []).map((child) => ({
