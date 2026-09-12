@@ -62,15 +62,18 @@ export default function DonutChartWithTabs({
     currentDefaultTab
   );
 
-  if (!renderedTabs.length) {
-    return null;
-  }
-
   useEffect(() => {
+    if (!renderedTabs.length) {
+      return;
+    }
     if (!activeTab || !renderedTabs.some((tab) => tab.name === activeTab)) {
       setActiveTab(currentDefaultTab);
     }
   }, [activeTab, currentDefaultTab, renderedTabs]);
+
+  if (!renderedTabs.length) {
+    return null;
+  }
 
   return (
     <div className={cn('p-0', className)}>

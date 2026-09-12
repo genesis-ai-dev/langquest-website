@@ -8,13 +8,7 @@ import {
 import { Spinner } from '@/components/spinner';
 import { fetchFiaLanguoids } from '@/app/db/languoid';
 import { createBrowserClient } from '@/lib/supabase/client';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {

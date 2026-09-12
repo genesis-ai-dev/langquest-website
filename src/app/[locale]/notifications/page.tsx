@@ -23,7 +23,7 @@ export default function NotificationsPage() {
 function NotificationsHandler() {
   const t = useTranslations('notifications');
   const [message, setMessage] = useState(t('opening_app'));
-  const [isError, setIsError] = useState(false);
+  const [isError] = useState(false);
 
   const handleDeepLink = useCallback(async () => {
     console.log('[NOTIFICATIONS] Starting deep link handling');

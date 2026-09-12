@@ -77,7 +77,7 @@ export function BulkUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const instructionsScrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const [isCreatingLanguage, setIsCreatingLanguage] = useState(false);
+  const [_isCreatingLanguage, setIsCreatingLanguage] = useState(false);
   const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
   const [isInstructionsScrolledToEnd, setIsInstructionsScrolledToEnd] =
     useState(false);
@@ -521,9 +521,9 @@ export function BulkUpload({
                   empty in the corresponding row.
                 </li>
                 <li>
-                  If a quest's <strong>Parent Name</strong> cannot be matched to
-                  an existing quest, the quest will be created at the root level
-                  of the project.
+                  If a quest&apos;s <strong>Parent Name</strong> cannot be
+                  matched to an existing quest, the quest will be created at the
+                  root level of the project.
                 </li>
                 <li>
                   Verify your CSV and ZIP structure before uploading to avoid

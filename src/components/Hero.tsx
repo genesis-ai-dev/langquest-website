@@ -4,7 +4,7 @@
 // import { Canvas } from '@react-three/fiber';
 // import { OrbitControls } from '@react-three/drei';
 // import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { /*Canvas,*/ useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
@@ -57,153 +57,153 @@ const cosmicColors: Record<CosmicColorKey, THREE.Color> = {
 const atmosphereDayColor = new THREE.Color('#4db2ff');
 const atmosphereTwilightColor = new THREE.Color('#bc490b');
 
-function Earth() {
-  const earthRef = useRef<THREE.Mesh>(null);
-  const cloudsRef = useRef<THREE.Mesh>(null);
-  const atmosphereRef = useRef<THREE.Mesh>(null);
-  const [dayMap, nightMap, cloudsMap] = useTexture([
-    '/textures/2k_earth_daymap.jpg',
-    '/textures/2k_earth_nightmap.jpg',
-    '/textures/2k_earth_clouds.jpg'
-  ]);
+// function Earth() {
+//   const earthRef = useRef<THREE.Mesh>(null);
+//   const cloudsRef = useRef<THREE.Mesh>(null);
+//   const atmosphereRef = useRef<THREE.Mesh>(null);
+//   const [dayMap, nightMap, cloudsMap] = useTexture([
+//     '/textures/2k_earth_daymap.jpg',
+//     '/textures/2k_earth_nightmap.jpg',
+//     '/textures/2k_earth_clouds.jpg'
+//   ]);
 
-  // Set proper texture properties
-  useEffect(() => {
-    [dayMap, nightMap, cloudsMap].forEach((texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = 8;
-    });
-  }, [dayMap, nightMap, cloudsMap]);
+//   // Set proper texture properties
+//   useEffect(() => {
+//     [dayMap, nightMap, cloudsMap].forEach((texture) => {
+//       texture.colorSpace = THREE.SRGBColorSpace;
+//       texture.anisotropy = 8;
+//     });
+//   }, [dayMap, nightMap, cloudsMap]);
 
-  const position: [number, number, number] = [2, -1, 0];
-  const earthScale = 1.5;
-  const cloudsScale = earthScale * 1.01;
-  const atmosphereScale = earthScale * 1.04;
+//   const position: [number, number, number] = [2, -1, 0];
+//   const earthScale = 1.5;
+//   const cloudsScale = earthScale * 1.01;
+//   const atmosphereScale = earthScale * 1.04;
 
-  // Sun direction for lighting and atmosphere - adjusted to be more from the front
-  const sunDirection = useMemo(
-    () => new THREE.Vector3(1, 0, 5).normalize(),
-    []
-  );
+//   // Sun direction for lighting and atmosphere - adjusted to be more from the front
+//   const sunDirection = useMemo(
+//     () => new THREE.Vector3(1, 0, 5).normalize(),
+//     []
+//   );
 
-  // Track rotation for smooth animation
-  const rotationRef = useRef({ earth: 0, clouds: 0 });
+//   // Track rotation for smooth animation
+//   const rotationRef = useRef({ earth: 0, clouds: 0 });
 
-  // Use the clock for animation
-  useFrame(() => {
-    // Ensure smooth rotation regardless of frame rate
-    if (earthRef.current) {
-      rotationRef.current.earth += 0.025 * 0.016; // Base rotation on a 60fps rate
-      earthRef.current.rotation.y = rotationRef.current.earth;
-    }
+//   // Use the clock for animation
+//   useFrame(() => {
+//     // Ensure smooth rotation regardless of frame rate
+//     if (earthRef.current) {
+//       rotationRef.current.earth += 0.025 * 0.016; // Base rotation on a 60fps rate
+//       earthRef.current.rotation.y = rotationRef.current.earth;
+//     }
 
-    if (cloudsRef.current) {
-      rotationRef.current.clouds += 0.03 * 0.016; // Base rotation on a 60fps rate
-      cloudsRef.current.rotation.y = rotationRef.current.clouds;
-    }
+//     if (cloudsRef.current) {
+//       rotationRef.current.clouds += 0.03 * 0.016; // Base rotation on a 60fps rate
+//       cloudsRef.current.rotation.y = rotationRef.current.clouds;
+//     }
 
-    if (atmosphereRef.current) {
-      atmosphereRef.current.rotation.y = rotationRef.current.earth;
-    }
+//     if (atmosphereRef.current) {
+//       atmosphereRef.current.rotation.y = rotationRef.current.earth;
+//     }
 
-    // Update camera position in shader is not needed - cameraPosition is a built-in uniform
-  });
+//     // Update camera position in shader is not needed - cameraPosition is a built-in uniform
+//   });
 
-  return (
-    <group>
-      {/* Directional light pointing at Earth (sun) */}
-      <directionalLight position={[1, 0, 5]} intensity={2} color="#ffffff" />
+//   return (
+//     <group>
+//       {/* Directional light pointing at Earth (sun) */}
+//       <directionalLight position={[1, 0, 5]} intensity={2} color="#ffffff" />
 
-      {/* Earth */}
-      <mesh ref={earthRef} position={position} scale={earthScale}>
-        <sphereGeometry args={[1, 64, 64]} />
-        <meshPhongMaterial
-          map={dayMap}
-          emissiveMap={nightMap}
-          emissive={new THREE.Color(0.3, 0.3, 0.3)}
-          emissiveIntensity={0.8}
-          bumpMap={cloudsMap}
-          bumpScale={0.05}
-          shininess={5}
-          specular={new THREE.Color(0.2, 0.2, 0.2)}
-        />
-      </mesh>
+//       {/* Earth */}
+//       <mesh ref={earthRef} position={position} scale={earthScale}>
+//         <sphereGeometry args={[1, 64, 64]} />
+//         <meshPhongMaterial
+//           map={dayMap}
+//           emissiveMap={nightMap}
+//           emissive={new THREE.Color(0.3, 0.3, 0.3)}
+//           emissiveIntensity={0.8}
+//           bumpMap={cloudsMap}
+//           bumpScale={0.05}
+//           shininess={5}
+//           specular={new THREE.Color(0.2, 0.2, 0.2)}
+//         />
+//       </mesh>
 
-      {/* Clouds layer */}
-      <mesh ref={cloudsRef} position={position} scale={cloudsScale}>
-        <sphereGeometry args={[1, 64, 64]} />
-        <meshStandardMaterial
-          alphaMap={cloudsMap}
-          transparent={true}
-          opacity={0.4}
-          depthWrite={false}
-          color="#ffffff"
-        />
-      </mesh>
+//       {/* Clouds layer */}
+//       <mesh ref={cloudsRef} position={position} scale={cloudsScale}>
+//         <sphereGeometry args={[1, 64, 64]} />
+//         <meshStandardMaterial
+//           alphaMap={cloudsMap}
+//           transparent={true}
+//           opacity={0.4}
+//           depthWrite={false}
+//           color="#ffffff"
+//         />
+//       </mesh>
 
-      {/* Shader-based Atmosphere */}
-      <mesh ref={atmosphereRef} position={position} scale={atmosphereScale}>
-        <sphereGeometry args={[1, 64, 64]} />
-        <shaderMaterial
-          transparent
-          side={THREE.BackSide}
-          vertexShader={`
-            varying vec3 vNormal;
-            varying vec3 vPosition;
-            varying vec3 vWorldPosition;
-            
-            void main() {
-              vNormal = normalize(normalMatrix * normal);
-              vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
-              vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `}
-          fragmentShader={`
-            varying vec3 vNormal;
-            varying vec3 vPosition;
-            varying vec3 vWorldPosition;
-            
-            uniform vec3 atmosphereDayColor;
-            uniform vec3 atmosphereTwilightColor;
-            uniform vec3 sunDirection;
-            // cameraPosition is already a built-in uniform in Three.js
-            
-            void main() {
-              // Fresnel effect (view angle)
-              vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
-              float fresnel = 1.0 - abs(dot(vNormal, viewDirection));
-              fresnel = pow(fresnel, 2.0);
-              
-              // Sun orientation effect
-              float sunOrientation = dot(vNormal, sunDirection);
-              
-              // Day/twilight transition based on sun orientation
-              float dayStrength = smoothstep(-0.25, 0.75, sunOrientation);
-              vec3 atmosphereColor = mix(atmosphereTwilightColor, atmosphereDayColor, dayStrength);
-              
-              // Atmosphere visibility based on sun orientation
-              float atmosphereDayStrength = smoothstep(-0.5, 1.0, sunOrientation);
-              float atmosphereMix = clamp(atmosphereDayStrength * fresnel, 0.0, 1.0);
-              
-              // Alpha calculation for atmosphere edge
-              float alpha = pow(fresnel, 3.0);
-              alpha = alpha * smoothstep(-0.5, 1.0, sunOrientation);
-              
-              gl_FragColor = vec4(atmosphereColor, alpha);
-            }
-          `}
-          uniforms={{
-            atmosphereDayColor: { value: atmosphereDayColor },
-            atmosphereTwilightColor: { value: atmosphereTwilightColor },
-            sunDirection: { value: sunDirection }
-            // No need to define cameraPosition as it's built-in
-          }}
-        />
-      </mesh>
-    </group>
-  );
-}
+//       {/* Shader-based Atmosphere */}
+//       <mesh ref={atmosphereRef} position={position} scale={atmosphereScale}>
+//         <sphereGeometry args={[1, 64, 64]} />
+//         <shaderMaterial
+//           transparent
+//           side={THREE.BackSide}
+//           vertexShader={`
+//             varying vec3 vNormal;
+//             varying vec3 vPosition;
+//             varying vec3 vWorldPosition;
+
+//             void main() {
+//               vNormal = normalize(normalMatrix * normal);
+//               vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+//               vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+//               gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+//             }
+//           `}
+//           fragmentShader={`
+//             varying vec3 vNormal;
+//             varying vec3 vPosition;
+//             varying vec3 vWorldPosition;
+
+//             uniform vec3 atmosphereDayColor;
+//             uniform vec3 atmosphereTwilightColor;
+//             uniform vec3 sunDirection;
+//             // cameraPosition is already a built-in uniform in Three.js
+
+//             void main() {
+//               // Fresnel effect (view angle)
+//               vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
+//               float fresnel = 1.0 - abs(dot(vNormal, viewDirection));
+//               fresnel = pow(fresnel, 2.0);
+
+//               // Sun orientation effect
+//               float sunOrientation = dot(vNormal, sunDirection);
+
+//               // Day/twilight transition based on sun orientation
+//               float dayStrength = smoothstep(-0.25, 0.75, sunOrientation);
+//               vec3 atmosphereColor = mix(atmosphereTwilightColor, atmosphereDayColor, dayStrength);
+
+//               // Atmosphere visibility based on sun orientation
+//               float atmosphereDayStrength = smoothstep(-0.5, 1.0, sunOrientation);
+//               float atmosphereMix = clamp(atmosphereDayStrength * fresnel, 0.0, 1.0);
+
+//               // Alpha calculation for atmosphere edge
+//               float alpha = pow(fresnel, 3.0);
+//               alpha = alpha * smoothstep(-0.5, 1.0, sunOrientation);
+
+//               gl_FragColor = vec4(atmosphereColor, alpha);
+//             }
+//           `}
+//           uniforms={{
+//             atmosphereDayColor: { value: atmosphereDayColor },
+//             atmosphereTwilightColor: { value: atmosphereTwilightColor },
+//             sunDirection: { value: sunDirection }
+//             // No need to define cameraPosition as it's built-in
+//           }}
+//         />
+//       </mesh>
+//     </group>
+//   );
+// }
 
 // Utility function to safely interpolate vectors
 export function safeLerpVectors(

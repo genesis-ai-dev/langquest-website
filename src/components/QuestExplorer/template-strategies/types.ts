@@ -1,5 +1,6 @@
 import { AssetSummary, QuestRecord } from '@/app/db/questExplorer';
-import { BibleBook } from '@/components/QuestExplorerTemplates/bibleComponents/template';
+import { BibleBook } from './bible.template';
+
 
 export type QuestTemplate = 'bible' | 'unstructured' | string;
 

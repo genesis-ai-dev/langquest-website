@@ -782,7 +782,7 @@ async function processProjectUpload(
       } catch (error) {
         result.stats.errors.push({
           row: i + 1,
-          message: `Failed to find language '${row.source_language}`
+          message: `Failed to find language '${row.source_language} ${error}`
         });
       }
 
@@ -997,7 +997,7 @@ async function processQuestUpload(
       } catch (error) {
         result.stats.errors.push({
           row: i + 1,
-          message: `Failed to find language '${row.source_language}`
+          message: `Failed to find language '${row.source_language} ${error}`
         });
       }
 
@@ -1200,7 +1200,7 @@ async function processAssetUpload(
       } catch (error) {
         result.stats.errors.push({
           row: i + 1,
-          message: `Failed to find language '${row.source_language}`
+          message: `Failed to find language '${row.source_language} ${error}`
         });
       }
 

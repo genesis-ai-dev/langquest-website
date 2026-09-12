@@ -140,7 +140,7 @@ export const bibleStrategy: TemplateStrategy = {
         });
       });
 
-      return contextNode.book.verses.map((verseCount, index) => {
+      return contextNode.book.verses.map((verseCount: number, index: number) => {
         const chapterNumber = index + 1;
         const chapterVariants =
           chapterVariantsByNumber.get(chapterNumber) || [];

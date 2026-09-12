@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (error || !languoid) {
-          // Buscar sugestões usando RPC search_languoids
           try {
             const { data: suggestions, error: rpcError } = await supabase.rpc(
               'search_languoids',
@@ -109,10 +108,9 @@ export async function POST(request: NextRequest) {
         } else {
           validLanguages.push(languageName);
         }
-      } catch (error) {
-        // Se houver erro na consulta principal, também buscar sugestões
+      } catch (_error) {
         try {
-          const { data: suggestions, error: rpcError } = await supabase.rpc(
+          const { data: suggestions } = await supabase.rpc(
             'search_languoids',
             {
               search_query: trimmedName,

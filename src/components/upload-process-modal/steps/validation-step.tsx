@@ -27,9 +27,9 @@ function ValidationStep({
   const errors =
     validationResult?.issues.filter((issue) => issue.severity === 'error') ??
     [];
-  const warnings =
-    validationResult?.issues.filter((issue) => issue.severity === 'warning') ??
-    [];
+  // const warnings =
+  //   validationResult?.issues.filter((issue) => issue.severity === 'warning') ??
+  //   [];
   const isValidating = validationProgress?.isValidating ?? false;
   const progressPercent = validationProgress?.percent ?? 0;
   const progressLabel =

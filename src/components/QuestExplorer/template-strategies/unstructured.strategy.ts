@@ -58,5 +58,5 @@ export const unstructuredStrategy: TemplateStrategy = {
     (contextNode?.quest?.children || []).map(mapQuestNode),
   formatLabelMetadata: () => null,
   getOrderIndex: (_assetMetadata, counter) => counter,
-  resolveAssetLabel: (_quest, _asset) => ''
+  resolveAssetLabel: () => ''
 };
