@@ -1,19 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-// import { useQuery } from '@tanstack/react-query';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/spinner';
 import { X, CheckIcon, ChevronDown, ChevronUp, Tag } from 'lucide-react';
-// import { fi, is, se, ta } from 'date-fns/locale';
-// import { set } from 'date-fns';
 import {
   Pagination,
   PaginationContent,
-  // PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -98,10 +94,8 @@ export function TagSelector({
         let query = createBrowserClient().from('tag').select('*');
 
         if (sValue && sValue.trim() !== '') {
-          // Se sValue existe, busca por sKey E sValue usando ilike
           query = query.ilike('key', `%${sKey}%`).ilike('value', `%${sValue}%`);
         } else {
-          // Se sValue não existe, busca apenas por sKey usando ilike
           query = query.ilike('key', `%${sKey}%`);
         }
 
@@ -201,7 +195,6 @@ export function TagSelector({
         )}
 
         <div className="flex flex-wrap gap-2">
-          {/* {tags.map((tag) => ( */}
           {selectedTags.map((tag) => (
             <Badge
               key={tag}
@@ -285,7 +278,6 @@ export function TagSelector({
       </div>
 
       <div className="flex flex-col gap-2">
-        {/* Selected tags display */}
         <div
           className={`flex flex-wrap gap-1 p-3 border rounded-md min-h-[60px] bg-muted/20 ${
             disabled ? 'opacity-50' : ''
@@ -299,8 +291,6 @@ export function TagSelector({
                   {tag}
                   <button
                     type="button"
-                    // variant="ghost"
-                    // size="sm"
                     className="h-auto p-0 ml-1 hover:bg-destructive/20 rounded"
                     onClick={() => handleTagRemove(tagId)}
                     disabled={disabled}
@@ -331,7 +321,6 @@ export function TagSelector({
 
             {/* Search input */}
             {showSearch && (
-              // tags.length > 5 && (
               <div className="mb-3 flex">
                 <Input
                   type="text"
@@ -434,8 +423,6 @@ export function TagSelector({
 
 export function useTagSelector(initialTags: string[] = []) {
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
-
-  console.log('Selected tags in hook:', initialTags);
 
   const TagSelectorComponent = (props: Partial<TagSelectorProps>) => (
     <TagSelector

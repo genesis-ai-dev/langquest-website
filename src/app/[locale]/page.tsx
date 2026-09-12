@@ -543,30 +543,6 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
-
-            {/* <div className="grid gap-4 md:grid-cols-3">
-              {environments.map((env) => (
-                <Card
-                  key={env.name}
-                  className="hover:shadow-lg transition-shadow"
-                >
-                  <CardHeader>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${env.color}`}
-                      ></div>
-                      <CardTitle>{env.name}</CardTitle>
-                    </div>
-                    <CardDescription>{env.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link href={env.href}>
-                      <Button className="w-full">Login to {env.name}</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div> */}
           </div>
         </section>
       </main>

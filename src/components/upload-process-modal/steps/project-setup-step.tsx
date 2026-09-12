@@ -190,12 +190,7 @@ function ProjectSetupStep({
       </div>
 
       <Card className="flex min-h-0 flex-1 flex-col overflow-hidden gap-0">
-        <CardHeader className="shrink-0 pb-3">
-          {/* <CardTitle className="text-base">Project Details</CardTitle> */}
-          {/* <CardDescription>
-            These values will be used when creating the project.
-          </CardDescription> */}
-        </CardHeader>
+        <CardHeader className="shrink-0 pb-3"></CardHeader>
         <CardContent className="min-h-0 flex-1 overflow-auto pt-0">
           <div className="mx-auto grid max-w-3xl gap-5">
             <div className="grid gap-2">

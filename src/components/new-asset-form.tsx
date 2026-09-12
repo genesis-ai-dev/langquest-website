@@ -40,7 +40,6 @@ import {
   assetWriteTimestamps,
   buildAssetPlacementFields
 } from '@/lib/asset-placement';
-// import { checkProjectOwnership } from '@/lib/project-permissions';
 
 const assetFormSchema = z.object({
   name: z.string().min(2, {
@@ -303,19 +302,12 @@ export function AssetForm({
         const { data: uploadData, error: uploadError } =
           await createBrowserClient()
             .storage.from(env.NEXT_PUBLIC_SUPABASE_BUCKET)
-            //.upload(`audio/${fileName}`, file);
             .upload(`${fileName}`, file);
 
         if (uploadError) throw uploadError;
         if (updatedContent[index]) {
           updatedContent[index].audio_id = uploadData.path;
         }
-
-        // Update progress manually after upload completes
-        // setUploadProgress((prev) => ({
-        //   ...prev,
-        //   [fileName]: 100
-        // }));
       }
 
       const contentToSave = updatedContent
@@ -459,14 +451,6 @@ export function AssetForm({
           );
         }
       }
-
-      // // Log selectedQuests state just before the linking logic for quests
-      // console.log(
-      //   '[AssetForm - onSubmit] Just before quest linking. assetId:',
-      //   assetId,
-      //   'selectedQuests state:',
-      //   selectedQuests
-      // );
 
       // Duplicate placement fields on quest_asset_link (same values as asset)
       if (selectedQuests.length > 0) {

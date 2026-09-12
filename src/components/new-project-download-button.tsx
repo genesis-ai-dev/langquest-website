@@ -343,20 +343,6 @@ export function ProjectDownloadButton({
     );
   };
 
-  // const downloadFile = (
-  //   content: string,
-  //   filename: string,
-  //   contentType: string
-  // ) => {
-  //   const blob = new Blob([content], { type: contentType });
-  //   const url = URL.createObjectURL(blob);
-  //   const a = document.createElement('a');
-  //   a.href = url;
-  //   a.download = filename;
-  //   a.click();
-  //   URL.revokeObjectURL(url);
-  // };
-
   const downloadZip = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -369,8 +355,6 @@ export function ProjectDownloadButton({
   const fetchFileFromSupabase = async (
     filePath: string
   ): Promise<Blob | null> => {
-    console.log(`Fetching file from Supabase assets bucket: ${filePath}`);
-
     if (!filePath) {
       console.warn('Empty file path provided');
       return null;
