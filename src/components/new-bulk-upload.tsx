@@ -77,7 +77,7 @@ export function BulkUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const instructionsScrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const [setIsCreatingLanguage] = useState(false);
+  // const [setIsCreatingLanguage] = useState(false);
   const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
   const [isInstructionsScrolledToEnd, setIsInstructionsScrolledToEnd] =
     useState(false);
@@ -273,7 +273,7 @@ export function BulkUpload({
     if (!languoid.name.trim()) return;
     const isoValue = languoid.iso639_3?.trim().toLowerCase();
 
-    setIsCreatingLanguage(true);
+    // setIsCreatingLanguage(true as boolean);
     setShowAddLanguageAlert(false);
     try {
       // Get authentication token from Supabase client
@@ -311,7 +311,7 @@ export function BulkUpload({
       console.error('Error creating languoid:', error);
       toast.error('Failed to create language');
     } finally {
-      setIsCreatingLanguage(false);
+      // setIsCreatingLanguage(false);
     }
   };
 
