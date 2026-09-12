@@ -1,5 +1,5 @@
 import { env } from '@/lib/env';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 function getServiceRoleCredentials() {
   return {
