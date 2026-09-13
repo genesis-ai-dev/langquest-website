@@ -13,7 +13,7 @@ import {
 } from '@/lib/chartUtils';
 import { cn } from '@/lib/utils';
 
-export type ChartColors = AvailableChartColorsKeys;
+type ChartColors = AvailableChartColorsKeys;
 
 export const numberFormatter = (value: number) =>
   Intl.NumberFormat('en-US').format(value).toString();
@@ -23,7 +23,7 @@ export const minutesFormatter = (seconds: number) => {
   return `${minutes}m`;
 };
 
-export type ChartSummaryItem = {
+type ChartSummaryItem = {
   name: string;
   total: string;
   colorClassName: string;

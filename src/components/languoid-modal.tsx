@@ -241,5 +241,3 @@ export function LanguoidModal({
     </Dialog>
   );
 }
-
-export default LanguoidModal;

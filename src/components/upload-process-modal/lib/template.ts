@@ -177,4 +177,4 @@ export {
   validateTemplateHeaders,
   validateTemplateRequiredFields
 };
-export type { CsvRow, UploadTemplate };
+export type { CsvRow };

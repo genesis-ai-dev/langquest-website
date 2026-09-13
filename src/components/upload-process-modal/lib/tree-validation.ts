@@ -927,8 +927,8 @@ export {
   recomputeHasContent
 };
 export type {
-  NormalizeAssetUploadContentTreeParams,
-  NormalizeContentTreeParams,
+  // NormalizeAssetUploadContentTreeParams,
+  // NormalizeContentTreeParams,
   NormalizeContentTreeResult,
   ValidationSummary
 };
