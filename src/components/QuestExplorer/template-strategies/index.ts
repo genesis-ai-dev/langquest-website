@@ -15,10 +15,10 @@ export function getTemplateStrategy(template: QuestTemplate): TemplateStrategy {
 
 export type {
   DisplayNode,
-  FiaPericopesResponse,
+  // FiaPericopesResponse,
   QuestTemplate,
   TemplateStrategyContext,
-  TemplateBehavior,
-  TemplateCopy,
+  // TemplateBehavior,
+  // TemplateCopy,
   TemplateStrategy
 } from './types';

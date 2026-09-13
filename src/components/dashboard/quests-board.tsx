@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search } from 'lucide-react';
 
-export type DashboardSubquest = {
+type DashboardSubquest = {
   name: string | null;
   creators: Array<{ id: string; name: string }>;
   languoids: string[];
@@ -49,7 +49,7 @@ type QuestsBoardProps = {
   subquestLabel: string;
 };
 
-export function QuestsBoard({ quests, subquestLabel }: QuestsBoardProps) {
+function QuestsBoard({ quests, subquestLabel }: QuestsBoardProps) {
   const mainQuests = Object.entries(quests || {});
   const [search, setSearch] = useState('');
 

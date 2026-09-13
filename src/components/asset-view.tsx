@@ -27,23 +27,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 
 // Types based on the existing data-view.tsx types
-export interface Vote {
+interface Vote {
   id: string;
   polarity: string;
 }
 
-export interface TargetLanguage {
+interface TargetLanguage {
   id: string;
   english_name: string;
 }
 
-export interface Content {
+interface Content {
   id: string;
   text: string;
   audio: [string] | string;
 }
 
-export interface Tag {
+interface Tag {
   tag:
     | {
         id: string;
@@ -53,7 +53,7 @@ export interface Tag {
     | string;
 }
 
-export interface Asset {
+interface Asset {
   id: string;
   name: string;
   translations: {
@@ -220,8 +220,6 @@ function AudioPlayer({ src, className = '' }: AudioPlayerProps) {
 export function AssetView({ asset }: AssetViewProps) {
   const t = useTranslations('data_view');
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-  console.log('Rendering AssetView for asset:', asset);
 
   if (!asset) return <div>No asset data available.</div>;
 

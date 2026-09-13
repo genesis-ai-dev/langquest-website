@@ -2,17 +2,11 @@ import { Quest } from './types';
 
 export const ICONS_PATH = '/book-icons/';
 
-export interface BibleBook {
+interface BibleBook {
   id: string;
   name: string;
   chapters: number;
   verses: number[]; // verses per chapter
-}
-
-export interface BibleReference {
-  book: string;
-  chapter: number;
-  verse: number;
 }
 
 export interface BibleBookQuest extends Quest {

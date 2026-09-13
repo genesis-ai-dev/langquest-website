@@ -1142,5 +1142,3 @@ export function QuestExplorerMenu({
     </>
   );
 }
-
-export default QuestExplorerMenu;

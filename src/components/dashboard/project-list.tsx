@@ -144,5 +144,3 @@ export function ProjectList() {
     </section>
   );
 }
-
-export default ProjectList;
