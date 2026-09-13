@@ -1,5 +1,5 @@
 import { env } from '@/lib/env';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 function getServiceRoleCredentials() {
   return {
@@ -8,7 +8,7 @@ function getServiceRoleCredentials() {
   };
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { url, key } = getServiceRoleCredentials();
 

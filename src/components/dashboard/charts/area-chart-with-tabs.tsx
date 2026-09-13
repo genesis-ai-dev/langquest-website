@@ -96,39 +96,7 @@ export default function AreaChartWithTabs({
 
         {renderedTabs.map((tab) => (
           <TabsContent key={tab.name} value={tab.name} className="mt-0 p-6">
-            {/* {tab.summary?.length ? (
-              <div className="md:flex md:items-start md:justify-between">
-                <ul
-                  role="list"
-                  className="flex flex-wrap items-center gap-x-10 gap-y-4"
-                >
-                  {tab.summary.map((item) => (
-                    <li key={item.name}>
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={cn(
-                            item.colorClassName,
-                            'size-3 shrink-0 rounded-sm'
-                          )}
-                          aria-hidden={true}
-                        />
-                        <p className="font-semibold">{item.total}</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {item.name}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null} */}
-
-            <div
-              className={cn(
-                // tab.summary?.length ? 'mt-10' : 'mt-2',
-                'mt-0 h-60 w-full'
-              )}
-            >
+            <div className={cn('mt-0 h-60 w-full')}>
               <AreaChart
                 data={tab.data}
                 index={tab.index}

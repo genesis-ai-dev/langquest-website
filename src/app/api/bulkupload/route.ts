@@ -8,8 +8,6 @@ import {
   assetWriteTimestamps,
   buildAssetPlacementFields
 } from '@/lib/asset-placement';
-// import { th } from 'date-fns/locale';
-// import { metadata } from '@/app/[locale]/layout';
 
 interface ProjectRow {
   project_name: string;
@@ -759,10 +757,7 @@ async function processProjectUpload(
 
   result.stats.projects.created = createdCount;
 
-  // const questMap = new Map<string, string>(); // project_name:quest_name -> quest_id
-  // const languageCache = new Map<string, string>(); // language_name -> language_id
-
-  const { questIdsByName /*createdCount: questCount */ } = await prepareQuests(
+  const { questIdsByName } = await prepareQuests(
     data,
     projectIdsByName,
     supabase,
@@ -787,7 +782,7 @@ async function processProjectUpload(
       } catch (error) {
         result.stats.errors.push({
           row: i + 1,
-          message: `Failed to find language '${row.source_language}`
+          message: `Failed to find language '${row.source_language} ${error}`
         });
       }
 
@@ -1002,7 +997,7 @@ async function processQuestUpload(
       } catch (error) {
         result.stats.errors.push({
           row: i + 1,
-          message: `Failed to find language '${row.source_language}`
+          message: `Failed to find language '${row.source_language} ${error}`
         });
       }
 
@@ -1205,7 +1200,7 @@ async function processAssetUpload(
       } catch (error) {
         result.stats.errors.push({
           row: i + 1,
-          message: `Failed to find language '${row.source_language}`
+          message: `Failed to find language '${row.source_language} ${error}`
         });
       }
 

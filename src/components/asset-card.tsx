@@ -15,16 +15,11 @@ import {
   ExpandIcon,
   VolumeIcon,
   BookOpenIcon
-  // ThumbsDownIcon,
-  // ThumbsUpIcon,
-  //  ImageIcon,
-  //  XIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './ui/dialog';
-import { useAuth } from '@/components/auth-provider';
 import { env } from '@/lib/env';
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';

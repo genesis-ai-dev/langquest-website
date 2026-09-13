@@ -515,7 +515,7 @@ export async function createFiaPericopeQuest(
     bookId,
     bookName,
     pericopeId,
-    sequence,
+    // sequence,
     verseRange,
     existingBookQuestId,
     versionLabel

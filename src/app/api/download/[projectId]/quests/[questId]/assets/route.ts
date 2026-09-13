@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
+import { Database } from '../../../../../../../../database.types';
 
 type AssetRow = {
   id: string;
@@ -96,7 +97,7 @@ function normalizeAsset(
 }
 
 async function loadQuestAssets(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createClient<Database>>,
   projectId: string,
   questId: string
 ) {
@@ -160,7 +161,7 @@ export async function GET(
     }
 
     const accessToken = authHeader.slice(7);
-    const supabaseAuth = createClient(
+    const supabaseAuth = createClient<Database>(
       env.NEXT_PUBLIC_SUPABASE_URL,
       env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
@@ -177,7 +178,7 @@ export async function GET(
       );
     }
 
-    const supabase = createClient(
+    const supabase = createClient<Database>(
       env.NEXT_PUBLIC_SUPABASE_URL,
       env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
@@ -191,7 +192,7 @@ export async function GET(
 
     const { data: project, error: projectError } = await supabase
       .from('project')
-      .select('id,private,visible')
+      .select('id,visible')
       .eq('id', projectId)
       .limit(1)
       .maybeSingle();
@@ -225,7 +226,7 @@ export async function GET(
       );
     }
 
-    if (isProjectPrivate(project as ProjectAccessRow) && !membership) {
+    if (isProjectPrivate(project) && !membership) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

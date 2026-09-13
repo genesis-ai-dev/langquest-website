@@ -77,7 +77,7 @@ export function BulkUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const instructionsScrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const [isCreatingLanguage, setIsCreatingLanguage] = useState(false);
+  // const [setIsCreatingLanguage] = useState(false);
   const [showAddLanguageAlert, setShowAddLanguageAlert] = useState(false);
   const [isInstructionsScrolledToEnd, setIsInstructionsScrolledToEnd] =
     useState(false);
@@ -273,7 +273,7 @@ export function BulkUpload({
     if (!languoid.name.trim()) return;
     const isoValue = languoid.iso639_3?.trim().toLowerCase();
 
-    setIsCreatingLanguage(true);
+    // setIsCreatingLanguage(true as boolean);
     setShowAddLanguageAlert(false);
     try {
       // Get authentication token from Supabase client
@@ -307,21 +307,11 @@ export function BulkUpload({
       const data = (await response.json()) as Languoid;
 
       toast.success(`Added language: ${data.name}`);
-      // onChange(data.id);
-      // if (onLanguoidSelect) {
-      //   onLanguoidSelect(data);
-      // }
-      // setOpen(false);
-
-      // // Call the success callback if provided
-      // if (onCreateSuccess) {
-      //   onCreateSuccess(data);
-      // }
     } catch (error) {
       console.error('Error creating languoid:', error);
       toast.error('Failed to create language');
     } finally {
-      setIsCreatingLanguage(false);
+      // setIsCreatingLanguage(false);
     }
   };
 
@@ -417,7 +407,6 @@ export function BulkUpload({
   const getInstructions = () => {
     switch (mode) {
       case 'project':
-        // return 'Upload a ZIP file containing a CSV with project data and media files (images/audio).';
         return 'Upload a ZIP file containing a CSV with project data and all media files (images/audio).';
       case 'quest':
         return 'Upload a ZIP file containing a CSV with quest data and media files to add to the selected project.';
@@ -429,10 +418,8 @@ export function BulkUpload({
   };
 
   return (
-    // <ScrollArea className="h-full">
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="text-center">
-        {/* <h2 className="text-xl font-bold mb-2">{getUploadTitle()}</h2> */}
         <p className="text-left text-sm text-muted-foreground">
           {getInstructions()}
         </p>
@@ -534,9 +521,9 @@ export function BulkUpload({
                   empty in the corresponding row.
                 </li>
                 <li>
-                  If a quest's <strong>Parent Name</strong> cannot be matched to
-                  an existing quest, the quest will be created at the root level
-                  of the project.
+                  If a quest&apos;s <strong>Parent Name</strong> cannot be
+                  matched to an existing quest, the quest will be created at the
+                  root level of the project.
                 </li>
                 <li>
                   Verify your CSV and ZIP structure before uploading to avoid
@@ -802,6 +789,5 @@ export function BulkUpload({
         </Button>
       </div>
     </div>
-    // </ScrollArea>
   );
 }

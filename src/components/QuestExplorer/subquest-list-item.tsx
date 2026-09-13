@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { FolderOpen, Link2, Unlink2 } from 'lucide-react';
+import { Link2, Unlink2 } from 'lucide-react';
 import { DisplayNode } from './model';
 
 interface SubquestListItemProps {
