@@ -25,23 +25,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 
 // Types based on the existing data-view.tsx types
-export interface Vote {
-  id: string;
-  polarity: string;
-}
+// interface Vote {
+//   id: string;
+//   polarity: string;
+// }
 
-export interface TargetLanguage {
-  id: string;
-  english_name: string;
-}
+// interface TargetLanguage {
+//   id: string;
+//   english_name: string;
+// }
 
-export interface Content {
+interface Content {
   id: string;
   text: string;
   audio: string | [string] | null;
 }
 
-export interface Tag {
+interface Tag {
   tag: {
     id: string;
     key: string;
@@ -49,10 +49,10 @@ export interface Tag {
   };
 }
 
-export interface SourceLanguage {
-  id: string;
-  english_name: string;
-}
+// interface SourceLanguage {
+//   id: string;
+//   english_name: string;
+// }
 
 export interface Asset {
   id: string;

@@ -14,13 +14,13 @@ export type DonutChartColors = AvailableChartColorsKeys;
 export const donutNumberFormatter = (value: number) =>
   Intl.NumberFormat('en-US').format(value).toString();
 
-export type DonutSummaryItem = {
+type DonutSummaryItem = {
   name: string;
   total: string;
   colorClassName: string;
 };
 
-export type DonutDataPoint = Record<string, string | number>;
+type DonutDataPoint = Record<string, string | number>;
 
 export type DonutChartTab = {
   name: string;

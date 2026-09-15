@@ -455,12 +455,6 @@ export function ProjectWizard({
     return id;
   };
 
-  // Handle languoid creation success
-  const handleLanguoidCreated = () => {
-    // Refetch languoids to update the list
-    // This is optional since we're already updating the UI optimistically
-  };
-
   // Render step 1: Choose project creation method
   const renderStep1 = () => {
     return (
@@ -728,7 +722,7 @@ export function ProjectWizard({
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="Select target language"
-                    onCreateSuccess={handleLanguoidCreated}
+                    onCreateSuccess={() => {}}
                     onLanguoidSelect={setSelectedLanguoid}
                   />
                 </FormControl>

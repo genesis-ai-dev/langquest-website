@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
-export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 interface CustomAvatarProps {
   fullName: string;
