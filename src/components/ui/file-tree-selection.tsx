@@ -146,15 +146,14 @@ const formatCreatedAt = (value?: string) => {
   });
 };
 
-const formatDateBadgeText = (
-  createdAt?: string,
-  versionLabel?: string
-) => {
+const formatDateBadgeText = (createdAt?: string, versionLabel?: string) => {
   const formattedCreatedAt = formatCreatedAt(createdAt);
   const trimmedVersionLabel = versionLabel?.trim();
 
-  return [trimmedVersionLabel, formattedCreatedAt].filter(Boolean).join(' · ') ||
-    null;
+  return (
+    [trimmedVersionLabel, formattedCreatedAt].filter(Boolean).join(' · ') ||
+    null
+  );
 };
 
 const renderTreeElements = (

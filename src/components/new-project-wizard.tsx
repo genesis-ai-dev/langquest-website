@@ -221,7 +221,10 @@ function CloneProjectCombobox({
                       <span className="truncate">{project.name}</span>
                     </div>
                     {createdAtLabel && (
-                      <Badge variant="secondary" className="ml-auto shrink-0 tabular-nums">
+                      <Badge
+                        variant="secondary"
+                        className="ml-auto shrink-0 tabular-nums"
+                      >
                         {createdAtLabel}
                       </Badge>
                     )}

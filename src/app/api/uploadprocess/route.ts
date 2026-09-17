@@ -1056,9 +1056,7 @@ function findExistingTemplateBookQuest(
       const fia = metadata?.fia as
         | { bookId?: string; pericopeId?: string; verseRange?: string }
         | undefined;
-      return (
-        fia?.bookId === bookId && !fia.pericopeId && !fia.verseRange
-      );
+      return fia?.bookId === bookId && !fia.pericopeId && !fia.verseRange;
     })?.id ?? null
   );
 }
