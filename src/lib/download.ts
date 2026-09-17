@@ -1,7 +1,11 @@
 import JSZip from 'jszip';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
-import { getVerseMetadata, parseMetadata } from '@/lib/templatefunctions';
+import {
+  formatAssetLabelForUpload,
+  getVerseMetadata,
+  parseMetadata
+} from '@/lib/templatefunctions';
 import {
   concatAclAudio,
   type ConcatProgress
@@ -19,6 +23,7 @@ type DownloadQuestRow = {
   id: string;
   name: string | null;
   description: string | null;
+  metadata: unknown;
   parent_id: string | null;
   created_at: string;
   parent_quest?: { name: string | null } | { name: string | null }[] | null;
@@ -67,6 +72,7 @@ type QuestUploadCsvRow = {
   quest_tags: string;
   asset_name: string;
   asset_tags: string;
+  asset_label: string;
   source_language: string;
   source_images: string;
   source_content: string;
@@ -101,6 +107,7 @@ const QUEST_UPLOAD_CSV_HEADERS: Array<keyof QuestUploadCsvRow> = [
   'quest_tags',
   'asset_name',
   'asset_tags',
+  'asset_label',
   'source_language',
   'source_images',
   'source_content',
@@ -332,6 +339,11 @@ export async function downloadProjectZip({
           quest_tags: formatTags(quest.tags),
           asset_name: asset.name,
           asset_tags: formatTags(asset.tags),
+          asset_label: formatAssetLabelForUpload(
+            project.template,
+            quest,
+            asset
+          ),
           source_language: resolveAssetSourceLanguage(
             asset,
             contentRows,
@@ -387,7 +399,7 @@ export async function downloadProjectZip({
 async function loadProject(projectId: string) {
   const { data, error } = await createBrowserClient()
     .from('project')
-    .select('id,name,description')
+    .select('id,name,description,template')
     .eq('id', projectId)
     .single();
 
@@ -399,6 +411,7 @@ async function loadProject(projectId: string) {
     id: string;
     name: string | null;
     description: string | null;
+    template: string | null;
   };
 }
 
@@ -409,7 +422,7 @@ async function loadQuests(questIds: string[]) {
     const { data, error } = await createBrowserClient()
       .from('quest')
       .select(
-        'id,name,description,parent_id,created_at,parent_quest:parent_id(name),tags:quest_tag_link(tag(key,value))'
+        'id,name,description,metadata,parent_id,created_at,parent_quest:parent_id(name),tags:quest_tag_link(tag(key,value))'
       )
       .in('id', questIdChunk);
 
@@ -639,6 +652,7 @@ function createQuestOnlyCsvRow(quest: DownloadQuestRow): QuestUploadCsvRow {
     quest_tags: formatTags(quest.tags),
     asset_name: '',
     asset_tags: '',
+    asset_label: '',
     source_language: '',
     source_images: '',
     source_content: '',

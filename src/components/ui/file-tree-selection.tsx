@@ -23,6 +23,7 @@ type TreeViewElement = {
   label?: string;
   extraContent?: React.ReactNode;
   created_at?: string;
+  versionLabel?: string;
   type?: 'file' | 'folder';
   isSelectable?: boolean;
   children?: TreeViewElement[];
@@ -143,6 +144,16 @@ const formatCreatedAt = (value?: string) => {
     dateStyle: 'short',
     timeStyle: 'short'
   });
+};
+
+const formatDateBadgeText = (createdAt?: string, versionLabel?: string) => {
+  const formattedCreatedAt = formatCreatedAt(createdAt);
+  const trimmedVersionLabel = versionLabel?.trim();
+
+  return (
+    [trimmedVersionLabel, formattedCreatedAt].filter(Boolean).join(' · ') ||
+    null
+  );
 };
 
 const renderTreeElements = (
@@ -415,7 +426,9 @@ const Folder = forwardRef<
       closeIcon
     } = useTree();
     const isSelected = isSelect ?? selectedId === value;
-    const formattedCreatedAt = showDates ? formatCreatedAt(createdAt) : null;
+    const dateBadgeText = showDates
+      ? formatDateBadgeText(createdAt, treeElement.versionLabel)
+      : null;
 
     return (
       <AccordionPrimitive.Item
@@ -466,12 +479,12 @@ const Folder = forwardRef<
                 {label}
               </Badge>
             ) : null}
-            {formattedCreatedAt ? (
+            {dateBadgeText ? (
               <Badge
                 variant="secondary"
                 className="ml-1 text-[10px] rounded-sm"
               >
-                {formattedCreatedAt}
+                {dateBadgeText}
               </Badge>
             ) : null}
           </AccordionPrimitive.Trigger>
@@ -537,7 +550,9 @@ const File = forwardRef<
       fileIcon
     } = useTree();
     const isSelected = isSelect ?? selectedId === value;
-    const formattedCreatedAt = showDates ? formatCreatedAt(createdAt) : null;
+    const dateBadgeText = showDates
+      ? formatDateBadgeText(createdAt, treeElement.versionLabel)
+      : null;
     return (
       <div
         ref={ref}
@@ -589,9 +604,9 @@ const File = forwardRef<
             {label}
           </Badge>
         ) : null}
-        {formattedCreatedAt ? (
+        {dateBadgeText ? (
           <Badge variant="secondary" className="ml-1 text-[9px] rounded-sm">
-            {formattedCreatedAt}
+            {dateBadgeText}
           </Badge>
         ) : null}
       </div>

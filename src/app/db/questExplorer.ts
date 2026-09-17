@@ -69,6 +69,8 @@ export interface AssetDetails {
       id: string;
       name: string;
       description: string;
+      metadata?: Record<string, unknown> | null;
+      created_at?: string | null;
       tags: Array<{
         tag:
           | {
@@ -337,7 +339,7 @@ export async function fetchAssetDetails(
       images,
       content:asset_content_link(id, audio, text),
       tags:asset_tag_link(tag(id, key, value)),
-      quests:quest_asset_link(quest(id, name, description, project(id, name, description), tags:quest_tag_link(tag(id, key, value))))
+      quests:quest_asset_link(quest(id, name, description, metadata, created_at, project(id, name, description), tags:quest_tag_link(tag(id, key, value))))
     `
     )
     .eq('id', assetId);
