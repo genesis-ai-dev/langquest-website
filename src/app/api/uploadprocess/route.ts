@@ -1040,10 +1040,23 @@ function findExistingTemplateBookQuest(
 ) {
   return (
     quests.find((quest) => {
+      if (quest.parent_id) {
+        return false;
+      }
+
       const metadata = parseJsonObject(quest.metadata);
-      return template === 'bible'
-        ? (metadata?.bible as { book?: string } | undefined)?.book === bookId
-        : (metadata?.fia as { bookId?: string } | undefined)?.bookId === bookId;
+
+      if (template === 'bible') {
+        const bible = metadata?.bible as
+          | { book?: string; chapter?: number }
+          | undefined;
+        return bible?.book === bookId && bible.chapter == null;
+      }
+
+      const fia = metadata?.fia as
+        | { bookId?: string; pericopeId?: string; verseRange?: string }
+        | undefined;
+      return fia?.bookId === bookId && !fia.pericopeId && !fia.verseRange;
     })?.id ?? null
   );
 }

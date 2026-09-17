@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/file-tree-selection';
 import {
   getVerseMetadata,
+  getVersionLabel,
   resolveAssetLabel,
   sortQuestByTemplate
 } from '@/lib/templatefunctions';
@@ -87,6 +88,7 @@ function questNodeToTreeElement(quest: DownloadQuestNode): TreeViewElement {
     name: quest.name || 'Untitled Quest',
     label: `${totalAssetCount} ${totalAssetCount === 1 ? 'asset' : 'assets'}`,
     created_at: quest.createdAt,
+    versionLabel: getVersionLabel(quest.metadata),
     type: quest.children.length ? 'folder' : 'file',
     children: quest.children.map(questNodeToTreeElement)
   };
@@ -580,9 +582,6 @@ export function ProjectDownloadModal({
         if (!response.ok) {
           throw new Error(json.error || 'Failed to load project download tree');
         }
-
-        /* REMOVE THIS BEFORE DEPLOYMENT */
-        console.log('Project download API response:', json);
 
         if (!isActive) return;
         const sortedTree = sortQuestByTemplate(

@@ -31,6 +31,11 @@ export function parseMetadata(
   return null;
 }
 
+export function getVersionLabel(metadata: unknown): string | undefined {
+  const value = parseMetadata(metadata)?.versionLabel;
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
 export function getVerseMetadata(metadata: unknown) {
   return parseMetadata(metadata)?.verse as
     | { from?: number; to?: number }
@@ -195,6 +200,29 @@ export function resolveAssetLabel(
   }
 
   return null;
+}
+
+export function formatAssetLabelForUpload(
+  projectTemplate: string | null,
+  quest: TemplateQuest,
+  asset: TemplateAsset
+) {
+  if (projectTemplate === 'fia') {
+    return resolveFiaAssetLabel(quest, asset) ?? '';
+  }
+
+  if (projectTemplate === 'bible') {
+    const verse = getVerseMetadata(asset.metadata);
+    const from = verse?.from;
+    if (typeof from !== 'number') {
+      return '';
+    }
+
+    const to = typeof verse?.to === 'number' ? verse.to : from;
+    return from === to ? `${from}` : `${from}-${to}`;
+  }
+
+  return '';
 }
 
 function getQuestBookId(projectTemplate: string | null, quest: TemplateQuest) {
