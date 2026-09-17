@@ -23,6 +23,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './ui/dialog';
 import { env } from '@/lib/env';
+import { getVersionLabel } from '@/lib/templatefunctions';
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 
@@ -74,6 +75,8 @@ interface Asset {
       id: string;
       name: string;
       tags: Tag[];
+      metadata?: Record<string, unknown> | null;
+      created_at?: string | null;
       project: {
         id: string;
         name: string;
@@ -87,6 +90,25 @@ interface Asset {
 
 interface AssetViewProps {
   asset: Asset;
+}
+
+function formatQuestIdentity(quest: {
+  metadata?: unknown;
+  created_at?: string | null;
+}) {
+  const versionLabel = getVersionLabel(quest.metadata);
+  if (versionLabel) return versionLabel;
+
+  if (!quest.created_at) return null;
+
+  const date = new Date(quest.created_at);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 }
 
 // Custom Audio Player Component with Progress
@@ -261,17 +283,26 @@ export function AssetView({ asset }: AssetViewProps) {
               <MapPinIcon className="size-4" />
               <span className="text-sm font-medium">Quests:</span>
             </div>
-            {asset.quests.map((questLink, index) =>
-              questLink.quest ? (
+            {asset.quests.map((questLink) => {
+              if (!questLink.quest) return null;
+
+              const identity = formatQuestIdentity(questLink.quest);
+
+              return (
                 <Badge
                   variant="secondary"
-                  key={index}
-                  className="text-xs px-2 py-1 bg-green-500/10 hover:bg-green-500/20 transition-colors border-green-500/20"
+                  key={questLink.quest.id}
+                  className="gap-1.5 text-xs px-2 py-1 bg-green-500/10 hover:bg-green-500/20 transition-colors border-green-500/20"
                 >
-                  {questLink.quest.name || 'Unnamed Quest'}
+                  <span>{questLink.quest.name || 'Unnamed Quest'}</span>
+                  {identity ? (
+                    <span className="rounded-sm bg-background/70 px-1.5 py-0 text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {identity}
+                    </span>
+                  ) : null}
                 </Badge>
-              ) : null
-            )}
+              );
+            })}
           </div>
         )}
       </div>
