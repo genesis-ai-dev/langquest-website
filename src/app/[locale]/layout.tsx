@@ -22,7 +22,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'LangQuest - Translate and Preserve Low-Resource Languages',
   description:
-    'An app for translating and preserving low-resource languages, especially useful in remote areas with limited internet.'
+    'An app for translating and preserving low-resource languages, especially useful in remote areas with limited internet.',
+  icons: {
+    icon: '/favicon.ico'
+  }
 };
 
 export function generateStaticParams() {
