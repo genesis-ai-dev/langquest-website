@@ -28,5 +28,13 @@ export const env = createEnv({
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_APP_SCHEME: process.env.NEXT_PUBLIC_APP_SCHEME
   },
+  emptyStringAsUndefined: true,
+  onValidationError: (issues) => {
+    console.error(
+      '❌ Invalid environment variables:',
+      JSON.stringify(issues, null, 2)
+    );
+    throw new Error('Invalid environment variables');
+  },
   skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === 'lint'
 });

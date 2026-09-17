@@ -403,5 +403,4 @@ function UploadProcessModal({
 }
 
 export { UploadProcessModal };
-export type { UploadProcessModalProps, UploadType };
 export default UploadProcessModal;

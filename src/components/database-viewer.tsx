@@ -341,7 +341,6 @@ const addReverseRelationships = (schemas: Record<string, TableSchema>) => {
   Object.entries(reverseRelationships).forEach(
     ([targetTable, relationships]) => {
       relationships.forEach((rel) => {
-        // const sourceSchema = schemas[rel.sourceTable];
         const linkTableInfo = linkTables.get(rel.sourceTable);
         const isLinkTable = linkTableInfo?.isLinkTable || false;
 

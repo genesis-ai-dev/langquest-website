@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
-import { ProjectDownloadButton } from './new-project-download-button';
 import { ProjectDownloadModal } from './project-download-modal';
 import { ProjectMembersModal } from './new-project-members';
 

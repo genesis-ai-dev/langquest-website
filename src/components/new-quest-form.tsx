@@ -31,7 +31,6 @@ import { useAuth } from '@/components/auth-provider';
 import { canCreateContentInProject } from '@/lib/project-permissions';
 import { OwnershipAlert } from '@/components/ownership-alert';
 import { TagSelector } from '@/components/new-tag-selector';
-// import { cn } from '@/lib/utils';
 
 const questFormSchema = z.object({
   name: z.string().min(2, {

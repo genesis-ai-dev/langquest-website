@@ -23,7 +23,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // const accessToken = authHeader.substring(7);
     const url = env.NEXT_PUBLIC_SUPABASE_URL;
     const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

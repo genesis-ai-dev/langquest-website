@@ -89,23 +89,6 @@ function AdminContent() {
     }
   };
 
-  // Get initial state from URL
-  // const getInitialViewState = (): 'projects' | 'quests' | 'assets' => {
-  //   const view = searchParams.get('view');
-  //   if (view && ['projects', 'quests', 'assets'].includes(view)) {
-  //     return view as 'projects' | 'quests' | 'assets';
-  //   }
-  //   // Determine view based on URL params
-  //   if (searchParams.get('questId')) return 'assets';
-  //   if (searchParams.get('projectId')) return 'quests';
-  //   return 'projects';
-  // };
-
-  // View state management
-  // const [viewState, setViewState] = useState<'projects' | 'quests' | 'assets'>(
-  //   getInitialViewState()
-  // );
-
   // Consolidated state management
   const [pageState, setPageState] = useState({
     selectedProjectId: searchParams.get('projectId') || null,

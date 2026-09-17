@@ -14,7 +14,7 @@ import {
 } from './questExplorer';
 import { lookupFiaLanguageCode } from './languoid';
 
-export interface FiaPericope {
+interface FiaPericope {
   id: string;
   sequence: number;
   verseRange: string;
@@ -24,7 +24,7 @@ export interface FiaPericope {
   endVerse: number;
 }
 
-export interface FiaBookPericopes {
+interface FiaBookPericopes {
   id: string;
   title: string;
   pericopes: FiaPericope[];

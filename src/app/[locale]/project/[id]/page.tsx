@@ -34,7 +34,6 @@ function ProjectPageContent() {
   const projectId = params.id as string;
   const { user, isLoading, signOut } = useAuth();
   const supabase = createBrowserClient();
-  // const queryClient = useQueryClient();
 
   // Fetch project data
   const {
@@ -172,8 +171,6 @@ function ProjectPageContent() {
   };
 
   const handleBackToProjects = () => {
-    // const envQuery = environment !== 'production' ? `?env=${environment}` : '';
-    // router.push(`/portal${envQuery}`);
     router.push(`/portal`);
   };
 

@@ -11,7 +11,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Clock, Globe, TrendingUp } from 'lucide-react';
+import { BookOpen, Clock, Globe } from 'lucide-react';
 
 // LangQuest Supabase credentials (public read-only access)
 const LANGQUEST_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -67,16 +67,16 @@ function formatDuration(ms: number): string {
   return `${minutes}m`;
 }
 
-function formatDurationShort(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+// function formatDurationShort(ms: number): string {
+//   const seconds = Math.floor(ms / 1000);
+//   const minutes = Math.floor(seconds / 60);
+//   const remainingSeconds = seconds % 60;
 
-  if (minutes > 0) {
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-  return `${seconds}s`;
-}
+//   if (minutes > 0) {
+//     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+//   }
+//   return `${seconds}s`;
+// }
 
 export default function PublishedChaptersPage() {
   const [chapters, setChapters] = useState<PublishedChapter[]>([]);

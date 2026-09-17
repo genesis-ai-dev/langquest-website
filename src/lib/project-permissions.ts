@@ -1,6 +1,6 @@
 import { createBrowserClient } from '@/lib/supabase/client';
 
-export type ProjectMembership = 'owner' | 'admin' | 'member' | null;
+type ProjectMembership = 'owner' | 'admin' | 'member' | null;
 
 export async function getProjectMembership(
   projectId: string,

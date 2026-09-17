@@ -298,54 +298,6 @@ function resolveSequentialVerseToReference(
   return null;
 }
 
-// const initialProjectStructure: ContentNode[] = [
-//   {
-//     id: 1,
-//     parent: ROOT_ID,
-//     text: 'Genesis',
-//     droppable: true,
-//     data: { type: 'quest', locked: true }
-//   },
-//   {
-//     id: 2,
-//     parent: 1,
-//     text: 'Genesis 1',
-//     droppable: true,
-//     data: { type: 'quest' }
-//   },
-//   {
-//     id: 3,
-//     parent: 2,
-//     text: 'Genesis 1 verses 1-3',
-//     droppable: false,
-//     data: { type: 'asset' }
-//   }
-// ];
-
-// const initialUndefinedItems: ContentNode[] = [
-//   {
-//     id: 101,
-//     parent: ROOT_ID,
-//     text: 'Genesis 1 verse 4',
-//     droppable: false,
-//     data: { type: 'asset' }
-//   },
-//   {
-//     id: 102,
-//     parent: ROOT_ID,
-//     text: 'Genesis 2',
-//     droppable: true,
-//     data: { type: 'quest' }
-//   },
-//   {
-//     id: 103,
-//     parent: ROOT_ID,
-//     text: 'Genesis 2 reflection',
-//     droppable: false,
-//     data: { type: 'asset' }
-//   }
-// ];
-
 function ContentSetupStep({
   uploadType,
   projectId,

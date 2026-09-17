@@ -49,28 +49,6 @@ const fileLimits = [
   'Supported audio formats are mp3, m4a, wav, and ogg. Supported image formats are jpg, jpeg, png, and webp.'
 ];
 
-// const fileRules = [
-//   {
-//     title: 'File limits',
-//     description: (
-//       <>
-//         The ZIP file size must not exceed <strong>50 MB</strong>.
-//       </>
-//     )
-//   },
-//   {
-//     title: 'Supported file types',
-//     description: (
-//       <>
-//         Supported audio formats are <strong>mp3</strong>, <strong>m4a</strong>,{' '}
-//         <strong>wav</strong>, and <strong>ogg</strong>. Supported image formats
-//         are <strong>jpg</strong>, <strong>jpeg</strong>, <strong>png</strong>,
-//         and <strong>webp</strong>.
-//       </>
-//     )
-//   }
-// ];
-
 function InstructionsStep({ uploadType }: UploadProcessStepProps) {
   function downloadTemplate() {
     downloadUploadTemplate(uploadType);
@@ -132,22 +110,6 @@ function InstructionsStep({ uploadType }: UploadProcessStepProps) {
           <CardContent className="min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-4">
               <div className="space-y-5 text-sm">
-                {/* <div>
-                  <ul className="space-y-3">
-                    {fileRules.map((rule) => (
-                      <li key={rule.title} className="flex gap-3">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <span className="text-muted-foreground">
-                          <strong className="text-foreground">
-                            {rule.title}:
-                          </strong>{' '}
-                          {rule.description}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div> */}
-
                 <div>
                   <p className="mb-3 font-medium">File Limits</p>
                   <ul className="space-y-3">
