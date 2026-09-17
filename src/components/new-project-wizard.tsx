@@ -20,7 +20,30 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/spinner';
 import { toast } from 'sonner';
-import { InfoIcon, ArrowRight, ArrowLeft, Copy, Plus } from 'lucide-react';
+import {
+  InfoIcon,
+  ArrowRight,
+  ArrowLeft,
+  Copy,
+  Plus,
+  Check,
+  ChevronsUpDown
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover';
 import {
   Tooltip,
   TooltipContent,
@@ -81,6 +104,138 @@ const projectConfirmSchema = z.object({
   confirmed: z.boolean().default(true)
 });
 
+type CloneableProject = {
+  id: string;
+  name: string;
+  description?: string | null;
+  template?: string | null;
+  created_at?: string | null;
+};
+
+function formatProjectCreatedAt(value?: string | null) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function CloneProjectCombobox({
+  value,
+  onChange,
+  projects,
+  placeholder = 'Select a project to clone'
+}: {
+  value?: string;
+  onChange: (projectId: string) => void;
+  projects: CloneableProject[] | undefined;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const selectedProject = projects?.find((project) => project.id === value);
+
+  const filteredProjects = useMemo(() => {
+    const allProjects = projects ?? [];
+    const query = search.trim().toLowerCase();
+    if (!query) return allProjects;
+
+    return allProjects.filter((project) =>
+      project.name.toLowerCase().includes(query)
+    );
+  }, [projects, search]);
+
+  return (
+    <Popover
+      modal
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) setSearch('');
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            'w-full justify-between font-normal',
+            !selectedProject && 'text-muted-foreground'
+          )}
+        >
+          <span className="truncate">
+            {selectedProject?.name || placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-(--radix-popover-trigger-width) p-0"
+        align="start"
+        onWheel={(event) => event.stopPropagation()}
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search projects by name..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList>
+            <CommandEmpty>
+              {(projects?.length ?? 0) === 0
+                ? 'No projects available to clone'
+                : 'No project found.'}
+            </CommandEmpty>
+            <CommandGroup>
+              {filteredProjects.map((project) => {
+                const createdAtLabel = formatProjectCreatedAt(
+                  project.created_at
+                );
+
+                return (
+                  <CommandItem
+                    key={project.id}
+                    value={project.id}
+                    onSelect={() => {
+                      onChange(project.id);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                    className="justify-between gap-2"
+                  >
+                    <div className="flex min-w-0 items-center">
+                      <Check
+                        className={cn(
+                          'mr-2 h-4 w-4 shrink-0',
+                          value === project.id ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      <span className="truncate">{project.name}</span>
+                    </div>
+                    {createdAtLabel && (
+                      <Badge variant="secondary" className="ml-auto shrink-0 tabular-nums">
+                        {createdAtLabel}
+                      </Badge>
+                    )}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface ProjectWizardProps {
   onSuccess?: (data: { id: string }) => void;
   onCancel?: () => void;
@@ -113,7 +268,7 @@ export function ProjectWizard({
       const supabase = createBrowserClient();
       const { data, error } = await supabase
         .from('project')
-        .select('id, name, description, template')
+        .select('id, name, description, template, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -503,29 +658,13 @@ export function ProjectWizard({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Project to Clone</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a project to clone" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {existingProjects?.length === 0 ? (
-                        <div className="p-2 text-center text-sm text-muted-foreground">
-                          No projects available to clone
-                        </div>
-                      ) : (
-                        existingProjects?.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <CloneProjectCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      projects={existingProjects}
+                    />
+                  </FormControl>
                   <FormDescription>
                     Choose a project to clone. You&apos;ll need to specify a new
                     target language in the next step.
