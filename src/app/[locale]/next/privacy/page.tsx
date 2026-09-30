@@ -92,14 +92,28 @@ export default function LangQuestNextPrivacyPolicy() {
               <li>
                 What you type about other people: for example, the name and
                 phone or WhatsApp contact of someone you ask to review, or the
-                names of people who took part in a community check.
+                names of people who took part in a community check and where it
+                happened.
               </li>
               <li>
                 Your organizations and your role in each, invitations sent to
                 your email address, and requests you make to join an
                 organization, with their message.
               </li>
+              <li>
+                Your inbox: notices about requests and feedback meant for you.
+              </li>
             </ul>
+            <h3 className="text-xl font-bold">Progress reports</h3>
+            <p>
+              From the work your organization records, LangQuest calculates
+              progress reports for each language: how much has been recorded and
+              checked, when recordings reached our servers, a monthly log of
+              chapters, and pace against the organization&apos;s plan. These
+              reports are about languages, not about individual people. They are
+              shown to people in your organization whose role lets them see a
+              language&apos;s progress, and in the app&apos;s status screens.
+            </p>
             <h3 className="text-xl font-bold">Your phone and the app</h3>
             <ul className="list-disc pl-6 space-y-2">
               <li>
@@ -108,22 +122,34 @@ export default function LangQuestNextPrivacyPolicy() {
               </li>
               <li>
                 Speed and error reports (&quot;diagnostics&quot;): how long
-                syncing and downloads take, storage space, error codes, and the
-                phone model, operating system and app version. They never
-                include recordings, what you type or names. You can turn them
-                off in the app under Settings, Send diagnostics.
+                syncing, loading and downloads take, storage space, error codes,
+                and the phone model, operating system and app version. They are
+                linked to your account and to the app&apos;s random install ID,
+                so we can find problems a particular person or phone is having.
+                They never include recordings, what you type or names.
+                Diagnostics are on unless you turn them off in the app under
+                Settings, Send diagnostics.
               </li>
               <li>
                 If you turn on notifications, a push token so we can tell your
                 phone there is something new in your inbox. The notification
                 itself says only that there is an update.
               </li>
+              <li>
+                Server logs: when the app or a LangQuest website contacts our
+                servers, our providers record the request, including your IP
+                address, the time and the account used, and they log each
+                sign-in. These logs are used for security and for fixing
+                problems.
+              </li>
             </ul>
             <h3 className="text-xl font-bold">What the app does not do</h3>
             <ul className="list-disc pl-6 space-y-2">
               <li>
-                No advertising, no advertising IDs, and no analytics or tracking
-                services.
+                No advertising and no advertising IDs. No third-party analytics
+                or tracking services: the only analytics are LangQuest&apos;s
+                own diagnostics and progress reports, described above, and they
+                are not shared with anyone else.
               </li>
               <li>
                 No location tracking. A language&apos;s country, which an
@@ -143,9 +169,10 @@ export default function LangQuestNextPrivacyPolicy() {
             <p>
               To run your account; to keep your team&apos;s translation work
               together and in sync across phones, even offline; to let reviewers
-              and administrators do their part; to send the notifications you
-              turned on; and to find and fix problems. We use your information
-              only for these purposes.
+              and administrators do their part; to give your organization
+              progress reports; to send the notifications you turned on; to keep
+              the service secure; and to find and fix problems. We use your
+              information only for these purposes.
             </p>
           </Section>
 
@@ -155,6 +182,8 @@ export default function LangQuestNextPrivacyPolicy() {
                 <strong>Your organization.</strong> Members see work in the
                 languages their role covers, with the names of the people who
                 did it. Administrators see members, roles and join requests.
+                People whose role allows it see each language&apos;s progress
+                reports.
               </li>
               <li>
                 <strong>The public, only if your organization chooses.</strong>{' '}
@@ -167,10 +196,12 @@ export default function LangQuestNextPrivacyPolicy() {
                 <strong>Our service providers,</strong> who process data only to
                 run LangQuest Next for us: Supabase (database, sign-in and file
                 storage), Expo (app updates and delivery of push notifications),
-                Cloudflare (invitation emails and downloads of source audio),
-                Vercel (this website), and Apple and Google (app distribution
-                and notifications to your phone). Their servers may be outside
-                your country, including in the United States.
+                Cloudflare (invitation emails, downloads of source audio, and
+                the web dashboard, whose server reads your organization&apos;s
+                work to build its progress reports), Vercel (this website), and
+                Apple and Google (app distribution and notifications to your
+                phone). Their servers may be outside your country, including in
+                the United States.
               </li>
               <li>
                 <strong>The LangQuest team,</strong> to support you and fix
@@ -201,6 +232,9 @@ export default function LangQuestNextPrivacyPolicy() {
                 Work you did in an organization: as long as the organization
                 keeps its translation record. It is the organization&apos;s
                 work, and the record keeps who did what and when.
+              </li>
+              <li>
+                Server logs: a limited time set by each provider, then deleted.
               </li>
               <li>
                 Backups are kept by our database provider for a limited time and
@@ -256,7 +290,8 @@ export default function LangQuestNextPrivacyPolicy() {
                 Profile.
               </li>
               <li>
-                You can turn off diagnostics and notifications at any time.
+                You can turn off diagnostics at any time in the app&apos;s
+                Settings, and notifications in your phone&apos;s settings.
               </li>
               <li>
                 You can ask us for a copy of the information we hold about you,
