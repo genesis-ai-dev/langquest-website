@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 // hosted here beside the LangQuest policy until that app has its own site.
 // The app and its store listings link to /en/next/privacy. The text
 // describes what that app's code keeps; change it when the app changes
-// (langquest-next docs/decisions.md 46 and 47).
+// (langquest-next docs/decisions.md 46, 47 and 48).
 
 const CONTACT = 'admin@frontierrnd.com';
 const EFFECTIVE = 'September 30, 2026';
@@ -81,6 +81,10 @@ export default function LangQuestNextPrivacyPolicy() {
                 Which version of the terms you accepted, and whether you have
                 seen the introduction.
               </li>
+              <li>
+                The people you block. Your list is private: nobody else sees it,
+                and the people on it are not told.
+              </li>
             </ul>
             <h3 className="text-xl font-bold">Your work</h3>
             <ul className="list-disc pl-6 space-y-2">
@@ -104,6 +108,17 @@ export default function LangQuestNextPrivacyPolicy() {
                 Your inbox: notices about requests and feedback meant for you.
               </li>
             </ul>
+            <h3 className="text-xl font-bold">
+              Reports of objectionable content
+            </h3>
+            <p>
+              If you report something someone added, or report a person, we keep
+              the report: what it is about, who made it, the reason you chose,
+              anything you wrote, when, and that you sent it. Your
+              organization&apos;s administrators see the report without your
+              name. The LangQuest team sees who sent it, so we can follow up.
+              The person reported is not told who reported them.
+            </p>
             <h3 className="text-xl font-bold">Progress reports</h3>
             <p>
               From the work your organization records, LangQuest calculates
@@ -170,8 +185,9 @@ export default function LangQuestNextPrivacyPolicy() {
               To run your account; to keep your team&apos;s translation work
               together and in sync across phones, even offline; to let reviewers
               and administrators do their part; to give your organization
-              progress reports; to send the notifications you turned on; to keep
-              the service secure; and to find and fix problems. We use your
+              progress reports; to send the notifications you turned on; to act
+              on reports of content or behavior that breaks the terms of use; to
+              keep the service secure; and to find and fix problems. We use your
               information only for these purposes.
             </p>
           </Section>
@@ -181,9 +197,10 @@ export default function LangQuestNextPrivacyPolicy() {
               <li>
                 <strong>Your organization.</strong> Members see work in the
                 languages their role covers, with the names of the people who
-                did it. Administrators see members, roles and join requests.
-                People whose role allows it see each language&apos;s progress
-                reports.
+                did it. Administrators see members, roles and join requests, and
+                reports about their organization&apos;s work without who sent
+                them. People whose role allows it see each language&apos;s
+                progress reports.
               </li>
               <li>
                 <strong>The public, only if your organization chooses.</strong>{' '}
@@ -204,9 +221,9 @@ export default function LangQuestNextPrivacyPolicy() {
                 the United States.
               </li>
               <li>
-                <strong>The LangQuest team,</strong> to support you and fix
-                problems, and anyone we are required by law to disclose
-                information to.
+                <strong>The LangQuest team,</strong> to support you, fix
+                problems and act on reports, and anyone we are required by law
+                to disclose information to.
               </li>
             </ul>
           </Section>
@@ -223,7 +240,15 @@ export default function LangQuestNextPrivacyPolicy() {
 
           <Section title="6. How Long We Keep It">
             <ul className="list-disc pl-6 space-y-2">
-              <li>Account information: until you delete your account.</li>
+              <li>
+                Account information, including the people you block: until you
+                delete your account (or, for a block, until you unblock them).
+              </li>
+              <li>
+                Reports: kept after they are resolved, as a record of what was
+                done. Your name on reports you sent is removed when you delete
+                your account.
+              </li>
               <li>
                 Diagnostics: 90 days. The record of an installed app is removed
                 180 days after it was last seen.
@@ -260,7 +285,8 @@ export default function LangQuestNextPrivacyPolicy() {
               <li>
                 <strong>Deleted:</strong> your sign-in, email address and
                 password, your name, notifications and push tokens, join
-                requests and their messages, your email on invitations, and
+                requests and their messages, your email on invitations, the
+                people you blocked, your name on reports you sent, and
                 diagnostics sent from your account.
               </li>
               <li>
@@ -289,6 +315,10 @@ export default function LangQuestNextPrivacyPolicy() {
               <li>
                 You can change your name in the app under Settings, Edit
                 Profile.
+              </li>
+              <li>
+                You can unblock people in the app under Settings, Blocked
+                people.
               </li>
               <li>
                 You can turn off diagnostics at any time in the app&apos;s
