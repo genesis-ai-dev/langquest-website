@@ -272,7 +272,8 @@ export default function LangQuestNextPrivacyPolicy() {
                 organization&apos;s translation work, marked with a random ID
                 that no longer leads to you, and without your name. Something
                 you typed or said in that work, such as a name spoken in a
-                recording, is kept as it is.
+                recording, is kept as it is. To ask for it to be removed,
+                contact the organization&apos;s administrators.
               </li>
             </ul>
             <p>
@@ -294,16 +295,22 @@ export default function LangQuestNextPrivacyPolicy() {
                 Settings, and notifications in your phone&apos;s settings.
               </li>
               <li>
-                You can ask us for a copy of the information we hold about you,
-                to correct it, or to delete it, by emailing <Mail />. Depending
-                on where you live, you may have further rights under laws such
-                as the GDPR or Canada&apos;s PIPEDA, including the right to
-                complain to a data protection authority. We will answer within
-                30 days.
+                <strong>Your account information</strong> (your sign-in, email,
+                name, notifications and diagnostics): you can correct your name
+                in the app, and delete all of it by deleting your account (see
+                section 7). To ask what we hold about you, email <Mail />.
               </li>
               <li>
-                To leave an organization without deleting your account, ask one
-                of its administrators.
+                <strong>Work you did in an organization</strong> (recordings,
+                reviews, notes and comments): it belongs to that organization.
+                To ask for any of it to be changed or removed, or to leave the
+                organization, contact its administrators.
+              </li>
+              <li>
+                Depending on where you live, you may have further rights under
+                laws such as the GDPR or Canada&apos;s PIPEDA, including the
+                right to complain to a data protection authority. We answer
+                privacy requests within 30 days.
               </li>
             </ul>
           </Section>
