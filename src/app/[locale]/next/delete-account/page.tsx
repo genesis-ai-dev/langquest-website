@@ -100,7 +100,8 @@ export default function LangQuestNextDeleteAccount() {
                   <strong>Kept:</strong> recordings, reviews and notes you made
                   stay part of your organization&apos;s translation work, marked
                   with a random ID that no longer leads to you, and without your
-                  name.
+                  name. That work belongs to your organization; to ask for any
+                  of it to be removed, contact its administrators.
                 </li>
               </ul>
               <p>
