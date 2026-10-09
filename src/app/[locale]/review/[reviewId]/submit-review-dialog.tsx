@@ -1,0 +1,616 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Mic,
+  XCircle
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import {
+  REVIEW_OVERALL_TARGET,
+  reviewAudioProblem,
+  reviewStatusLabel,
+  type ReviewStatus
+} from '@/lib/review/submission';
+import { cn } from '@/lib/utils';
+import { PlaylistPlayer } from './playlist-player';
+import { STATUS_CLASS_NAME } from './review-status';
+import {
+  requestReviewUploadUrls,
+  runWithConcurrency,
+  submitReview,
+  uploadReviewAudio
+} from './submit-review';
+
+const UPLOAD_CONCURRENCY = 3;
+
+export type SubmissionAsset = {
+  assetId: string;
+  name: string;
+  badge: string | null;
+  status: ReviewStatus;
+  comment: string;
+  audio: Blob | null;
+};
+
+export type ReviewSubmission = {
+  reviewer: { name: string; email: string };
+  overall: { status: ReviewStatus; comment: string; audio: Blob | null };
+  assets: SubmissionAsset[];
+};
+
+type Phase = 'summary' | 'uploading' | 'saving' | 'error';
+
+type UploadItem = {
+  target: string;
+  label: string;
+  blob: Blob;
+  loaded: number;
+  status: 'pending' | 'uploading' | 'done' | 'error';
+  path: string | null;
+  error: string | null;
+};
+
+function hasFeedback(asset: SubmissionAsset) {
+  return (
+    asset.status !== 'no_status' ||
+    asset.comment.trim().length > 0 ||
+    asset.audio !== null
+  );
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function buildUploads(submission: ReviewSubmission) {
+  const uploads: Record<string, UploadItem> = {};
+  const add = (target: string, label: string, blob: Blob | null) => {
+    if (!blob) return;
+    uploads[target] = {
+      target,
+      label,
+      blob,
+      loaded: 0,
+      status: 'pending',
+      path: null,
+      error: null
+    };
+  };
+
+  add(REVIEW_OVERALL_TARGET, 'Overall feedback', submission.overall.audio);
+  for (const asset of submission.assets) {
+    if (hasFeedback(asset)) add(asset.assetId, asset.name, asset.audio);
+  }
+  return uploads;
+}
+
+function StatusBadge({ status }: { status: ReviewStatus }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn('shrink-0', STATUS_CLASS_NAME[status])}
+    >
+      {reviewStatusLabel(status)}
+    </Badge>
+  );
+}
+
+function BlobPlayer({ blob }: { blob: Blob }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const next = URL.createObjectURL(blob);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [blob]);
+
+  if (!url) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <PlaylistPlayer paths={[url]} className="flex-1" />
+      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        {formatBytes(blob.size)}
+      </span>
+    </div>
+  );
+}
+
+function FeedbackSummary({
+  status,
+  comment,
+  audio
+}: {
+  status: ReviewStatus | null;
+  comment: string;
+  audio: Blob | null;
+}) {
+  return (
+    <div className="space-y-2">
+      {status ? <StatusBadge status={status} /> : null}
+      {comment.trim() ? (
+        <p className="text-sm whitespace-pre-wrap wrap-break-word">
+          {comment.trim()}
+        </p>
+      ) : null}
+      {audio ? <BlobPlayer blob={audio} /> : null}
+      {audio
+        ? (() => {
+            const problem = reviewAudioProblem(audio.type, audio.size);
+            return problem ? (
+              <p className="text-sm text-destructive">{problem}</p>
+            ) : null;
+          })()
+        : null}
+    </div>
+  );
+}
+
+function SummaryView({ submission }: { submission: ReviewSubmission }) {
+  const { reviewer, overall, assets } = submission;
+  const reviewed = assets.filter(hasFeedback);
+  const counts = {
+    approved: assets.filter((asset) => asset.status === 'approved').length,
+    suggested: assets.filter((asset) => asset.status === 'suggested_changes')
+      .length,
+    noStatus: assets.filter((asset) => asset.status === 'no_status').length
+  };
+  const overallEmpty =
+    overall.status === 'no_status' && !overall.comment.trim() && !overall.audio;
+
+  return (
+    <div className="space-y-5">
+      <section className="space-y-1 text-sm">
+        <p>
+          <span className="text-muted-foreground">Name: </span>
+          {reviewer.name.trim() || (
+            <span className="text-muted-foreground italic">Not provided</span>
+          )}
+        </p>
+        <p>
+          <span className="text-muted-foreground">Email: </span>
+          {reviewer.email.trim() || (
+            <span className="text-muted-foreground italic">Not provided</span>
+          )}
+        </p>
+      </section>
+
+      <section className="space-y-2 rounded-lg border p-3">
+        <h3 className="font-medium">Overall Feedback</h3>
+        {overallEmpty ? (
+          <p className="text-sm text-muted-foreground italic">No feedback</p>
+        ) : (
+          <FeedbackSummary
+            status={overall.status}
+            comment={overall.comment}
+            audio={overall.audio}
+          />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h3 className="font-medium">Assets</h3>
+          <p className="text-sm text-muted-foreground">
+            {counts.approved} approved · {counts.suggested} suggested changes ·{' '}
+            {counts.noStatus} no status
+          </p>
+        </div>
+        {reviewed.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            No asset feedback
+          </p>
+        ) : (
+          reviewed.map((asset) => (
+            <div
+              key={asset.assetId}
+              className="space-y-2 rounded-lg border p-3"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate text-sm font-medium">{asset.name}</p>
+                {asset.badge ? (
+                  <Badge variant="secondary">{asset.badge}</Badge>
+                ) : null}
+              </div>
+              <FeedbackSummary
+                status={asset.status}
+                comment={asset.comment}
+                audio={asset.audio}
+              />
+            </div>
+          ))
+        )}
+      </section>
+    </div>
+  );
+}
+
+function UploadRow({ item }: { item: UploadItem }) {
+  const percent =
+    item.status === 'done' ? 100 : (item.loaded / item.blob.size) * 100;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-sm">
+        {item.status === 'done' ? (
+          <CheckCircle2 className="size-4 shrink-0 text-green-600" />
+        ) : item.status === 'error' ? (
+          <XCircle className="size-4 shrink-0 text-destructive" />
+        ) : item.status === 'uploading' ? (
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <Mic className="size-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {formatBytes(item.blob.size)}
+        </span>
+      </div>
+      <Progress value={percent} className="h-1.5" />
+      {item.error ? (
+        <p className="text-xs text-destructive">{item.error}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function StepLabel({
+  label,
+  state
+}: {
+  label: string;
+  state: 'pending' | 'active' | 'done' | 'error';
+}) {
+  return (
+    <li className="flex items-center gap-2 text-sm">
+      {state === 'done' ? (
+        <CheckCircle2 className="size-4 text-green-600" />
+      ) : state === 'active' ? (
+        <Loader2 className="size-4 animate-spin" />
+      ) : state === 'error' ? (
+        <XCircle className="size-4 text-destructive" />
+      ) : (
+        <span className="inline-block size-4 rounded-full border" />
+      )}
+      <span className={state === 'pending' ? 'text-muted-foreground' : ''}>
+        {label}
+      </span>
+    </li>
+  );
+}
+
+export function SubmitReviewDialog({
+  open,
+  onOpenChange,
+  reviewId,
+  token,
+  submission,
+  onSubmitted
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  reviewId: string;
+  token: string;
+  submission: ReviewSubmission | null;
+  onSubmitted: () => void;
+}) {
+  const [phase, setPhase] = useState<Phase>('summary');
+  const [error, setError] = useState<string | null>(null);
+  const [failedStep, setFailedStep] = useState<'upload' | 'save' | null>(null);
+  const [uploads, setUploads] = useState<Record<string, UploadItem>>({});
+  const uploadsRef = useRef<Record<string, UploadItem>>({});
+
+  const busy = phase === 'uploading' || phase === 'saving';
+
+  useEffect(() => {
+    const next = submission ? buildUploads(submission) : {};
+    uploadsRef.current = next;
+    setUploads(next);
+    setPhase('summary');
+    setError(null);
+    setFailedStep(null);
+  }, [submission]);
+
+  useEffect(() => {
+    if (!busy) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [busy]);
+
+  const patchUpload = (target: string, patch: Partial<UploadItem>) => {
+    const current = uploadsRef.current[target];
+    if (!current) return;
+    uploadsRef.current = {
+      ...uploadsRef.current,
+      [target]: { ...current, ...patch }
+    };
+    setUploads(uploadsRef.current);
+  };
+
+  const run = async () => {
+    if (!submission) return;
+    setError(null);
+    setFailedStep(null);
+
+    const pending = Object.values(uploadsRef.current).filter(
+      (item) => item.status !== 'done'
+    );
+
+    if (pending.length > 0) {
+      setPhase('uploading');
+      try {
+        // Fresh URLs (and paths) on every attempt; a failed earlier attempt
+        // may leave an orphaned file behind.
+        const { uploads: urls } = await requestReviewUploadUrls(
+          reviewId,
+          token,
+          pending.map((item) => ({ target: item.target, blob: item.blob }))
+        );
+
+        await runWithConcurrency(urls, UPLOAD_CONCURRENCY, async (upload) => {
+          const item = uploadsRef.current[upload.target];
+          if (!item) return;
+          patchUpload(upload.target, {
+            status: 'uploading',
+            loaded: 0,
+            error: null
+          });
+          try {
+            await uploadReviewAudio(upload.upload_url, item.blob, (loaded) =>
+              patchUpload(upload.target, { loaded })
+            );
+            patchUpload(upload.target, { status: 'done', path: upload.path });
+          } catch (err) {
+            patchUpload(upload.target, {
+              status: 'error',
+              loaded: 0,
+              error: err instanceof Error ? err.message : 'Upload failed'
+            });
+          }
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Upload failed');
+        setFailedStep('upload');
+        setPhase('error');
+        return;
+      }
+
+      if (
+        Object.values(uploadsRef.current).some((item) => item.status !== 'done')
+      ) {
+        setError('Some recordings could not be uploaded.');
+        setFailedStep('upload');
+        setPhase('error');
+        return;
+      }
+    }
+
+    setPhase('saving');
+    const pathFor = (target: string) =>
+      uploadsRef.current[target]?.path ?? null;
+
+    try {
+      await submitReview({
+        review_id: reviewId,
+        token,
+        reviewer: submission.reviewer,
+        overall: {
+          status: submission.overall.status,
+          comment: submission.overall.comment,
+          audio_path: pathFor(REVIEW_OVERALL_TARGET)
+        },
+        assets: submission.assets.filter(hasFeedback).map((asset) => ({
+          asset_id: asset.assetId,
+          status: asset.status,
+          comment: asset.comment,
+          audio_path: pathFor(asset.assetId)
+        }))
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not save the review'
+      );
+      setFailedStep('save');
+      setPhase('error');
+      return;
+    }
+
+    onSubmitted();
+  };
+
+  const items = Object.values(uploads);
+  const totalBytes = items.reduce((sum, item) => sum + item.blob.size, 0);
+  const loadedBytes = items.reduce(
+    (sum, item) =>
+      sum + (item.status === 'done' ? item.blob.size : item.loaded),
+    0
+  );
+  const audioProblems = items.filter(
+    (item) => reviewAudioProblem(item.blob.type, item.blob.size) !== null
+  );
+
+  const warnings: string[] = [];
+  if (submission) {
+    if (!submission.reviewer.name.trim()) warnings.push('Name is empty.');
+    if (!submission.reviewer.email.trim()) warnings.push('Email is empty.');
+    const { overall } = submission;
+    if (
+      overall.status === 'no_status' &&
+      !overall.comment.trim() &&
+      !overall.audio &&
+      !submission.assets.some(hasFeedback)
+    ) {
+      warnings.push('No feedback has been added yet.');
+    }
+  }
+
+  const uploadStep =
+    phase === 'uploading'
+      ? 'active'
+      : failedStep === 'upload'
+        ? 'error'
+        : phase === 'saving' || failedStep === 'save'
+          ? 'done'
+          : 'pending';
+  const saveStep =
+    phase === 'saving' ? 'active' : failedStep === 'save' ? 'error' : 'pending';
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (busy) return;
+        onOpenChange(next);
+      }}
+    >
+      <DialogContent
+        className="max-h-[85vh] overflow-y-auto sm:max-w-2xl"
+        onInteractOutside={(event) => {
+          if (busy) event.preventDefault();
+        }}
+        onEscapeKeyDown={(event) => {
+          if (busy) event.preventDefault();
+        }}
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {phase === 'summary' ? 'Review submission' : 'Submitting review'}
+          </DialogTitle>
+          <DialogDescription>
+            {phase === 'summary'
+              ? 'Check what will be sent before confirming.'
+              : 'Keep this page open until the submission finishes.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {!submission ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            Preparing summary...
+          </div>
+        ) : phase === 'summary' ? (
+          <>
+            <SummaryView submission={submission} />
+            {items.length > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {items.length} recording{items.length === 1 ? '' : 's'} ·{' '}
+                {formatBytes(totalBytes)} to upload
+              </p>
+            ) : null}
+            {warnings.length > 0 ? (
+              <div className="space-y-1 rounded-lg border border-yellow-500/50 bg-yellow-400/10 p-3 text-sm">
+                {warnings.map((warning) => (
+                  <p key={warning} className="flex items-center gap-2">
+                    <AlertTriangle className="size-4 shrink-0 text-yellow-600" />
+                    {warning}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            {audioProblems.length > 0 ? (
+              <p className="text-sm text-destructive">
+                Fix or delete the recordings marked above before submitting.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <div className="space-y-5">
+            <ol className="space-y-2">
+              {items.length > 0 ? (
+                <StepLabel
+                  label={`Uploading recordings (${items.filter((item) => item.status === 'done').length}/${items.length})`}
+                  state={uploadStep}
+                />
+              ) : null}
+              <StepLabel label="Saving review" state={saveStep} />
+            </ol>
+
+            {items.length > 0 ? (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+                    <span>Total</span>
+                    <span>
+                      {formatBytes(loadedBytes)} / {formatBytes(totalBytes)}
+                    </span>
+                  </div>
+                  <Progress
+                    value={totalBytes ? (loadedBytes / totalBytes) * 100 : 0}
+                  />
+                </div>
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <UploadRow key={item.target} item={item} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {error ? (
+              <p className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        <DialogFooter>
+          {phase === 'summary' ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                disabled={!submission || audioProblems.length > 0}
+                onClick={() => void run()}
+              >
+                Confirm submission
+              </Button>
+            </>
+          ) : phase === 'error' ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Close
+              </Button>
+              <Button type="button" onClick={() => void run()}>
+                Try again
+              </Button>
+            </>
+          ) : (
+            <Button type="button" disabled>
+              <Loader2 className="size-4 animate-spin" />
+              Submitting...
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
