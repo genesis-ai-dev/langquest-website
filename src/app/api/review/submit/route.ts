@@ -15,7 +15,6 @@ import {
   reviewAudioBucket,
   reviewResponse,
   validateReviewToken,
-  verifyReviewAudio,
   type ReviewClient
 } from '@/lib/review/server';
 
@@ -30,8 +29,7 @@ const statusSchema = z.enum(
 
 const audioSchema = z
   .object({
-    path: z.string().refine(isReviewAudioPath, 'Invalid audio path'),
-    ticket: z.string().min(1)
+    path: z.string().refine(isReviewAudioPath, 'Invalid audio path')
   })
   .nullable();
 
@@ -148,17 +146,15 @@ export async function POST(request: NextRequest) {
   );
 
   const audioChecks = [
-    { target: REVIEW_OVERALL_TARGET, audio: overall.audio },
-    ...assets.map((asset) => ({ target: asset.asset_id, audio: asset.audio }))
-  ].flatMap(({ target, audio }) => (audio ? [{ target, ...audio }] : []));
-
-  const forged = audioChecks.find(
-    (check) =>
-      !verifyReviewAudio(reviewId, check.target, check.path, check.ticket)
+    { target: REVIEW_OVERALL_TARGET, path: overall.audio?.path },
+    ...assets.map((asset) => ({
+      target: asset.asset_id,
+      path: asset.audio?.path
+    }))
+  ].filter(
+    (check): check is { target: string; path: string } =>
+      typeof check.path === 'string'
   );
-  if (forged) {
-    return reviewResponse({ error: `Invalid audio for ${forged.target}` }, 400);
-  }
 
   const existence = await Promise.all(
     audioChecks.map((check) => audioObjectExists(supabase, check.path))

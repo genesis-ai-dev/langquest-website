@@ -119,11 +119,8 @@ export type ReviewUploadUrlsRequest = {
   files: Array<{ target: string; content_type: string; size: number }>;
 };
 
-/**
- * `ticket` is a server signature binding `path` to this review and target;
- * the submit route only accepts audio paths with a matching ticket.
- */
-export type ReviewAudioRef = { path: string; ticket: string };
+/** Uploaded recording in the review bucket (`{name}.{ext}` at bucket root). */
+export type ReviewAudioRef = { path: string };
 
 export type ReviewUploadUrlsResponse = {
   uploads: Array<ReviewAudioRef & { target: string; upload_url: string }>;

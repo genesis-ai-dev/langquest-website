@@ -12,7 +12,6 @@ import {
   createReviewClient,
   reviewAudioBucket,
   reviewResponse,
-  signReviewAudio,
   validateReviewToken
 } from '@/lib/review/server';
 
@@ -81,7 +80,6 @@ export async function POST(request: NextRequest) {
       return {
         target: file.target,
         path,
-        ticket: signReviewAudio(reviewId, file.target, path),
         upload_url: data.signedUrl
       };
     })

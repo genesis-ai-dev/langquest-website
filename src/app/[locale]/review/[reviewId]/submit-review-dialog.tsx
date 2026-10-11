@@ -324,7 +324,7 @@ export function SubmitReviewDialog({
             );
             patchUpload(upload.target, {
               status: 'done',
-              audio: { path: upload.path, ticket: upload.ticket }
+              audio: { path: upload.path }
             });
           } catch (err) {
             patchUpload(upload.target, {
