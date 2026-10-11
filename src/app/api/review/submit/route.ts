@@ -64,6 +64,10 @@ const requestSchema = z.object({
     )
 });
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function nullableText(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
@@ -101,6 +105,17 @@ export async function POST(request: NextRequest) {
   }
 
   const { review_id: reviewId, token, reviewer, overall } = parsed.data;
+
+  const questResult = reviewStatusToResult(overall.status);
+  if (!questResult) {
+    return reviewResponse(
+      {
+        error:
+          'Overall status must be Approved or Suggested Changes to submit.'
+      },
+      400
+    );
+  }
 
   const problems = reviewSubmissionProblems({
     reviewerName: reviewer.name,
@@ -159,7 +174,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const audioUploadedAt = new Date().toISOString();
   const payload = {
     metadata: {
       reviewer: {
@@ -167,36 +181,44 @@ export async function POST(request: NextRequest) {
         email: nullableText(reviewer.email)
       }
     },
-    quest_result: reviewStatusToResult(overall.status),
+    quest_result: questResult,
     conclusion: nullableText(overall.comment),
     audio: overall.audio ? [overall.audio.path] : null,
-    audio_uploaded_at: overall.audio ? audioUploadedAt : null,
     assets: assets.map((asset) => ({
       asset_id: asset.asset_id,
       asset_result: reviewStatusToResult(asset.status),
       comment: nullableText(asset.comment),
-      audio: asset.audio ? [asset.audio.path] : null,
-      audio_uploaded_at: asset.audio ? audioUploadedAt : null
+      audio: asset.audio ? [asset.audio.path] : null
     }))
   };
 
-  // TODO: replace with the real RPC once `submit_quest_review` exists. It must
-  // revalidate the token, check the assets belong to the review's quest, upsert
-  // review_asset, update review (status/concluded_at) and invalidate the token
-  // in a single transaction.
-  //
-  // const { data, error } = await supabase.rpc('submit_quest_review', {
-  //   review_id: reviewId,
-  //   token,
-  //   payload
-  // });
-  // if (error) {
-  //   return reviewResponse({ error: error.message }, 500);
-  // }
-  console.log(
-    '[review/submit] submit_quest_review payload',
-    JSON.stringify({ review_id: reviewId, payload }, null, 2)
-  );
+  const { data, error } = await supabase.rpc('submit_quest_review', {
+    review_id: reviewId,
+    token,
+    payload
+  });
 
-  return reviewResponse({ ok: true });
+  if (error) {
+    const status =
+      error.code === '22023' ? 422 : error.code === '28000' ? 404 : 500;
+    return reviewResponse({ error: error.message }, status);
+  }
+
+  if (!isRecord(data)) {
+    return reviewResponse({ error: 'The review could not be submitted' }, 500);
+  }
+
+  if (data.valid === false) {
+    return reviewResponse({ valid: false }, 404);
+  }
+
+  if (typeof data.error === 'string') {
+    return reviewResponse({ error: data.error }, 422);
+  }
+
+  if (data.ok === true || data.status === 'submitted') {
+    return reviewResponse(data);
+  }
+
+  return reviewResponse(data, 500);
 }

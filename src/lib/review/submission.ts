@@ -96,15 +96,15 @@ export function isReviewAudioTarget(value: string) {
 }
 
 /**
- * Recordings are stored at the bucket root as `{uuid}.{ext}`. Every upload
- * gets a fresh name, so retries never collide with an earlier attempt
- * (failed attempts leave orphaned files behind).
+ * Recordings are stored at the bucket root as `{name}.{ext}` (no subfolders).
+ * Each upload uses a fresh UUID name so retries never collide.
  */
-export function buildReviewAudioPath(uploadId: string, extension: string) {
-  return `${uploadId}.${extension}`;
+export function buildReviewAudioPath(name: string, extension: string) {
+  return `${name}.${extension}`;
 }
 
 export function isReviewAudioPath(path: string) {
+  if (path.includes('/') || path.includes('..')) return false;
   const extensions = [...new Set(Object.values(REVIEW_AUDIO_EXTENSIONS))];
   const pattern = new RegExp(
     `^${UUID_PATTERN}\\.(${extensions.join('|')})$`,

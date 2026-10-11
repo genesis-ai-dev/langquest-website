@@ -1113,6 +1113,14 @@ export type Database = {
         };
         Returns: boolean;
       };
+      submit_quest_review: {
+        Args: {
+          review_id: string;
+          token: string;
+          payload: Json;
+        };
+        Returns: Json;
+      };
       search_languoids: {
         Args: {
           search_query: string;
