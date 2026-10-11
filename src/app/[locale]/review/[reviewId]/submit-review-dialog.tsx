@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  Mic,
-  XCircle
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -220,35 +214,6 @@ function SummaryView({ submission }: { submission: ReviewSubmission }) {
   );
 }
 
-function UploadRow({ item }: { item: UploadItem }) {
-  const percent =
-    item.status === 'done' ? 100 : (item.loaded / item.blob.size) * 100;
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-sm">
-        {item.status === 'done' ? (
-          <CheckCircle2 className="size-4 shrink-0 text-green-600" />
-        ) : item.status === 'error' ? (
-          <XCircle className="size-4 shrink-0 text-destructive" />
-        ) : item.status === 'uploading' ? (
-          <Loader2 className="size-4 shrink-0 animate-spin" />
-        ) : (
-          <Mic className="size-4 shrink-0 text-muted-foreground" />
-        )}
-        <span className="min-w-0 flex-1 truncate">{item.label}</span>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          {formatBytes(item.blob.size)}
-        </span>
-      </div>
-      <Progress value={percent} className="h-1.5" />
-      {item.error ? (
-        <p className="text-xs text-destructive">{item.error}</p>
-      ) : null}
-    </div>
-  );
-}
-
 function StepLabel({
   label,
   state
@@ -426,6 +391,7 @@ export function SubmitReviewDialog({
       sum + (item.status === 'done' ? item.blob.size : item.loaded),
     0
   );
+  const failedUploads = items.filter((item) => item.status === 'error');
   const blockers = submission
     ? [
         ...reviewSubmissionProblems({
@@ -560,23 +526,18 @@ export function SubmitReviewDialog({
             </ol>
 
             {items.length > 0 ? (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
-                    <span>Total</span>
-                    <span>
-                      {formatBytes(loadedBytes)} / {formatBytes(totalBytes)}
-                    </span>
-                  </div>
-                  <Progress
-                    value={totalBytes ? (loadedBytes / totalBytes) * 100 : 0}
-                  />
-                </div>
-                <div className="space-y-3">
-                  {items.map((item) => (
-                    <UploadRow key={item.target} item={item} />
-                  ))}
-                </div>
+              <div className="space-y-1">
+                <Progress
+                  value={totalBytes ? (loadedBytes / totalBytes) * 100 : 0}
+                />
+                <p className="text-right text-xs text-muted-foreground tabular-nums">
+                  {formatBytes(loadedBytes)} / {formatBytes(totalBytes)}
+                </p>
+                {failedUploads.length > 0 ? (
+                  <p className="text-xs text-destructive">
+                    Failed: {failedUploads.map((item) => item.label).join(', ')}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
