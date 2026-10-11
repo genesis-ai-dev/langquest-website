@@ -23,6 +23,8 @@ import {
   REVIEW_OVERALL_TARGET,
   reviewAudioProblem,
   reviewStatusLabel,
+  reviewSubmissionProblems,
+  type ReviewAudioRef,
   type ReviewStatus
 } from '@/lib/review/submission';
 import { cn } from '@/lib/utils';
@@ -36,6 +38,7 @@ import {
 } from './submit-review';
 
 const UPLOAD_CONCURRENCY = 3;
+const MAX_LISTED_ASSETS = 5;
 
 export type SubmissionAsset = {
   assetId: string;
@@ -60,7 +63,7 @@ type UploadItem = {
   blob: Blob;
   loaded: number;
   status: 'pending' | 'uploading' | 'done' | 'error';
-  path: string | null;
+  audio: ReviewAudioRef | null;
   error: string | null;
 };
 
@@ -88,7 +91,7 @@ function buildUploads(submission: ReviewSubmission) {
       blob,
       loaded: 0,
       status: 'pending',
-      path: null,
+      audio: null,
       error: null
     };
   };
@@ -132,17 +135,14 @@ function BlobPlayer({ blob }: { blob: Blob }) {
 }
 
 function FeedbackSummary({
-  status,
   comment,
   audio
 }: {
-  status: ReviewStatus | null;
   comment: string;
   audio: Blob | null;
 }) {
   return (
     <div className="space-y-2">
-      {status ? <StatusBadge status={status} /> : null}
       {comment.trim() ? (
         <p className="text-sm whitespace-pre-wrap wrap-break-word">
           {comment.trim()}
@@ -163,15 +163,15 @@ function FeedbackSummary({
 
 function SummaryView({ submission }: { submission: ReviewSubmission }) {
   const { reviewer, overall, assets } = submission;
-  const reviewed = assets.filter(hasFeedback);
   const counts = {
     approved: assets.filter((asset) => asset.status === 'approved').length,
     suggested: assets.filter((asset) => asset.status === 'suggested_changes')
       .length,
-    noStatus: assets.filter((asset) => asset.status === 'no_status').length
+    noStatus: assets.filter((asset) => asset.status === 'no_status').length,
+    comments: assets.filter((asset) => asset.comment.trim()).length,
+    recordings: assets.filter((asset) => asset.audio).length
   };
-  const overallEmpty =
-    overall.status === 'no_status' && !overall.comment.trim() && !overall.audio;
+  const overallEmpty = !overall.comment.trim() && !overall.audio;
 
   return (
     <div className="space-y-5">
@@ -191,50 +191,30 @@ function SummaryView({ submission }: { submission: ReviewSubmission }) {
       </section>
 
       <section className="space-y-2 rounded-lg border p-3">
-        <h3 className="font-medium">Overall Feedback</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-medium">Overall Feedback</h3>
+          <StatusBadge status={overall.status} />
+        </div>
         {overallEmpty ? (
-          <p className="text-sm text-muted-foreground italic">No feedback</p>
+          <p className="text-sm text-muted-foreground italic">
+            No comment or recording
+          </p>
         ) : (
-          <FeedbackSummary
-            status={overall.status}
-            comment={overall.comment}
-            audio={overall.audio}
-          />
+          <FeedbackSummary comment={overall.comment} audio={overall.audio} />
         )}
       </section>
 
       <section className="space-y-3">
         <div className="space-y-1">
-          <h3 className="font-medium">Assets</h3>
+          <h3 className="font-medium">Assets ({assets.length})</h3>
           <p className="text-sm text-muted-foreground">
             {counts.approved} approved · {counts.suggested} suggested changes ·{' '}
             {counts.noStatus} no status
           </p>
         </div>
-        {reviewed.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">
-            No asset feedback
-          </p>
-        ) : (
-          reviewed.map((asset) => (
-            <div
-              key={asset.assetId}
-              className="space-y-2 rounded-lg border p-3"
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate text-sm font-medium">{asset.name}</p>
-                {asset.badge ? (
-                  <Badge variant="secondary">{asset.badge}</Badge>
-                ) : null}
-              </div>
-              <FeedbackSummary
-                status={asset.status}
-                comment={asset.comment}
-                audio={asset.audio}
-              />
-            </div>
-          ))
-        )}
+        <p className="text-sm text-muted-foreground">
+          {counts.comments} with comments · {counts.recordings} with recordings
+        </p>
       </section>
     </div>
   );
@@ -377,7 +357,10 @@ export function SubmitReviewDialog({
             await uploadReviewAudio(upload.upload_url, item.blob, (loaded) =>
               patchUpload(upload.target, { loaded })
             );
-            patchUpload(upload.target, { status: 'done', path: upload.path });
+            patchUpload(upload.target, {
+              status: 'done',
+              audio: { path: upload.path, ticket: upload.ticket }
+            });
           } catch (err) {
             patchUpload(upload.target, {
               status: 'error',
@@ -404,8 +387,8 @@ export function SubmitReviewDialog({
     }
 
     setPhase('saving');
-    const pathFor = (target: string) =>
-      uploadsRef.current[target]?.path ?? null;
+    const audioFor = (target: string) =>
+      uploadsRef.current[target]?.audio ?? null;
 
     try {
       await submitReview({
@@ -415,13 +398,13 @@ export function SubmitReviewDialog({
         overall: {
           status: submission.overall.status,
           comment: submission.overall.comment,
-          audio_path: pathFor(REVIEW_OVERALL_TARGET)
+          audio: audioFor(REVIEW_OVERALL_TARGET)
         },
         assets: submission.assets.filter(hasFeedback).map((asset) => ({
           asset_id: asset.assetId,
           status: asset.status,
           comment: asset.comment,
-          audio_path: pathFor(asset.assetId)
+          audio: audioFor(asset.assetId)
         }))
       });
     } catch (err) {
@@ -443,13 +426,23 @@ export function SubmitReviewDialog({
       sum + (item.status === 'done' ? item.blob.size : item.loaded),
     0
   );
-  const audioProblems = items.filter(
-    (item) => reviewAudioProblem(item.blob.type, item.blob.size) !== null
-  );
+  const blockers = submission
+    ? [
+        ...reviewSubmissionProblems({
+          reviewerName: submission.reviewer.name,
+          overallStatus: submission.overall.status,
+          overallComment: submission.overall.comment,
+          hasOverallAudio: submission.overall.audio !== null
+        }),
+        ...items.flatMap((item) => {
+          const problem = reviewAudioProblem(item.blob.type, item.blob.size);
+          return problem ? [`${item.label}: ${problem}`] : [];
+        })
+      ]
+    : [];
 
   const warnings: string[] = [];
   if (submission) {
-    if (!submission.reviewer.name.trim()) warnings.push('Name is empty.');
     if (!submission.reviewer.email.trim()) warnings.push('Email is empty.');
     const { overall } = submission;
     if (
@@ -459,6 +452,24 @@ export function SubmitReviewDialog({
       !submission.assets.some(hasFeedback)
     ) {
       warnings.push('No feedback has been added yet.');
+    }
+
+    const unexplained = submission.assets.filter(
+      (asset) =>
+        asset.status === 'suggested_changes' &&
+        !asset.comment.trim() &&
+        !asset.audio
+    );
+    if (unexplained.length > 0) {
+      const names = unexplained
+        .slice(0, MAX_LISTED_ASSETS)
+        .map((asset) =>
+          asset.badge ? `${asset.name} (${asset.badge})` : asset.name
+        );
+      const more = unexplained.length - names.length;
+      warnings.push(
+        `${unexplained.length} asset${unexplained.length === 1 ? ' has' : 's have'} "Suggested Changes" without a comment or recording: ${names.join(', ')}${more > 0 ? ` and ${more} more` : ''}.`
+      );
     }
   }
 
@@ -525,10 +536,15 @@ export function SubmitReviewDialog({
                 ))}
               </div>
             ) : null}
-            {audioProblems.length > 0 ? (
-              <p className="text-sm text-destructive">
-                Fix or delete the recordings marked above before submitting.
-              </p>
+            {blockers.length > 0 ? (
+              <div className="space-y-1 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                <p className="font-medium">Fix before submitting:</p>
+                <ul className="list-disc pl-5">
+                  {blockers.map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </>
         ) : (
@@ -584,7 +600,7 @@ export function SubmitReviewDialog({
               </Button>
               <Button
                 type="button"
-                disabled={!submission || audioProblems.length > 0}
+                disabled={!submission || blockers.length > 0}
                 onClick={() => void run()}
               >
                 Confirm submission

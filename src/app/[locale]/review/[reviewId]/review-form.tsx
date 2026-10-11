@@ -860,10 +860,13 @@ function ReviewerFields({
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="reviewer-name">Name</Label>
+          <Label htmlFor="reviewer-name">
+            Name <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="reviewer-name"
             name="name"
+            aria-required
             autoComplete="name"
             value={name}
             onChange={(event) => {
@@ -874,7 +877,7 @@ function ReviewerFields({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reviewer-email">Email</Label>
+          <Label htmlFor="reviewer-email">Email (optional)</Label>
           <Input
             id="reviewer-email"
             name="email"

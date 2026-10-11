@@ -22,6 +22,32 @@ export function reviewStatusToResult(status: ReviewStatus) {
   return status === 'no_status' ? null : status;
 }
 
+/** Rules that block a submission. Shared by the submit dialog and the API. */
+export function reviewSubmissionProblems({
+  reviewerName,
+  overallStatus,
+  overallComment,
+  hasOverallAudio
+}: {
+  reviewerName: string;
+  overallStatus: ReviewStatus;
+  overallComment: string;
+  hasOverallAudio: boolean;
+}) {
+  const problems: string[] = [];
+  if (!reviewerName.trim()) problems.push('Name is required.');
+  if (
+    overallStatus === 'suggested_changes' &&
+    !overallComment.trim() &&
+    !hasOverallAudio
+  ) {
+    problems.push(
+      'Overall Feedback with "Suggested Changes" needs a comment or a recording.'
+    );
+  }
+  return problems;
+}
+
 export const REVIEW_AUDIO_MAX_BYTES = 20 * 1024 * 1024;
 
 const REVIEW_AUDIO_EXTENSIONS: Record<string, string> = {
@@ -70,33 +96,21 @@ export function isReviewAudioTarget(value: string) {
 }
 
 /**
- * Every upload gets a fresh `{target}-{uuid}` name so retries never collide
- * with an earlier attempt (failed attempts leave orphaned files behind).
+ * Recordings are stored at the bucket root as `{uuid}.{ext}`. Every upload
+ * gets a fresh name, so retries never collide with an earlier attempt
+ * (failed attempts leave orphaned files behind).
  */
-export function buildReviewAudioPath(
-  reviewId: string,
-  target: string,
-  uploadId: string,
-  extension: string
-) {
-  return `reviews/${reviewId}/${target}-${uploadId}.${extension}`;
+export function buildReviewAudioPath(uploadId: string, extension: string) {
+  return `${uploadId}.${extension}`;
 }
 
-export function isReviewAudioPath(
-  path: string,
-  reviewId: string,
-  target: string
-) {
+export function isReviewAudioPath(path: string) {
   const extensions = [...new Set(Object.values(REVIEW_AUDIO_EXTENSIONS))];
   const pattern = new RegExp(
-    `^reviews/${escapeRegex(reviewId)}/${escapeRegex(target)}-${UUID_PATTERN}\\.(${extensions.join('|')})$`,
+    `^${UUID_PATTERN}\\.(${extensions.join('|')})$`,
     'i'
   );
   return pattern.test(path);
-}
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export type ReviewUploadUrlsRequest = {
@@ -105,19 +119,29 @@ export type ReviewUploadUrlsRequest = {
   files: Array<{ target: string; content_type: string; size: number }>;
 };
 
+/**
+ * `ticket` is a server signature binding `path` to this review and target;
+ * the submit route only accepts audio paths with a matching ticket.
+ */
+export type ReviewAudioRef = { path: string; ticket: string };
+
 export type ReviewUploadUrlsResponse = {
-  uploads: Array<{ target: string; path: string; upload_url: string }>;
+  uploads: Array<ReviewAudioRef & { target: string; upload_url: string }>;
 };
 
 export type ReviewSubmitRequest = {
   review_id: string;
   token: string;
   reviewer: { name: string; email: string };
-  overall: { status: ReviewStatus; comment: string; audio_path: string | null };
+  overall: {
+    status: ReviewStatus;
+    comment: string;
+    audio: ReviewAudioRef | null;
+  };
   assets: Array<{
     asset_id: string;
     status: ReviewStatus;
     comment: string;
-    audio_path: string | null;
+    audio: ReviewAudioRef | null;
   }>;
 };

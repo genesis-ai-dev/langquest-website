@@ -12,6 +12,7 @@ import {
   createReviewClient,
   reviewAudioBucket,
   reviewResponse,
+  signReviewAudio,
   validateReviewToken
 } from '@/lib/review/server';
 
@@ -69,8 +70,6 @@ export async function POST(request: NextRequest) {
   const results = await Promise.all(
     files.map(async (file) => {
       const path = buildReviewAudioPath(
-        reviewId,
-        file.target,
         randomUUID(),
         reviewAudioExtension(file.content_type) ?? 'bin'
       );
@@ -79,7 +78,12 @@ export async function POST(request: NextRequest) {
         console.error('review upload-urls error', path, error);
         return null;
       }
-      return { target: file.target, path, upload_url: data.signedUrl };
+      return {
+        target: file.target,
+        path,
+        ticket: signReviewAudio(reviewId, file.target, path),
+        upload_url: data.signedUrl
+      };
     })
   );
 

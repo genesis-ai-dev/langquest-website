@@ -7,6 +7,7 @@ import {
   isReviewAudioPath,
   isUuid,
   reviewStatusToResult,
+  reviewSubmissionProblems,
   type ReviewSubmitRequest
 } from '@/lib/review/submission';
 import {
@@ -14,6 +15,7 @@ import {
   reviewAudioBucket,
   reviewResponse,
   validateReviewToken,
+  verifyReviewAudio,
   type ReviewClient
 } from '@/lib/review/server';
 
@@ -26,6 +28,13 @@ const statusSchema = z.enum(
   ]
 );
 
+const audioSchema = z
+  .object({
+    path: z.string().refine(isReviewAudioPath, 'Invalid audio path'),
+    ticket: z.string().min(1)
+  })
+  .nullable();
+
 const requestSchema = z.object({
   review_id: z.string().trim().min(1),
   token: z.string().trim().min(1),
@@ -36,7 +45,7 @@ const requestSchema = z.object({
   overall: z.object({
     status: statusSchema,
     comment: z.string().max(MAX_TEXT_LENGTH),
-    audio_path: z.string().nullable()
+    audio: audioSchema
   }),
   assets: z
     .array(
@@ -44,7 +53,7 @@ const requestSchema = z.object({
         asset_id: z.string().refine(isUuid, 'Invalid asset id'),
         status: statusSchema,
         comment: z.string().max(MAX_TEXT_LENGTH),
-        audio_path: z.string().nullable()
+        audio: audioSchema
       })
     )
     .max(1000)
@@ -92,6 +101,16 @@ export async function POST(request: NextRequest) {
   }
 
   const { review_id: reviewId, token, reviewer, overall } = parsed.data;
+
+  const problems = reviewSubmissionProblems({
+    reviewerName: reviewer.name,
+    overallStatus: overall.status,
+    overallComment: overall.comment,
+    hasOverallAudio: overall.audio !== null
+  });
+  if (problems.length > 0) {
+    return reviewResponse({ error: problems.join(' ') }, 400);
+  }
   const supabase = createReviewClient();
 
   try {
@@ -110,27 +129,20 @@ export async function POST(request: NextRequest) {
     (asset) =>
       asset.status !== 'no_status' ||
       asset.comment.trim().length > 0 ||
-      asset.audio_path !== null
+      asset.audio !== null
   );
 
   const audioChecks = [
-    { target: REVIEW_OVERALL_TARGET, path: overall.audio_path },
-    ...assets.map((asset) => ({
-      target: asset.asset_id,
-      path: asset.audio_path
-    }))
-  ].filter(
-    (check): check is { target: string; path: string } => check.path !== null
-  );
+    { target: REVIEW_OVERALL_TARGET, audio: overall.audio },
+    ...assets.map((asset) => ({ target: asset.asset_id, audio: asset.audio }))
+  ].flatMap(({ target, audio }) => (audio ? [{ target, ...audio }] : []));
 
-  const invalidPath = audioChecks.find(
-    (check) => !isReviewAudioPath(check.path, reviewId, check.target)
+  const forged = audioChecks.find(
+    (check) =>
+      !verifyReviewAudio(reviewId, check.target, check.path, check.ticket)
   );
-  if (invalidPath) {
-    return reviewResponse(
-      { error: `Invalid audio path for ${invalidPath.target}` },
-      400
-    );
+  if (forged) {
+    return reviewResponse({ error: `Invalid audio for ${forged.target}` }, 400);
   }
 
   const existence = await Promise.all(
@@ -157,14 +169,14 @@ export async function POST(request: NextRequest) {
     },
     quest_result: reviewStatusToResult(overall.status),
     conclusion: nullableText(overall.comment),
-    audio: overall.audio_path ? [overall.audio_path] : null,
-    audio_uploaded_at: overall.audio_path ? audioUploadedAt : null,
+    audio: overall.audio ? [overall.audio.path] : null,
+    audio_uploaded_at: overall.audio ? audioUploadedAt : null,
     assets: assets.map((asset) => ({
       asset_id: asset.asset_id,
       asset_result: reviewStatusToResult(asset.status),
       comment: nullableText(asset.comment),
-      audio: asset.audio_path ? [asset.audio_path] : null,
-      audio_uploaded_at: asset.audio_path ? audioUploadedAt : null
+      audio: asset.audio ? [asset.audio.path] : null,
+      audio_uploaded_at: asset.audio ? audioUploadedAt : null
     }))
   };
 
