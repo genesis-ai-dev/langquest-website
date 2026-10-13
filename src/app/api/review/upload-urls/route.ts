@@ -1,16 +1,14 @@
 import { NextRequest } from 'next/server';
-import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import {
-  REVIEW_AUDIO_MAX_BYTES,
-  buildReviewAudioPath,
   isReviewAudioTarget,
   reviewAudioExtension,
   type ReviewUploadUrlsResponse
 } from '@/lib/review/submission';
+import { reviewUploadFileFields } from '@/lib/review/schemas';
 import {
+  createReviewAudioUploads,
   createReviewClient,
-  reviewAudioBucket,
   reviewResponse,
   validateReviewToken
 } from '@/lib/review/server';
@@ -22,12 +20,9 @@ const requestSchema = z.object({
     .array(
       z.object({
         target: z.string().refine(isReviewAudioTarget, 'Invalid target'),
-        content_type: z
-          .string()
-          .refine((value) => reviewAudioExtension(value) !== null, {
-            message: 'Unsupported audio format'
-          }),
-        size: z.number().int().positive().max(REVIEW_AUDIO_MAX_BYTES)
+        ...reviewUploadFileFields(
+          (value) => reviewAudioExtension(value) !== null
+        )
       })
     )
     .min(1)
@@ -65,30 +60,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const bucket = supabase.storage.from(reviewAudioBucket());
-  const results = await Promise.all(
-    files.map(async (file) => {
-      const path = buildReviewAudioPath(
-        randomUUID(),
-        reviewAudioExtension(file.content_type) ?? 'bin'
-      );
-      const { data, error } = await bucket.createSignedUploadUrl(path);
-      if (error || !data) {
-        console.error('review upload-urls error', path, error);
-        return null;
-      }
-      return {
-        target: file.target,
-        path,
-        upload_url: data.signedUrl
-      };
-    })
-  );
-
-  const uploads = results.filter((upload) => upload !== null);
-  if (uploads.length !== files.length) {
+  const uploads = await createReviewAudioUploads(supabase, files);
+  if (!uploads) {
     return reviewResponse({ error: 'Failed to generate upload URL' }, 500);
   }
 
-  return reviewResponse({ uploads } satisfies ReviewUploadUrlsResponse);
+  return reviewResponse({
+    uploads: uploads.map((upload) => ({
+      target: upload.file.target,
+      path: upload.path,
+      upload_url: upload.upload_url
+    }))
+  } satisfies ReviewUploadUrlsResponse);
 }

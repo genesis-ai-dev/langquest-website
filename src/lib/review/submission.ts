@@ -27,15 +27,19 @@ export function reviewSubmissionProblems({
   reviewerName,
   overallStatus,
   overallComment,
-  hasOverallAudio
+  hasOverallAudio,
+  requireReviewerName = true
 }: {
   reviewerName: string;
   overallStatus: ReviewStatus;
   overallComment: string;
   hasOverallAudio: boolean;
+  requireReviewerName?: boolean;
 }) {
   const problems: string[] = [];
-  if (!reviewerName.trim()) problems.push('Name is required.');
+  if (requireReviewerName && !reviewerName.trim()) {
+    problems.push('Name is required.');
+  }
   if (
     overallStatus === 'suggested_changes' &&
     !overallComment.trim() &&
@@ -54,8 +58,27 @@ const REVIEW_AUDIO_EXTENSIONS: Record<string, string> = {
   'audio/mp4': 'm4a',
   'audio/x-m4a': 'm4a',
   'audio/webm': 'webm',
-  'audio/ogg': 'ogg'
+  'audio/ogg': 'ogg',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/wave': 'wav'
 };
+
+/**
+ * Partners must send formats the mobile app can play everywhere
+ * (iOS cannot play webm/ogg).
+ */
+export const PARTNER_AUDIO_EXTENSIONS = ['m4a', 'mp3', 'wav'] as const;
+
+export function isPartnerAudioType(contentType: string) {
+  const extension = reviewAudioExtension(contentType);
+  return (
+    extension !== null &&
+    (PARTNER_AUDIO_EXTENSIONS as readonly string[]).includes(extension)
+  );
+}
 
 /** Strips codec parameters (`audio/webm;codecs=opus` → `audio/webm`). */
 export function normalizeReviewAudioType(contentType: string) {

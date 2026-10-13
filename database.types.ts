@@ -1113,6 +1113,15 @@ export type Database = {
         };
         Returns: boolean;
       };
+      create_partner_review: {
+        Args: {
+          p_origin: string;
+          p_external_id: string;
+          p_quest_id: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
       submit_quest_review: {
         Args: {
           review_id: string;
