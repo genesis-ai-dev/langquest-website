@@ -54,6 +54,7 @@ import { QuestCard } from './quest-card';
 import { AssetsContainer } from './assets-container';
 import { QuestMenuPlus } from './quest-menu-plus';
 import { SubQuestMenuPlus } from './subquest-menu-plus';
+import { QuestReviewsButton } from './quest-reviews';
 import { ArrowLeft, ChevronRight, FolderOpen, ListOrdered } from 'lucide-react';
 
 interface QuestExplorerMenuProps {
@@ -911,6 +912,17 @@ export function QuestExplorerMenu({
                             })}
                           </SelectContent>
                         </Select>
+                      )}
+                      {selectedContentNode?.questId && (
+                        <QuestReviewsButton
+                          questId={selectedContentNode.questId}
+                          questName={contentTitle}
+                          versionLabel={contentVersionLabel || null}
+                          assets={questAssets}
+                          quest={selectedContentNode}
+                          showAssetLabel={behavior.showAssetLabel}
+                          resolveAssetLabel={templateStrategy.resolveAssetLabel}
+                        />
                       )}
                       {showRightMenuActions && selectedContentNode?.questId && (
                         <SubQuestMenuPlus

@@ -33,8 +33,8 @@ import {
   isReviewStatus,
   type ReviewStatus
 } from '@/lib/review/submission';
-import { PlaylistPlayer } from './playlist-player';
-import { STATUS_CLASS_NAME, STATUS_ITEM_CLASS_NAME } from './review-status';
+import { PlaylistPlayer } from '@/components/review/playlist-player';
+import { STATUS_CLASS_NAME, STATUS_ITEM_CLASS_NAME } from '@/components/review/review-status';
 import {
   SubmitReviewDialog,
   type ReviewSubmission

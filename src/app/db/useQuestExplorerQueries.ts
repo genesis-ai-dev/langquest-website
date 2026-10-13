@@ -9,6 +9,7 @@ import {
   fetchCompatibleSourceQuests,
   fetchProjectQuestTree,
   fetchQuestAssets,
+  fetchQuestReviews,
   importAssetsToQuest,
   type ImportQuestAssetLink
 } from './questExplorer';
@@ -190,6 +191,16 @@ export function useFiaPericopes(projectId: string, enabled = true) {
       const data = (await response.json()) as unknown;
       return normalizeFiaPericopesResponse(data);
     }
+  });
+}
+
+export function useQuestReviews(questId: string | null, enabled = true) {
+  const { user, supabase } = useAuth();
+
+  return useQuery({
+    queryKey: ['qe-quest-reviews', questId],
+    enabled: enabled && !!questId && !!user,
+    queryFn: () => fetchQuestReviews(supabase, questId || '')
   });
 }
 

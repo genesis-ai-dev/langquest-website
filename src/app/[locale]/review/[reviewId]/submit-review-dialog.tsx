@@ -22,8 +22,8 @@ import {
   type ReviewStatus
 } from '@/lib/review/submission';
 import { cn } from '@/lib/utils';
-import { PlaylistPlayer } from './playlist-player';
-import { STATUS_CLASS_NAME } from './review-status';
+import { PlaylistPlayer } from '@/components/review/playlist-player';
+import { STATUS_CLASS_NAME } from '@/components/review/review-status';
 import {
   requestReviewUploadUrls,
   runWithConcurrency,
