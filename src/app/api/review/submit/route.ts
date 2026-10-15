@@ -108,8 +108,7 @@ export async function POST(request: NextRequest) {
   if (!questResult) {
     return reviewResponse(
       {
-        error:
-          'Overall status must be Approved or Suggested Changes to submit.'
+        error: 'Overall status must be Approved or Suggested Changes to submit.'
       },
       400
     );
