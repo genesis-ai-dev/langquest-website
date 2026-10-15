@@ -829,6 +829,145 @@ export type Database = {
           }
         ];
       };
+      review: {
+        Row: {
+          id: string;
+          project_id: string;
+          quest_id: string;
+          profile_id: string | null;
+          status: string;
+          access_token: string | null;
+          active: boolean;
+          origin: string;
+          external_id: string | null;
+          quest_result: string | null;
+          conclusion: string | null;
+          metadata: string;
+          created_at: string;
+          concluded_at: string | null;
+          audio: Json | null;
+          uploaded_at: string | null;
+          audio_uploaded_at: string | null;
+          download_profiles: string[];
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          quest_id: string;
+          profile_id?: string | null;
+          status?: string;
+          access_token?: string | null;
+          active?: boolean;
+          origin: string;
+          external_id?: string | null;
+          quest_result?: string | null;
+          conclusion?: string | null;
+          metadata?: string;
+          created_at?: string;
+          concluded_at?: string | null;
+          audio?: Json | null;
+          uploaded_at?: string | null;
+          audio_uploaded_at?: string | null;
+          download_profiles?: string[];
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          quest_id?: string;
+          profile_id?: string | null;
+          status?: string;
+          access_token?: string | null;
+          active?: boolean;
+          origin?: string;
+          external_id?: string | null;
+          quest_result?: string | null;
+          conclusion?: string | null;
+          metadata?: string;
+          created_at?: string;
+          concluded_at?: string | null;
+          audio?: Json | null;
+          uploaded_at?: string | null;
+          audio_uploaded_at?: string | null;
+          download_profiles?: string[];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'review_project_id_fkey';
+            columns: ['project_id'];
+            isOneToOne: false;
+            referencedRelation: 'project';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'review_quest_id_fkey';
+            columns: ['quest_id'];
+            isOneToOne: false;
+            referencedRelation: 'quest';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'review_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profile';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      review_asset: {
+        Row: {
+          review_id: string;
+          asset_id: string;
+          asset_result: string | null;
+          comment: string | null;
+          audio: Json | null;
+          metadata: string;
+          uploaded_at: string | null;
+          audio_uploaded_at: string | null;
+          download_profiles: string[];
+          project_id: string;
+        };
+        Insert: {
+          review_id: string;
+          asset_id: string;
+          asset_result?: string | null;
+          comment?: string | null;
+          audio?: Json | null;
+          metadata?: string;
+          uploaded_at?: string | null;
+          audio_uploaded_at?: string | null;
+          download_profiles?: string[];
+          project_id: string;
+        };
+        Update: {
+          review_id?: string;
+          asset_id?: string;
+          asset_result?: string | null;
+          comment?: string | null;
+          audio?: Json | null;
+          metadata?: string;
+          uploaded_at?: string | null;
+          audio_uploaded_at?: string | null;
+          download_profiles?: string[];
+          project_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'review_asset_review_id_fkey';
+            columns: ['review_id'];
+            isOneToOne: false;
+            referencedRelation: 'review';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'review_asset_project_id_fkey';
+            columns: ['project_id'];
+            isOneToOne: false;
+            referencedRelation: 'project';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       tag: {
         Row: {
           active: boolean;
@@ -960,6 +1099,28 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      fetch_quest_review_data: {
+        Args: {
+          review_id: string;
+          token: string;
+        };
+        Returns: Json;
+      };
+      validate_review_token: {
+        Args: {
+          review_id: string;
+          token: string;
+        };
+        Returns: boolean;
+      };
+      submit_quest_review: {
+        Args: {
+          review_id: string;
+          token: string;
+          payload: Json;
+        };
+        Returns: Json;
+      };
       search_languoids: {
         Args: {
           search_query: string;

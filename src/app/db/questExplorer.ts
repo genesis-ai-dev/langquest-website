@@ -3,6 +3,7 @@ import {
   assetWriteTimestamps,
   buildAssetPlacementFields
 } from '@/lib/asset-placement';
+import { extractAudioPaths } from '@/components/acl-reorder/audioUtils';
 
 export interface QuestRecord {
   id: string;
@@ -396,6 +397,122 @@ export async function fetchAssetDetails(
       }))
     }))
   };
+}
+
+export interface QuestReviewAsset {
+  asset_id: string;
+  asset_result: string | null;
+  comment: string | null;
+  audio: string[];
+}
+
+export interface QuestReview {
+  id: string;
+  origin: string;
+  quest_result: string | null;
+  conclusion: string | null;
+  audio: string[];
+  reviewer_name: string | null;
+  review_label: string | null;
+  reviewed_at: string;
+  assets: QuestReviewAsset[];
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value !== 'string' || !value.trim()) return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function nonEmptyString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/**
+ * Internal reviews are attributed to the linked profile; external ones carry
+ * the reviewer name in metadata (`reviewer.name`, or a top-level `name`).
+ */
+function resolveReviewerName(
+  origin: string,
+  metadata: Record<string, unknown>,
+  profileName: string | null
+) {
+  const reviewer = parseJsonObject(metadata.reviewer);
+  const metadataName =
+    nonEmptyString(reviewer.name) ?? nonEmptyString(metadata.name);
+  return origin === 'Internal'
+    ? (profileName ?? metadataName)
+    : (metadataName ?? profileName);
+}
+
+/** Submitted (non-draft) reviews of a quest, newest first. */
+export async function fetchQuestReviews(
+  supabase: SupabaseClient,
+  questId: string
+): Promise<QuestReview[]> {
+  if (!questId) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('review')
+    .select(
+      `
+      id,
+      origin,
+      quest_result,
+      conclusion,
+      audio,
+      metadata,
+      created_at,
+      concluded_at,
+      profile:profile_id(username),
+      assets:review_asset(asset_id, asset_result, comment, audio)
+    `
+    )
+    .eq('quest_id', questId)
+    .eq('status', 'submitted')
+    .order('concluded_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data || []) as any[]).map((row) => {
+    const metadata = parseJsonObject(row.metadata);
+    const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+
+    return {
+      id: row.id,
+      origin: row.origin,
+      quest_result: row.quest_result ?? null,
+      conclusion: nonEmptyString(row.conclusion),
+      audio: extractAudioPaths(row.audio),
+      reviewer_name: resolveReviewerName(
+        row.origin,
+        metadata,
+        nonEmptyString(profile?.username)
+      ),
+      review_label: nonEmptyString(metadata.reviewLabel),
+      reviewed_at: row.concluded_at || row.created_at,
+      assets: ((row.assets || []) as any[]).map((asset) => ({
+        asset_id: asset.asset_id,
+        asset_result: asset.asset_result ?? null,
+        comment: nonEmptyString(asset.comment),
+        audio: extractAudioPaths(asset.audio)
+      }))
+    };
+  });
 }
 
 interface CreateBibleChapterParams {
