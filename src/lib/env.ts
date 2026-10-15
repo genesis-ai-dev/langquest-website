@@ -10,6 +10,9 @@ export const env = createEnv({
     AUDIO_CONCAT_WORKER_URL: z.string().url().optional(),
     AUDIO_CONCAT_WORKER_TOKEN: z.string().min(1).optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    // Bearer keys for the EL partner review API; `_NEXT` allows key rotation.
+    PARTNER_EL_API_KEY: z.string().min(32).optional(),
+    PARTNER_EL_API_KEY_NEXT: z.string().min(32).optional(),
     APP_IDS: z.string().min(1),
     TEAM_ID: z.string().min(1),
     ANDROID_SHA256_FINGERPRINTS: z.string().min(1)
