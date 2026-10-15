@@ -65,7 +65,8 @@ function joinParts(parts: Array<string | null | undefined>) {
 }
 
 function ResultBadge({ result }: { result: string | null }) {
-  if (!result) return null;
+  // No result (or an explicit "no_status") shows no badge.
+  if (!result || result === 'no_status') return null;
   const status = isReviewStatus(result) ? result : null;
 
   return (
@@ -82,12 +83,15 @@ function ReviewSummary({
   review,
   questName,
   versionLabel,
-  titleAs: Title = 'p'
+  titleAs: Title = 'p',
+  showResult = false
 }: {
   review: QuestReview;
   questName: string;
   versionLabel: string | null;
   titleAs?: 'p' | typeof DialogTitle;
+  /** Shows the overall result badge on the right side. */
+  showResult?: boolean;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
@@ -97,12 +101,9 @@ function ReviewSummary({
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1 space-y-0.5 text-left">
-        <div className="flex min-w-0 items-center gap-2">
-          <Title className="truncate text-sm font-semibold">
-            {joinParts([questName, versionLabel])}
-          </Title>
-          <ResultBadge result={review.quest_result} />
-        </div>
+        <Title className="truncate text-sm font-semibold">
+          {joinParts([questName, versionLabel])}
+        </Title>
         <p className="truncate text-xs text-muted-foreground">
           {joinParts([
             review.reviewer_name ?? 'Unknown reviewer',
@@ -113,6 +114,7 @@ function ReviewSummary({
           {joinParts([review.review_label, review.origin])}
         </p>
       </div>
+      {showResult ? <ResultBadge result={review.quest_result} /> : null}
     </div>
   );
 }
@@ -312,6 +314,7 @@ export function QuestReviewsButton({
                         review={review}
                         questName={questName}
                         versionLabel={versionLabel}
+                        showResult
                       />
                     </button>
                   ))
