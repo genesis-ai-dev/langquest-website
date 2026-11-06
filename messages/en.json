@@ -53,66 +53,74 @@
     "title": "LangQuest",
     "about": "About",
     "comingSoon": "Coming Soon",
-    "hero": {
-      "title": "Translate, Preserve, and Connect",
-      "subtitle": "Translate and preserve endangered languages anywhere, even offline."
-    },
     "allData": "All Data",
     "userFriendlyData": "User-Friendly Data",
+    "hero": {
+      "title": "Record Bible translations in your own language",
+      "subtitle": "Work with your team, passage by passage, with your voice. No internet needed for weeks.",
+      "openWebApp": "Open the web app"
+    },
     "features": {
-      "title": "Designed for Remote Translation",
-      "subtitle": "LangQuest makes translation possible even in the most challenging environments.",
+      "title": "Made for teams in remote places",
+      "subtitle": "Record, check and approve oral Bible translations together.",
+      "record": {
+        "title": "Record by cards",
+        "description": "Speak a passage. LangQuest splits your voice into small cards you can re-record or reorder."
+      },
+      "review": {
+        "title": "Review and approve",
+        "description": "Your team checks each passage in steps you choose. Everyone sees what is approved and what is waiting."
+      },
       "offline": {
-        "title": "Offline Tolerance",
-        "description": "Work without internet for extended periods. Your data is safely stored locally until you can sync."
+        "title": "Works offline",
+        "description": "Record for a month without a connection. Your work syncs when you reach the internet."
       },
-      "ai": {
-        "title": "AI-Assisted Translation",
-        "description": "Use AI to generate initial translations, which users can review and vote on, speeding up the process."
-      },
-      "gamification": {
-        "title": "Gamification",
-        "description": "Features like leaderboards and rewards make translation fun and encourage participation."
-      },
-      "openData": {
-        "title": "Open Data",
-        "description": "All validated translations become part of an openly licensed database, helping train future AI models."
+      "team": {
+        "title": "Invite your team",
+        "description": "Send an invitation by link or QR code. Each person gets a role."
       }
     },
     "howItWorks": {
-      "title": "How LangQuest Works",
-      "subtitle": "Organize translations into projects, quests, and assets for efficient management.",
-      "projects": {
-        "title": "Create Projects",
-        "description": "Organize your translation work into projects, like translating the Bible or important cultural texts."
+      "title": "How LangQuest works",
+      "subtitle": "Three steps, from a blank language to approved audio.",
+      "organize": {
+        "title": "Set up your organization",
+        "description": "Add your languages and choose the books and passages to translate."
       },
-      "collaborate": {
-        "title": "Collaborate",
-        "description": "Invite community members to contribute translations and vote on each other's work."
+      "record": {
+        "title": "Record passages",
+        "description": "Listen to the source, then speak the passage in your language."
       },
-      "validate": {
-        "title": "Validate & Share",
-        "description": "Validate translations through community voting and share them with the world."
+      "review": {
+        "title": "Check and approve",
+        "description": "Reviewers listen, give feedback and approve. Coordinators see progress for every language."
       }
     },
-    "useCases": {
-      "title": "Perfect For",
-      "subtitle": "LangQuest is designed for a variety of translation needs."
-    },
-    "future": {
-      "badge": "Coming Soon",
-      "title": "Future: Peer-to-Peer Connectivity",
-      "subtitle": "We're actively researching solutions to enable direct device-to-device sharing of translation data without internet.",
-      "features": {
-        "share": "Share updates between devices when team members meet",
-        "sync": "Sync progress across multiple devices without internet",
-        "collaborate": "Enable true collaboration in the most remote locations"
+    "roles": {
+      "title": "A job for everyone on the team",
+      "subtitle": "Each person sees the work that is theirs.",
+      "translators": {
+        "title": "Translators",
+        "description": "Record your passages and see which ones need more work."
+      },
+      "reviewers": {
+        "title": "Reviewers",
+        "description": "Listen, check and approve passages, alone or with other reviewers."
+      },
+      "coordinators": {
+        "title": "Coordinators",
+        "description": "Invite people, assign roles and follow progress across languages."
       }
     },
     "cta": {
-      "title": "Join the LangQuest Community",
-      "subtitle": "Be among the first to use LangQuest and help preserve low-resource languages.",
+      "title": "Join the LangQuest community",
+      "subtitle": "Get news about LangQuest Next and help bring Scripture to more languages.",
       "notification": "We'll notify you when LangQuest is ready for beta testing."
+    },
+    "portal": {
+      "title": "Using the original LangQuest?",
+      "subtitle": "Manage your existing translation projects in the portal.",
+      "button": "Go to Portal"
     }
   },
   "data_view": {

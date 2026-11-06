@@ -1,9 +1,7 @@
 'use client';
 
 import ClientOnlyHero from '@/components/ClientOnlyHero';
-import ClientOnlyP2P from '@/components/ClientOnlyP2P';
 import { SubscribeForm } from '@/components/SubscribeForm';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,20 +12,18 @@ import {
 } from '@/components/ui/card';
 import WebPageWrapper from '@/components/WebPageWrapper';
 import { Link } from '@/i18n/navigation';
-import {
-  BookOpen,
-  Brain,
-  CheckCircle,
-  Clock,
-  Database,
-  Share2,
-  Smartphone,
-  Trophy,
-  Users,
-  WifiOff
-} from 'lucide-react';
+import { CheckCircle, Mic, Users, WifiOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+
+const features = [
+  { key: 'record', Icon: Mic },
+  { key: 'review', Icon: CheckCircle },
+  { key: 'offline', Icon: WifiOff },
+  { key: 'team', Icon: Users }
+] as const;
+const steps = ['organize', 'record', 'review'] as const;
+const roles = ['translators', 'reviewers', 'coordinators'] as const;
 
 export default function LandingPage() {
   const t = useTranslations('homepage');
@@ -104,7 +100,15 @@ export default function LandingPage() {
                   />
                 </a>
               </div>
-              <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <a href="https://next.langquest.org">
+                  <Button
+                    size="lg"
+                    className="h-12 bg-accent4 text-white hover:bg-accent4/90"
+                  >
+                    {t('hero.openWebApp')}
+                  </Button>
+                </a>
                 <a
                   href="https://discord.gg/RpFdRVdBqz"
                   target="_blank"
@@ -159,7 +163,7 @@ export default function LandingPage() {
           </div>
         </ClientOnlyHero>
 
-        {/* Key Features */}
+        {/* What LangQuest Next does */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
@@ -173,72 +177,25 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 mt-12">
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <WifiOff className="h-5 w-5 text-accent4" />
-                    </div>
-                  </div>
-                  <CardTitle>{t('features.offline.title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('features.offline.description')}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <Brain className="h-5 w-5 text-accent4" />
-                    </div>
-                  </div>
-                  <CardTitle>{t('features.ai.title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('features.ai.description')}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <Trophy className="h-5 w-5 text-accent4" />
-                    </div>
-                  </div>
-                  <CardTitle>{t('features.gamification.title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('features.gamification.description')}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <Database className="h-5 w-5 text-accent4" />
-                    </div>
-                  </div>
-                  <CardTitle>{t('features.openData.title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('features.openData.description')}
-                  </p>
-                </CardContent>
-              </Card>
+              {features.map(({ key, Icon }) => (
+                <Card key={key}>
+                  <CardHeader className="pb-2">
+                    <Icon className="h-8 w-8 text-accent4 mb-2" />
+                    <CardTitle>{t(`features.${key}.title`)}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      {t(`features.${key}.description`)}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* How It Works */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+        {/* How it works */}
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -250,253 +207,51 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 mt-12">
-              <div className="flex flex-col items-center space-y-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-white">
-                  <BookOpen className="h-6 w-6" />
+            <div className="mx-auto mt-12 grid max-w-5xl gap-8 md:grid-cols-3">
+              {steps.map((key, i) => (
+                <div
+                  key={key}
+                  className="flex flex-col items-center space-y-2 text-center"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-xl font-bold text-white">
+                    {i + 1}
+                  </div>
+                  <h3 className="text-xl font-bold">
+                    {t(`howItWorks.${key}.title`)}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {t(`howItWorks.${key}.description`)}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold">
-                  {t('howItWorks.projects.title')}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('howItWorks.projects.description')}
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-white">
-                  <Users className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold">
-                  {t('howItWorks.collaborate.title')}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('howItWorks.collaborate.description')}
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent4 text-white">
-                  <CheckCircle className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold">
-                  {t('howItWorks.validate.title')}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('howItWorks.validate.description')}
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Use Cases */}
+        {/* Who it is for */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  {t('useCases.title')}
+                  {t('roles.title')}
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  {t('useCases.subtitle')}
+                  {t('roles.subtitle')}
                 </p>
               </div>
             </div>
-            <div className="mx-auto mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl">
-              <Card className="relative before:absolute before:-inset-1 before:rounded-xl before:bg-[radial-gradient(circle_at_50%_120%,var(--color-accent1),transparent_70%)] before:opacity-40 before:blur-lg before:transition-all hover:before:opacity-60">
-                <CardHeader>
-                  <CardTitle>Bible Translation</CardTitle>
-                  <CardDescription>
-                    Collect linguistic data to enable AI-powered Bible
-                    translation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">
-                        Bite-sized Translation Tasks
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Break down translation into small, manageable pieces
-                        like words, phrases and verses
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">
-                        Community Validation
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Enable native speakers to validate translations through
-                        simple voting
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <Clock className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">
-                        Offline Collaboration (Coming Soon)
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Work together even without internet through peer-to-peer
-                        syncing
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative before:absolute before:-inset-1 before:rounded-xl before:bg-[radial-gradient(circle_at_50%_120%,var(--color-accent2),transparent_70%)] before:opacity-40 before:blur-lg before:transition-all hover:before:opacity-60">
-                <CardHeader>
-                  <CardTitle>Cultural Text Documentation</CardTitle>
-                  <CardDescription>
-                    Document and preserve cultural knowledge in low-resource
-                    languages
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">
-                        Multimodal Support
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Capture text, audio recordings, and images to document
-                        language and culture
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">Gamified Progress</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Track achievements and milestones to make documentation
-                        engaging
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">Open Data Sharing</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Share validated translations openly to benefit the whole
-                        community
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative before:absolute before:-inset-1 before:rounded-xl before:bg-[radial-gradient(circle_at_50%_120%,var(--color-intense1),transparent_70%)] before:opacity-40 before:blur-lg before:transition-all hover:before:opacity-60">
-                <CardHeader>
-                  <CardTitle>Educational Materials</CardTitle>
-                  <CardDescription>
-                    Build language resources for education and learning
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">Simple Validation</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Easily validate translations through community voting
-                        and feedback
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">Resource Building</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Create dictionaries, word lists and other learning
-                        materials
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="rounded-full bg-accent4/10 p-2">
-                      <CheckCircle className="h-5 w-5 text-accent4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">
-                        Local-First Design
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Work offline and sync when internet is available
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Future Vision */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex items-center justify-center">
-                <div className="relative h-[300px] w-5/6 md:h-[400px] overflow-hidden rounded-lg border bg-background p-2">
-                  <ClientOnlyP2P />
-                </div>
-              </div>
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <Badge className="inline-flex mb-2" variant="secondary">
-                    {t('future.badge')}
-                  </Badge>
-                  <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                    {t('future.title')}
-                  </h2>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    {t('future.subtitle')}
-                  </p>
-                </div>
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2">
-                    <Share2 className="h-5 w-5 text-accent4 mt-0.5" />
-                    <span className="text-sm">
-                      {t('future.features.share')}
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Smartphone className="h-5 w-5 text-accent4 mt-0.5" />
-                    <span className="text-sm">{t('future.features.sync')}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Users className="h-5 w-5 text-accent4 mt-0.5" />
-                    <span className="text-sm">
-                      {t('future.features.collaborate')}
-                    </span>
-                  </li>
-                </ul>
-              </div>
+            <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
+              {roles.map((key) => (
+                <Card key={key}>
+                  <CardHeader>
+                    <CardTitle>{t(`roles.${key}.title`)}</CardTitle>
+                    <CardDescription>
+                      {t(`roles.${key}.description`)}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
@@ -523,14 +278,12 @@ export default function LandingPage() {
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">
-                LangQuest Project Management
-              </h1>
+              <h1 className="text-4xl font-bold mb-4">{t('portal.title')}</h1>
               {/* <p className="text-lg text-muted-foreground">
                 Select which environment you want to access
               </p> */}
               <p className="text-lg text-muted-foreground">
-                Start managing your translation projects efficiently
+                {t('portal.subtitle')}
               </p>
             </div>
             <div className="grid place-content-center">
@@ -539,7 +292,7 @@ export default function LandingPage() {
                   size="lg"
                   className="gap-1 bg-accent4 text-white hover:bg-accent4/90 h-12"
                 >
-                  Go to Portal
+                  {t('portal.button')}
                 </Button>
               </Link>
             </div>
