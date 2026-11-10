@@ -113,6 +113,15 @@
       "title": "加入 LangQuest 社区",
       "subtitle": "成为首批使用 LangQuest 的用户之一，帮助保护低资源语言。",
       "notification": "当 LangQuest 准备好进行 Beta 测试时，我们会通知您。"
+    },
+    "next": {
+      "eyebrow": "开启新篇章",
+      "headline": "以您的声音为中心。",
+      "description": "与团队一起录制、审阅和管理圣经口述翻译。离线时继续工作，重新联网后同步。",
+      "tryNext": "试用 LangQuest Next",
+      "existingApp": "继续使用 LangQuest",
+      "note": "现有的 LangQuest 应用仍可在下方使用。",
+      "workflow": "录制 · 审阅 · 一起翻译"
     }
   },
   "data_view": {

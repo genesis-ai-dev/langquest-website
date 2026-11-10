@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Traced by hand from Caleb's logo (1536x1024 source px, kept so it can be
+       compared against it), fitted 64 units wide in a 100x100 box. -->
+  <defs>
+    <!-- The check cuts a thin gap through the tallest bar, so it reads as lying over it. -->
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="1536" height="1024">
+      <rect width="1536" height="1024" fill="white"/>
+      <path d="M738 518 L878 652 L1124 415" fill="none" stroke="black" stroke-width="150" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g transform="translate(50 50) scale(0.0809) translate(-780.5 -516.5)">
+    <g fill="#fff" mask="url(#gap)">
+      <rect x="385" y="465" width="111" height="192" rx="55.5"/>
+      <rect x="531" y="374" width="111" height="342" rx="55.5"/>
+      <rect x="677" y="273" width="113" height="487" rx="56.5"/>
+    </g>
+    <path d="M738 518 L878 652 L1124 415" fill="none" stroke="#fff" stroke-width="106" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

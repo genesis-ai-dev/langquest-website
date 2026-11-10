@@ -1,6 +1,7 @@
 'use client';
 
 import ClientOnlyHero from '@/components/ClientOnlyHero';
+import LangQuestNextHero from '@/components/LangQuestNextHero';
 import ClientOnlyP2P from '@/components/ClientOnlyP2P';
 import { SubscribeForm } from '@/components/SubscribeForm';
 import { Badge } from '@/components/ui/badge';
@@ -57,15 +58,17 @@ export default function LandingPage() {
   return (
     <WebPageWrapper>
       <main className="flex-1">
+        <LangQuestNextHero />
+        <div id="langquest-original" className="scroll-mt-24" />
         {/* Hero Section with Three.js Globe */}
         <ClientOnlyHero>
           <div className="grid gap-12 lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_480px] items-center">
             {/* CTA */}
             <div className="flex flex-col justify-center space-y-6">
               <div className="space-y-4">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   {t('hero.title')}
-                </h1>
+                </h2>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">
                   {t('hero.subtitle')}
                 </p>
