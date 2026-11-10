@@ -113,6 +113,15 @@
       "title": "Joinim Kmuniti Bilong LangQuest",
       "subtitle": "Yu ken kam pastaim na helpim lukautim ol tokples we i sot long sapot.",
       "notification": "Mipela bai tokim yu taim LangQuest i redi long beta test."
+    },
+    "next": {
+      "eyebrow": "Nupela hap bilong wok",
+      "headline": "Vois bilong yu i stap namel.",
+      "description": "Rekodim, skelim na stretim ol tokples Baibel wantaim tim bilong yu. Wok yet taim intanet i no stap, na sinkronais taim yu konek gen.",
+      "tryNext": "Traim LangQuest Next",
+      "existingApp": "Yusim LangQuest yet",
+      "note": "LangQuest yu save yusim i stap yet daunbilo.",
+      "workflow": "Rekodim · Skelim · Translet wantaim"
     }
   },
   "data_view": {

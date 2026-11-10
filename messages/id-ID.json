@@ -113,6 +113,15 @@
       "title": "Bergabung dengan Komunitas LangQuest",
       "subtitle": "Jadilah yang pertama menggunakan LangQuest dan bantu melestarikan bahasa berdaya dukung rendah.",
       "notification": "Kami akan memberi tahu Anda ketika LangQuest siap untuk pengujian beta."
+    },
+    "next": {
+      "eyebrow": "Bab berikutnya",
+      "headline": "Berpusat pada suara Anda.",
+      "description": "Rekam, tinjau, dan kelola terjemahan lisan Alkitab bersama tim Anda. Tetap bekerja tanpa internet dan sinkronkan saat terhubung kembali.",
+      "tryNext": "Coba LangQuest Next",
+      "existingApp": "Lanjutkan dengan LangQuest",
+      "note": "Aplikasi LangQuest yang ada tetap tersedia di bawah.",
+      "workflow": "Rekam · Tinjau · Terjemahkan bersama"
     }
   },
   "data_view": {

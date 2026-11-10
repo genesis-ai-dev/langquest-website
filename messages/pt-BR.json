@@ -113,6 +113,15 @@
       "title": "Junte-se à Comunidade LangQuest",
       "subtitle": "Esteja entre os primeiros a usar o LangQuest e ajude a preservar línguas com poucos recursos.",
       "notification": "Nós notificaremos você quando o LangQuest estiver pronto para testes beta."
+    },
+    "next": {
+      "eyebrow": "O próximo capítulo",
+      "headline": "Sua voz no centro.",
+      "description": "Grave, revise e organize traduções orais da Bíblia com sua equipe. Continue trabalhando sem conexão e sincronize quando se conectar novamente.",
+      "tryNext": "Experimente LangQuest Next",
+      "existingApp": "Continuar com LangQuest",
+      "note": "O aplicativo atual do LangQuest continua disponível abaixo.",
+      "workflow": "Gravar · Revisar · Traduzir juntos"
     }
   },
   "data_view": {

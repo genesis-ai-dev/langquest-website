@@ -113,6 +113,15 @@
       "title": "Join the LangQuest Community",
       "subtitle": "Be among the first to use LangQuest and help preserve low-resource languages.",
       "notification": "We'll notify you when LangQuest is ready for beta testing."
+    },
+    "next": {
+      "eyebrow": "The next chapter",
+      "headline": "Built around your voice.",
+      "description": "Record, review, and organize oral Bible translations with your team. Keep working offline and sync when you reconnect.",
+      "tryNext": "Try LangQuest Next",
+      "existingApp": "Continue with LangQuest",
+      "note": "The existing LangQuest app remains available below.",
+      "workflow": "Record · Review · Translate together"
     }
   },
   "data_view": {
