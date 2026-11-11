@@ -100,12 +100,12 @@ export default function LangQuestNextSupport() {
           <Section title="More Information">
             <ul className="list-disc pl-6 space-y-2">
               <li>
-                <Link
-                  href="/next/privacy"
+                <a
+                  href="https://next.langquest.org/privacy"
                   className="text-primary hover:underline"
                 >
                   LangQuest Next privacy policy
-                </Link>
+                </a>
               </li>
               <li>
                 <Link
