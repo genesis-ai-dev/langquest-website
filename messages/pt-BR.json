@@ -197,5 +197,120 @@
     "close": "Fechar",
     "previousSlide": "Slide anterior",
     "nextSlide": "Próximo slide"
+  },
+  "nextHome": {
+    "meta": {
+      "title": "LangQuest: translate the Bible out loud",
+      "description": "Listen to the source. Speak the translation into a phone. Get each version heard early. It works for weeks with no signal."
+    },
+    "strip": {
+      "long": "Looking for the previous LangQuest?",
+      "short": "Previous LangQuest?"
+    },
+    "nav": {
+      "home": "LangQuest home",
+      "how": "How it works",
+      "teams": "For teams",
+      "login": "Log in",
+      "getApp": "Get the app"
+    },
+    "hero": {
+      "eyebrow": "For oral Bible translation teams",
+      "title": "Translate the Bible <serif>out loud.</serif>",
+      "lede": "Listen to the source. Speak the translation into a phone. Get each version heard early. It works for weeks with no signal.",
+      "openBrowser": "Open in your browser",
+      "available": "On Android, iPhone and the web. No typing and no alphabet needed.",
+      "photoAlt": "Two people sit on the floor with tea, and one touches a phone that lies between them.",
+      "recording": {
+        "reference": "Matthew 22:23–33",
+        "version": "Version 1",
+        "part": "Part {n}"
+      }
+    },
+    "how": {
+      "kicker": "How it works",
+      "title": "Three steps. One phone.",
+      "listen": {
+        "title": "Listen",
+        "text": "Play the source passage as many times as you need.",
+        "alt": "My Work shows the next passage."
+      },
+      "speak": {
+        "title": "Speak",
+        "text": "Press the red button and speak. Each pause starts a new part.",
+        "alt": "The recorder listens and makes parts."
+      },
+      "heard": {
+        "title": "Get it heard",
+        "text": "Publish a version, so that your team can listen while it is fresh.",
+        "alt": "The passage shows each check in order."
+      }
+    },
+    "offline": {
+      "kicker": "Offline first",
+      "title": "No signal for a month? Keep working.",
+      "text": "Every change is saved on the phone first. When a connection comes, the work syncs. Nothing waits for the internet, and nothing is lost when it goes.",
+      "savedTitle": "Saved first",
+      "savedText": "Each recording stays on the phone until the server has it.",
+      "syncTitle": "Syncs itself",
+      "syncText": "Reach a connection, and the work goes up with no steps.",
+      "joinTitle": "Join by code",
+      "joinText": "Scan a code to join your team. No email is needed.",
+      "badge": "All your work is on this phone",
+      "alt": "The map of books shows progress."
+    },
+    "process": {
+      "kicker": "Your process",
+      "title": "A tool for the process your team already trusts.",
+      "text": "Your organization sets its own checks, roles and reference material. LangQuest does not prescribe one method.",
+      "peer": "Peer check",
+      "community": "Community check",
+      "back": "Back translation",
+      "consultant": "Consultant check",
+      "step": "Step {n}",
+      "alt": "The list of checks for a language."
+    },
+    "teams": {
+      "kicker": "For teams",
+      "title": "Each person sees the work that is theirs.",
+      "translators": {
+        "title": "Translators",
+        "text": "Open the app and see the next passage. Then speak.",
+        "alt": "My Work for a translator."
+      },
+      "reviewers": {
+        "title": "Reviewers",
+        "text": "Listen, say what to change, and approve. Every note stays on the record.",
+        "alt": "A passage and its checks."
+      },
+      "coordinators": {
+        "title": "Coordinators",
+        "text": "Invite people with a code, give roles, and follow each language.",
+        "alt": "An organization and its languages."
+      }
+    },
+    "proof": {
+      "clips": "1,056,030",
+      "clipsText": "audio clips recorded with LangQuest, as of 30 October 2026.",
+      "quote": "Translators in Mexico told us they needed “a box to put things in.”",
+      "quoteText": "So we rebuilt LangQuest from the ground up. Every passage, take, review and version is in one place, on the phone, even offline.",
+      "noteTitle": "Your church decides.",
+      "note": "Recordings you make stay with your organization, and your organization chooses who may use the work. LangQuest makes work and review visible. It does not certify a translation or replace the judgment of the community, translators and consultants."
+    },
+    "end": {
+      "title": "Start with <serif>one passage.</serif>",
+      "text": "Get the app for your phone, or log in with your LangQuest account.",
+      "googlePlayTop": "Get it on",
+      "googlePlay": "Google Play",
+      "appStoreTop": "Download on the",
+      "appStore": "App Store"
+    },
+    "footer": {
+      "privacy": "Privacy",
+      "deleteAccount": "Delete account",
+      "support": "Support",
+      "previous": "Previous LangQuest",
+      "credit": "A contribution from Frontier R&D"
+    }
   }
 }

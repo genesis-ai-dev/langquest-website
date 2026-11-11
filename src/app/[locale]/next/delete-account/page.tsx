@@ -17,6 +17,15 @@ export default function LangQuestNextDeleteAccount() {
     <WebPageWrapper>
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="max-w-3xl mx-auto space-y-12">
+          <p className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
+            Looking for the previous LangQuest app?{' '}
+            <Link
+              href="/account-deletion"
+              className="text-primary underline underline-offset-2"
+            >
+              Its account deletion page is here.
+            </Link>
+          </p>
           <div className="space-y-4 mt-12">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl">
               Delete Your LangQuest Next Account
