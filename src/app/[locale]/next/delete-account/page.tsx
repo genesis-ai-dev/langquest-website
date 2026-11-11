@@ -115,12 +115,12 @@ export default function LangQuestNextDeleteAccount() {
               </ul>
               <p>
                 Copies in backups are deleted when those backups expire. The{' '}
-                <Link
-                  href="/next/privacy"
+                <a
+                  href="https://next.langquest.org/privacy"
                   className="text-primary hover:underline"
                 >
                   LangQuest Next privacy policy
-                </Link>{' '}
+                </a>{' '}
                 has the details.
               </p>
             </div>

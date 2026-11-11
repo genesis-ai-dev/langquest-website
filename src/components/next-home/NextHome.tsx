@@ -370,7 +370,9 @@ export default async function NextHome() {
         <div className={`${styles.wrap} ${styles.footIn}`}>
           <Logo label={t('nav.home')} />
           <nav>
-            <Link href="/next/privacy">{t('footer.privacy')}</Link>
+            <a href="https://next.langquest.org/privacy">
+              {t('footer.privacy')}
+            </a>
             <Link href="/next/delete-account">{t('footer.deleteAccount')}</Link>
             <Link href="/next/support">{t('footer.support')}</Link>
             <a href={LEGACY}>{t('footer.previous')}</a>
