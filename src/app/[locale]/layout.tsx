@@ -25,7 +25,10 @@ export const metadata: Metadata = {
     'An app for translating and preserving low-resource languages, especially useful in remote areas with limited internet.',
   icons: {
     icon: '/favicon.ico'
-  }
+  },
+  // Safari's app banner: the original LangQuest app. The LangQuest Next
+  // home page (page.tsx) names its own app instead.
+  itunes: { appId: '6752446665' }
 };
 
 export function generateStaticParams() {
@@ -61,7 +64,6 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <meta name="apple-itunes-app" content="app-id=6752446665" />
         <Script
           defer
           src="https://cloud.umami.is/script.js"

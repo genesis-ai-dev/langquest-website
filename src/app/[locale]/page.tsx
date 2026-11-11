@@ -11,7 +11,12 @@ type Props = { params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'nextHome.meta' });
-  return { title: t('title'), description: t('description') };
+  return {
+    title: t('title'),
+    description: t('description'),
+    // Safari's app banner offers LangQuest Next here, not the original app.
+    itunes: { appId: '6812492008' }
+  };
 }
 
 export default async function HomePage({ params }: Props) {
