@@ -5,7 +5,30 @@ import { createClient } from '@supabase/supabase-js';
 
 const nextIntlMiddleware = createNextIntlMiddleware(routing);
 
+// langquest.org's home page is LangQuest Next. legacy.langquest.org is the
+// same site, but its home page is the original app's (legacy-home). A
+// preview shows that page with ?legacy=1, so it can be tested. Only the
+// home page changes: every other path works the same at both addresses.
+const LEGACY_HOST = 'legacy.langquest.org';
+const LOCALE_HOME = new RegExp(`^/(${routing.locales.join('|')})/?$`);
+
+function legacyHome(request: NextRequest): URL | null {
+  const home = LOCALE_HOME.exec(request.nextUrl.pathname);
+  if (!home) return null;
+  const host = (request.headers.get('host') ?? '').split(':')[0];
+  const asked =
+    process.env.VERCEL_ENV !== 'production' &&
+    request.nextUrl.searchParams.get('legacy') === '1';
+  if (host !== LEGACY_HOST && !asked) return null;
+  const url = request.nextUrl.clone();
+  url.pathname = `/${home[1]}/legacy-home`;
+  return url;
+}
+
 export default async function middleware(request: NextRequest) {
+  const legacy = legacyHome(request);
+  if (legacy) return NextResponse.rewrite(legacy);
+
   console.log('[MIDDLEWARE] Hit. Pathname:', request.nextUrl.pathname);
   console.log('[MIDDLEWARE] Full URL:', request.url);
   console.log(
