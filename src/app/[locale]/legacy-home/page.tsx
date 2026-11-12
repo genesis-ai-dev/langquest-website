@@ -62,6 +62,17 @@ export default function LandingPage() {
   return (
     <WebPageWrapper>
       <main className="flex-1">
+        {/* The original web app moved from app.langquest.org, which is now LangQuest Next (LAN-219). */}
+        <p className="bg-primary/10 px-4 py-3 text-center text-sm">
+          Using the original LangQuest web app? It is now at{' '}
+          <a
+            href="https://legacy-app.langquest.org"
+            className="font-semibold underline underline-offset-4"
+          >
+            legacy-app.langquest.org
+          </a>
+          .
+        </p>
         <LangQuestNextHero />
         <div id="langquest-original" className="scroll-mt-24" />
         {/* Hero Section with Three.js Globe */}
